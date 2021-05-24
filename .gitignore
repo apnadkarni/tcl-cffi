@@ -52,21 +52,11 @@ Mkfile.old
 dkms.conf
 
 # PROJECT specific
-dyncall/**
 generic/NDDocs/**
 win/Release**
 versions.vc
 build*/**
-dist/**
+external-libs/**
 autom4te.cache
 
-generic/NDConfig/Working Data/CodeDB.nd
-generic/NDConfig/Working Data/Comments.nd
-generic/NDConfig/Working Data/Files.nd
-generic/NDConfig/Working Data/Languages.nd
-generic/NDConfig/Working Data/Parser.nd
-generic/NDConfig/Working Data/Project.nd
-generic/NDConfig/Working Data/SearchIndex.nd
-generic/NDConfig/Working Data/Output/BuildState.nd
-generic/NDConfig/Working Data/Output/Config.nd
 win/build.bat

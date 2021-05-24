@@ -24,7 +24,7 @@ Then run commands as shown in the example below for a 64-bit build.
 ```
 D:\src\dyncall>mkdir build-msvc-x64
 D:\src\dyncall>cd build-msvc-x64
-D:\src\dyncall\build-msvc-x64>cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=d:\src\tcl-cffi\external-libs\x64 -G"NMake Makefiles" ..
+D:\src\dyncall\build-msvc-x64>cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=d:\src\tcl-cffi\external-libs\win\x64 -G"NMake Makefiles" ..
 ...output elided...
 D:\src\dyncall\build-msvc-x64>cd ..
 D:\src\dyncall>cmake --build build-msvc-x64 --config Release
@@ -33,15 +33,16 @@ D:\src\dyncall>cmake --build build-msvc-x64 --config Release --target install
 ```
 
 This will build and install the `dyncall` headers and libraries under the specified
-install path.
+path `d:\src\tcl-cffi\external-libs\win\x64`. You can of course choose a different
+path as long as the same is specified for the `cffi` build below
 
 The `cffi` package can now be built using the standard `nmake` based build system
 for Tcl extensions. From within the `win` subdirectory in the `cffi` source
 distribution, run the following commands to build and install the package.
 
 ```
-nmake /f makefile.vc INSTALLDIR=d:\tcl\debug\x64 DYNCALLDIR=d:\src\tcl-dyncall\dist\x64
-nmake /f makefile.vc INSTALLDIR=d:\tcl\debug\x64 DYNCALLDIR=d:\src\tcl-dyncall\dist\x64 install
+nmake /f makefile.vc INSTALLDIR=d:\tcl\debug\x64 DYNCALLDIR=d:\src\tcl-cffi\external-libs\win\x64
+nmake /f makefile.vc INSTALLDIR=d:\tcl\debug\x64 DYNCALLDIR=d:\src\tcl-cffi\external-libs\win\x64 install
 ```
 
 Note the path to the `dyncall` *installation* directory has to be specified in
@@ -53,11 +54,10 @@ Again, the first step is to build `dyncall` using one of the prescribed methods
 in the `dyncall` documentation. For example, using the `configure` script, from
  the top level directory of the distribution, run the following commands in a shell.
 
-
 ```
 $ mkdir build-ubuntu-x64
 $ cd build-ubuntu-x64
-$ ../configure --prefix=/mnt/d/src/tcl-dyncall/dist/ubuntu/x64
+$ ../configure --prefix=/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64
 $ make
 $ make install
 ```
@@ -70,7 +70,7 @@ The `cffi` package can then be built like any standard TEA based Tcl extension.
 ```
 $ mkdir build-ubuntu-x64
 $ cd build-ubuntu-x64
-$ LDFLAGS=-L/mnt/d/src/tcl-dyncall/dist/ubuntu/x64 ../configure --enable-64bit
+$ LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64 ../configure --enable-64bit
 $ make
 $ make install
 ```
