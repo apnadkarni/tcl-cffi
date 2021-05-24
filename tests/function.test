@@ -1,0 +1,1008 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains tests for cffi::Dyncall pertaining to definition and
+# invocation of functions.
+
+source common.tcl
+
+namespace eval ${NS}::test {
+    cffi::Dyncall create testDll $testDllPath
+    testDll function getEinvalString void {buf {chars[1000] out}}
+    variable einvalMessage
+    getEinvalString einvalMessage
+}
+
+# Function definition tests
+
+namespace eval ${NS}::test {
+
+    testnumargs function "testDll function" "NAME RETURNTYPE PARAMDEFS" ""
+
+    test function-noargs-0 {Basic function definition} -cleanup {
+        rename noargs {}
+    } -body {
+        testDll function noargs int {}
+        noargs
+    } -result 42
+
+    test function-noargs-error-0 {Basic function definition - wrong number of args} -cleanup {
+        rename noargs {}
+    } -body {
+        testDll function noargs int {}
+        list [catch {noargs 0} result] $result $::errorCode
+    } -result [list  1 {Syntax: noargs} {cffi ERROR {Syntax: noargs}}]
+
+    test function-alias-0 {Function alias} -cleanup {
+        rename noargs-alias {}
+    } -body {
+        testDll function {noargs noargs-alias} int {}
+        list [noargs-alias] [catch {noargs} result] $result
+    } -result [list 42 1 {invalid command name "noargs"}]
+
+    test function-alias-error-0 {Function alias - wrong args} -cleanup {
+        rename noargs-alias {}
+    } -body {
+        testDll function {noargs noargs-alias} int {}
+        list [catch {noargs-alias 0} result] $result $::errorCode
+    } -result [list  1 {Syntax: noargs-alias} {cffi ERROR {Syntax: noargs-alias}}]
+
+    test function-alias-error-1 {Function alias - invalid alias} -body {
+        list [catch {testDll function {noargs noargs-alias extra} int {}} result] $result $errorCode
+    } -result [list 1 {Invalid value "noargs noargs-alias extra". Empty or invalid function name specification.} {cffi INVALID_VALUE {Invalid value "noargs noargs-alias extra". Empty or invalid function name specification.}}]
+
+    test function-multiargs-0 {Multiple parameter function} -cleanup {
+        rename twoargs {}
+    } -body {
+        testDll function twoargs int {a int b int}
+        twoargs 1 2
+    } -result 3
+
+    test function-multiargs-error-0 {Multiple parameter function - no args} -cleanup {
+        rename twoargs {}
+    } -body {
+        testDll function twoargs int {a int b int}
+        list [catch twoargs result] $result $::errorCode
+    } -result [list  1 {Syntax: twoargs a b} {cffi ERROR {Syntax: twoargs a b}}]
+
+    test function-multiargs-error-1 {Multiple parameter function - one args} -cleanup {
+        rename twoargs {}
+    } -body {
+        testDll function twoargs int {a int b int}
+        list [catch {twoargs 0} result] $result $::errorCode
+    } -result [list  1 {Syntax: twoargs a b} {cffi ERROR {Syntax: twoargs a b}}]
+
+    test function-multiargs-error-2 {Multiple parameter function - extra args} -cleanup {
+        rename twoargs {}
+    } -body {
+        testDll function twoargs int {a int b int}
+        list [catch {twoargs 0 0 0} result] $result $::errorCode
+    } -result [list  1 {Syntax: twoargs a b} {cffi ERROR {Syntax: twoargs a b}}]
+
+    test function-namespace-0 {Function in global namespace} -cleanup {
+        rename ::noargs {}
+    } -body {
+        uplevel #0 [list ${NS}::test::testDll function noargs int {}]
+        list [info commands ::noargs] [::noargs]
+    } -result [list ::noargs 42]
+
+    test function-namespace-1 {Function in explicit namespace} -cleanup {
+        namespace delete ${NS}::test::temp
+    } -body {
+        namespace eval ${NS}::test::temp [list ${NS}::test::testDll function noargs int {}]
+        ${NS}::test::temp::noargs
+    } -result 42
+
+    test function-namespace-2 {Function alias in explicit namespace} -cleanup {
+        namespace delete ${NS}::test::temp
+    } -body {
+        namespace eval ${NS}::test::temp [list ${NS}::test::testDll function {noargs noargs-alias} int {}]
+        ${NS}::test::temp::noargs-alias
+    } -result 42
+
+    test function-error-0 {Missing function} -body {
+        list [catch {testDll function nosuchfunction int {}} result] $result $::errorCode
+    } -result {1 {Symbol "nosuchfunction" not found or inaccessible. } {cffi NOT_FOUND {Symbol "nosuchfunction" not found or inaccessible. }}}
+
+    test stdcall-0 {stdcall} -body {
+        testDll stdcall stdcalltest double {a double b double}
+        stdcalltest 1 2
+    } -result 0.5
+
+    test functions-0 {Multiple functions} -cleanup {
+        rename onearg {}
+        rename twoargs-alias {}
+    } -body {
+        testDll functions {
+            onearg int {a int}
+            {twoargs twoargs-alias} int {a int b int}
+        }
+        list [onearg 2] [twoargs-alias 1 2] [catch {twoargs 1 2}] [catch {uplevel #0 onearg 0}]
+    } -result {-2 3 1 1}
+
+    test functions-1 {Multiple functions in namespace} -setup {
+    } -cleanup {
+        namespace delete ${NS}::test::temp
+    } -body {
+        namespace eval ${NS}::test::temp {
+            ${NS}::test::testDll functions {
+                onearg int {a int}
+                {twoargs twoargs-alias} int {a int b int}
+            }
+        }
+        list [${NS}::test::temp::onearg 2] [${NS}::test::temp::twoargs-alias 1 2]
+    } -result {-2 3}
+
+    test functions-2 {Multiple functions - empty} -body {
+        testDll functions {}
+    } -result {}
+
+    test functions-error-0 {Multiple functions - invalid count} -body {
+        testDll functions {onearg}
+    } -result {Invalid value "onearg". Incomplete function definition list.} -returnCodes error
+
+    test stdcalls-0 {Multiple stdcalls} -cleanup {
+        rename stdcalltest {}
+        rename stdcall-alias {}
+    } -body {
+        testDll stdcalls {
+            stdcalltest double {a double b double}
+            {stdcalltest stdcall-alias} double {a double b double}
+        }
+        list [stdcalltest 1.0 2] [stdcall-alias 1 4.0] [catch {uplevel #0 stdcalltest 1 2}]
+    } -result {0.5 0.25 1}
+
+    # Basic type conversion to test input parameters and return types
+
+    foreach type [linsert $numericTypes end string] {
+        # Define functions for number to number
+        foreach to_type $numericTypes {
+            testDll function ${type}_to_${to_type} $to_type [list param $type]
+        }
+        testDll function ${type}_to_void void [list param $type]
+        test ${type}_to_void "void ($type)" -body {
+            ${type}_to_void 0
+        } -result ""
+        foreach to_type $intTypes {
+            test ${type}_to_${to_type}-0 "$to_type ($type = 0)" -body {
+                ${type}_to_${to_type} 0
+            } -result 0
+        }
+        foreach to_type $realTypes {
+            test ${type}_to_${to_type}-0 "$to_type ($type = 0)" -body {
+                ${type}_to_${to_type} 0
+            } -result 0.0
+        }
+    }
+
+    foreach to_type $intTypes {
+        testDll function pointer_to_$to_type $to_type [list param {pointer unsafe}]
+        testDll function [list string_to_$to_type chars_to_$to_type] $to_type [list param {chars[20]}]
+        testDll function [list string_to_$to_type bytes_to_$to_type] $to_type [list param {bytes[20]}]
+
+        test pointer_to_${to_type}-0 "$to_type (pointer = 0)" -body {
+            pointer_to_${to_type} 0^
+        } -result 0
+
+        test chars_to_${to_type}-0 "$to_type (chars = 123)" -body {
+            chars_to_${to_type} 123
+        } -result 123
+
+        test bytes_to_${to_type}-0 "$to_type (bytes = 123)" -body {
+            bytes_to_${to_type} 123\0
+        } -result 123
+    }
+
+
+    ###
+    # Parameter tests
+
+    ## Parameter tests - Numeric types
+    foreach type $numericTypes {
+        set val [expr {$type in {float double} ? "1.0" : "1"}]
+
+        set fn ${type}_to_${type}
+        testDll function $fn $type [list param [list $type in]]
+        test function-paramin-$type-0 "$type in params" -body {
+            $fn $val
+        } -result $val
+
+        set fn ${type}_byref
+        testDll function $fn $type [list inparam [list $type byref]]
+        test function-parambyref-$type-0 "$type byref params" -body {
+            $fn $val
+        } -result [expr {2+$val}]
+        testDll function $fn $type [list inparam [list $type in byref]]
+        test function-parambyref-$type-1 "$type in byref params" -body {
+            $fn $val
+        } -result [expr {2+$val}]
+
+        set fn ${type}_out
+        testDll function $fn $type [list inparam [list $type in] outparam [list $type out]]
+        test function-paramout-$type-0 "$type out params" -body {
+            list [$fn $val out] $out
+        } -result [list [expr {2+$val}] [expr {1+$val}]]
+
+        set fn ${type}_inout
+        testDll function $fn $type [list inoutparam [list $type inout]]
+        test function-paraminout-$type-0 "$type inout params" -body {
+            set param $val
+            list [$fn param] $param
+        } -result [list [expr {2+$val}] [expr {1+$val}]]
+
+        foreach attr $pointerAttrs {
+            test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
+                testDll function ${type}_to_void void [list param [list $type $attr]]
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+
+        foreach attr $errorAttrs {
+            if {$type in $intTypes} {
+                set msg $errorMessages(attrparsemode)
+            } else {
+                set msg $errorMessages(attrtype)
+            }
+            test function-param-$type-$attr "$type invalid attribute" -body {
+                testDll function ${type}_to_void void [list param [list $type $attr]]
+            } -result "Invalid value \"$type $attr\". $msg" -returnCodes error
+        }
+    }
+
+    ## Parameter tests - string, unistring
+    foreach {type val} [list string abc unistring "\xe0\xe1\xe2"] {
+        set len [string length $val]
+        set repeat 100000
+        set largelen [expr {[string length $val] * $repeat}]
+        set largeval [string repeat $val $repeat]
+        set fn ${type}_out
+        testDll function $fn int [list input $type output [list $type out]]
+        test function-$type-out-0 "$type out" -body {
+            list [$fn $val [list result [expr {$len+1}]]] $result
+        } -result [list $len $val]
+        test function-$type-out-1 "$type out empty string" -body {
+            list [$fn "" [list result 1]] $result
+        } -result {0 {}}
+        test function-$type-out-2 "$type out large value" -body {
+            list [$fn $largeval [list result [expr {$largelen+1}]]] $result
+        } -result [list $largelen $largeval]
+        test function-$type-out-error-0 "$type out error unspecified buffer size" -body {
+            $fn abc result
+        } -result "Invalid value \"result\". Arguments for out and inout parameters of type string and bytes should be of the form \"varname size\"." -returnCodes error
+
+        set fn ${type}_reverse_inout
+        testDll function $fn int [list param [list $type inout]]
+        test function-$type-inout-0 "$type inout" -body {
+            set result $val
+            list [$fn [list result [expr {$len+1}]]] $result
+        } -result [list $len [string reverse $val]]
+        test function-$type-inout-1 "$type inout empty string" -body {
+            set result ""
+            list [$fn [list result 4]] $result
+        } -result {0 {}}
+        test function-$type-inout-2 "$type inout" -body {
+            set result $largeval
+            list [$fn [list result [expr {$largelen+1}]]] $result
+        } -result [list $largelen [string reverse $largeval]]
+        test function-$type-inout-error-0 "$type inout" -body {
+            set result "abc"
+            $fn [list result 2]
+        } -result "Invalid value.*length is greater than specified maximum buffer size." -returnCodes error -match glob
+
+        foreach attr $pointerAttrs {
+            test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
+                testDll function ${type}_to_void void [list param [list $type $attr]]
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+
+        foreach attr $errorAttrs {
+            if {$type in $intTypes} {
+                set msg $errorMessages(attrparsemode)
+            } else {
+                set msg $errorMessages(attrtype)
+            }
+            test function-param-$type-$attr "$type invalid attribute" -body {
+                testDll function ${type}_to_void void [list param [list $type $attr]]
+            } -result "Invalid value \"$type $attr\". $msg" -returnCodes error
+        }
+    }
+
+    # string.encoding
+    set val \u543e
+    set encoded 8c
+    set bufsize 100000
+    testDll function jis0208_in int [list x string.jis0208]
+    test function-string-encoding-in-0 "string encoding in" -body {
+        jis0208_in \u543e
+    } -result 1
+    test function-string-encoding-in-1 "string encoding in large" -body {
+        jis0208_in [string repeat \u543e [expr {$bufsize/2 - 1}]]
+    } -result [expr {$bufsize/2 - 1}]
+    test function-string-encoding-in-error-1 "string bad encoding" -body {
+        testDll function jis0208_in int [list x string.nosuchencoding]
+    } -result {unknown encoding "nosuchencoding"} -returnCodes error
+
+    testDll function jis0208_out void [list bufsize int buf [list string.jis0208 out]]
+    test function-string-encoded-out-0 "encoded out" -body {
+        jis0208_out 4 [list out 10]
+        set out
+    } -result $val
+    test function-string-encoded-out-1 "encoded out large" -body {
+        jis0208_out $bufsize [list out $bufsize]
+        list [string length $out] $out
+    } -result [list [expr {$bufsize/2-1}] [string repeat $val [expr {$bufsize/2 - 1}]]]
+
+    testDll function jis0208_inout void [list param [list string.jis0208 inout]]
+    test function-string-encoded-inout-0 "encoded inout" -body {
+        set param [string repeat $val 2]
+        jis0208_inout [list param 20]
+        set param
+    } -result [string repeat $val 4]
+
+
+    ## Parameter tests - chars, unichars
+    foreach {type val} [list chars abc chars.utf-8 abc unichars "\xe0\xe1\xe2"] {
+        set len [string length $val]
+        set buflen [expr {$len+1}]
+        set repeat 100000
+        set largelen [expr {[string length $val] * $repeat}]
+        set largebuflen [expr {$largelen+1}]
+        set largeval [string repeat $val $repeat]
+        if {$type in {chars chars.utf-8}} {
+            set fn string_out
+        } else {
+            set fn unistring_out
+        }
+        testDll function $fn int [list input "$type\[$buflen\]" output [list $type\[$buflen\] out]]
+        test function-$type-out-0 "$type out" -body {
+            list [$fn $val result] $result
+        } -result [list $len $val]
+        test function-$type-out-1 "$type out empty string" -body {
+            list [$fn "" result] $result
+        } -result {0 {}}
+        testDll function $fn int [list input "$type\[$largebuflen\]" output [list $type\[$largebuflen\] out]]
+        test function-$type-out-2 "$type out" -body {
+            list [$fn $largeval result] $result
+        } -result [list $largelen $largeval]
+
+        if {$type in {chars chars.utf-8}} {
+            set fn string_reverse_inout
+        } else {
+            set fn unistring_reverse_inout
+        }
+        testDll function $fn int [list param [list $type\[$buflen\] inout]]
+        test function-$type-inout-0 "$type inout" -body {
+            set result $val
+            list [$fn result] $result
+        } -result [list $len [string reverse $val]]
+        test function-$type-inout-1 "$type inout empty string" -body {
+            set result ""
+            list [$fn result] $result
+        } -result {0 {}}
+        test function-$type-inout-error-0 "$type inout" -body {
+            set result "abcd"
+            $fn result
+        } -result "Invalid value*length is greater than specified maximum buffer size." -returnCodes error -match glob
+        testDll function $fn int [list param [list $type\[$largebuflen\] inout]]
+        test function-$type-inout-2 "$type inout" -body {
+            set result $largeval
+            list [$fn result] $result
+        } -result [list $largelen [string reverse $largeval]]
+
+        if {$type in {chars chars.utf-8}} {
+            set fn chars_to_void
+        } else {
+            set fn ${type}_to_void
+        }
+        foreach attr $pointerAttrs {
+            test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
+                testDll function $fn void [list param [list $type\[2\] $attr]]
+            } -result "Invalid value \"{$type\[2\]} $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+
+        foreach attr $errorAttrs {
+            if {$type in $intTypes} {
+                set msg $errorMessages(attrparsemode)
+            } else {
+                set msg $errorMessages(attrtype)
+            }
+            test function-param-$type-$attr "$type invalid attribute" -body {
+                testDll function $fn void [list param [list $type\[2\] $attr]]
+            } -result "Invalid value \"{$type\[2\]} $attr\". $msg" -returnCodes error
+        }
+    }
+
+    # chars.encoding
+    set val \u543e
+    set encoded 8c
+    set bufsize 100000
+    testDll function jis0208_in int [list x chars.jis0208\[$bufsize\]]
+    test function-chars-encoding-in-0 "chars encoding in" -body {
+        jis0208_in \u543e
+    } -result 1
+    test function-chars-encoding-in-1 "chars encoding in large" -body {
+        jis0208_in [string repeat \u543e [expr {$bufsize/2 - 1}]]
+    } -result [expr {$bufsize/2 - 1}]
+    test function-chars-encoding-in-error-0 "chars encoding in large overflow" -body {
+        jis0208_in [string repeat \u543e [expr {$bufsize/2}]]
+    } -result "Invalid value*String length is greater than specified maximum buffer size." -returnCodes error -match glob
+    test function-chars-encoding-in-error-1 "chars bad encoding" -body {
+        testDll function jis0208_in int [list x chars.nosuchencoding\[10\]]
+    } -result {unknown encoding "nosuchencoding"} -returnCodes error
+
+    testDll function jis0208_out void [list bufsize int buf [list chars.jis0208\[$bufsize\] out]]
+    test function-chars-encoded-out-0 "encoded out" -body {
+        jis0208_out 4 out
+        set out
+    } -result $val
+    test function-chars-encoded-out-1 "encoded out large" -body {
+        jis0208_out $bufsize out
+        set out
+    } -result [string repeat $val [expr {$bufsize/2 - 1}]]
+
+    testDll function jis0208_inout void [list param [list chars.jis0208\[20\] inout]]
+    test function-chars-encoded-inout-0 "encoded inout" -body {
+        set param [string repeat $val 2]
+        jis0208_inout param
+        set param
+    } -result [string repeat $val 4]
+
+    ## Parameter tests - bytes
+
+    set val \x01\x02\x03
+    set len [string length $val]
+    set largeval [string repeat $val $repeat]
+    set largelen [string length $largeval]
+    test function-bytes-out-0 "bytes out" -setup {
+        testDll function bytes_out void [list n int input bytes\[$len\] output [list bytes\[$len\] out]]
+    } -body {
+        bytes_out $len $val out
+        set out
+    } -result $val
+    test function-bytes-out-1 "bytes out large" -setup {
+        testDll function bytes_out void [list n int input bytes\[$largelen\] output [list bytes\[$largelen\] out]]
+    } -body {
+        bytes_out $largelen $largeval out
+        set out
+    } -result $largeval
+
+    test function-bytes-inout-0 "bytes inout" -setup {
+        testDll function bytes_inout void [list n int output [list bytes\[$len\] inout]]
+    } -body {
+        set out $val
+        bytes_inout $len out
+        set out
+    } -result [string reverse $val]
+    test function-bytes-inout-1 "bytes inout large" -setup {
+        testDll function bytes_inout void [list n int output [list bytes\[$largelen\] inout]]
+    } -body {
+        set out $largeval
+        bytes_inout $largelen out
+        set out
+    } -result [string reverse $largeval]
+    test function-bytes-inout-error-0 "bytes inout buffer size error" -setup {
+        testDll function bytes_inout void [list n int output [list bytes\[1\] inout]]
+    } -body {
+        set out $val
+        bytes_inout 1 out
+    } -result "Invalid value. Byte array length is greater than specified maximum buffer size." -returnCodes error
+
+    ## Parameter tests - binary
+    testDll function bytes_out void [list n int input binary output [list binary out]]
+    test function-binary-out-0 "binary out" -body {
+        bytes_out $len $val [list out $len]
+        set out
+    } -result $val
+    test function-binary-out-1 "binary out large" -body {
+        bytes_out $largelen $largeval [list out $largelen]
+        set out
+    } -result $largeval
+
+    testDll function bytes_inout void [list n int output [list binary inout]]
+    test function-binary-inout-0 "binary inout" -body {
+        set out $val
+        bytes_inout $len [list out $len]
+        set out
+    } -result [string reverse $val]
+
+    ## Parameter tests - pointers
+    test function-pointer-in-0 "pointer in" -setup {
+        testDll function pointer_in int {p pointer}
+        cffi::Struct create TempStruct {i int}
+        set p [TempStruct allocate]
+        TempStruct tonative $p [list i 42]
+    } -cleanup {
+        TempStruct free $p
+        TempStruct destroy
+    } -body {
+        pointer_in $p
+    } -result 42
+
+    test function-pointer-out-0 "pointer out" -setup {
+        testDll function pointer_out void {p {pointer out}}
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        pointer_out p
+        list [cffi::pointer isvalid $p] [binary scan [cffi::memory tobinary $p 4] n val] $val
+    } -result [list 1 1 99]
+
+    test function-pointer-inout-0 "pointer inout" -setup {
+        testDll function pointer_incr void {p {pointer inout}}
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory allocate 4]
+        set p2 $p
+        pointer_incr p2
+        set addr [cffi::pointer address $p]
+        set addr2 [cffi::pointer address $p2]
+        list [cffi::pointer dispose $p2] [expr {$addr+1 == $addr2}]
+    } -result [list {} 1]
+
+    test function-pointer-byref-0 "pointer byref" -setup {
+        testDll function pointer_byref {pointer unsafe} {p {pointer byref}}
+        set p [memory allocate 1]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p2 [pointer_byref $p]
+        expr {$p == $p2}
+    } -result 1
+
+    # pointer param safety attributes
+    test function-pointer-param-safety-0 "pointer safe to unsafe" -setup {
+        cffi::pointer safe 1^
+    } -cleanup {
+        cffi::pointer dispose 1^
+    } -body {
+        testDll function pointer_noop void {p {pointer unsafe}}
+        pointer_noop 1^
+    } -result ""
+
+    test function-pointer-param-safety-1 "pointer unsafe to safe" -body {
+        testDll function pointer_noop void {p pointer}
+        pointer_noop 1^
+    } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+
+    test function-pointer-param-safety-2 "pointer unsafe to unsafe" -body {
+        testDll function pointer_noop void {p {pointer unsafe}}
+        pointer_noop 1^
+    } -result ""
+
+    test function-pointer-param-safety-3 "pointer unsafe to counted" -body {
+        testDll function pointer_noop void {p {pointer counted}}
+        pointer_noop 1^
+    } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+
+    test function-pointer-param-safety-4 "pointer unsafe dispose" -body {
+        testDll function pointer_noop void {p {pointer dispose}}
+        pointer_noop 1^
+    } -result "Pointer [makeptr 1] is not registered." -returnCodes error -match glob
+
+    test function-pointer-param-safety-5 "pointer unsafe dispose conflict" -body {
+        testDll function pointer_noop void {p {pointer dispose unsafe}}
+    } -result {Invalid value "pointer dispose unsafe". Type declaration has repeated or conflicting attributes.} -returnCodes error
+
+    test function-pointer-param-safety-6 "pointer unsafe counted conflict" -body {
+        testDll function pointer_noop void {p {pointer counted unsafe}}
+    } -result {Invalid value "pointer counted unsafe". Type declaration has repeated or conflicting attributes.} -returnCodes error
+
+    test function-pointer-param-safety-7 "pointer counted" -setup {
+        cffi::pointer counted 1^
+    } -body {
+        testDll function pointer_noop void {p {pointer counted}}
+        pointer_noop 1^
+        pointer_noop 1^; # Should not increase reference count when passed as parameter
+        list [cffi::pointer isvalid 1^] [cffi::pointer dispose 1^] [cffi::pointer isvalid 1^]
+    } -result {1 {} 0}
+
+    test function-pointer-param-safety-8 "pointer safe dispose" -setup {
+        cffi::pointer safe 1^
+    } -body {
+        testDll function pointer_noop void {p {pointer dispose}}
+        list [pointer_noop 1^] [cffi::pointer isvalid 1^]
+    } -result {{} 0}
+
+    test function-pointer-param-safety-9 "pointer counted dispose" -setup {
+        cffi::pointer counted 1^
+        cffi::pointer counted 1^
+    } -body {
+        testDll function pointer_noop void {p {pointer dispose counted}}
+        list [pointer_noop 1^] [cffi::pointer isvalid 1^] [pointer_noop 1^] [cffi::pointer isvalid 1^]
+    } -result {{} 1 {} 0}
+
+    # pointer tags
+    test function-pointer-param-tag-0 "pointer tag safe" -setup {
+        testDll function pointer_noop void {p pointer.TAG}
+        cffi::pointer safe 1^TAG
+    } -cleanup {
+        cffi::pointer dispose 1^TAG
+    } -body {
+        pointer_noop 1^TAG
+    } -result ""
+
+    test function-pointer-param-tag-1 "pointer tag unsafe" -body {
+        testDll function pointer_noop void {p {pointer.TAG unsafe}}
+        pointer_noop 1^TAG
+    } -result ""
+
+    test function-pointer-param-tag-2 "pointer tag safe - wrong type" -body {
+        testDll function pointer_noop void {p pointer.TAG}
+        pointer_noop 1^TAG2
+    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+
+    test function-pointer-param-tag-3 "pointer tag unsafe - wrong type" -body {
+        testDll function pointer_noop void {p {pointer.TAG unsafe}}
+        pointer_noop 1^TAG2
+    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+
+    test function-pointer-param-tag-4 "pointer tag counted" -setup {
+        testDll function pointer_noop void {p {pointer.TAG counted}}
+        cffi::pointer counted 1^TAG
+    } -cleanup {
+        cffi::pointer dispose 1^TAG
+    } -body {
+        pointer_noop 1^TAG
+    } -result ""
+
+    test function-pointer-param-tag-5 "pointer tag counted - wrong type" -body {
+        testDll function pointer_noop void {p {pointer.TAG counted}}
+        pointer_noop 1^TAG2
+    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+
+    # tag dispose
+    test function-pointer-param-tag-6 "pointer tag dispose" -setup {
+        testDll function pointer_noop void {p {pointer.TAG dispose}}
+        cffi::pointer safe 1^TAG
+    } -body {
+        list [pointer_noop 1^TAG] [cffi::pointer isvalid 1^TAG]
+    } -result [list {} 0]
+
+    test function-pointer-param-tag-7 "pointer tag dispose - wrong type" -body {
+        testDll function pointer_noop void {p {pointer.TAG dispose}}
+        pointer_noop 1^TAG2
+    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+
+    test function-pointer-param-tag-8 "pointer tag safe passed to untagged" -setup {
+        testDll function pointer_noop void {p pointer}
+        cffi::pointer safe 1^TAG
+    } -cleanup {
+        cffi::pointer dispose 1^TAG
+    } -body {
+        pointer_noop 1^TAG
+    } -result ""
+
+    test function-pointer-param-tag-9 "pointer untagged safe passed to tagged" -setup {
+        testDll function pointer_noop void {p pointer.TAG}
+        cffi::pointer safe 1^
+    } -cleanup {
+        cffi::pointer dispose 1^
+    } -body {
+        list [catch {pointer_noop 1^} result] $result
+    } -result {1 {Value "1^" has the wrong type. Pointer type mismatch.}}
+
+    test function-pointer-param-tag-10 "pointer tag unsafe passed to untagged" -setup {
+        testDll function pointer_noop void {p {pointer unsafe}}
+    } -body {
+        pointer_noop 1^TAG
+    } -result ""
+
+    test function-pointer-param-tag-11 "pointer untagged unsafe passed to tagged" -setup {
+        testDll function pointer_noop void {p {pointer.TAG unsafe}}
+    } -body {
+        list [catch {pointer_noop 1^} result] $result
+    } -result {1 {Value "1^" has the wrong type. Pointer type mismatch.}}
+
+    # Pointer param error attributes
+    foreach attr $errorAttrs {
+        if {$attr in {winerror lasterror}} {
+            set constraints win
+        } else {
+            set constraints {}
+        }
+        if {$attr in {nonzero lasterror errno}} {
+            set msg $errorMessages(attrparsemode)
+        } else {
+            set msg $errorMessages(attrtype)
+        }
+        test function-pointer-param-$attr-0 "pointer invalid attribute" -constraints $constraints -body {
+            testDll function pointer_to_void void [list param [list pointer $attr]]
+        } -result "Invalid value \"pointer $attr\". $msg" -returnCodes error
+    }
+
+    ## Parameter - struct
+    test function-struct-byval-0 "Param struct by value - error" -body {
+        testDll function getTestStruct int {s struct.TestStruct}
+    } -result "Invalid value \"struct.TestStruct\". Parameters of type struct must have the byref attribute." -returnCodes error
+
+    test function-struct-out-0 "Param struct out" -setup {
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+    } -body {
+        getTestStruct s
+        checkTestStruct $s
+    } -result [list ]
+
+    test function-struct-in-0 "Param struct in" -setup {
+        cffi::Struct create ::S {c uchar ll longlong s short}
+        testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
+    } -body {
+        set ll 0x7fffffffffff
+        structCheck [list c 1 ll $ll s 2] 1 $ll 2
+    } -result 1
+
+    test function-struct-inout-0 "Pass struct inout" -setup {
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+        testDll function incrTestStruct void {s {struct.TestStruct inout}}
+    } -body {
+        getTestStruct s
+        incrTestStruct s
+        # TBD - fix this result check for all platforms, including 32-bits
+        set s
+    } -result [expr {$::tcl_platform(platform) eq "windows" ? {c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 56 ull 89 b abc f 101.0 s {c 105} d 121.0} : {c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 72 ull 105 b qrs f 117.0 s {c 121} d 137.0}}] 
+
+    ###
+    # Return type tests
+
+    #+ Numeric return types
+    # Note Numeric returns types without attributes already tested earlier
+    # Only test attributes here
+    foreach type $intTypes {
+        foreach {attr val} {
+            zero 0
+            nonzero 1
+            nonzero -1
+            nonnegative 0
+            nonnegative 1
+            positive 1
+        } {
+            set testnum -1
+            set fn ${type}_to_$type
+            testDll function $fn [list $type $attr] [list param $type]
+            if {$val < 0 && $type in $unsignedIntTypes} continue
+            test function-return-$type-$attr-$val-[incr testnum] "return $type $attr - $val" -setup {
+            } -body {
+                $fn $val
+            } -result $val
+        }
+    }
+    # Error cases
+    foreach type $intTypes {
+        foreach {attr val message} {
+            zero 1 {Function returned non-zero value.}
+            zero -1 {Function returned non-zero value.}
+            nonzero 0 {Function returned zero.}
+            nonnegative -1 {Function returned negative value.}
+            positive 0 {Function returned zero.}
+            positive -1 {Function returned negative value.}
+        } {
+            set testnum -1
+            set fn ${type}_to_$type
+            testDll function $fn [list $type $attr] [list param $type]
+            if {$val < 0 && $type in $unsignedIntTypes} continue
+            test function-return-$type-$attr-$val-error-[incr testnum] "return $type $attr - $val" -setup {
+            } -body {
+                $fn $val
+            } -result "Invalid value \"$val\". $message" -returnCodes error
+        }
+
+        test function-return-$type-array-0 "return type $type\[\]" -body {
+            testDll function ${type}_to_${type} $type\[2\] {}
+        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
+        foreach attr $paramAttrs {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function ${type}_to_${type} [list $type $attr] {}
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
+        }
+        foreach attr $pointerAttrs {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function ${type}_to_${type} [list $type $attr] {}
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+    }
+
+    # errno, lasterror, winerror
+    foreach {attr val} {
+        zero 1
+        zero -1
+        nonzero 0
+        nonnegative -1
+        positive 0
+        positive -1
+    } {
+        test function-return-errno-$attr-$val-0 "return errno" -setup {
+            testDll function setErrno [list int $attr errno] {val int}
+        } -body {
+            list [catch {setErrno $val} result] [string equal $result $einvalMessage]
+        } -result {1 1}
+
+        test function-return-lasterror-$attr-$val-0 "return lasterror" -setup {
+            testDll function setWinError [list int $attr lasterror] {val int}
+        } -constraints win -body {
+            list [catch {setWinError $val} result] $result
+        } -result [list 1 "The data is invalid. "]
+
+        if {$attr eq "zero"} {
+            test function-return-winerror-zero-$val-0 "return zero winerror" -setup {
+                testDll function {int_to_int getWinError} [list int zero winerror] {val int}
+            } -constraints win -body {
+                list [catch {getWinError 0xd} result] $result
+            } -result [list 1 "The data is invalid. "]
+        } else {
+            test function-return-winerror-$attr-$val-0 "return $attr winerror" -constraints win -body {
+                testDll function {int_to_int getWinError} [list int $attr winerror] {val int}
+            } -result "Invalid value \"int $attr winerror\". $errorMessages(attrconflict)" -returnCodes error
+        }
+    }
+
+    # Attributes not permitted for real types
+    foreach type $realTypes {
+        test function-return-$type-array-0 "return type $type\[\]" -body {
+            testDll function ${type}_to_${type} $type\[2\] {}
+        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
+        foreach attr $errorAttrs {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function ${type}_to_${type} [list $type $attr] {}
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+        foreach attr $paramAttrs {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function ${type}_to_${type} [list $type $attr] {}
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
+        }
+        foreach attr $pointerAttrs {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function ${type}_to_${type} [list $type $attr] {}
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+    }
+
+    # Attributes for pointers
+    foreach type {pointer pointer.TAG} {
+        # safe
+        test function-return-$type-safe-0 "return type $type safe" -body {
+            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+        } -result {1 {} 0}
+
+        # counted
+        test function-return-$type-counted-0 "return type $type counted" -cleanup {
+        } -body {
+            testDll function pointer_to_pointer [list $type counted] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            set p2 [pointer_to_pointer 1^]
+            list [string equal $p $p2] \
+                [cffi::pointer isvalid $p] \
+                [cffi::pointer dispose $p] \
+                [cffi::pointer dispose $p2] \
+                [cffi::pointer isvalid $p]
+        } -result {1 1 {} {} 0}
+
+        # unsafe
+        test function-return-$type-unsafe-0 "return type $type unsafe" -body {
+            testDll function pointer_to_pointer [list $type unsafe] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p]
+        } -result 0
+
+        # Pointer error attributes
+        # safe
+        test function-return-$type-nonzero-0 "return type $type nonzero" -body {
+            testDll function pointer_to_pointer [list $type nonzero] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+        } -result {1 {} 0}
+        test function-return-$type-nonzero-null-0 "return type $type nonzero - null" -body {
+            testDll function pointer_to_pointer [list $type nonzero] {p {pointer unsafe}}
+            pointer_to_pointer 0^
+        } -result "Invalid value *. Function returned NULL pointer." -returnCodes error -match glob
+        test function-return-$type-nonzero-errno-0 "return type $type nonzero - errno" -body {
+            testDll function pointer_errno [list $type nonzero errno] {p {pointer unsafe}}
+            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+        } -result {1 1}
+        test function-return-$type-nonzero-lasterror-0 "return type $type nonzero - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type nonzero lasterror] {p {pointer unsafe}}
+            list [catch {pointer_lasterror 0^} result] $result
+        } -result {1 {The data is invalid. }}
+
+        # counted
+        test function-return-$type-counted-nonzero-0 "return type $type counted nonzero" -body {
+            testDll function pointer_to_pointer [list $type counted nonzero] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+        } -result {1 {} 0}
+        test function-return-$type-counted-nonzero-null-0 "return type $type counted nonzero - null" -body {
+            testDll function pointer_to_pointer [list $type counted nonzero] {p {pointer unsafe}}
+            pointer_to_pointer 0^
+        } -result "Invalid value *. Function returned NULL pointer." -returnCodes error -match glob
+        test function-return-$type-counted-nonzero-errno-0 "return type $type counted-nonzero - errno" -body {
+            testDll function pointer_errno [list $type nonzero counted errno] {p {pointer unsafe}}
+            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+        } -result {1 1}
+        test function-return-$type-counted-nonzero-lasterror-0 "return type $type counted-nonzero - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type counted nonzero lasterror] {p {pointer unsafe}}
+            list [catch {pointer_lasterror 0^} result] $result
+        } -result {1 {The data is invalid. }}
+
+        # unsafe
+        test function-return-$type-unsafe-nonzero-0 "return type $type unsafe nonzero" -body {
+            testDll function pointer_to_pointer [list $type unsafe nonzero] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            cffi::pointer isvalid $p
+        } -result 0
+        test function-return-$type-unsafe-nonzero-null-0 "return type $type unsafe nonzero - null" -body {
+            testDll function pointer_to_pointer [list $type unsafe nonzero] {p {pointer unsafe}}
+            pointer_to_pointer 0^
+        } -result "Invalid value *. Function returned NULL pointer." -returnCodes error -match glob
+        test function-return-$type-unsafe-nonzero-errno-0 "return type $type unsafe-nonzero - errno" -body {
+            testDll function pointer_errno [list $type nonzero unsafe errno] {p {pointer unsafe}}
+            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+        } -result {1 1}
+        test function-return-$type-unsafe-nonzero-lasterror-0 "return type $type unsafe-nonzero - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type unsafe nonzero lasterror] {p {pointer unsafe}}
+            list [catch {pointer_lasterror 0^} result] $result
+        } -result {1 {The data is invalid. }}
+
+        # Error checks that are not valid for pointers
+        foreach attr {zero nonnegative positive} {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        }
+        set attr winerror
+        test function-return-$type-${attr}-0 "return type $type $attr" -constraints win -body {
+            testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
+        } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+
+
+        # Error cases
+        test function-return-$type-safe-dup-0 "return type $type safe - dup" -cleanup {
+            cffi::pointer dispose $p
+        } -body {
+            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [catch {pointer_to_pointer 1^} result] [cffi::pointer isvalid $p] $result
+        } -result [list 1 1 1 "Registered pointer already exists. "]
+
+        test function-return-$type-array-0 "return type $type\[\]" -body {
+            testDll function pointer_to_pointer $type\[2\] {}
+        } -result "Invalid value \"$type\[2\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+        test function-return-$type-dispose-0 "return type $type dispose" -body {
+            testDll function pointer_to_pointer [list $type dispose] {p {pointer unsafe}}
+        } -result "Invalid value \"$type dispose\". $errorMessages(attrparsemode)" -returnCodes error
+        foreach attr $paramAttrs {
+            test function-return-$type-${attr}-0 "return type $type $attr" -body {
+                testDll function pointer_to_pointer [list $type unsafe $attr] {p {pointer unsafe}}
+            } -result "Invalid value \"$type unsafe $attr\". $errorMessages(attrparsemode)" -returnCodes error
+        }
+
+
+    }
+
+
+    # Other return types are not permitted - test here. Note it does not
+    # matter that actual C prototype does not match what we define here since
+    # the definition should barf anyways.
+    foreach type {string unistring binary} {
+        test function-return-$type-0 "Return type $type" -body {
+            # Prototype does not match C. Does not have to!
+            testDll function ${type}_out $type {}
+        } -result "Invalid value \"$type\". $errorMessages(typeparsemode)" -returnCodes error
+    }
+    foreach type {chars unichars bytes} {
+        test function-return-$type-0 "Return type $type" -body {
+            # Prototype does not match C. Does not have to!
+            testDll function string_out ${type}\[2\] {}
+        } -result "Invalid value \"$type\[2\]\". $errorMessages(typeparsemode)" -returnCodes error
+    }
+    test function-return-struct-0 "Return type struct" -body {
+        # Prototype does not match C. Does not have to!
+        testDll function getTestStruct struct.TestStruct {}
+    } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode)" -returnCodes error
+
+}
+
+${NS}::test::testDll destroy
+
+::tcltest::cleanupTests
+namespace delete ${NS}::test

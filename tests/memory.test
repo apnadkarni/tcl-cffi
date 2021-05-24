@@ -1,0 +1,71 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# Tests for the cffi::memory command
+
+source common.tcl
+
+# NOTE: use fully qualified command name since Tcl also has a
+# command called memory
+
+namespace eval cffi::test {
+    testsubcmd ::cffi::memory
+    testnumargs memory-allocate "cffi::memory allocate" "SIZE" "?TYPETAG?"
+
+    test memory-allocate-0 {Allocate 1 byte untagged} -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory allocate 1]
+    } -result {^0x[[:xdigit:]]{8,16}\^$} -match regexp
+
+    test memory-allocate-1 {Allocate 1 byte tagged} -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory allocate 1 TAG]
+    } -result {^0x[[:xdigit:]]{8,16}\^TAG$} -match regexp
+
+    test memory-allocate-error-0 {Allocate zero bytes} -body {
+        list [catch {cffi::memory allocate 0} result] $result $::errorCode
+    } -result {1 {Value 0 not in range. Must be within [1,2147483647].} {cffi RANGE {Value 0 not in range. Must be within [1,2147483647].}}}
+
+    test memory-allocate-error-1 {Missing args} -body {
+        list [catch {cffi::memory allocate} result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TYPETAG?"} {TCL WRONGARGS}}
+
+    test memory-allocate-error-2 {Extra args} -body {
+        list [catch {cffi::memory allocate 0 TAG extra} result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TYPETAG?"} {TCL WRONGARGS}}
+
+    ###
+
+    testnumargs memory-free "cffi::memory free" "POINTER"
+
+    test memory-free-0 {free null pointer} -body {
+        cffi::memory free 0^
+    } -result ""
+
+    test memory_free-error-0 {Double free} -setup {
+        set p [cffi::memory allocate 1]
+        cffi::memory free $p
+    } -body {
+        list [catch {cffi::memory free $p} result] $result $::errorCode
+    } -result {1 {Pointer * is not registered.} {cffi ERROR {Pointer * is not registered.}}} -match glob
+
+    ###
+
+    testnumargs memory-tobinary "cffi::memory tobinary" "POINTER SIZE"
+    testnumargs memory-frombinary "cffi::memory frombinary" "BINARY" "?TYPETAG?"
+
+    test memory-binary-0 {To/From binary} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        binary scan [cffi::memory tobinary $p [string length $bin]] d3 bin2
+        set bin2
+    } -result {1.0 2.0 3.0}
+}
+
+::tcltest::cleanupTests
+namespace delete cffi::test

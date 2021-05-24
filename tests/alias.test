@@ -1,0 +1,214 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# Tests for the cffi::type command
+
+source common.tcl
+
+namespace eval cffi::test {
+    proc testalias {id def result {setup ""}} {
+        set alias [string map {- _} $id]
+        test $id "alias $def" \
+            -setup "cffi::alias delete *; $setup" \
+            -cleanup "cffi::alias delete *" \
+            -body "cffi::alias define $alias {$def}; cffi::type info $alias" \
+            -result $result -match dict
+    }
+
+    testsubcmd ::cffi::alias
+    testnumargs alias-define "cffi::alias define" "ALIAS DEFINITION"
+
+    test alias-define-error-0 "Invalid alias syntax - starting with numeric" -body {
+        cffi::alias define 0alias int
+    } -result "Invalid value \"0alias\". Invalid type alias name syntax." -returnCodes error
+
+    test alias-define-error-1 "Invalid alias syntax - invalid char" -body {
+        cffi::alias define al-ias int
+    } -result "Invalid value \"al-ias\". Invalid type alias name syntax." -returnCodes error
+
+    test alias-define-error-2 "Invalid alias syntax - array" -body {
+        cffi::alias define {xx[2]} int
+    } -result "Invalid value \"xx\[2\]\". Invalid type alias name syntax." -returnCodes error
+
+    test alias-define-error-3 "Invalid alias - built in type" -body {
+        cffi::alias define schar int
+    } -result "Type or alias \"schar\" already exists. " -returnCodes error
+
+    test alias-define-error-4 "Invalid alias - existing" -setup {
+        cffi::alias delete *
+        cffi::alias define X int
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias define X short
+    } -result "Type or alias \"X\" already exists. " -returnCodes error
+
+    test alias-define-error-5 "Invalid alias - nonexisting" -body {
+        cffi::alias define X Y
+    } -result "Invalid value \"Y\". Invalid base type." -returnCodes error
+
+    testalias alias-define-0 "int" "size 4 count 0 alignment 4 definition int"
+    testalias alias-define-1 "double\[2\]" "size 16 count 2 alignment 8 definition {{double\[2\]}}"
+
+    testalias alias-define-nested-0 "nested" "size 4 count 0 alignment 4 definition {int out}" {
+        cffi::alias define nested {int out}
+    }
+    test alias-define-nested-1 "Redefine nested" -setup {
+        cffi::alias define X int
+        cffi::alias define Y X
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias delete X
+        cffi::alias define X float
+        cffi::alias body Y
+    } -result int
+    test alias-define-nested-2 "Delete nested" -setup {
+        cffi::alias define X int
+        cffi::alias define Y X
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias delete X
+        cffi::alias body Y
+    } -result int
+
+    testalias alias-define-merge-0 "merger nonzero" "size 4 count 0 alignment 4 definition {int nonzero errno}" {
+        cffi::alias define merger {int errno}
+    }
+
+    ###
+    # alias body
+    testnumargs alias-body "cffi::alias body" "ALIAS"
+    test alias-body-0 "alias body" -setup {
+        cffi::alias delete *
+        cffi::alias define X int
+        cffi::alias define Y {X out}
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias body Y
+    } -result "int out"
+
+    ###
+    # alias list
+    testnumargs alias-list "cffi::alias list" "" "?PATTERN?"
+    test alias-list-0 "alias empty list" -setup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias list
+    } -result {}
+
+    test alias-list-1 "alias list" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        lsort [cffi::alias list]
+    } -result {abc abd x}
+
+    test alias-list-2 "alias list exact" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias list abc
+    } -result abc
+
+    test alias-list-3 "alias list glob" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        lsort [cffi::alias list ab*]
+    } -result {abc abd}
+
+    test alias-list-4 "alias list nomatch" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        lsort [cffi::alias list z*]
+    } -result {}
+
+    ###
+    # alias delete
+    testnumargs alias-delete "cffi::alias delete" "PATTERN"
+    test alias-delete-0 "alias delete glob" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias delete abd
+        lsort [cffi::alias list ab*]
+    } -result {abc}
+
+    test alias-delete-1 "alias delete glob" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias delete ab*
+        lsort [cffi::alias list]
+    } -result {x}
+
+    test alias-delete-2 "alias delete *" -setup {
+        cffi::alias delete *
+        cffi::alias define abd int
+        cffi::alias define abc float
+        cffi::alias define x string
+    } -body {
+        list [lsort [cffi::alias list]] [cffi::alias delete *] [cffi::alias list]
+    } -result [list {abc abd x} {} {}]
+
+    test alias-delete-error-0 "alias delete - too many arguments" -body {
+        cffi::alias delete X int
+    } -result "wrong # args: should be \"cffi::alias delete PATTERN\"" -returnCodes error
+
+    test alias-delete-error-1 "alias delete - too few arguments" -body {
+        cffi::alias delete
+    } -result "wrong # args: should be \"cffi::alias delete PATTERN\"" -returnCodes error
+
+    ###
+    # alias load
+    # 
+    testnumargs alias-load "cffi::alias load" "ALIASSET"
+    test alias-load-0 "alias load" -setup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias load C
+        lsort [cffi::alias list]
+    } -result "int16_t int32_t int64_t int8_t size_t uint16_t uint32_t uint64_t uint8_t"
+
+    test alias-load-1 "alias load" -setup {
+        cffi::alias delete *
+    } -constraints win -body {
+        cffi::alias load win32
+        lsort [cffi::alias list]
+    } -result "BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPSTR LPVOID LPWSTR LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM"
+
+    test alias-load-error-0 "alias load - unknown set" -body {
+        cffi::alias load xx
+    } -result "Invalid value \"xx\". Must be \"C\" or \"win32\"." -returnCodes error
+
+}
+::tcltest::cleanupTests
+namespace delete cffi::test

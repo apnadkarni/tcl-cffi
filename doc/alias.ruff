@@ -1,0 +1,57 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval ${NS}::alias {
+    proc define {alias_name alias_def} {
+        # Defines a type alias
+        #  alias_name - Name for type alias. Must begin with an alphabetic
+        #   character and may contain alphanumerics and underscore.
+        #  alias_def - definition for the alias
+        #
+        # Creates a new alias.
+        # An error will be raised if a the alias name matches a built-in
+        # type or an existing alias.
+        # The definition may itself be based on an existing alias. In this
+        # case the existing alias is immediately resolved and expanded
+        # as part of the definition so further changes to it are not reflected
+        # in the alias being defined.
+        #
+        # See [Type aliases] for more on type aliases.
+    }
+    proc body {alias_name} {
+        # Returns the resolved body of an alias.
+        #  alias_name - Name of alias to be retrieved.
+    }
+    proc list {{pattern *}} {
+        # Returns a list of aliases matching the specified pattern.
+        #  pattern - pattern to match against aliases
+        # The pattern matching algorithm is the same as that of Tcl's
+        # `string match` command.
+    }
+    proc delete {pattern} {
+        # Deletes type aliases matching a pattern.
+        #  pattern - pattern to match against aliases
+        # The pattern matching algorithm is the same as that of Tcl's
+        # `string match` command.
+        # It is not an error if the pattern does not match any aliasses.
+
+    }
+    proc load {alias_set} {
+        # Loads predefined type aliases.
+        #  alias_set - the alias set to load. Must be `C` or `win32`
+        #
+        # The `C` predefined alias set includes
+        # `int16_t` `int32_t` `int64_t` `int8_t` `size_t` `uint16_t`
+        #   `uint32_t` `uint64_t` `uint8_t`.
+        #
+        # The `win32` predefined alias set includes
+        # `BOOL` `BOOLEAN` `BYTE` `CHAR` `DWORD` `DWORDLONG` `DWORD_PTR`
+        # `HALF_PTR` `HANDLE` `INT` `INT_PTR` `LONG` `LONGLONG` `LONG_PTR`
+        # `LPARAM` `LPSTR` `LPVOID` `LPWSTR` `LRESULT` `SHORT` `SIZE_T`
+        # `SSIZE_T` `UCHAR` `UINT` `UINT_PTR` `ULONG` `ULONGLONG` `ULONG_PTR`
+        # `USHORT` `WORD` `WPARAM`.
+    }
+    namespace export *
+    namespace ensemble create
+}
+

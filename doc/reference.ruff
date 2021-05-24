@@ -1,0 +1,529 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval $NS {
+    # Leading space intentional to match main content below to not confuse ruff
+    variable _ruff_preamble "        This is the reference for the `$::NS` package."
+    append _ruff_preamble " For an introductary usage guide, see the \[Start page\]($::NS.html)."
+    append _ruff_preamble {
+        ## Loading the package
+
+        The package is loaded in standard fashion with `package require`:
+
+            package require dyncall
+    }
+}
+namespace eval Concepts {
+    variable _ruff_preamble {
+
+        ## Type declarations
+
+        Type declarations appear in three different contexts:
+
+        - As the return value from a function
+
+        - As part of a parameter description in a function declaration
+
+        - As part of a field description in a struct
+
+        A type declaration consists of the type itself followed by zero or
+        more annotations that provide further information about the type
+        in that particular context. For example, a parameter may have
+        the `out` annotation to indicate that it is an output parameter
+        for the function. A pointer type declaration may have the `unsafe`
+        annotation to indicate it is not to be checked for validity.
+
+        The annotations that are valid in each context are described in
+        the corresponding sections below.
+
+        ## Data types
+
+        This section describes the various data types supported by the
+        package and their relation to C types. At runtime,
+        the [::cffi::type info], [::cffi::type size] and
+        [::cffi::type count] commands may be used to obtain information
+        about a type.
+
+        ### The void type
+
+        This corresponds to the C `void` type and is only permitted as the
+        return type in a function prototype. Note that the C `void *` type
+        is declared as a [pointer][Pointers] type.
+
+        ### Numeric types
+
+        The following numeric types are supported.
+
+        `void` - C `void`
+        `schar` - C `signed char`
+        `uchar` - C `unsigned char`
+        `short` - C `signed short`
+        `ushort` - C `unsigned short`
+        `int` - C `signed int`
+        `uint` - C `unsigned int`
+        `long` - C `signed long`
+        `ulong` - C `unsigned long`
+        `longlong` - C `signed long long`
+        `ulonglong` - C `unsigned long long`
+        `float` - C `float`
+        `double` - C `double`
+
+        ### Arrays
+
+        Arrays are declared as
+
+            TYPE[N]
+
+        where `N` is a positive integer indicating the number of elements
+        in an array of values of type `TYPE`. At the script level, arrays
+        are represented as Tcl lists.
+
+        ### Pointers
+
+        Pointers are declared in function prototypes or `struct` fields
+        in one of the following forms:
+
+        ````
+        pointer
+        pointer.TAG
+        ````
+
+        The first is the equivalent of a `void*` C pointer. The second form
+        associates the pointer type with a tag.
+
+        #### Pointer tags
+
+        A pointer tag is used to provide
+        for some measure of type safety.
+        Tags are associated with
+        both pointer values and pointer types declared in function prototypes
+        and `struct` fields. The tag attached to a pointer value must match
+        the tag for the `struct` field it is assigned to or the function parameter
+        it is passed as. Otherwise an error is raised.
+
+        Note however that, although similar, pointer tags are orthogonal to the
+        type system. Any tag may be associated with a pointer type or value,
+        irrespective of the underlying C pointer type.
+
+        Tags for pointer types are defined in the corresponding `struct` or
+        function declarations. Pointer values are associated with the tags
+        of the type through which they are created. For example, the pointer
+        returned by a function declared as
+
+            function get_path pointer.PATH {}
+
+        will be tagged with `PATH`. It can then only be assigned to a `struct`
+        field or passed as a parameter if the corresponding pointer type is
+        also tagged as `PATH`.
+
+        There are two exceptions to the above. A field or parameter declared
+        as `pointer` (without a tag) or `pointer.void` reflects a C `void *`
+        pointer and will accept pointers with any tag. Second, the value `0`
+        can be assigned to any pointer type.
+
+        #### Pointer safety
+
+        Pointer type checking via tags does not protect against errors related
+        to invalid pointers, double frees etc. To provide some level of
+        protection against these types of errors, pointers returned from
+        functions, either as return values or through output parameters are by
+        default registered in an internal table. These are referred to as *safe*
+        pointers. Any pointer use is then checked for registration and an
+        error raised if it is not found.
+
+        Pointers that have been registered are unregistered when they are
+        passed to a C function as an argument for a parameter that has been
+        annotate with the `dispose` attribute.
+
+        The following fragment illustrates safe pointers. The fragment assumes a
+        wrapper object `crtl` for the C runtime library has already been
+        created.
+
+        ```
+        % crtl function malloc pointer {sz size_t}
+        % crtl function free void {ptr {pointer dispose}}
+        % set p [malloc 10]
+        0x55dbb8b2ca10^void
+        % free $p
+        % free $p
+        Pointer 0x55dbb8b2ca10 is not registered.
+        ```
+
+        The pointer returned by `malloc` is automatically registered. When
+        the `free` function is invoked, its argument is checked for registration.
+        Moreover, because the `free` function's `ptr` parameter has the
+        `dispose` attribute, it is unregistered before the function is called.
+        The second call to `free` therefore fails as desired.
+
+        ##### Reference counted pointers
+
+        A safe pointer cannot be registered if it is already registered.
+        However, some C API's return the same resource pointer multiple
+        times while internally maintaining a reference count. Examples are
+        `dlopen` on Linux or `LoadLibrary` and COM API's on Windows.
+        Such pointers need to be declared with the `counted` attribute.
+        This works similarly to the default safe pointers except that the
+        same pointer value can be registered multiple times. Correspondingly,
+        the pointer can be accessed until the same number of calls are made
+        to a function that disposes of the pointer. The Linux example
+        below illustrates this.
+
+        ```
+        % crtl function dlopen {pointer counted} {path string flags int}
+        % crtl function dlclose int {dlptr {pointer dispose}}
+        % set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
+        0x7fbfe98a4500^void
+        % set dlptrB [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
+        0x7fbfe98a4500^void
+        % dlclose $dlptrA
+        0
+        % dlclose $dlptrA
+        0
+        % dlclose $dlptrA
+        Pointer 0x7fbfe98a4500 is not registered.
+        ```
+
+        ##### Unsafe pointers
+
+        For those situations where neither safe nor counted pointers are
+        suitable, pointer declarations can be annotated as `unsafe`. Return
+        values from functions and output parameters with this annotation
+        will not be registered. Input parameters with this designation will
+        not be checked for registration. Needless to say, the `unsafe`
+        annotation should be used with care.
+
+        #### Memory operations
+
+        Pointers are ofttimes returned by functions but more often than
+        not the referenced memory has to be allocated and passed in to
+        functions. Some type constructs like strings and structs hide this
+        at the script level but there are times when direct access to
+        the memory content addressed by pointers is desired.
+
+        A set of commands grouped as the `memory` command ensemble provide
+        such functionality. The commands [::cffi::memory allocate] and
+        [::cffi::memory free] provide memory management facilities.
+        Access to the content is available through [::cffi::memory tobinary]
+        and [::cffi::memory frombinary] commands which convert to and from
+        Tcl binary strings.
+
+        ### Strings
+        
+        Strings in C are generally represented in memory as a sequence of null
+        terminated bytes in some specific encoding. They may be declared either
+        as a `char *` or as an array of `char` where the size of the array
+        places a limit on the maximum length.
+
+        At the script level, there can be declared in multiple ways:
+
+        `pointer` - As discussed in the previous section, this is a pointer
+        to raw memory. To access the underlying string, the memory referenced by
+        the pointer has to be read into a Tcl binary string with
+        [::cffi::memory tobinary] and then decoded with the Tcl
+        `encoding convertfrom` command.
+
+        `string.ENCODING` - Values declared using this type are still
+        pointers at the C level but are
+        converted to and from Tcl strings implicitly at the C API interface
+        itself using the specified encoding. If `.ENCODING` is left off,
+        the system encoding is used.
+
+        `unistring` - This is similar to `string.ENCODING` except
+        the values are `Tcl_UniChar*` at the C level and the
+        encoding is implicitly the one used by Tcl for the `Tcl_UniChar` data
+        type.
+
+        `chars.ENCODING` - The value is an array of characters at
+        the C level. The type must always appear as an array, for example,
+        `chars.utf-8[10]` and not as a scalar `chars.utf-8`. In this as well,
+        conversion to and from Tcl strings is implicit using the specified
+        encoding, which again defaults to the system encoding.
+
+        `unichars` - The value is an array of `Tcl_UniChar` characters
+        and follows the same rules as `chars` except that the encoding is
+        always that used by Tcl for the `Tcl_UniChar` type.
+
+        The choice of using `pointer`, `string` (and `unistring`), or `chars`
+        (and `unichars`) depends on the C declaration and context as well as
+        convenience. The `string` and `chars` types are both more convenient and
+        safer to use. But there are some limitations in the contexts they can be
+        used.
+
+        - Within C structs, a field of type character array must be declared
+        as `chars` at the script level. If the field is a `char *`, it may be
+        declared as a `string` if the structure is only read from and never
+        written to (for example, when returned from a function call). If the
+        structure is written to, the field must be a pointer and the memory
+        for the string has to be explicitly managed.
+
+        - Function parameters that are pure input are most conveniently
+        declared as `string`. Function parameters that passed as pointers
+        to output buffers are most conveniently typed as `chars`. In both
+        cases `pointer` can be used as well, but again is less convenient and
+        more error-prone.
+
+        ### Binary strings
+
+        The types `binary` or `bytes` are used to declare a sequence of bytes in memory.
+        The `binary` type is like the `string` type except that the referenced
+        memory is treated as a Tcl binary string (byte array) and not a string
+        of characters. Similarly, the `bytes` type is analogous to the `chars`
+        type except it declares a fixed size array of bytes, not characters.
+        These types are converted between Tcl values and C values with the
+        `Tcl_GetByteArrayFromObj` and `Tcl_NewByteArrayFromObj` functions.
+
+
+        ### Structs
+
+        C structs are defined through the [::cffi::Struct] class. This
+        encapsulates the layout of the struct and provides various methods for
+        manipulation. A structure layout is a list of alternating field name and
+        type declarations. An example of a definition would be
+
+        ```
+        ::cffi::Struct create Point {
+            x int
+            y int
+        }
+        ```
+
+        Once defined, structs can be referenced in function prototypes and
+        in other structs as `struct.STRUCTNAME`, for example `struct.Point`.
+        Note that the struct name is the name of the object without the
+        any leading `::` global namespace prefix.
+
+        C struct values are generally represented as Tcl dictionaries with the
+        struct field names as dictionary keys. Input arguments to function calls
+        for the above `Point` structure need to be supplied as a dictionary with
+        keys `x` and `y`. Conversely, output parameter results are returned as a
+        dictionary of the same form.
+
+        Alternatively, structs can also be manipulated using pointers and
+        explicit encoding and decoding. For example,
+
+        ````
+        % set pPoint [Point encode {x 0 y 0}]
+        0x0000017727DDE050^Point
+        % Point decode $pPoint
+        x 0 y 0
+        % Point free $pPoint
+        ````
+
+        See [::cffi::Struct] for other methods related to allocation,
+        conversion between Tcl binary strings and other utilities.
+
+        ## Type aliases
+
+        Type aliases provide a convenient way to bind data types and one or more
+        annotations. They can then be used in type declaration in the same
+        manner as the built-in types.
+
+        In addition to avoiding repetition, type aliases facilitate abstraction.
+        For example, many Windows API's have an output parameter that is typed as
+        a fixed size buffer of length MAX_PATH characters. A type alias
+        `OUTPUT_PATH` defined as
+
+        ```
+        cffi::alias define OUTPUT_PATH {unichar[512] out}
+        ```
+        
+        can be used in function declarations.
+
+        Similarly, type aliases can be used to hide platform differences. For
+        example, in the following function prototype,
+
+        ````
+        kernel stdcall HeapCreate pointer.HEAP {opts uint initSize SIZE_T maxSize SIZE_T}
+        ````
+
+        `SIZE_T` is an alias that resolves to either `uint` or `ulonglong`
+        depending on whether the platform is 32- or 64-bit.
+
+        Various points to note about type aliases:
+
+        * A type alias must begin with an alphabetic character, an underscore
+        or a colon. Subsequent characters may be one of these or a digit.
+
+        * Type aliases can be nested, i.e. one alias may be defined in terms
+        of another.
+
+        * When a type alias is used in a declaration, additional annotations
+        may be specified. These are merged with those included in the
+        type alias definition.
+
+        For convenience, the package provides the [::cffi::type load] command
+        which defines some standard C type aliases like `size_t` as well as some
+        platform-specific type aliases such as `HANDLE` on Windows.
+
+        Currently defined type aliases can be listed with the
+        [::cffi::alias aliases] command and removed with
+        [::cffi::type unalias].
+
+        ## Functions
+
+        To invoke a function in a DLL or shared library, the library must first
+        be loaded through the creation of a [::cffi::Dyncall] wrapper object. The
+        prototype for each function of interest must then be defined through any
+        appropriate method of that object such as [::cffi::Dyncall.function] or
+        [::cffi::Dyncall.stdcall]. This also creates a Tcl command which can then
+        be used to invoke the function.
+
+        ### Calling conventions
+
+        The 32-bit Windows platform uses two common calling conventions for
+        functions - the default C calling convention and the stdcall calling
+        convention which is used by most system libraries. These differ in
+        terms of parameter and stack management and it is crucial that the
+        correct convention be used when defining the corresponding FFI.
+
+        * The [::cffi::Dyncall.function] method should be used for declaring
+        C functions that use the default C calling convention.
+        * The [::cffi::Dyncall.stdcall] method should be used for declaring
+        C functions that use the stdcall calling convention.
+
+        Other than use of the two separate methods for definition, there is
+        no difference in terms of the function prototype used for definition
+        or the method of invocation.
+
+        Note that this difference in calling convention is only applicable to
+        32-bit Windows. For other platforms, including 64-bit Windows, `stdcall`
+        behaves in identical fashion to `function`.
+
+        ### Function prototypes
+
+        A function prototype in C defines the types of the parameters and return
+        value from the function. A function prototype as expected by the
+        [::cffi::Dyncall.function] and related methods is similar but permits
+        the type declarations to have annotations that control behaviour and
+        conversion between Tcl and C values.
+
+        A function prototype defined with the [::cffi::Dyncall.function] method
+        takes the form
+
+        ```
+        DLLOBJ function FNNAME RETTYPE PARAMS
+        ```
+
+        where `FNNAME` is the name of the function (and an optional Tcl alias),
+        `RETTYPE` is the function return type declaration and `PARAMS` is
+        a list of alternating parameter names and type declarations.
+
+        #### Return types
+
+        A function return declaration is a type or type alias followed by zero
+        or more annotations. The resolved type must not be a struct or an
+        array including implicit array types `string`, `unistring`, `chars`,
+        `unichars`, `binary` and `bytes`. Note pointers to these are permitted.
+
+        The following annotations may be follow the type in the declaration.
+
+        The error checking annotations
+        `zero`, `nonzero`, `nonnegative`, `positive` as well as the error
+        reporting annotations `errno`, `lasterror` and `winerror` may be
+        specified for integer types. For pointer type, the `nonzero` error
+        checking annotation and the `errno` and `lasterror` annotations
+        may be specified. See [Error handling] for details on these.
+
+        In addition, for pointer types only, the `unsafe` and `counted`
+        annotations may be specified (not `dispose`). See [Pointer safety] for
+        the meaning of these annotations.
+
+        #### Parameters
+
+        The `PARAMS` argument in a function prototype is a list of alternating
+        parameter name and parameter type declaration elements.
+
+        A parameter type declaration may begin with any supported type except
+        `void`. Subsequent annotations that are valid for parameters are those
+        related to pointers and those related to argument passing.
+
+        Annotations in the first category are `unsafe`, `counted`
+        and `dispose`. See [Pointer safety] for details.
+
+        The remaining deal with how arguments are passed to the C function. C
+        functions are passed arguments either by value or by reference (i.e. as
+        a pointer to a value). Moreover, parameters may be used to pass values
+        to the function (input parameters), retrieve values (output parameters)
+        or both. Correspondingly, a parameter type may be annotated with `in`
+        (default), `out` and `inout`.
+
+        In the case of `in` parameters, at the time of calling the function
+        the argument must be specified as a Tcl value. These are then passed
+        in to the C function by value if a scalar or by reference if an
+        array, one of the string variants or a struct. Scalars can be forced
+        to be passed by reference by annotating the parameter with `byref`.
+
+        In the case of `out` or `inout` parameters, the argument to the function
+        must be specified as the name of a variable in the caller's context.
+        For `inout` parameters, the variable must exist and contain a valid
+        value for the parameter type. For `out` parameters, the variable need
+        not exist. In both cases, on return from the function the output
+        value stored in the parameter by the function will be stored in the
+        variable. Parameters annotated with `out` and `inout` are always passed
+        by reference for all types and use of `byref` is redundant.
+
+        The case of `out` and `inout` parameters of type `string`, `unistring`
+        and `binary` need special treatment. The package needs to know how
+        much memory is to be allocated for the function to store the output
+        value. Therefore, the corresponding argument has to be passed as
+        a list of two elements: the first is the name of a variable, as above,
+        and the second is the number of bytes of storage to allocate in the case
+        of `string` and `binary`, and number of Tcl_UniChar characters in the
+        case of `unistring`.
+
+        #### Error handling
+
+        C functions generally indicate errors through their return value.
+        Details of the error are either in the return value itself or intended
+        to be retrieved by some other mechanism.
+
+        One way to deal with this at the script level is to simply check
+        the return value (generally an integer or pointer) and take appropriate
+        action. This has two downsides. The first is that error conditions in
+        Tcl are almost always signalled by raising an exception rather than
+        through a return status mechanism. The second, perhaps more important,
+        downside is that the detail behind the error, stored in `errno` or
+        available via `GetLastError()` on Windows, is often lost by the time the
+        Tcl interpreter returns to the script level.
+
+        Two additional sets of type annotations are provided to solve these
+        issues. The first set of annotations is used to define the error check
+        conditions to be applied to function return values. The second set is
+        used to specify how the error detail is to be retrieved.
+
+        The annotations for error checking are:
+
+        `zero` - The value must be zero.
+        `nonzero` - The value must be non-zero.
+        `nonnegative` - The value must be zero or greater.
+        `positive` - The value must be greater than 0.
+
+        These annotations may only be used with integer types except `nonzero`
+        which can also be used for pointer types.
+
+        At most one of the above annotations can be attached to a return type.
+        The function value is then checked whether the corresponding
+        condition is met. If not, an error exception is raised.
+
+        However, in the above situation the error message generated is very
+        generic and does not provide detail about why the error occured. The
+        following error retrieval annotations specify how detail about the error
+        is to be obtained.
+
+        `errno` - The POSIX error is stored in `errno`. The error message is
+        generated using the C runtime `strerror` function.
+        `lasterror` - (Windows only). The error code and message is retrieved
+        using the Windows `GetLastError` and `FormatMessage` functions.
+        `winerror` - (Windows only). The numeric return value is itself the
+        Windows error code and the error message is generated with
+        `FormatMessage`. This annotation can only be used with the `zero` error
+        checking annotation.
+
+        Any of these annotations can be used with the integer types while the
+        `errno` and `lasterror` can be used with pointer types as well.
+
+        At most one of the above error detail retrieval annotations may be
+        specified for a type.
+    }
+}
+

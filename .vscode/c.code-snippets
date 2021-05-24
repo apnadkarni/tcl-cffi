@@ -1,0 +1,266 @@
+{
+	// Place your iocp workspace snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"scope": "javascript,typescript",
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+
+	"Tcl C Command definition": {
+		"scope": "c,c++",
+		"prefix": "tclccmd",
+		"body": [
+			"/*",
+ 			" *------------------------------------------------------------------------",
+ 			" *",
+ 			" * $1ObjCmd --",
+ 			" *",
+ 			" *    Implements the Tcl command $1",
+ 			" *",
+ 			" * Results:",
+ 			" *    TCL_OK    - Success.",
+ 			" *    TCL_ERROR - Error.",
+ 			" *",
+ 			" * Side effects:",
+ 			" *    ${4:Interpreter result holds result or error message.}",
+ 			" *",
+ 			" *------------------------------------------------------------------------",
+			" */",
+			"int ${1}ObjCmd (",
+    		"    ClientData ${2:notUsed},",
+    		"    Tcl_Interp *interp,    /* Current interpreter. */",
+		    "    int objc,              /* Number of arguments. */",
+			"    Tcl_Obj *const objv[]) /* Argument objects. */",
+			"{",
+			"    $0",
+			"}"
+		]
+	},
+
+	"Tcl function": {
+		"scope": "c,c++",
+		"prefix": "tclcfunc",
+		"body": [
+			"/*",
+ 			" *------------------------------------------------------------------------",
+ 			" *",
+ 			" * $1 --",
+ 			" *",
+ 			" *    $2",
+ 			" *",
+ 			" * Results:",
+ 			" *    ${3:None.}",
+ 			" *",
+ 			" * Side effects:",
+ 			" *    ${4:None.}",
+ 			" *",
+ 			" *------------------------------------------------------------------------",
+			" */",
+			"$5 $1 ($6)",
+			"{",
+			"    $0",
+			"}"
+		]
+	},
+
+	"C Natural Docs function comment": {
+		"scope": "c,c++",
+		"prefix": "ndcfncomment",
+		"body": [
+			"/* Function: $1",
+			" * $2",
+			" *",
+			" * Parameters:",
+			" * $3",
+			" *",
+			" * Returns:",
+			" * $4",
+			" */"
+		]
+	},
+
+	"C Natural Docs prototype": {
+		"scope": "c,c++",
+		"prefix": "ndcproto",
+		"body": [
+			"/* Function: $1",
+			" * $2",
+			" *",
+			" * Parameters:",
+			" * $3",
+			" *",
+			" * Returns:",
+			" * $4",
+			" */",
+			"$5 $1 ($6);"
+		]
+	},
+
+	"Tcl args check": {
+		"scope": "c,c++",
+		"prefix": "tclcnargs",
+    	"body": [
+			"if (${1}) {",
+			"    Tcl_WrongNumArgs(interp, 1, objv, \"${2}\");",
+			"    return TCL_ERROR;",
+			"}",
+			"${0}"
+		]
+	},
+	
+	"C header template": {
+		"scope": "c,c++",
+		"prefix": "cheader",
+		"body": [
+			"#ifndef $1",
+			"#define $1",
+			"",
+			"${0}",
+			"",
+			"#endif /* $1 */"
+		]
+	},
+
+	"Tcl_Obj custom implementation": {
+		"scope": "c,c++",
+		"prefix": "tclobjtype",
+		"body": [
+			"/*",
+			" * $1: Tcl_Obj custom type",
+			" * Implements custom Tcl_Obj wrapper for $1.$2",
+			" */",
+			"static void Dup$1Obj(Tcl_Obj *srcObj, Tcl_Obj *dstObj);",
+			"static void Free$1Obj(Tcl_Obj *objP);",
+			"static void StringFrom$1Obj(Tcl_Obj *objP);",
+			"static int  Set$1ObjFromAny(Tcl_Obj *objP);",
+			"",
+			"static struct Tcl_ObjType g$1Vtbl = {",
+			"    \"Tclh_$1\",",
+			"    Free$1Obj,",
+			"    Dup$1Obj,",
+			"    StringFrom$1Obj,",
+			"    NULL",
+			"};",
+			"TCLH_INLINE $3IntrepGet$1(Tcl_Obj *objP) {\n    return ($3) objP->internalRep.$4;\n}",
+			"TCLH_INLINE void IntrepSet$1(Tcl_Obj *objP, $3value) {\n    objP->internalRep.$4 = (void *)value;\n}",
+			"",
+			"static void Dup$1Obj(Tcl_Obj *srcObj, Tcl_Obj *dstObj)\n{\n    dstObj->typePtr = &g$1Vtbl;\n    TBD;\n}\n\n",
+			"static void Free$1Obj(Tcl_Obj *objP)\n{\n    TBD;\n}\n\n",
+			"static void StringFrom$1Obj(Tcl_Obj *objP)\n{",
+			"    TCLH_ASSERT(objP->bytes == NULL);",
+			"    TCLH_ASSERT(objP->typePtr == &g$1Vtbl);",
+			"    TBD;\n}\n\n",
+			"static int  Set$1ObjFromAny(Tcl_Obj *objP)\n{",
+			"    if (objP->typePtr == &g$1Vtbl)\n        return TCL_OK;",
+			"    TBD;",
+			"    objP->typePtr = &g$1Vtbl;",
+			"}\n\n",
+			"Tcl_Obj *Tclh_Wrap$1($3value)\n{",
+			"    Tcl_Obj *objP = Tcl_NewObj();",
+			"    Tcl_InvalidateStringRep(objP);",
+			"    TBD;\n}\n",
+			"int Tclh_Unwrap$1(Tcl_Interp *ip, Tcl_Obj *objP, $3*valueP)\n{    TBD;\n}\n"
+		]
+	},
+
+	"C Natural Docs Tcl_Obj wrapper prototypes": {
+		"scope": "c,c++",
+		"prefix": "ndcwrapproto",
+		"body": [
+			"/* Function: Tclh_Wrap$1",
+			" * Wraps a $1 into a Tcl_Obj.$2",
+			" *",
+			" * Parameters:",
+			" * value - Value to be wrapped.",
+			" *",
+			" * Returns:",
+			" * A Tcl_Obj wrapping the passed value and referencec count 0.",
+			" */",
+			"Tcl_Obj *Tclh_Wrap$1 ($1 value);",
+			"",
+			"/* Function: Tclh_Unwrap$1",
+			" * Unwraps a value from the containing Tcl_Obj.$2",
+			" *",
+			" * Parameters:",
+ 			" * interp - Interpreter in which to store error messages. May be NULL.",
+			" * objP   - Tcl_Obj holding the wrapped value.",
+			" * valueP - Pointer to location to store the unwrapped value.",
+			" *",
+			" * Returns:",
+ 			" * TCL_OK    - Success, with the unwrapped value stored in *valueP.",
+ 			" * TCL_ERROR - Failure, with interp containing error message.",
+			" */",
+			"Tcl_Obj *Tclh_Unwrap$1 ($1*value);",
+			"",
+            "/* Function: Tclh_ObjIntrepIs$1",
+            " * Checks if the passed Tcl_Obj currently holds an internal representation",
+            " * of a $1. This function's purpose is primarily as an optimization to",
+            " * avoid unnecessary string generation and shimmering when a Tcl_Obj could",
+			" * be one of several types but have not overlapping string representations.",
+			" * For example, suppose an argument could be either a integer or a $1.",
+			" * Checking for an integer via Tcl_GetIntFromObj would cause generation",
+			" * of a string from the $1 unnecesarily. Instead the caller can call",
+			" * Tclh_ObjIntrepIs$1 and if it returns 1, not even bother to check",
+			" * integer value. Obviously this only works if the string representation",
+			" * of $1 cannot be interpreter as the other type.",
+			" *", 
+			" * Parameters:",
+			" * objP - the Tcl_Obj to be checked.",
+			" *",
+			" * Returns:",
+			" * 1 - Current internal representation holds a Uuid.",
+			" * 0 - otherwise.",
+			" */",
+			"TCLH_INLINE int Tclh_ObjIntrepIs$1 (Tcl_Obj *objP) {",
+				"extern struct Tcl_ObjType g$1Vtbl;",
+				"return objP->typePtr == &g$1Vtbl;",
+			"}",
+
+		]
+	},
+
+
+	"C ifdef": {
+		"scope": "c,c++",
+		"prefix": "cifdef",
+		"body": [
+			"#ifdef $1\n$2\n#endif /* $1 */\n$0"
+		]
+	},
+
+	"Tclh Implementation": {
+		"scope": "c,c++",
+		"prefix": "tclhimpl",
+		"body": [
+			"#ifdef TCLH_IMPL\n# define TCLH_$1_IMPL\n#endif\n",
+			"#ifdef TCLH_$1_IMPL\n",
+			"#include \"tclhBase.h\"",
+			"$0",
+			"\n#endif /* TCLH_$1_IMPL */\n"
+		]
+	},
+
+	"C comment": {
+		"scope": "c,c++",
+		"prefix": "/*",
+		"body": "/* $1 */"
+	}
+
+	"C block comment": {
+		"scope": "c,c++",
+		"prefix": "/**",
+		"body": "/*\n * $1\n */"
+	}
+
+
+}

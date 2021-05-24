@@ -1,0 +1,42 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval ${NS}::type {
+    proc size {type} {
+        # Returns the size of a type in terms of the number of bytes of memory
+        # occupied by that type.
+        #  type - a type definition or alias
+        # In the case of array types, the size includes the size of the entire
+        # array and not the size of a single element.
+    }
+    proc count {type} {
+        # Returns the count of elements in an array type
+        #  type - a type definition or alias
+        # A return value of 0 indicates the type is not an array.
+    }
+    proc info {typedecl {parse_mode {}}} {
+        # Returns a dictionary containing various information about a type
+        # declaration
+        #   typedecl - a type declaration
+        #   parse_mode - one of `param`, `return`, `field`.
+        #
+        # The type is parsed as a parameter type declaration, a function return
+        # type declaration or a structure field type declaration depending
+        # on the $parse_mode argument. If this is unspecified or an empty
+        # string, it is parsed in generic fashion and no context-specific
+        # validation is done.
+        #
+        # The returned dictionary contains the following keys:
+        #
+        # alignment - the memory alignment needed for a value of that type
+        # count - `0` for scalar values, else indicates the type is an array
+        #  with that number of elements
+        # size - the number of bytes of memory needed to store a value of that
+        #  type.
+        # definition - the type declaration after applying any defaults.
+        #  For type aliases, this is the resolved type definition.
+    }
+    namespace export *
+    namespace ensemble create
+}
+

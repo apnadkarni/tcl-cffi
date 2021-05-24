@@ -1,0 +1,744 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# Tests for the cffi::type command
+
+source common.tcl
+
+namespace eval cffi::test {
+    variable typeInfo
+    # Size and alignment
+    array set typeInfo \
+        [list \
+             void {0 0} \
+             schar {1 1} \
+             uchar {1 1} \
+             short {2 2} \
+             ushort {2 2} \
+             int {4 4} \
+             uint {4 4} \
+             long [list $::tcl_platform(wordSize) $::tcl_platform(wordSize)] \
+             ulong [list $::tcl_platform(wordSize) $::tcl_platform(wordSize)] \
+             longlong {8 8} \
+             ulonglong {8 8} \
+             float {4 4} \
+             double {8 8} \
+             pointer [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
+             string [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
+             unistring [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
+             binary [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
+             chars {1 1} \
+             unichars {2 2} \
+             bytes {1 1} \
+            ]
+
+    testnumargs type-size "cffi::type size" "TYPE"
+    testnumargs type-count "cffi::type count" "TYPE"
+    testnumargs type-info "cffi::type info" "TYPE" "?PARSEMODE?"
+
+    proc basictypetest {typedecl} {
+        variable typeInfo
+        variable errorMessages
+
+        set testlabel [join $typedecl -]
+        set typeattrs [lassign $typedecl type]
+        lassign $typeInfo($type) size alignment
+        # Scalar tests
+        if {$type ni {chars unichars bytes}} {
+            test type-info-$testlabel-0 "type info $typedecl" -body {
+                cffi::type info $typedecl
+            } -result [list size $size count 0 alignment $alignment definition $typedecl] -match dict
+
+            test type-size-$testlabel-0 "type size $typedecl" -body {
+                cffi::type size $typedecl
+            } -result $size
+
+            test type-count-$testlabel-0 "type count $typedecl" -body {
+                cffi::type count $typedecl
+            } -result 0
+
+        } else {
+            # chars, unichars, bytes
+            test type-info-$testlabel-1 "type info $typedecl" -body {
+                cffi::type info $typedecl
+            } -result "Invalid value \"$type\". $errorMessages(scalarchars)" -returnCodes error
+
+            test type-size-$testlabel-0 "type size $typedecl" -body {
+                cffi::type size $typedecl
+            } -result "Invalid value \"$type\". $errorMessages(scalarchars)" -returnCodes error
+
+            test type-count-$testlabel-0 "type count $typedecl" -body {
+                cffi::type count $typedecl
+            } -result "Invalid value \"$type\". $errorMessages(scalarchars)" -returnCodes error
+
+        }
+
+        # Array tests
+        if {$type ni {pointer struct.TypeTestStruct string unistring binary void}} {
+
+            test type-info-$testlabel-array-1 "type info $typedecl array" -body {
+                cffi::type info "$type\[10\] $typeattrs"
+            } -result [list size [expr {10 * $size}] count 10 alignment $alignment definition [list "$type\[10\]" {*}$typeattrs]] -match dict
+
+            test type-size-$testlabel-array-1 "type size $typedecl array" -body {
+                cffi::type size "$type\[10\] $typeattrs"
+            } -result [expr {10 * $size}]
+
+            test type-count-$testlabel-array-1 "type count $typedecl array" -body {
+                cffi::type count "$type\[10\] $typeattrs"
+            } -result 10
+
+        } else {
+
+            test type-info-$testlabel-array-1 "type info $typedecl array" -body {
+                cffi::type info "$type\[10\] $typeattrs"
+            } -result "Invalid value \"$type\[10\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+
+            test type-size-$testlabel-array-1 "type size $typedecl array" -body {
+                cffi::type size "$type\[10\] $typeattrs"
+            } -result "Invalid value \"$type\[10\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+
+            test type-count-$testlabel-array-1 "type count $typedecl array" -body {
+                cffi::type count "$type\[10\] $typeattrs"
+            } -result "Invalid value \"$type\[10\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+
+        }
+
+    }
+
+    testsubcmd ::cffi::type
+
+    # Tests for basic types - no parse mode specified
+    basictypetest void
+    basictypetest schar
+    basictypetest uchar
+    basictypetest short
+    basictypetest ushort
+    basictypetest int
+    basictypetest uint
+    basictypetest long
+    basictypetest ulong
+    basictypetest longlong
+    basictypetest ulonglong
+    basictypetest float
+    basictypetest double
+    basictypetest pointer
+    basictypetest string
+    basictypetest unistring
+    basictypetest binary
+    basictypetest chars
+    basictypetest unichars
+    basictypetest bytes
+
+
+    proc testinvalidattr {typedecl parse_mode expected_message} {
+        variable typeInfo
+
+        if {"lasterror" in $typedecl || "winerror" in $typedecl} {
+            set constraints win
+        } else {
+            set constraints {}
+        }
+        set testlabel type-info-invalidattr-[join $typedecl -]-$parse_mode
+
+        test $testlabel-0 {
+            type info param, $typedecl invalid attr
+        } -constraints $constraints -body {
+            cffi::type info $typedecl $parse_mode
+        } -result "Invalid value \"$typedecl\". $expected_message" -returnCodes error
+    }
+
+    # Tests for numeric types with parse mode specified
+
+    proc testnumeric {typedecl parse_mode expected_typeattrs} {
+        variable typeInfo
+        set typeattrs [lassign $typedecl type]
+        lassign $typeInfo($type) size alignment
+        set testlabel type-info-[join $typedecl -]
+
+        # Scalar test for each parse mode
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
+            cffi::type info $typedecl $parse_mode
+        } -result [list size $size count 0 alignment $alignment definition [list $type {*}$expected_typeattrs]] -match dict
+    }
+
+    proc testnumericarray {typedecl count parse_mode expected_typeattrs} {
+        variable typeInfo
+        variable errorMessages
+        set typeattrs [lassign $typedecl type]
+        lassign $typeInfo($type) size alignment
+        set testlabel type-info-[join $typedecl -]
+
+        if {$parse_mode ne "return"} {
+            test $testlabel-array$count-$parse_mode-0 "type info param, $typedecl array" -body {
+                cffi::type info "$type\[$count\] $typeattrs" $parse_mode
+            } -result [list size [expr {$count * $size}] count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict
+        } else {
+            # parse mode = return
+            test $testlabel-array$count-$parse_mode-0 "type info param, $typedecl array" -body {
+                cffi::type info "$type\[$count\] $typeattrs" $parse_mode
+            } -result "Invalid value \"$type\[$count\]\". $errorMessages(arraysize)" -returnCodes error
+        }
+    }
+
+    ###############################
+    # Test categorization:
+    #   Data type -> parse mode -> success / fail -> scalar / array
+    # Failure tests are further broken down as
+    #   invalid attribute, invalid attribute combination, invalid attribute
+    #   for type, invalid attribute for parse mode, invalid array size
+
+    ###
+    ### Invalid type tests
+
+    test info-type-invalidtype-0 "Invalid type in declaration" -body {
+        cffi::type info nosuchtype
+    } -result "Invalid value \"nosuchtype\". Invalid base type." -returnCodes error
+
+    test info-type-invalidtype-1 "Empty type declaration" -body {
+        cffi::type info [list ]
+    } -result "Invalid value \"\". Empty type declaration." -returnCodes error
+
+    test info-type-invalidtype-2 "Empty type in type declaration" -body {
+        cffi::type info [list ""]
+    } -result "Invalid value \"\". Invalid base type." -returnCodes error
+
+
+    ###
+    ### void type
+
+    foreach type $voidTypes {
+        ### Parse mode = param
+        test info-type-void-param-0 "void as parameter" -body {
+            cffi::type info void param
+        } -result "Invalid value \"void\". $errorMessages(typeparsemode)" -returnCodes error
+
+        ### Parse mode = return
+        test info-type-void-return-0 "void as return type" -body {
+            cffi::type info void return
+        } -result [list size 0 count 0 alignment 0 definition void]
+        test info-type-void-array-return-0 "void array as return type" -body {
+            cffi::type info {void[2]} param
+        } -result "Invalid value \"void\[2\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+        foreach attr $typeAttrs {
+            testinvalidattr "void $attr" return $errorMessages(attrtype)
+        }
+
+        ### Parse mode = field
+        test info-type-void-field-0 "void as field" -body {
+            cffi::type info void field
+        } -result "Invalid value \"void\". $errorMessages(typeparsemode)" -returnCodes error
+    }
+
+    ### Numeric type tests
+    foreach type $numericTypes {
+        ###
+        ### Parse mode = param
+
+        # Scalar tests - success
+        foreach {attr expected} {
+            "" "in"  "in"  "in" "out" "out byref" "inout" "inout byref" "byref" "in byref"
+            "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+        } {
+            testnumeric "$type $attr" param $expected
+        }
+
+        # Array tests - success
+        foreach {attr expected} {
+            "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
+            "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+        } {
+            # Single element array
+            testnumericarray "$type $attr" 1 param $expected
+            # Multiple elements
+            testnumericarray "$type $attr" 10 param $expected
+        }
+
+        # Failure tests - invalid attribute combinations
+        foreach attra {in out inout} {
+            foreach attrb {in out inout} {
+                testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
+                testinvalidattr "$type\[2\] $attra $attrb" param $errorMessages(attrconflict)
+            }
+        }
+
+        # Scalar tests - invalid attributes for type
+        foreach attr $pointerAttrs {
+            testinvalidattr "$type $attr" param $errorMessages(attrtype)
+            testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
+        }
+        # Scalar tests - attributes invalid for param parse mode
+        foreach attr $errorAttrs {
+            if {$type in $intTypes} {
+                testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
+                testinvalidattr "$type\[2\] $attr" param $errorMessages(attrparsemode)
+            }
+        }
+
+        # array invalid count spec failure
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "$type$count" param "$errorMessages(arraysize)"
+        }
+
+        ### Parse mode = return
+
+        # Scalar tests - success
+        testnumeric $type return ""
+        if {$type in $intTypes} {
+            foreach attr $errorAttrs {
+                testnumeric "$type $attr" return $attr
+            }
+        }
+
+        # Array tests - success
+        # none
+
+        # Failure tests - invalid attribute combinations
+        if {$type in $intTypes} {
+            foreach attr $errorAttrs {
+                # Repeated attribute - note different combos are all valid
+                testinvalidattr "$type $attr $attr" return $errorMessages(attrconflict)
+            }
+        }
+
+        # Failure tests - invalid attributes for type
+        foreach attr $pointerAttrs {
+            testinvalidattr "$type $attr" return $errorMessages(attrtype)
+        }
+        if {$type ni $intTypes} {
+            foreach attr $errorAttrs {
+                testinvalidattr "$type $attr" return $errorMessages(attrtype)
+            }
+        }
+
+        # Failure tests - invalid attributes for parse mode
+        foreach attr $paramAttrs {
+            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
+        }
+
+        # Array tests failures
+        test type-info-$type-array-return-0 "Return array type" -body {
+            cffi::type info "$type\[2\]" return
+        } -result "Invalid value \"$type\[2\]\". Function return type declaration must not specify an array." -returnCodes error
+
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "$type$count" return "$errorMessages(arraysize)"
+        }
+
+        ###
+        ### Parse mode = field
+
+        # Scalar tests - success
+        testnumeric $type field ""
+
+        # Array tests - success
+        testnumericarray "$type" 2 field ""
+
+        # Failure tests - invalid attributes for type
+        foreach attr $pointerAttrs {
+            testinvalidattr "$type $attr" field $errorMessages(attrtype)
+        }
+        if {$type ni $intTypes} {
+            foreach attr $errorAttrs {
+                testinvalidattr "$type $attr" field $errorMessages(attrtype)
+            }
+        }
+
+        # Failure tests - invalid attributes for parse mode
+        foreach attr $paramAttrs {
+            testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
+        }
+
+        # Array tests failures
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "$type$count" field "$errorMessages(arraysize)"
+        }
+    }
+
+    ###
+    ### Pointer type
+
+    proc testpointer {typedecl parse_mode expected_typeattrs} {
+        variable typeInfo
+        if {"lasterror" in $typedecl || "winerror" in $typedecl} {
+            set constraints win
+        } else {
+            set constraints {}
+        }
+        set typeattrs [lassign $typedecl type]
+        set testlabel type-info-[join $typedecl -]
+
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -constraints $constraints -body {
+            cffi::type info $typedecl $parse_mode
+        } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
+    }
+
+    foreach type {pointer pointer.TAG} {
+        ### Parse mode = param
+
+        set pointer_valid_error_attrs {nonzero errno lasterror}
+
+        # Scalar tests - success
+        foreach {attr expected} {
+            "" "in"  "in"  "in" "out" "out byref" "inout" "inout byref" "byref" "in byref"
+            "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+
+            "unsafe" "in unsafe"  "in unsafe"  "in unsafe" "out unsafe" "out byref unsafe"
+            "inout unsafe" "inout byref unsafe" "byref unsafe" "in byref unsafe"
+            "in unsafe byref" "in byref unsafe" "unsafe byref out" "out byref unsafe"
+            "inout byref unsafe" "inout byref unsafe"
+
+            "counted" "in counted"  "in counted"  "in counted" "out counted" "out byref counted"
+            "inout counted" "inout byref counted" "byref counted" "in byref counted"
+            "in counted byref" "in byref counted" "counted byref out" "out byref counted"
+            "inout byref counted" "inout byref counted"
+
+            "dispose" "in dispose"  "in dispose"  "in dispose" 
+            "inout dispose" "inout byref dispose" "byref dispose" "in byref dispose"
+            "in dispose byref" "in byref dispose"
+            "inout byref dispose" "inout byref dispose"
+            "counted dispose" "in counted dispose"  "in dispose counted"  "in counted dispose"
+
+        } {
+            testpointer "$type $attr" param $expected
+        }
+
+        # Array tests - success
+        # none (currently not supported)
+
+        # Failure tests - invalid attribute combinations
+        foreach attra {in out inout} {
+            foreach attrb {in out inout} {
+                testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
+            }
+        }
+        testinvalidattr "$type dispose out" param "The dispose attribute is invalid for pure out parameters in a type declaration."
+        testinvalidattr "$type dispose unsafe" param $errorMessages(attrconflict)
+        testinvalidattr "$type counted unsafe" param $errorMessages(attrconflict)
+
+        # Scalar tests - invalid attributes for type
+        foreach attr $errorAttrs {
+            if {$attr ni $pointer_valid_error_attrs} {
+                testinvalidattr "$type $attr" param $errorMessages(attrtype)
+            }
+        }
+
+        # Scalar tests - attributes invalid for param parse mode
+        foreach attr $pointer_valid_error_attrs {
+            testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
+        }
+
+        # array invalid count spec failure
+        testinvalidattr "$type\[2\]" param $errorMessages(unsupportedarraytype)
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "$type$count" param "$errorMessages(arraysize)"
+        }
+
+
+        ### Parse mode = return
+
+        # Scalar tests - success
+        testpointer $type return ""
+        foreach attr $pointerAttrs {
+            if {$attr ne "dispose"} {
+                testpointer "$type $attr" return $attr
+            }
+        }
+        foreach attr $pointer_valid_error_attrs {
+            testpointer "$type $attr" return $attr
+        }
+
+        # Array tests - success
+        # none - pointer arrays not currently supported
+
+        # Failure tests - invalid attribute combinations
+        testinvalidattr "$type counted unsafe" return $errorMessages(attrconflict)
+
+        # Failure tests - invalid attribute for type
+        foreach attr $errorAttrs {
+            if {$attr ni $pointer_valid_error_attrs} {
+                testinvalidattr "$type $attr" return $errorMessages(attrtype)
+            }
+        }
+
+        # Failure tests - invalid attribute for parse mode
+        testinvalidattr "$type dispose" return $errorMessages(attrparsemode)
+        foreach attr $paramAttrs {
+            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
+        }
+
+        # Array test failures
+        # array invalid count spec failure
+        testinvalidattr "$type\[2\]" return $errorMessages(unsupportedarraytype)
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "$type$count" return "$errorMessages(arraysize)"
+        }
+
+        ### Parse mode = field
+        # Scalar tests - success
+        testpointer $type field ""
+        foreach attr $pointerAttrs {
+            if {$attr ne "dispose"} {
+                testpointer "$type $attr" field $attr
+            }
+        }
+
+        # Array tests - success
+        # none
+
+        # Failure tests - invalid attribute combinations
+        testinvalidattr "$type counted unsafe" field $errorMessages(attrconflict)
+
+        # Failure tests - invalid attribute for type
+        foreach attr $errorAttrs {
+            if {$attr ni $pointer_valid_error_attrs} {
+                testinvalidattr "$type $attr" field $errorMessages(attrtype)
+            }
+        }
+        # Failure tests - invalid attribute for parse mode
+        testinvalidattr "$type dispose" field $errorMessages(attrparsemode)
+        foreach attr $paramAttrs {
+            testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
+        }
+        foreach attr $pointer_valid_error_attrs {
+            testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
+        }
+
+        # Array test failures
+        testinvalidattr "$type\[2\]" field $errorMessages(unsupportedarraytype)
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "$type$count" field "$errorMessages(arraysize)"
+        }
+    }
+
+
+    ###
+    # chars
+    proc testchars {typedecl count parse_mode expected_typeattrs} {
+        variable typeInfo
+        set typeattrs [lassign $typedecl type]
+        set testlabel type-info-[join $typedecl -]-$count
+
+        if {$type eq "unichars"} {
+            set alignment 2
+            set size [expr {2*$count}]
+        } else {
+            set alignment 1
+            set size $count
+        }
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
+            cffi::type info "$type\[$count\] $typeattrs" $parse_mode
+        } -result [list size $size count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict
+    }
+    foreach type {chars chars.utf-8 unichars bytes} {
+
+        ### Parse mode = param, return, field
+        foreach parse_mode {param return field} {
+            # Scalar tests
+            # none (always have to be arrays)
+
+            if {$parse_mode eq "param"} {
+                # Param mode array tests - success
+                foreach {attr expected} {
+                    "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
+                    "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+                } {
+                    testchars "$type $attr" 10 $parse_mode $expected
+                }
+                # Failure tests - invalid attribute combinations
+                foreach attra {in out inout} {
+                    foreach attrb {in out inout} {
+                        testinvalidattr "$type\[2\] $attra $attrb" $parse_mode $errorMessages(attrconflict)
+                    }
+                }
+            } else {
+                if {$parse_mode eq "field"} {
+                    testchars $type 10 $parse_mode ""
+                } else {
+                    # parse_mode return
+                    testinvalidattr "$type\[2\]" $parse_mode $errorMessages(typeparsemode)
+                }
+                # field mode array tests - failure
+                foreach attr {in out inout} {
+                    testinvalidattr "$type\[2\] $attr" $parse_mode $errorMessages(attrparsemode)
+                }
+            }
+
+            # Failure - scalar value
+            testinvalidattr $type $parse_mode $errorMessages(scalarchars)
+
+            # Invalid attributes for type
+            foreach attr [concat $pointerAttrs $errorAttrs] {
+                testinvalidattr "$type\[2\] $attr" $parse_mode $errorMessages(attrtype)
+            }
+
+            # array invalid count spec failure
+            foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+                testinvalidattr "$type$count" $parse_mode "$errorMessages(arraysize)"
+            }
+        }
+    }
+
+    test type-info-chars-encoding-error-param-0 "Unknown encoding for chars - param parse mode" -body {
+        cffi::type info {chars.xxx[10]} param
+    } -result {unknown encoding "xxx"} -returnCodes error
+    test type-info-chars-encoding-error-field-0 "Unknown encoding for chars - field parse mode" -body {
+        cffi::type info {chars.xxx[10]} field
+    } -result {unknown encoding "xxx"} -returnCodes error
+
+
+    ###
+    # strings
+    proc teststring {typedecl parse_mode expected_typeattrs} {
+        variable typeInfo
+        set typeattrs [lassign $typedecl type]
+        set testlabel type-info-[join $typedecl -]
+
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
+            cffi::type info $typedecl $parse_mode
+        } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
+    }
+
+    foreach type {string string.utf-8 unistring binary} {
+        # Param mode - success
+        foreach parse_mode {param return field} {
+            if {$parse_mode eq "param"} {
+                foreach {attr expected} {
+                    "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
+                    "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+                } {
+                    teststring "$type $attr" param $expected
+                }
+                # Failure tests - invalid attribute combinations
+                foreach attra {in out inout} {
+                    foreach attrb {in out inout} {
+                        testinvalidattr "$type $attra $attrb" $parse_mode $errorMessages(attrconflict)
+                    }
+                }
+            } else {
+                # field mode array tests - failure
+                testinvalidattr "$type" $parse_mode $errorMessages(typeparsemode)
+                foreach attr {in out inout} {
+                    testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
+                }
+            }
+
+            # Array tests - success
+            # none - currently arrays not supported
+
+
+            # Scalar tests - invalid attributes for type
+            foreach attr [concat $pointerAttrs $errorAttrs] {
+                testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
+            }
+
+            # Scalar tests - attributes invalid for param parse mode
+            # none - no attrs are invalid only for param mode
+
+            # array invalid count spec failure
+            testinvalidattr "$type\[2\]" $parse_mode $errorMessages(unsupportedarraytype)
+            foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+                testinvalidattr "$type$count" $parse_mode "$errorMessages(arraysize)"
+            }
+        }
+    }
+    test type-info-string-encoding-error-param-0 "Unknown encoding for string - param parse mode" -body {
+        cffi::type info {string.xxx} param
+    } -result {unknown encoding "xxx"} -returnCodes error
+    test type-info-string-encoding-error-field-0 "Unknown encoding for string - field parse mode" -body {
+        cffi::type info {string.xxx} field
+    } -result {unknown encoding "xxx"} -returnCodes error
+
+    ###
+    # struct
+    proc teststruct {typedecl parse_mode expected_typeattrs} {
+        variable typeInfo
+        variable testStructSize
+        set typeattrs [lassign $typedecl type]
+        set testlabel type-info-[join $typedecl -]
+
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
+            cffi::type info $typedecl $parse_mode
+        } -result [list size $testStructSize count 0 alignment 8 definition [list $type {*}$expected_typeattrs]] -match dict
+    }
+    # Parse mode = param
+    foreach parse_mode {param return field} {
+        if {$parse_mode eq "param"} {
+            testinvalidattr "struct.TestStruct" param $errorMessages(structbyref)
+            testinvalidattr "struct.TestStruct in" param $errorMessages(structbyref)
+            # Scalar tests - success
+            foreach {attrs expected} {
+                "out" "out byref" "inout" "inout byref" "byref" "in byref"
+                "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+            } {
+                teststruct "struct.TestStruct $attrs" param $expected
+            }
+        } else {
+            foreach attr {in out inout} {
+                testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrparsemode)
+            }
+            if {$parse_mode eq "return"} {
+                testinvalidattr "struct.TestStruct" $parse_mode $errorMessages(typeparsemode)
+            } else {
+                teststruct "struct.TestStruct" $parse_mode ""
+            }
+        }
+        # Failure tests - invalid attribute combinations
+        foreach attra {in out inout} {
+            foreach attrb {in out inout} {
+                testinvalidattr "struct.TestStruct byref $attra $attrb" $parse_mode $errorMessages(attrconflict)
+            }
+        }
+        # Scalar tests - invalid attributes for type
+        foreach attr [concat $pointerAttrs $errorAttrs] {
+            testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
+        }
+
+        # array invalid count spec failure
+        testinvalidattr "struct.TestStruct\[2\]" $parse_mode $errorMessages(unsupportedarraytype)
+        foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
+            testinvalidattr "struct.TestStruct$count" $parse_mode "$errorMessages(arraysize)"
+        }
+
+        test type-info-struct-$parse_mode-unknown-0 "type info struct unknown parse mode = $parse_mode" -body {
+           cffi::type info struct.NOSUCHSTRUCT $parse_mode
+        } -result "Struct definition \"NOSUCHSTRUCT\" not found or inaccessible. " -returnCodes error
+    }
+
+    ###
+    # Verify commands work with aliases
+    test type-info-alias-0 "type info alias " -setup {
+        cffi::alias define type_info_test_alias_0 {int nonzero}
+    } -cleanup {
+        cffi::alias delete type_info_test_alias_0
+    } -body {
+        cffi::type info type_info_test_alias_0 return
+    } -result {size 4 count 0 alignment 4 definition {int nonzero}} -match dict
+
+    test type-info-alias-1 "type info alias array" -setup {
+        cffi::alias define type_info_test_alias_1 {int[2]}
+    } -cleanup {
+        cffi::alias delete type_info_test_alias_1
+    } -body {
+        cffi::type info type_info_test_alias_1 param
+    } -result {size 8 count 2 alignment 4 definition {{int[2]} in byref}} -match dict
+
+    test type-size-alias-0 "type size alias array" -setup {
+        cffi::alias define type_size_test_alias_0 {int[2]}
+    } -cleanup {
+        cffi::alias delete type_size_test_alias_0
+    } -body {
+        cffi::type size type_size_test_alias_0
+    } -result 8
+
+    test type-count-alias-0 "type count alias array" -setup {
+        cffi::alias define type_count_test_alias_0 {int[2]}
+    } -cleanup {
+        cffi::alias delete type_count_test_alias_0
+    } -body {
+        cffi::type count type_count_test_alias_0
+    } -result 2
+}
+
+::tcltest::cleanupTests
+namespace delete cffi::test

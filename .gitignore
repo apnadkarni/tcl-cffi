@@ -1,0 +1,72 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# PROJECT specific
+dyncall/**
+generic/NDDocs/**
+win/Release**
+versions.vc
+build*/**
+dist/**
+autom4te.cache
+
+generic/NDConfig/Working Data/CodeDB.nd
+generic/NDConfig/Working Data/Comments.nd
+generic/NDConfig/Working Data/Files.nd
+generic/NDConfig/Working Data/Languages.nd
+generic/NDConfig/Working Data/Parser.nd
+generic/NDConfig/Working Data/Project.nd
+generic/NDConfig/Working Data/SearchIndex.nd
+generic/NDConfig/Working Data/Output/BuildState.nd
+generic/NDConfig/Working Data/Output/Config.nd
+win/build.bat

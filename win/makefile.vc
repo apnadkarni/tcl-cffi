@@ -1,0 +1,79 @@
+#------------------------------------------------------------- -*- makefile -*-
+#
+# Sample makefile for building Tcl extensions.
+#
+# Basic build, test and install
+#   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl
+#   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl test
+#   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl install
+#
+# For other build options (debug, static etc.)
+# See TIP 477 (https://core.tcl.tk/tips/doc/trunk/tip/477.md) for
+# detailed documentation.
+#
+# See the file "license.terms" for information on usage and redistribution
+# of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#
+#------------------------------------------------------------------------------
+# The name of the package
+PROJECT = cffi
+DOTVERSION = 0.1
+
+!include "rules-ext.vc"
+
+# The extension wraps the dyncall library. The location of the header and
+# library files is given by the DYNCALLDIR environment variable. This location
+# should contain the include and lib directories. If undefined, it will default
+# to ../dyncall/$(BUILDDIRTOP) where BUILDDIRTOP is defined by rules-ext.vc
+# above based on architecture, compiler version and build mode (debug/release).
+# See the BUILD.md in top level directory for building dyncall itself.
+
+!ifndef DYNCALLDIR
+DYNCALLDIR = $(ROOT)\dyncall\$(BUILDDIRTOP)
+!endif
+!if exist("$(DYNCALLDIR)\include\dyncall.h")
+!message *** Using dyncall library in $(DYNCALLDIR)
+!else
+!message *** Could not locate dyncall.h in $(DYNCALLDIR).
+!message *** Please check path or see instructions to build dyncall in makefile.vc
+!error dyncall not found.
+!endif
+
+# Define the object files and resource file that make up the extension.
+# Note the resource file does not makes sense if doing a static library build
+# hence it is under that condition. TMP_DIR is the output directory
+# defined by rules for object files.
+PRJ_OBJS = \
+	$(TMP_DIR)\tclCffi.obj \
+	$(TMP_DIR)\tclCffiTypes.obj \
+	$(TMP_DIR)\tclCffiTest.obj \
+	$(TMP_DIR)\memlifo.obj
+
+HEADERS = \
+	$(GENERICDIR)\tclCffiInt.h \
+	$(GENERICDIR)\tclhBase.h \
+	$(GENERICDIR)\tclhPointer.h \
+	$(GENERICDIR)\memlifo.h \
+	$(GENERICDIR)\tclhObj.h
+
+PRJ_INCLUDES = -I $(DYNCALLDIR)\include
+PRJ_LIBS = $(DYNCALLDIR)\lib\dyncall_s.lib $(DYNCALLDIR)\lib\dynload_s.lib $(DYNCALLDIR)\lib\dyncallback_s.lib
+
+# Define any additional compiler flags that might be required for the project
+PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS
+
+# Define the standard targets
+!include "$(_RULESDIR)\targets.vc"
+
+# We must define a pkgindex target that will create a pkgIndex.tcl
+# file in the $(OUT_DIR) directory. We can just redirect to the
+# default-pkgindex target for our sample extension.
+pkgindex: default-pkgindex-tea
+
+# The default install target only installs binaries and scripts so add
+# an additional target for our documentation. Note this *adds* a target
+# since no commands are listed after it. The original targets for
+# install (from targets.vc) will remain.
+install: default-install-docs-html
+
+$(PRJ_OBJS): $(HEADERS)

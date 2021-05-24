@@ -1,0 +1,50 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "debug",
+            "type": "shell",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 cdebug=\"-Zi -Od\" OPTS=pdbs",
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "debug-install",
+            "type": "shell",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 cdebug=\"-Zi -Od\" OPTS=pdbs install",
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "release",
+            "type": "shell",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\magic",
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "release-install",
+            "type": "shell",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\magic install",
+            "problemMatcher": [
+                "$msCompile"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 clean",
+            "problemMatcher": [],
+            "group": "build"
+        }
+    ]
+}

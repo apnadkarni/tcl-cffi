@@ -1,0 +1,127 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+oo::class create ${NS}::Struct {
+    constructor {definition} {
+        # Constructs a script level object that maps to a C struct definition.
+        #  definition - defines the layout and type of the C struct fields
+        # The created object can be used to pass arguments to and from
+        # functions, allocate memory, encode and decode native C structs
+        # in memory etc.
+        #
+        # The $definition argument is a dictionary mapping field names to the
+        # corresponding types. See [Structs][::Concepts::Structs] for more
+        # information.
+        #
+        # The name of the created struct is the same as the name of the
+        # returned object without the initial `::` global namespace qualifier.
+        # This name can be retrieved with the [name] method and is used to
+        # identify the struct when tagging pointers and for typing function
+        # parameters and nested struct fields.
+        #
+    }
+    method allocate {{count 1}} {
+        # Allocates memory for one or more C structs.
+        #   count - number of structs to allocate
+        #
+        # The returned memory is not initialized.
+        #
+        # It must be freed by calling the [free] method.
+        #
+        # Returns a safe pointer to the allocated memory tagged with the
+        # struct name.
+    }
+    method Decode {pointer {count 0}} {
+        # Decodes native C struct(s) in memory into a Tcl dictionary.
+        #  pointer - safe pointer to the C struct in memory
+        #  count - If non-0, then it is treated as the number of elements
+        #   in an array of structs referenced by $pointer. If 0,
+        #   $pointer is assumed to point to a single struct.
+        #
+        # The decoded dictionary or dictionaries are keyed by the field
+        # names of the struct.
+        #
+        # Returns a dictionary of the decoded struct if $count is 0,
+        # or a list of $count such struct if greater than 0.
+    }
+    method fromnative {pointer {index 0}} {
+        # Decodes native C struct(s) in memory into a Tcl dictionary.
+        #  pointer - safe pointer to the C struct or array of structs in memory
+        #  index - the index position at which the struct is to be written.
+        #    Note this interpreted as an **index** into an array of structs, not as
+        #    a byte offset into memory.
+        #
+        # The decoded dictionary or dictionaries are keyed by the field
+        # names of the struct.
+        #
+        # See also: tonative, frombinary
+        #
+        # Returns a dictionary of the decoded struct.
+    }
+    method tonative {pointer initializer {index 0}} {
+        # Writes the Tcl dictionary representation of a C struc value to memory
+        # in native form.
+        #  pointer - pointer to memory allocated for the C struct or array. Must be
+        #    tagged with the struct name.
+        #  initializer - the Tcl dictionary value
+        #  index - the index position at which the struct is to be written.
+        #    Note this interpreted as an **index** into an array of structs, not as
+        #    a byte offset into memory.
+        #
+        # See also: fromnative tobinary
+        #
+    }
+    method Encode {initializer {count 0}} {
+        # Encodes the Tcl representation of a C struct value or an array
+        # of values to their native form.
+        #  initializer - if $count is 0, this is a single dictionary holding
+        #    the Tcl representation of a C struct value; if $count is greater
+        #    than 0, this is list of such structs.
+        # The method allocates memory for the required number of native
+        # C structs and initializes them. The dictionary
+        # (or dictionaries) keys correspond to the field names as
+        # in the struct definition.
+        #
+        # The returned memory must be freed by calling the [free] method.
+        #
+        # Returns a safe, typed pointer to the allocated memory.
+        # 
+    }
+    method free {pointer} {
+        # Frees memory that was allocated for a C struct.
+        #  pointer - a pointer returned by [allocate] or [encode]
+    }
+    method info {} {
+        # Returns a dictionary containing information about the struct layout
+        #
+        # The returned dictionary has the following fields:
+        # size - size of the struct
+        # alignment - struct alignment
+        # fields - dictionary of fields keyed by field name. The value is another
+        #   nested dictionary with keys *size*, *offset*, and *definition*
+        #   containing the size, offset in struct, and type definition of the field.
+    }
+    method describe {} {
+        # Returns a human-readable description of the C struct definition.
+        #
+        # This is primarily for debugging and troubleshooting purposes.
+    }
+    method frombinary {bin_value} {
+        # Decodes a Tcl binary string containing a native C struct into
+        # a Tcl dictionary.
+        #  bin_value - a Tcl binary value containing the C struct
+        # Returns the dictionary representation.
+    }
+    method tobinary {dict_value} {
+        # Encodes the Tcl representation of a C struct value into a
+        # Tcl binary string.
+        #  dict_value - a Tcl dictionary representation of a C struct value.
+        # Returns the binary string containing the native C struct.
+    }
+    method name {} {
+        # Returns the name of the struct.
+        #
+        # Note the name of the struct is different from the name of
+        # the object name.
+    }
+}

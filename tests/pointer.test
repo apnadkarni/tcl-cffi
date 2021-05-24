@@ -1,0 +1,334 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains tests for cffi::Dyncall pertaining to definition and
+# invocation of functions.
+
+source common.tcl
+
+
+namespace eval ${NS}::test {
+
+    proc testnullptr {cmd} {
+        test pointer-$cmd-null-0 "pointer $cmd NULL" -body {
+            list [catch {cffi::pointer $cmd [makeptr 0]} result] $result $::errorCode
+        } -result [list 1 \
+                       "Invalid value \"[makeptr 0]\". Pointer is NULL." \
+                       [list cffi INVALID_VALUE "Invalid value \"[makeptr 0]\". Pointer is NULL."]]
+        test pointer-$cmd-null-1 "pointer $cmd NULL tagged" -body {
+            list [catch {cffi::pointer $cmd [makeptr 0 TAG]} result] $result $::errorCode
+        } -result [list 1 \
+                       "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL." \
+                       [list cffi INVALID_VALUE "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL."]]
+    }
+    proc testbadargs {cmd} {
+        test pointer-$cmd-badarg-0 "pointer $cmd non-pointer" -body {
+            list [catch {cffi::pointer $cmd abc} result] $result $::errorCode
+        } -result [list 1 \
+                       "Invalid value \"abc\". Invalid pointer format." \
+                       [list cffi INVALID_VALUE "Invalid value \"abc\". Invalid pointer format."]]
+
+        test pointer-$cmd-badarg-1 "pointer $cmd empty string" -body {
+            list [catch {cffi::pointer $cmd ""} result] $result $::errorCode
+        } -result [list 1 \
+                       "Invalid value \"\". Invalid pointer format." \
+                       [list cffi INVALID_VALUE "Invalid value \"\". Invalid pointer format."]]
+
+        test pointer-$cmd-numargs-0 "pointer $cmd no args" -body {
+            cffi::pointer $cmd
+        } -result "wrong # args: should be \"cffi::pointer $cmd POINTER\"" -returnCodes error
+        test pointer-$cmd-numargs-1 "pointer $cmd too many args" -body {
+            cffi::pointer $cmd 1^ 2^
+        } -result "wrong # args: should be \"cffi::pointer $cmd POINTER\"" -returnCodes error
+    }
+
+    testsubcmd ::cffi::pointer
+
+    # pointer tag
+    testbadargs tag
+    testnullptr tag
+    test pointer-tag-0 "pointer tag" -body {
+        cffi::pointer tag [makeptr 1]
+    } -result ""
+    test pointer-tag-1 "pointer tag" -body {
+        cffi::pointer tag [makeptr 1 TAG]
+    } -result TAG
+
+    # pointer check
+    testbadargs check
+    testnullptr check
+    test pointer-check-0 "pointer check fail" -body {
+        list [catch {cffi::pointer check [makeptr 1]} result] \
+            $result \
+            $::errorCode
+    } -result "1 {Pointer [makeptr 1] is not registered.} {cffi ERROR {Pointer [makeptr 1] is not registered.}}"
+
+    test pointer-check-1 "pointer check success" -setup {
+        set ptr [makeptr 1]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer check $ptr
+    } -result ""
+
+    test pointer-check-2 "pointer check fail tagged" -body {
+        list [catch {cffi::pointer check [makeptr 1 TAG]} result] \
+            $result \
+            $::errorCode
+    } -result "1 {Pointer [makeptr 1 TAG] is not registered.} {cffi ERROR {Pointer [makeptr 1 TAG] is not registered.}}"
+
+    test pointer-check-3 "pointer check success tagged" -setup {
+        set ptr [makeptr 1 TAG]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer check $ptr
+    } -result ""
+
+    test pointer-check-4 "pointer check mismatched tag" -setup {
+        set ptr [makeptr 1 TAG]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        list [catch {cffi::pointer check [makeptr 1 TAG2]} result] \
+            $result \
+            $::errorCode
+    } -result "1 {Value has the wrong type. Pointer tag does not match registered tag.} {cffi WRONG_TYPE {Value has the wrong type. Pointer tag does not match registered tag.}}"
+
+    test pointer-check-5 "pointer check tagged against registered untagged" -setup {
+        set ptr [makeptr 1]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        list [catch {cffi::pointer check [makeptr 1 TAG]} result] \
+            $result \
+            $::errorCode
+    } -result "1 {Value has the wrong type. Pointer tag does not match registered tag.} {cffi WRONG_TYPE {Value has the wrong type. Pointer tag does not match registered tag.}}"
+
+    test pointer-check-6 "pointer check untagged against registered tagged" -setup {
+        set ptr [makeptr 1 TAG]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer check [makeptr 1]
+    } -result ""
+
+    test pointer-check-7 "pointer check null pointer" -body {
+        list [catch {cffi::pointer check [makeptr 0]} result] $result $::errorCode
+    } -result [list 1 \
+                   "Invalid value \"[makeptr 0]\". Pointer is NULL." \
+                   [list cffi INVALID_VALUE "Invalid value \"[makeptr 0]\". Pointer is NULL."]]
+
+    test pointer-check-8 "pointer check null tagged pointer" -body {
+        list [catch {cffi::pointer check [makeptr 0 TAG]} result] $result $::errorCode
+    } -result [list 1 \
+                   "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL." \
+                   [list cffi INVALID_VALUE "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL."]]
+
+    # pointer isvalid
+    testbadargs isvalid
+    test pointer-isvalid-0 "pointer isvalid fail" -body {
+        cffi::pointer isvalid [makeptr 1]
+    } -result 0
+
+    test pointer-isvalid-1 "pointer isvalid success" -setup {
+        set ptr [makeptr 1]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer isvalid $ptr
+    } -result 1
+
+    test pointer-isvalid-2 "pointer isvalid fail tagged" -body {
+        cffi::pointer isvalid [makeptr 1 TAG]
+    } -result 0
+
+    test pointer-isvalid-3 "pointer isvalid success tagged" -setup {
+        set ptr [makeptr 1 TAG]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer isvalid $ptr
+    } -result 1
+
+    test pointer-isvalid-4 "pointer isvalid mismatched tag" -setup {
+        set ptr [makeptr 1 TAG]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer isvalid [makeptr 1 TAG2]
+    } -result 0
+
+    test pointer-isvalid-5 "pointer isvalid tagged against registered untagged" -setup {
+        set ptr [makeptr 1]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer isvalid [makeptr 1 TAG]
+    } -result 0
+
+    test pointer-isvalid-6 "pointer isvalid untagged against registered tagged" -setup {
+        set ptr [makeptr 1 TAG]
+        cffi::pointer safe $ptr
+    } -cleanup {
+        cffi::pointer dispose $ptr
+    } -body {
+        cffi::pointer isvalid [makeptr 1]
+    } -result 1
+
+    test pointer-isvalid-7 "pointer isvalid null pointer" -body {
+        cffi::pointer isvalid [makeptr 0]
+    } -result 0
+
+    test pointer-isvalid-8 "pointer isvalid null pointer" -body {
+        cffi::pointer isvalid [makeptr 0 TAG]
+    } -result 0
+
+    ###
+    # pointer list
+
+    test pointer-list-numargs-0 "pointer list too many args" -body {
+        cffi::pointer list A B
+    } -result "wrong # args: should be \"cffi::pointer list ?TAG?\"" -returnCodes error
+
+    test pointer-list-0 "pointer list empty" -body {
+        cffi::pointer list
+    } -result [list ]
+
+    test pointer-list-1 "pointer list" -setup {
+        cffi::pointer safe 1^TAG
+        cffi::pointer safe 2^
+    } -body {
+        list [lsort [cffi::pointer list]] [cffi::pointer dispose 1^TAG] [cffi::pointer dispose 2^] [cffi::pointer list]
+    } -result [list [list [makeptr 1 TAG] [makeptr 2]] {} {} {}]
+
+    test pointer-list-2 "pointer list" -setup {
+        cffi::pointer safe 1^TAG
+        cffi::pointer safe 2^
+        cffi::pointer safe 3^BAG
+    } -cleanup {
+        cffi::pointer dispose 1^TAG
+        cffi::pointer dispose 2^
+        cffi::pointer dispose 3^BAG
+    } -body {
+        cffi::pointer list TAG
+    } -result [list [makeptr 1 TAG]]
+
+    test pointer-list-3 "pointer list" -setup {
+        cffi::pointer safe 1^TAG
+    } -cleanup {
+        cffi::pointer dispose 1^TAG
+    } -body {
+        cffi::pointer list TAGX
+    } -result [list ]
+
+    ###
+    # pointer safe
+    testbadargs safe
+    testnullptr safe
+
+    test pointer-safe-0 "pointer safe" -body {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+    test pointer-safe-1 "pointer safe tagged" -body {
+        set p [makeptr 1 TAG]
+        cffi::pointer safe $p
+        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+    test pointer-safe-error-0 "pointer safe dup" -body {
+        set p [makeptr 1 TAG]
+        cffi::pointer safe $p
+        list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
+    } -result [list 1 1 1 {} 0 {Registered pointer already exists. }]
+    test pointer-safe-error-1 "pointer safe after counted" -body {
+        set p [makeptr 1 TAG]
+        cffi::pointer counted $p
+        list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
+    } -result [list 1 1 1 {} 0 {Registered pointer already exists. }]
+
+    ###
+    # pointer counted
+    testbadargs counted
+    testnullptr counted
+
+    test pointer-counted-0 "pointer counted" -body {
+        set p [makeptr 1]
+        cffi::pointer counted $p
+        cffi::pointer counted $p
+        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 1 {} 0}
+    test pointer-counted-1 "pointer counted" -body {
+        set p [makeptr 1 TAG]
+        cffi::pointer counted $p
+        cffi::pointer counted $p
+        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 1 {} 0}
+    test pointer-counted-error-0 "pointer counted after safe" -body {
+        set p [makeptr 1 TAG]
+        cffi::pointer safe $p
+        list [cffi::pointer isvalid $p] [catch {cffi::pointer counted $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
+    } -result [list 1 1 1 {} 0 {Registered pointer already exists. }]
+
+    ###
+    # pointer dispose
+    testbadargs dispose
+    testnullptr dispose
+    test pointer-dispose-0 "pointer dispose" -body {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+    test pointer-dispose-1 "pointer dispose counted" -body {
+        set p [makeptr 1]
+        cffi::pointer counted $p
+        cffi::pointer counted $p
+        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 1 {} 0}
+
+    ###
+    # pointer isnull
+    testbadargs isnull
+    test pointer-isnull-0 "pointer isnull" -body {
+        cffi::pointer isnull [makeptr 0]
+    } -result 1
+    test pointer-isnull-1 "pointer isnull tagged" -body {
+        cffi::pointer isnull [makeptr 0 TAG]
+    } -result 1
+    test pointer-isnull-2 "pointer isnull nonnull" -body {
+        cffi::pointer isnull [makeptr 1]
+    } -result 0
+    test pointer-isnull-3 "pointer isnull nonnull tagged" -body {
+        cffi::pointer isnull [makeptr 1 TAG]
+    } -result 0
+
+    ###
+    # pointer address
+    testbadargs address
+    test pointer-address-0 "pointer address" -body {
+        cffi::pointer address [makeptr 1]
+    } -result [format 0x%.[expr {2 * $::tcl_platform(pointerSize)}]lx 1]
+    test pointer-address-1 "pointer address tagged" -body {
+        cffi::pointer address [makeptr 1 TAG]
+    } -result [format 0x%.[expr {2 * $::tcl_platform(pointerSize)}]lx 1]
+    test pointer-address-2 "pointer address nullptr" -body {
+        cffi::pointer address [makeptr 0]
+    } -result [format 0x%.[expr {2 * $::tcl_platform(pointerSize)}]lx 0]
+    test pointer-address-3 "pointer address nullptr tagged" -body {
+        cffi::pointer address [makeptr 0 TAG]
+    } -result [format 0x%.[expr {2 * $::tcl_platform(pointerSize)}]lx 0]
+
+}
+
+::tcltest::cleanupTests
+namespace delete ${NS}::test

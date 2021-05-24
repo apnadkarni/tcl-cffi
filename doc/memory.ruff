@@ -1,0 +1,35 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval ${NS}::memory {
+    proc allocate {size {tag {}}} {
+        # Allocates memory of the specified size
+        #  size - requested size of memory block
+        #  tag - Tag for the returned pointer.
+        # The returned memory must be eventually freed by calling [memory free].
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
+    proc free {pointer} {
+        # Frees the memory referenced by the passed pointer
+        #  pointer - safe pointer to memory to free
+        # The memory must have been allocated using [memory allocate],
+        # [memory frombinary] or one of the methods of a [Struct] object.
+    }
+    proc frombinary {bin_value {tag {}}} {
+        # Allocates memory and copied the passed Tcl binary string into it.
+        #  bin_value - a Tcl binary value
+        #  tag - Tag for the returned pointer.
+        # The returned memory must be eventually freed by calling [memory free].
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
+    proc tobinary {pointer size} {
+        # Returns the content of a memory block a Tcl binary string.
+        #  pointer - safe pointer to memory
+        #  size - number of bytes to copy from the memory block
+        # Returns the binary string containing bytes from the memory block.
+    }
+    namespace export *
+    namespace ensemble create
+}

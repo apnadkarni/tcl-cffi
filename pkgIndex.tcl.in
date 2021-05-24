@@ -1,0 +1,9 @@
+#
+# Tcl package index file
+#
+package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
+    [list apply [list {dir} {
+        namespace eval @PACKAGE_NAME@ {variable dll_path}
+        set @PACKAGE_NAME@::dll_path [file join $dir @PKG_LIB_FILE@]
+        load $@PACKAGE_NAME@::dll_path
+    }] $dir]
