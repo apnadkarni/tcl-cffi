@@ -3,7 +3,7 @@
 #
 # Tests for the cffi::type command
 
-source common.tcl
+source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     proc testalias {id def result {setup ""}} {
@@ -198,16 +198,23 @@ namespace eval cffi::test {
         lsort [cffi::alias list]
     } -result "int16_t int32_t int64_t int8_t size_t uint16_t uint32_t uint64_t uint8_t"
 
-    test alias-load-1 "alias load" -setup {
+    test alias-load-1-win "alias load" -setup {
         cffi::alias delete *
     } -constraints win -body {
         cffi::alias load win32
         lsort [cffi::alias list]
-    } -result "BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPSTR LPVOID LPWSTR LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM"
+    } -result "BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPSTR LPVOID LPWSTR LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM dev_t ino_t off_t time_t"
+
+    test alias-load-1-posix "alias load" -setup {
+        cffi::alias delete *
+    } -constraints !win -body {
+        cffi::alias load posix
+        lsort [cffi::alias list]
+    } -result "blkcnt_t blksize_t clock_t clockid_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t"
 
     test alias-load-error-0 "alias load - unknown set" -body {
         cffi::alias load xx
-    } -result "Invalid value \"xx\". Must be \"C\" or \"win32\"." -returnCodes error
+    } -result "Invalid value \"xx\". Must be \"C\", \"posix\" or \"win32\"." -returnCodes error
 
 }
 ::tcltest::cleanupTests

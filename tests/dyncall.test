@@ -4,7 +4,7 @@
 # This file contains tests for all cffi::Dyncall functionality except the
 # function method which has its own file
 
-source common.tcl
+source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     proc command_exists {cmd} {

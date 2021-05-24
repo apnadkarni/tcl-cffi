@@ -8,6 +8,8 @@ namespace eval ${NS}::memory {
         #  tag - Tag for the returned pointer.
         # The returned memory must be eventually freed by calling [memory free].
         #
+        # See also: "memory free"
+        #
         # Returns a safe pointer to the allocated memory.
     }
     proc free {pointer} {
@@ -15,6 +17,8 @@ namespace eval ${NS}::memory {
         #  pointer - safe pointer to memory to free
         # The memory must have been allocated using [memory allocate],
         # [memory frombinary] or one of the methods of a [Struct] object.
+        #
+        # See also: "memory allocate"
     }
     proc frombinary {bin_value {tag {}}} {
         # Allocates memory and copied the passed Tcl binary string into it.
@@ -22,12 +26,29 @@ namespace eval ${NS}::memory {
         #  tag - Tag for the returned pointer.
         # The returned memory must be eventually freed by calling [memory free].
         #
+        # See also: "memory tobinary" "memory tobinary!"
+        #
         # Returns a safe pointer to the allocated memory.
     }
     proc tobinary {pointer size} {
-        # Returns the content of a memory block a Tcl binary string.
+        # Returns the content of a memory block as a Tcl binary string.
         #  pointer - safe pointer to memory
         #  size - number of bytes to copy from the memory block
+        #
+        # See also: "memory tobinary!" "memory frombinary"
+        #
+        # Returns the binary string containing bytes from the memory block.
+    }
+    proc tobinary! {pointer size} {
+        # Returns the content of a memory block as a Tcl binary string.
+        #  pointer - pointer to memory.
+        #  size - number of bytes to copy from the memory block
+        #
+        # Unlike the [memory tobinary] method, this does not check the validity
+        # of $pointer and should be used with care.
+        #
+        # See also: "memory tobinary" "memory frombinary"
+        #
         # Returns the binary string containing bytes from the memory block.
     }
     namespace export *

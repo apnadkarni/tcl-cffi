@@ -29,7 +29,7 @@ DOTVERSION = 0.1
 # See the BUILD.md in top level directory for building dyncall itself.
 
 !ifndef DYNCALLDIR
-DYNCALLDIR = $(ROOT)\dyncall\$(BUILDDIRTOP)
+DYNCALLDIR = $(ROOT)\external-libs\win\$(ARCH)
 !endif
 !if exist("$(DYNCALLDIR)\include\dyncall.h")
 !message *** Using dyncall library in $(DYNCALLDIR)

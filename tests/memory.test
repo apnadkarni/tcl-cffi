@@ -3,7 +3,7 @@
 #
 # Tests for the cffi::memory command
 
-source common.tcl
+source [file join [file dirname [info script]] common.tcl]
 
 # NOTE: use fully qualified command name since Tcl also has a
 # command called memory
@@ -54,15 +54,42 @@ namespace eval cffi::test {
     ###
 
     testnumargs memory-tobinary "cffi::memory tobinary" "POINTER SIZE"
+    testnumargs memory-tobinary "cffi::memory tobinary!" "POINTER SIZE"
     testnumargs memory-frombinary "cffi::memory frombinary" "BINARY" "?TYPETAG?"
 
-    test memory-binary-0 {To/From binary} -setup {
+    test memory-binary-0 {To/From binary - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
     } -cleanup {
         cffi::memory free $p
     } -body {
         set p [cffi::memory frombinary $bin]
         binary scan [cffi::memory tobinary $p [string length $bin]] d3 bin2
+        set bin2
+    } -result {1.0 2.0 3.0}
+
+    test memory-binary-1 {To/From tobinary! - unsafe} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        binary scan [cffi::memory tobinary! $p [string length $bin]] d3 bin2
+        set bin2
+    } -result {1.0 2.0 3.0}
+
+    test memory-binary-2 {To/From tobinary - unsafe} -body {
+        cffi::memory tobinary [makeptr 1] 1
+    } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+
+    test memory-binary-3 {To/From tobinary! - unsafe} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        cffi::pointer dispose $p
+        binary scan [cffi::memory tobinary! $p [string length $bin]] d3 bin2
         set bin2
     } -result {1.0 2.0 3.0}
 }

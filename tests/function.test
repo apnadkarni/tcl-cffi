@@ -4,7 +4,7 @@
 # This file contains tests for cffi::Dyncall pertaining to definition and
 # invocation of functions.
 
-source common.tcl
+source [file join [file dirname [info script]] common.tcl]
 
 namespace eval ${NS}::test {
     cffi::Dyncall create testDll $testDllPath

@@ -16,6 +16,7 @@ typedef struct Tclh_SubCommand {
     int maxargs;
     const char *message;
     int (*cmdFn)();
+    int flags; /* Command specific usage */
 } Tclh_SubCommand;
 
 typedef struct CffiParam {
@@ -1633,6 +1634,7 @@ CffiStructObjCmd(ClientData cdata,
  * objc - count of elements in objv[]. Should be 3 or 4 including command
  *        and subcommand.
  * objv - argument array.
+ * flags - unused
  *
  * Allocated memory using *ckalloc* and returns a wrapped pointer to it.
  * The *objv[2]* argument contains the allocation size. Optionally, the
@@ -1643,7 +1645,7 @@ CffiStructObjCmd(ClientData cdata,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
+CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
 {
     Tcl_WideInt size;
     CffiResult ret;
@@ -1668,6 +1670,7 @@ CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
  * objc - count of elements in objv[]. Should be 3 including command
  *        and subcommand.
  * objv - argument array.
+ * flags - unused
  *
  * Unregisters the wrapped pointer in *objv[2]* and frees the memory.
  * The pointer must have been previously allocated with one of
@@ -1679,7 +1682,7 @@ CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
  *
  */
 static CffiResult
-CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
+CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
 {
     void *pv;
     CffiResult ret;
@@ -1701,6 +1704,7 @@ CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
  * objc - count of elements in objv[]. Should be 3 or 4 including command
  *        and subcommand.
  * objv - argument array.
+ * flags - unused
  *
  * Allocates memory and copies contents of *objv[2]* (as a byte array) to
  * it and returns a wrapped pointer to the memory in the interpreter.
@@ -1711,7 +1715,7 @@ CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryFromBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
+CffiMemoryFromBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
 {
     CffiResult ret;
     Tcl_Obj *ptrObj;
@@ -1738,24 +1742,28 @@ CffiMemoryFromBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
  * objc - count of elements in objv[]. Should be 3 or 4 including command
  *        and subcommand.
  * objv - argument array.
+ * flags - if the low bit is set, the pointer is treated as unsafe and not
+ *        checked for validity.
  *
  * Returns the *objv[3]* bytes of memory referenced by the wrapped pointer
- * in *objv[2]* as a *Tcl_Obj* byte array. The passed in pointer need not be
- * registered but the caller has to ensure its validity and the validity of
- * the region it references. If the pointer is *NULL*, the returned byte
- * array is empty.
+ * in *objv[2]* as a *Tcl_Obj* byte array. The passed in pointer should be
+ * registered unless the low bit of *flags* is set.
+ * If the pointer is *NULL*, the returned byte array is empty.
  *
  * Returns:
  * *TCL_OK* on success with wrapped pointer as interpreter result,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryToBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[])
+CffiMemoryToBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
 {
     void *pv;
     unsigned int len;
 
-    CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+    if (flags & 1)
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+    else
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
     CHECK(Tclh_ObjToUInt(ip, objv[3], &len));
     Tcl_SetObjResult(ip, Tcl_NewByteArrayObj(pv, len));
     return TCL_OK;
@@ -1767,17 +1775,19 @@ CffiMemoryObjCmd(ClientData cdata,
                    int objc,
                    Tcl_Obj *const objv[])
 {
+    /* The flags field low bit is set for unsafe pointer operation */
     static const Tclh_SubCommand subCommands[] = {
-        {"allocate", 1, 2, "SIZE ?TYPETAG?", CffiMemoryAllocateCmd},
-        {"free", 1, 1, "POINTER", CffiMemoryFreeCmd},
-        {"frombinary", 1, 2, "BINARY ?TYPETAG?", CffiMemoryFromBinaryCmd},
-        {"tobinary", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd},
+        {"allocate", 1, 2, "SIZE ?TYPETAG?", CffiMemoryAllocateCmd, 0},
+        {"free", 1, 1, "POINTER", CffiMemoryFreeCmd, 0},
+        {"frombinary", 1, 2, "BINARY ?TYPETAG?", CffiMemoryFromBinaryCmd, 0},
+        {"tobinary", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 0},
+        {"tobinary!", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 1},
         {NULL}
     };
     int cmdIndex;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
-    return subCommands[cmdIndex].cmdFn(ip, objc, objv);
+    return subCommands[cmdIndex].cmdFn(ip, objc, objv, subCommands[cmdIndex].flags);
 }
 
 static void

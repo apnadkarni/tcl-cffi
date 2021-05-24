@@ -3,8 +3,7 @@
 #
 # Contains common definitions across test scripts
 
-
-source common.tcl
+source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     testsubcmd ::cffi::Struct

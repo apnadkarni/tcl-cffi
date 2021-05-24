@@ -8,6 +8,7 @@
 #define TCLH_SHORTNAMES
 #include "tclCffiInt.h"
 #include <errno.h>
+#include <sys/types.h>
 
 /*
  * Basic type meta information. The order *MUST* match the order in
@@ -3451,7 +3452,6 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         ADDINTTYPE(int64_t);
         ADDINTTYPE(uint64_t);
     }
-
 #ifdef _WIN32
     else if (!strcmp(s, "win32")) {
         ADDINTTYPE(BOOL);
@@ -3490,11 +3490,41 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             return TCL_ERROR;
         if (CffiAliasAddStr(ipCtxP, "LPWSTR", "unistring") != TCL_OK)
             return TCL_ERROR;
+
+        /* POSIX defines on Windows */
+        ADDINTTYPE(time_t);
+        ADDINTTYPE(ino_t);
+        ADDINTTYPE(off_t);
+        ADDINTTYPE(dev_t);
+    }
+#else
+    else if (!strcmp(s, "posix")) {
+        /* sys/types.h */
+        ADDINTTYPE(blkcnt_t);
+        ADDINTTYPE(blksize_t);
+        ADDINTTYPE(clock_t);
+        ADDINTTYPE(clockid_t);
+        ADDINTTYPE(dev_t);
+        ADDINTTYPE(fsblkcnt_t);
+        ADDINTTYPE(fsfilcnt_t);
+        ADDINTTYPE(gid_t);
+        ADDINTTYPE(id_t);
+        ADDINTTYPE(ino_t);
+        ADDINTTYPE(key_t);
+        ADDINTTYPE(mode_t);
+        ADDINTTYPE(nlink_t);
+        ADDINTTYPE(off_t);
+        ADDINTTYPE(pid_t);
+        ADDINTTYPE(size_t);
+        ADDINTTYPE(ssize_t);
+        ADDINTTYPE(suseconds_t);
+        ADDINTTYPE(time_t);
+        ADDINTTYPE(uid_t);
     }
 #endif
     else {
         return Tclh_ErrorInvalidValue(
-            ipCtxP->interp, objP, "Must be \"C\" or \"win32\".");
+            ipCtxP->interp, objP, "Must be \"C\", \"posix\" or \"win32\".");
     }
 
     return TCL_OK;

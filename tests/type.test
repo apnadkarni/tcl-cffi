@@ -3,7 +3,7 @@
 #
 # Tests for the cffi::type command
 
-source common.tcl
+source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     variable typeInfo
