@@ -264,6 +264,17 @@ namespace eval ${NS}::test {
         test function-$type-out-2 "$type out large value" -body {
             list [$fn $largeval [list result [expr {$largelen+1}]]] $result
         } -result [list $largelen $largeval]
+        test function-$type-out-3 "$type out - uninitialized output" -setup {
+            testDll function pointer_noop void [list s [list $type out]]
+        } -body {
+            # This test attempts to check that the library guards against the called
+            # function not initializing the output buffer, for example in case of
+            # errors. This is not fool proof as there is no way to control existing
+            # output buffer contents before calling function (inout is not the same case)
+            # We expect the output buffer to be init'ed to leading \0
+            pointer_noop [list output 4]
+            set output
+        } -result ""
         test function-$type-out-error-0 "$type out error unspecified buffer size" -body {
             $fn abc result
         } -result "Invalid value \"result\". Arguments for out and inout parameters of type string and bytes should be of the form \"varname size\"." -returnCodes error
@@ -362,6 +373,17 @@ namespace eval ${NS}::test {
         test function-$type-out-2 "$type out" -body {
             list [$fn $largeval result] $result
         } -result [list $largelen $largeval]
+        test function-$type-out-3 "$type out - uninitialized output" -setup {
+            testDll function pointer_noop void [list s [list $type\[4\] out]]
+        } -body {
+            # This test attempts to check that the library guards against the called
+            # function not initializing the output buffer, for example in case of
+            # errors. This is not fool proof as there is no way to control existing
+            # output buffer contents before calling function (inout is not the same case)
+            # We expect the output buffer to be init'ed to leading \0
+            pointer_noop output
+            set output
+        } -result ""
 
         if {$type in {chars chars.utf-8}} {
             set fn string_reverse_inout

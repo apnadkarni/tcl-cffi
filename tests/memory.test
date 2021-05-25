@@ -54,7 +54,7 @@ namespace eval cffi::test {
     ###
 
     testnumargs memory-tobinary "cffi::memory tobinary" "POINTER SIZE"
-    testnumargs memory-tobinary "cffi::memory tobinary!" "POINTER SIZE"
+    testnumargs memory-tobinary! "cffi::memory tobinary!" "POINTER SIZE"
     testnumargs memory-frombinary "cffi::memory frombinary" "BINARY" "?TYPETAG?"
 
     test memory-binary-0 {To/From binary - safe} -setup {

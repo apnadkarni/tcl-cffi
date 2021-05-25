@@ -2400,6 +2400,12 @@ CffiArgPrepareString(Tcl_Interp *ip,
             /* Note Tcl_DStringSetLength actually leaves room for trailing \0 byte */
             Tcl_DStringSetLength(&valueP->ds, memory_size);
         }
+        /*
+         * Note unlike for chars[] case, we do not need to explicitly
+         * store nulls for pure-out parameters to protect against called
+         * function leaving garbage in output buffer on error. The
+         * DString function already ensure that.
+         */
     }
     return TCL_OK;
 }
@@ -2453,6 +2459,7 @@ CffiArgPrepareUniString(Tcl_Interp *ip,
                 "A count attribute must be specified for out and inout "
                 "parameters of type unistring.");
         }
+
         /*
          * Ensure storage size is at least nUnichar Tcl_UniChar characters.
          * Note that there may already be stuff in ds in case of inout
@@ -2476,6 +2483,17 @@ CffiArgPrepareUniString(Tcl_Interp *ip,
              */
             Tcl_DStringSetLength(&valueP->ds,
                                  (nUnichars + 1) * sizeof(Tcl_UniChar));
+        }
+        if (typeAttrsP->flags & CFFI_F_ATTR_OUT) {
+            /*
+             * To protect against the called C function leaving the output
+             * argument unmodified on error which would result in our
+             * processing garbage in CffiArgPostProcess, set null terminator.
+             * For inout, this is already initialized above. For pure out
+             * we need to guard against this.
+             */
+            Tcl_UniChar *uniP = (Tcl_UniChar*)Tcl_DStringValue(&valueP->ds);
+            *uniP             = 0;
         }
     }
     return TCL_OK;
@@ -2775,8 +2793,10 @@ CffiArgPrepareChars(CffiInterpCtx *ipCtxP,
                     Tcl_Obj *valueObj,
                     CffiValue *valueP)
 {
-    valueP->ptr = MemLifoAlloc(&ipCtxP->memlifo, typeAttrsP->dataType.count);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
+    CFFI_ASSERT(typeAttrsP->dataType.count > 0);
+
+    valueP->ptr = MemLifoAlloc(&ipCtxP->memlifo, typeAttrsP->dataType.count);
 
     /* If input, we need to encode appropriately */
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
@@ -2785,8 +2805,18 @@ CffiArgPrepareChars(CffiInterpCtx *ipCtxP,
                                 valueObj,
                                 valueP->ptr,
                                 typeAttrsP->dataType.count);
-    else
+    else {
+        /*
+         * To protect against the called C function leaving the output
+         * argument unmodified on error which would result in our
+         * processing garbage in CffiArgPostProcess, set null terminator.
+         */
+        *(char *)valueP->ptr = '\0';
+        /* In case encoding employs double nulls */
+        if (typeAttrsP->dataType.count > 1)
+            *(1 + (char *)valueP->ptr) = '\0';
         return TCL_OK;
+    }
 }
 
 /* Function: CffiUniCharsFromObj
@@ -2853,8 +2883,15 @@ CffiArgPrepareUniChars(CffiInterpCtx *ipCtxP,
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
         return CffiUniCharsFromObj(
             ipCtxP->interp, valueObj, valueP->ptr, dstLen);
-    else
+    else {
+        /*
+         * To protect against the called C function leaving the output
+         * argument unmodified on error which would result in our
+         * processing garbage in CffiArgPostProcess, set null terminator.
+         */
+        *(Tcl_UniChar *)valueP->ptr = 0;
         return TCL_OK;
+    }
 }
 
 /* Function: CffiArgPrepareBinary

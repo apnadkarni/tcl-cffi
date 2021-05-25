@@ -151,7 +151,7 @@ proc cffi::test::testnumargs {label cmd {fixed {}} {optional {}} args} {
     }
     if {$minargs > 0} {
         set arguments [lrepeat [expr {$minargs-1}] x]
-        test $label-minargs-1 "$label no arguments" \
+        test $label-minargs-0 "$label no arguments" \
             -body "$cmd" \
             -result $message -returnCodes error \
             {*}$args
