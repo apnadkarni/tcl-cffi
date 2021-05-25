@@ -4,10 +4,8 @@
 namespace eval $NS {
     # Leading space intentional to match main content below to not confuse ruff
     variable _ruff_preamble "        This is the reference for the `$::NS` package."
-    append _ruff_preamble " For an introductary usage guide, see the \[Start page\]($::NS.html)."
+    append _ruff_preamble " For an introductory usage guide, see the \[Start page\]($::NS.html)."
     append _ruff_preamble {
-        ## Loading the package
-
         The package is loaded in standard fashion with `package require`:
 
             package require dyncall

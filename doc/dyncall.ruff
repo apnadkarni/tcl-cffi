@@ -1,29 +1,62 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 
-namespace eval {$NS}::dyncall {
+namespace eval ${NS}::dyncall {
     variable _ruff_preamble {
         This namespace contains classes wrapping the `dyncall` library for
         calling C functions in shared library.
     }
 }
 
+oo::class create ${NS}::dyncall::Symbols {
+    constructor {{path {}}} {
+        # Wraps a shared library / DLL to allow access to its symbols.
+        #   path - path to the shared library
+        #
+        # It is strongly recommended that the path to the shared library be
+        # specified as an absolute path. Otherwise, it is located in a
+        # system-specific manner involving operating system version, environment
+        # variables, registry settings (on Windows), phase of the moon etc..
+        # This is not advisable for both reliability and security reasons.
+        #
+        # When no longer needed, the object can be deleted in the usual manner
+        # (via `rename` to an empty string) or by invoking its `destroy` method.
+        #
+        # Objects of this class provide access to the symbols defined in
+        # the file without actually loading the file and resolving addresses.
+        # They can only therefore be used to search for symbols, locate symbols
+        # based on their index, and if the library has been loaded already,
+        # based on the symbol address.
+        #
+        # An error is raised if the file does not exist or does not contain an
+        # exports table.
+        #
+        # Returns the name of the created object.
+    }
+    destructor {
+        # Destroys the object.
+        #
+        # The managed shared library may be unloaded if there is nothing else
+        # holding a reference to it.
+    }
+    method count {} {
+        # Returns the number of symbols defined in the library.
+    }
+    method index {index} {
+        # Returns the name of the symbol at a specified index.
+        #  index - index into symbol table
+    }
+    method ataddress {addr} {
+        # Returns the name of the symbol at a specified address.
+        #  addr - memory address
+        # The shared library must have been loaded into the process.
+    }
+}
+
 oo::class create ${NS}::dyncall::Library {
     constructor {{path {}}} {
-        # Loads a DLL / shared library which can then be operated on
-        # through method calls.
-        #   path - path to the DLL
-        #
-        # Objects of this class are created with either the `new` or `create`
-        # command, the difference being the latter permits the name of the
-        # created object to be specified.
-        #
-        #     Dll new DLLPATH
-        #     Dll create OBJNAME DLLPATH
-        #
-        # In both cases, the name of the created object is returned. In the case
-        # of the `create` method, the object is created relative to the current
-        # namespace.
+        # Wraps a shared library / DLL, loading it in the process.
+        #   path - path to the shared library
         #
         # It is strongly recommended that the path to the shared library be
         # specified as an absolute path. Otherwise, it is located in a
@@ -37,17 +70,19 @@ oo::class create ${NS}::dyncall::Library {
         # Returns the name of the created object.
     }
     destructor {
-        # Destroys the DLL object.
+        # Destroys the object and releases internal resources.
         #
-        # The managed DLL may be unloaded if there is nothing else
+        # The managed library may be unloaded if there is nothing else
         # holding a reference to it.
     }
     method path {} {
         # Returns the file system path for the DLL or image wrapped
         # by the object.
-
+        #
         # The returned path may be or may not be normalized and may be
-        # in native form or Tcl's canonical form.
+        # in native form or Tcl's canonical form. If no `path` argument
+        # was provided to the constructor, an empty string may be returned
+        # on some platforms.
     }
     method addressof {symbol} {
         # Returns the address of a symbol from the loaded DLL.

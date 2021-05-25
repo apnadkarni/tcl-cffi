@@ -6,7 +6,8 @@
 
 source [file join [file dirname [info script]] common.tcl]
 
-namespace eval cffi::test {
+# Library tests
+namespace eval ${NS}::test {
     set libraryClass ${NS}::dyncall::Library
 
     proc command_exists {cmd} {
@@ -23,9 +24,14 @@ namespace eval cffi::test {
 
     test dyncall-Library-new-1 {dyncall::Library new (no argument)} -body {
         set dll [$libraryClass new]
-        set path [$dll path]
-        list [command_exists $dll] [rename $dll ""] [command_exists $dll] [file normalize $path]
-    } -result [list 1 {} 0 [file normalize [info nameofexecutable]]]
+        set path [file normalize [$dll path]]
+        if {$::tcl_platform(platform) eq "windows"} {
+            set image_path [file normalize [info nameofexecutable]]
+        } else {
+            set image_path ""
+        }
+        list [command_exists $dll] [rename $dll ""] [command_exists $dll] [string equal $path $image_path]
+    } -result [list 1 {} 0 1]
 
     test dyncall-Library-new-error-0 {dyncall::Library new (invalid path)} -body {
         list [catch {
@@ -37,7 +43,7 @@ namespace eval cffi::test {
         list [catch {
             $libraryClass new $testDllPath extraarg
         } result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::dyncall::Library new DLLPATH"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::dyncall::Library new ?DLLPATH?"} {TCL WRONGARGS}}
 
     ####
 
@@ -66,10 +72,15 @@ namespace eval cffi::test {
 
     test dyncall-Library-create-3 {dyncall::Library create (no path argument)} -body {
         set dll [$libraryClass create dll]
-        set path [dll path]
+        set path [file normalize [$dll path]]
         dll destroy
-        file tail $path
-    } -result [file tail [info nameofexecutable]]
+        if {$::tcl_platform(platform) eq "windows"} {
+            set image_path [file normalize [info nameofexecutable]]
+        } else {
+            set image_path ""
+        }
+        string equal $path $image_path
+    } -result 1
 
     test dyncall-Library-create-error-0 {dyncall::Library create (invalid path)} -body {
         list [catch {
@@ -81,13 +92,13 @@ namespace eval cffi::test {
         list [catch {
             $libraryClass create dll $testDllPath extraarg
         } result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::dyncall::Library create OBJNAME DLLPATH"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::dyncall::Library create OBJNAME ?DLLPATH?"} {TCL WRONGARGS}}
 
     test dyncall-Library-create-error-2 {dyncall::Library create (no args)} -body {
         list [catch {
             $libraryClass create
         } result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::dyncall::Library create OBJNAME DLLPATH"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::dyncall::Library create OBJNAME ?DLLPATH?"} {TCL WRONGARGS}}
 
     ####
 
@@ -104,8 +115,13 @@ namespace eval cffi::test {
     } -cleanup {
         dll destroy
     } -body {
-        file normalize [dll path]
-    } -result [file normalize [info nameofexecutable]]
+        if {$::tcl_platform(platform) eq "windows"} {
+            set image_path [file normalize [info nameofexecutable]]
+        } else {
+            set image_path ""
+        }
+        string equal [file normalize [dll path]] $image_path
+    } -result 1
 
     test dyncall-Library-path-error-1 {dyncall::Library path (extra args)} -setup {
         $libraryClass create dll
@@ -156,6 +172,126 @@ namespace eval cffi::test {
             dll addressof schar_to_schar extra
         } result] $result $::errorCode
     } -result {1 {wrong # args: should be "dll addressof SYMBOL"} {TCL WRONGARGS}}
+}
+
+# Symbols tests
+namespace eval ${NS}::test  {
+    set symbolsClass ${NS}::dyncall::Symbols
+
+    test dyncall-Symbols-new-0 {dyncall::Symbols new} -body {
+        set dll [$symbolsClass new $testDllPath]
+        list [command_exists $dll] [$dll destroy] [command_exists $dll]
+    } -result [list 1 {} 0]
+
+    # A normal build of tclsh does not contain an export table hence the constraint
+    test dyncall-Symbols-new-1 {dyncall::Symbols new (no argument)} -constraints {
+        disabled
+    } -body {
+        set dll [$symbolsClass new]
+        set path [$dll path]
+        list [command_exists $dll] [rename $dll ""] [command_exists $dll] [file normalize $path]
+    } -result [list 1 {} 0 [file normalize [info nameofexecutable]]]
+
+    test dyncall-Symbols-new-error-0 {dyncall::Symbols new (invalid path)} -body {
+        list [catch {
+            $symbolsClass new nosuchpath
+        } result] $result $::errorCode
+    } -result [list 1 {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.} {cffi NOT_FOUND {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.}}]
+
+    test dyncall-Symbols-new-error-1 {dyncall::Symbols new (extra args)} -body {
+        list [catch {
+            $symbolsClass new $testDllPath extraarg
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::dyncall::Symbols new ?DLLPATH?"} {TCL WRONGARGS}}
+
+    ####
+
+    test dyncall-Symbols-create-0 {dyncall::Symbols create (current namespace)} -body {
+        set dll [$symbolsClass create dll $testDllPath]
+        list $dll [command_exists [namespace current]::dll] [dll destroy] [command_exists [namespace current]::dll] 
+    } -result [list [namespace current]::dll 1 {} 0]
+
+    test dyncall-Symbols-create-1 {dyncall::Symbols create (global namespace)} -body {
+        set dll [$symbolsClass create ::dll $testDllPath]
+        list $dll [command_exists ::dll] [rename ::dll ""] [command_exists ::dll]
+    } -result [list ::dll 1 {} 0]
+
+    test dyncall-Symbols-create-2 {dyncall::Symbols create (explicit namespace)} -setup {
+        set ns ::cffi::test::ns
+        namespace eval $ns {}
+    } -cleanup {
+        namespace delete $ns
+    } -body {
+        set dll [$symbolsClass create ${ns}::dll $testDllPath]
+        list $dll [command_exists $dll] [$dll destroy] [command_exists $dll]
+    } -result [list ::cffi::test::ns::dll 1 {} 0]
+
+    # A normal build of tclsh does not contain an export table hence the constraint
+    test dyncall-Symbols-create-3 {dyncall::Symbols create (no path argument)} -constraints {
+        disabled
+    } -body {
+        set dll [$symbolsClass create dll]
+        set path [dll path]
+        dll destroy
+        file tail $path
+    } -result [file tail [info nameofexecutable]]
+
+    test dyncall-Symbols-create-error-0 {dyncall::Symbols create (invalid path)} -body {
+        list [catch {
+            $symbolsClass create dll nosuchpath
+        } result] $result $::errorCode
+    } -result [list 1 {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.} {cffi NOT_FOUND {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.}}]
+
+    test dyncall-Symbols-create-error-1 {dyncall::Symbols create (extra args)} -body {
+        list [catch {
+            $symbolsClass create dll $testDllPath extraarg
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::dyncall::Symbols create OBJNAME ?DLLPATH?"} {TCL WRONGARGS}}
+
+    test dyncall-Symbols-create-error-2 {dyncall::Symbols create (no args)} -body {
+        list [catch {
+            $symbolsClass create
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::dyncall::Symbols create OBJNAME ?DLLPATH?"} {TCL WRONGARGS}}
+
+    ###
+    # Symbols count
+    testnumargs dyncall-Symbols-count "testSyms count" "" ""
+    test dyncall-Symbols-count-0 {dyncall::Symbols count} -body {
+        set count [testSyms count]
+        # Platform and compiler dependent
+        expr {$count > 250 && $count < 500}
+    } -result 1
+
+    ###
+    # Symbols index
+    testnumargs dyncall-Symbols-index "testSyms index" "INDEX" ""
+    test dyncall-Symbols-index-0 {dyncall::Symbols index} -body {
+        testSyms index 1
+    } -result [expr {$::tcl_platform(platform) eq "windows" ? "binary_out" : "dl_iterate_phdr"}]
+    test dyncall-Symbols-index-1 {dyncall::Symbols index} -body {
+        testSyms index [expr {[testSyms count]-1}]
+    } -result [expr {$::tcl_platform(platform) eq "windows" ? "ushort_to_void" : "uchar_array_out"}]
+    test dyncall-Symbols-index-error-0 "dyncall::Symbols index - out of range" -body {
+        testSyms index [testSyms count]
+    } -result {Symbol index "*" not found or inaccessible. No symbol at specified index.} -returnCodes error -match glob
+    test dyncall-Symbols-index-error-1 "dyncall::Symbols index - negative" -body {
+        testSyms index -1
+    } -result {Symbol index "-1" not found or inaccessible. No symbol at specified index.} -returnCodes error
+
+
+
+    ###
+    # Symbols ataddress
+    testnumargs dyncall-Symbols-ataddress "testSyms ataddress" "ADDRESS" ""
+    test dyncall-Symbols-ataddress-0 "Symbols ataddress" -body {
+        set addr [testDll addressof int_to_void]
+        testSyms ataddress $addr
+    } -result int_to_void
+    test dyncall-Symbols-ataddress-error-0 "Symbols ataddress" -body {
+        set addr [testDll addressof int_to_void]
+        testSyms ataddress [expr {$addr+1}]
+    } -result "Address \"*\" not found or inaccessible. No symbol at specified address or library not loaded." -returnCodes error -match glob
 }
 
 ::tcltest::cleanupTests

@@ -610,7 +610,7 @@ char *TclhPrintAddress(const void *address, char *buf, int buflen)
 
 #ifdef _WIN32
 Tcl_Obj *TclhMapWindowsError(
-    unsigned int winError,      /* Windows error code */
+    DWORD winError,      /* Windows error code */
     HANDLE moduleHandle,        /* Handle to module containing error string.
                                  * If NULL, assumed to be system message. */
     const char *msgPtr)         /* Message prefix. May be NULL. */

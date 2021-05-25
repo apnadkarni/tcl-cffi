@@ -792,7 +792,7 @@ Tclh_PointerObjUnregister(Tcl_Interp *interp,
                           void **pointerP,
                           Tclh_PointerTypeTag tag)
 {
-    void *pv;
+    void *pv = NULL;            /* Init to keep gcc happy */
     int   tclResult;
 
     tclResult = Tclh_PointerUnwrap(interp, objP, &pv, tag);
@@ -813,7 +813,7 @@ PointerObjVerifyOrUnregisterAnyOf(Tcl_Interp *interp,
                                   va_list args)
 {
     int tclResult;
-    void *pv;
+    void *pv = NULL;            /* Init to keep gcc happy */
     Tclh_PointerTypeTag tag = NULL;
 
     tclResult = TclhUnwrapAnyOfVA(interp, objP, &pv, &tag, args);
@@ -849,7 +849,7 @@ Tclh_PointerObjVerify(Tcl_Interp *interp,
                       void **pointerP,
                       Tclh_PointerTypeTag tag)
 {
-    void *pv;
+    void *pv = NULL;            /* Init to keep gcc happy */
     int   tclResult;
 
     tclResult = Tclh_PointerUnwrap(interp, objP, &pv, tag);

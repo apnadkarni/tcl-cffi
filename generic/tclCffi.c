@@ -782,7 +782,7 @@ static void CffiDyncallInstanceDeleter(ClientData cdata)
     ckfree(ctxP);
 }
 
-/* Function: CffiDyncallObjCmd
+/* Function: CffiDyncallLibraryObjCmd
  * Implements the script level *dll* command.
  *
  * Parameters:
@@ -795,7 +795,7 @@ static void CffiDyncallInstanceDeleter(ClientData cdata)
  * TCL_OK on success with result in interpreter or TCL_ERROR with error
  * message in interpreter.
  */
-static CffiResult CffiDyncallObjCmd(ClientData  cdata,
+static CffiResult CffiDyncallLibraryObjCmd(ClientData  cdata,
                                     Tcl_Interp *ip,
                                     int         objc,
                                     Tcl_Obj *const objv[])
@@ -806,8 +806,8 @@ static CffiResult CffiDyncallObjCmd(ClientData  cdata,
     Tcl_Obj *pathObj;
     const char *path;
     static const Tclh_SubCommand subCommands[] = {
-        {"new", 0, 1, "DLLPATH", NULL},
-        {"create", 1, 2, "OBJNAME DLLPATH", NULL},
+        {"new", 0, 1, "?DLLPATH?", NULL},
+        {"create", 1, 2, "OBJNAME ?DLLPATH?", NULL},
         {NULL}
     };
     int cmdIndex;
@@ -975,7 +975,7 @@ CffiSymbolsObjCmd(ClientData cdata,
     Tcl_Obj *nameObj;
     Tcl_Obj *pathObj;
     static const Tclh_SubCommand subCommands[] = {
-        {"new", 0, 1, "DLLPATH", NULL},
+        {"new", 0, 1, "?DLLPATH?", NULL},
         {"create", 1, 2, "OBJNAME ?DLLPATH?", NULL},
         {NULL}
     };
@@ -1001,8 +1001,6 @@ CffiSymbolsObjCmd(ClientData cdata,
     }
     Tcl_IncrRefCount(nameObj);
 
-    /* TBD - why do we not register the dlsP pointer like we do for
-       the dll command/ */
     dlsP = dlSymsInit(pathObj ? Tcl_GetString(pathObj) : NULL);
 #if defined(_WIN32)
     /* dyncall 1.2 does not protect against missing exports table in PE files */
@@ -1045,7 +1043,7 @@ CffiSymbolsObjCmd(ClientData cdata,
 #endif
     if (dlsP == NULL) {
         ret = Tclh_ErrorNotFound(
-            ip, "Symbols file or exports", pathObj, "Could not load symbols.");
+            ip, "Symbols container", pathObj, "Could not find file or export table in file.");
     }
     else {
         Tcl_CreateObjCommand(ip,
@@ -2098,7 +2096,7 @@ CffiSandboxObjCmd(ClientData cdata,
     else {
         char buf[40];
 #ifdef _WIN32
-        _snprintf(buf, 40, "%llu", ull);
+        _snprintf(buf, 40, "%I64u", ull);
 #else
         snprintf(buf, 40, "%llu", ull);
 #endif
@@ -2165,7 +2163,7 @@ Cffi_Init(Tcl_Interp *ip)
     vmCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
 
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::dyncall::Library", CffiDyncallObjCmd, vmCtxP, NULL);
+        ip, CFFI_NAMESPACE "::dyncall::Library", CffiDyncallLibraryObjCmd, vmCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::dyncall::Symbols", CffiSymbolsObjCmd, NULL, NULL);
     Tcl_CreateObjCommand(

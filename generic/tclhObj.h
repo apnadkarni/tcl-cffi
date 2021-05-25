@@ -282,6 +282,7 @@ Tclh_ObjToRangedInt(Tcl_Interp * interp,
                     Tcl_WideInt *wideP)
 {
     Tcl_WideInt wide;
+
     if (Tcl_GetWideIntFromObj(interp, obj, &wide) != TCL_OK)
         return TCL_ERROR;
 
@@ -296,7 +297,7 @@ Tclh_ObjToRangedInt(Tcl_Interp * interp,
 
 int Tclh_ObjToChar(Tcl_Interp *interp, Tcl_Obj *obj, signed char *cP)
 {
-    Tcl_WideInt wide;
+    Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
     if (Tclh_ObjToRangedInt(interp, obj, CHAR_MIN, CHAR_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
@@ -306,7 +307,7 @@ int Tclh_ObjToChar(Tcl_Interp *interp, Tcl_Obj *obj, signed char *cP)
 
 int Tclh_ObjToUChar(Tcl_Interp *interp, Tcl_Obj *obj, unsigned char *ucP)
 {
-    Tcl_WideInt wide;
+    Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
     if (Tclh_ObjToRangedInt(interp, obj, 0, UCHAR_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
@@ -316,7 +317,7 @@ int Tclh_ObjToUChar(Tcl_Interp *interp, Tcl_Obj *obj, unsigned char *ucP)
 
 int Tclh_ObjToShort(Tcl_Interp *interp, Tcl_Obj *obj, short *shortP)
 {
-    Tcl_WideInt wide;
+    Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
     if (Tclh_ObjToRangedInt(interp, obj, SHRT_MIN, SHRT_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
@@ -326,7 +327,7 @@ int Tclh_ObjToShort(Tcl_Interp *interp, Tcl_Obj *obj, short *shortP)
 
 int Tclh_ObjToUShort(Tcl_Interp *interp, Tcl_Obj *obj, unsigned short *ushortP)
 {
-    Tcl_WideInt wide;
+    Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
     if (Tclh_ObjToRangedInt(interp, obj, 0, USHRT_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
@@ -341,7 +342,7 @@ int Tclh_ObjToInt(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 
 int Tclh_ObjToUInt(Tcl_Interp *interp, Tcl_Obj *obj, unsigned int *uiP)
 {
-    Tcl_WideInt wide;
+    Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
     if (Tclh_ObjToRangedInt(interp, obj, 0, UINT_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
@@ -358,7 +359,7 @@ int Tclh_ObjToULong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long *valP)
 {
 
     if (sizeof(unsigned long) < sizeof(Tcl_WideInt)) {
-        Tcl_WideInt wide;
+        Tcl_WideInt wide = 0; /* Init to keep gcc happy */
         if (Tclh_ObjToRangedInt(interp, objP, 0, UINT_MAX, &wide) != TCL_OK)
             return TCL_ERROR;
         *valP = (unsigned long)wide;

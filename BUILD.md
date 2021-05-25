@@ -9,17 +9,53 @@ summarize steps for building `dyncall`. Detailed instructions are available in t
 and further detailed in the README files for each platform in the `doc` subdirectory
 of the `dyncall` distribution.
 
+## Building on Unix-like systems
+
+Again, the first step is to build `dyncall` using one of the prescribed methods
+in the `dyncall` documentation. For example, using the `configure` script, from
+ the top level directory of the distribution, run the following commands in a shell.
+
+```
+$ mkdir build-ubuntu-x64
+$ cd build-ubuntu-x64
+$ ../configure --prefix=/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64
+$ make
+$ make install
+```
+
+Note if the `--prefix` option is not supplied, the build will install in the
+system library directories.
+
+The `cffi` package can then be built like any standard TEA based Tcl extension.
+
+```
+$ mkdir build-ubuntu-x64
+$ cd build-ubuntu-x64
+$ LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include ../configure --enable-64bit
+$ make
+$ make install
+```
+
+Note the `LDFLAGS` and `CPPFLAGS` environment variables have to be specified if
+`dyncall` libraries and headers are not in a standard system directory.
+
 ## Building on Windows
 
-The `dyncall` documentation describes multiple ways to build on Windows. The one
-illustrated below uses `cmake` , `nmake` and Visual C++. (The commmands assume
-CMake 3 versions prior to 3.13 and may need to be modified for later versions.)
-If you do not have cmake, see the `dyncall` documentation for alternative methods.
+The `dyncall` documentation describes multiple ways to build on Windows. Just two
+of these are illustrated here. Note that pre-built binaries are also available from
+https://sourceforge.net/projects/magicsplat/files/cffi.
+
+### Building with Visual C++
+
+The first example illustrated uses `cmake` , `nmake` and Visual C++ 2017. There
+is some use of C99 headers and runtime so earlier version may need some editing
+of the code. The commmands also assume CMake 3 versions prior to 3.13 and may need to
+be modified for later versions. If you do not have cmake, see the `dyncall`
+documentation for alternative methods.
 
 Start a Visual Studio build command shell (32- or 64-bit depending on the
 desired library) and cd to the top level of the `dyncall` source directory.
 Then run commands as shown in the example below for a 64-bit build.
-
 
 ```
 D:\src\dyncall>mkdir build-msvc-x64
@@ -46,33 +82,36 @@ nmake /f makefile.vc INSTALLDIR=d:\tcl\debug\x64 DYNCALLDIR=d:\src\tcl-cffi\exte
 ```
 
 Note the path to the `dyncall` *installation* directory has to be specified in
-the command.
+the command as the `DYNCALLDIR` variable.
 
-## Building on Unix-like systems
+### Building with MinGW-w64/gcc
 
-Again, the first step is to build `dyncall` using one of the prescribed methods
-in the `dyncall` documentation. For example, using the `configure` script, from
- the top level directory of the distribution, run the following commands in a shell.
+As an alternative to Visual C++, the package may also be build with the MinGW-w64
+gcc compiler suite. This follows almost the same exact method as the Unix builds
+described above as the steps below illustrate.
+
+From a MinGW-w64 (not msys2) 64-bit shell, run the following commands at the top level
+`dyncall` directory. 
 
 ```
-$ mkdir build-ubuntu-x64
-$ cd build-ubuntu-x64
-$ ../configure --prefix=/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64
+$ mkdir build-mingw-x64
+$ cd build-mingw-x64
+$ ../configure --prefix=/d/src/tcl-cffi/external-libs/mingw/x64
 $ make
 $ make install
 ```
 
-Note if the `--prefix` option is not supplied, the build will install in the
-system library directories.
-
-The `cffi` package can then be built like any standard TEA based Tcl extension.
+Then build the `cffi` package. From the `cffi` top level directory,
 
 ```
-$ mkdir build-ubuntu-x64
-$ cd build-ubuntu-x64
-$ LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64 ../configure --enable-64bit
+$ mkdir build-mingw-x64
+$ cd build-mingw-x64
+$ LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include ../configure --enable-64bit --with-tcl=/d/tcl/mingw-8610/x64/lib
 $ make
 $ make install
 ```
 
-Note the `LDFLAGS` environment variable that has to be specified if `dyncall` is not in a standard system directory.
+Note that the `--with-tcl` option has to be specified pointing to a Tcl
+installation that was also built with MinGW-w64. Without this, the build system
+will use the `tclsh` that comes with the `msys2` installation that comes with
+MinGW-w64. That is **not** what you want.

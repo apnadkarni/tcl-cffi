@@ -20,6 +20,7 @@ namespace eval cffi::test {
     variable testDllPath [file normalize $::cffi::dll_path]
     cffi::dyncall::Library create testDll $testDllPath
     testDll function getTestStructSize int {}
+    cffi::dyncall::Symbols create testSyms $testDllPath
     variable testStructSize
     set testStructSize [getTestStructSize]
 
