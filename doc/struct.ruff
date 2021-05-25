@@ -88,8 +88,8 @@ oo::class create ${NS}::Struct {
         # 
     }
     method free {pointer} {
-        # Frees memory that was allocated for a C struct.
-        #  pointer - a pointer returned by [allocate] or [encode]
+        # Frees memory that was allocated for a native C struct.
+        #  pointer - a pointer returned by [allocate]
     }
     method info {} {
         # Returns a dictionary containing information about the struct layout

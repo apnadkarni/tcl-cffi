@@ -2165,9 +2165,9 @@ Cffi_Init(Tcl_Interp *ip)
     vmCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
 
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::Dyncall", CffiDyncallObjCmd, vmCtxP, NULL);
+        ip, CFFI_NAMESPACE "::dyncall::Library", CffiDyncallObjCmd, vmCtxP, NULL);
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::Symbols", CffiSymbolsObjCmd, NULL, NULL);
+        ip, CFFI_NAMESPACE "::dyncall::Symbols", CffiSymbolsObjCmd, NULL, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Struct", CffiStructObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(

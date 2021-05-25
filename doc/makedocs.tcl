@@ -14,7 +14,7 @@ source type.ruff
 source alias.ruff
 source pointer.ruff
 
-ruff::document [list Concepts $NS] \
+ruff::document [list Concepts $NS ${NS}::dyncall] \
     -output [file join [file dirname [info script]] $NS.html] \
     -sortnamespaces false \
     -preamble $start_page \

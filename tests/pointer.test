@@ -1,8 +1,7 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
-# This file contains tests for cffi::Dyncall pertaining to definition and
-# invocation of functions.
+# This file contains tests pertaining to definition and invocation of functions.
 
 source [file join [file dirname [info script]] common.tcl]
 

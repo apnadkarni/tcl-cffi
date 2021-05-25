@@ -92,11 +92,9 @@ namespace eval cffi::test {
     }
 
     test struct-offsets-0 "struct offsets" -setup {
-        cffi::Dyncall create dll $testDllPath
-        dll function getTestStruct int {s {struct.TestStruct out}}
+        testDll function getTestStruct int {s {struct.TestStruct out}}
     } -cleanup {
         rename getTestStruct ""
-        dll destroy
     } -body {
         set sinfo [::TestStruct info]
         set mismatches [list ]
@@ -231,13 +229,11 @@ namespace eval cffi::test {
     testnumargs struct-fromnative "::TestStruct fromnative" "POINTER" "?INDEX?"
 
     test struct-fromnative-0 "struct fromnative" -setup {
-        cffi::Dyncall create dll $testDllPath
         set p [TestStruct allocate]
-        dll function getTestStruct int {p pointer.TestStruct}
+        testDll function getTestStruct int {p pointer.TestStruct}
     } -cleanup {
         TestStruct free $p
         rename getTestStruct ""
-        dll destroy
     } -body {
         getTestStruct $p
         set s [::TestStruct fromnative $p]
@@ -246,9 +242,8 @@ namespace eval cffi::test {
 
     test struct-fromnative-1 "struct fromnative index" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
-        cffi::Dyncall create dll $testDllPath
         set p [S allocate 3]
-        dll function structFillArray int {n int p pointer.S}
+        testDll function structFillArray int {n int p pointer.S}
     } -cleanup {
         S free $p
         rename S ""
@@ -382,12 +377,10 @@ namespace eval cffi::test {
     testnumargs struct-tobinary "::TestStruct tobinary" "DICTIONARY"
     testnumargs struct-frombinary "::TestStruct frombinary" "BINARY"
     test struct-tobinary-0 "struct tobinary" -setup {
-        cffi::Dyncall create dll $testDllPath
-        dll function getTestStruct int {s {struct.TestStruct out}}
+        testDll function getTestStruct int {s {struct.TestStruct out}}
         getTestStruct s
     } -cleanup {
         rename getTestStruct ""
-        dll destroy
     } -body {
         set b [TestStruct tobinary $s]
         list [string length $b] [checkTestStruct [TestStruct frombinary $b]]

@@ -18,7 +18,7 @@ package require cffi
 namespace eval cffi::test {
     namespace import ::tcltest::test
     variable testDllPath [file normalize $::cffi::dll_path]
-    cffi::Dyncall create testDll $testDllPath
+    cffi::dyncall::Library create testDll $testDllPath
     testDll function getTestStructSize int {}
     variable testStructSize
     set testStructSize [getTestStructSize]

@@ -1,7 +1,14 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 
-oo::class create ${NS}::Dyncall {
+namespace eval {$NS}::dyncall {
+    variable _ruff_preamble {
+        This namespace contains classes wrapping the `dyncall` library for
+        calling C functions in shared library.
+    }
+}
+
+oo::class create ${NS}::dyncall::Library {
     constructor {{path {}}} {
         # Loads a DLL / shared library which can then be operated on
         # through method calls.

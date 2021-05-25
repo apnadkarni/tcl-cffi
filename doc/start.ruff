@@ -72,7 +72,7 @@ set start_page {
     ````
     % package require dyncall
     0.1
-    % cffi::Dyncall create user32 [file join $env(windir) system32 user32.dll]
+    % cffi::dyncall::Library create user32 [file join $env(windir) system32 user32.dll]
     ::user32
     ````
 
@@ -91,8 +91,8 @@ set start_page {
     where `HWND` is actually a C pointer typedef.
 
     To call this function from Tcl we first have to define a prototype for it.
-    Prototypes can be defined with either the [::cffi::Dyncall.function] or
-    [::cffi::Dyncall.stdcall] methods on the shared libray object that implements
+    Prototypes can be defined with either the [::cffi::dyncall::Library.function] or
+    [::cffi::dyncall::Library.stdcall] methods on the shared libray object that implements
     the function. The two commands are identical on all
     platforms except *32-bit* Windows where `function` is used to call functions
     that use the C calling convention while `stdcall` is used to call functions
@@ -177,7 +177,7 @@ set start_page {
     is more convenient as it directly translates to and from Tcl string values.
 
     ```
-    % cffi::Dyncall create kernel kernel32.dll
+    % cffi::dyncall::Library create kernel kernel32.dll
     ::kernel
     % kernel stdcalls {
         SetCurrentDirectoryA uint32 {path string}
@@ -470,7 +470,7 @@ set start_page {
     mandated.
 
     ```
-    % cffi::Dyncall create myprocess
+    % cffi::dyncall::Library create myprocess
     ::myprocess
     % myprocess function fopen {pointer.SOMETHING nonzero errno} {path string mode string}
     % myprocess function fclose int {file {pointer.SOMETHING dispose}}

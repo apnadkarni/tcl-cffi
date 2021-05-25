@@ -1,112 +1,114 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
-# This file contains tests for all cffi::Dyncall functionality except the
+# This file contains tests for all cffi::dyncall::Library functionality except the
 # function method which has its own file
 
 source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
+    set libraryClass ${NS}::dyncall::Library
+
     proc command_exists {cmd} {
         return [expr {[uplevel #0 namespace which $cmd] eq $cmd}]
     }
 
-    testsubcmd ::cffi::Dyncall
+    testsubcmd $libraryClass
 
-    test Dyncall-new-0 {Dyncall new} -body {
-        set dll [${NS}::Dyncall new $testDllPath]
+    test dyncall-Library-new-0 {dyncall::Library new} -body {
+        set dll [$libraryClass new $testDllPath]
         set path [$dll path]
         list [command_exists $dll] [$dll destroy] [command_exists $dll] [file normalize $path]
     } -result [list 1 {} 0 $testDllPath]
 
-    test Dyncall-new-1 {Dyncall new (no argument)} -body {
-        set dll [${NS}::Dyncall new]
+    test dyncall-Library-new-1 {dyncall::Library new (no argument)} -body {
+        set dll [$libraryClass new]
         set path [$dll path]
         list [command_exists $dll] [rename $dll ""] [command_exists $dll] [file normalize $path]
     } -result [list 1 {} 0 [file normalize [info nameofexecutable]]]
 
-    test Dyncall-new-error-0 {Dyncall new (invalid path)} -body {
+    test dyncall-Library-new-error-0 {dyncall::Library new (invalid path)} -body {
         list [catch {
-            ${NS}::Dyncall new nosuchpath
+            $libraryClass new nosuchpath
         } result] $result $::errorCode
     } -result [list 1 {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.} {cffi NOT_FOUND {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.}}]
 
-    test Dyncall-new-error-1 {Dyncall new (extra args)} -body {
+    test dyncall-Library-new-error-1 {dyncall::Library new (extra args)} -body {
         list [catch {
-            ${NS}::Dyncall new $testDllPath extraarg
+            $libraryClass new $testDllPath extraarg
         } result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::Dyncall new DLLPATH"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::dyncall::Library new DLLPATH"} {TCL WRONGARGS}}
 
     ####
 
-    test Dyncall-create-0 {Dyncall create (current namespace)} -body {
-        set dll [${NS}::Dyncall create dll $testDllPath]
+    test dyncall-Library-create-0 {dyncall::Library create (current namespace)} -body {
+        set dll [$libraryClass create dll $testDllPath]
         set path [dll path]
         list $dll [command_exists [namespace current]::dll] [dll destroy] [command_exists [namespace current]::dll] [file normalize $path]
     } -result [list [namespace current]::dll 1 {} 0 $testDllPath]
 
-    test Dyncall-create-1 {Dyncall create (global namespace)} -body {
-        set dll [${NS}::Dyncall create ::dll $testDllPath]
+    test dyncall-Library-create-1 {dyncall::Library create (global namespace)} -body {
+        set dll [$libraryClass create ::dll $testDllPath]
         set path [::dll path]
         list $dll [command_exists ::dll] [rename ::dll ""] [command_exists ::dll] [file normalize $path]
     } -result [list ::dll 1 {} 0 $testDllPath]
 
-    test Dyncall-create-2 {Dyncall create (explicit namespace)} -setup {
+    test dyncall-Library-create-2 {dyncall::Library create (explicit namespace)} -setup {
         set ns ::cffi::test::ns
         namespace eval $ns {}
     } -cleanup {
         namespace delete $ns
     } -body {
-        set dll [${NS}::Dyncall create ${ns}::dll $testDllPath]
+        set dll [$libraryClass create ${ns}::dll $testDllPath]
         set path [${ns}::dll path]
         list $dll [command_exists $dll] [$dll destroy] [command_exists $dll] [file normalize $path]
     } -result [list ::cffi::test::ns::dll 1 {} 0 $testDllPath]
 
-    test Dyncall-create-3 {Dyncall create (no path argument)} -body {
-        set dll [${NS}::Dyncall create dll]
+    test dyncall-Library-create-3 {dyncall::Library create (no path argument)} -body {
+        set dll [$libraryClass create dll]
         set path [dll path]
         dll destroy
         file tail $path
     } -result [file tail [info nameofexecutable]]
 
-    test Dyncall-create-error-0 {Dyncall create (invalid path)} -body {
+    test dyncall-Library-create-error-0 {dyncall::Library create (invalid path)} -body {
         list [catch {
-            ${NS}::Dyncall create dll nosuchpath
+            $libraryClass create dll nosuchpath
         } result] $result $::errorCode
     } -result [list 1 {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.} {cffi NOT_FOUND {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.}}]
 
-    test Dyncall-create-error-1 {Dyncall create (extra args)} -body {
+    test dyncall-Library-create-error-1 {dyncall::Library create (extra args)} -body {
         list [catch {
-            ${NS}::Dyncall create dll $testDllPath extraarg
+            $libraryClass create dll $testDllPath extraarg
         } result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::Dyncall create OBJNAME DLLPATH"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::dyncall::Library create OBJNAME DLLPATH"} {TCL WRONGARGS}}
 
-    test Dyncall-create-error-2 {Dyncall create (no args)} -body {
+    test dyncall-Library-create-error-2 {dyncall::Library create (no args)} -body {
         list [catch {
-            ${NS}::Dyncall create
+            $libraryClass create
         } result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::Dyncall create OBJNAME DLLPATH"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::dyncall::Library create OBJNAME DLLPATH"} {TCL WRONGARGS}}
 
     ####
 
-    test Dyncall-path-0 {Dyncall path} -setup {
-        ${NS}::Dyncall create dll $testDllPath
+    test dyncall-Library-path-0 {dyncall::Library path} -setup {
+        $libraryClass create dll $testDllPath
     } -cleanup {
         dll destroy
     } -body {
         file normalize [dll path]
     } -result $testDllPath
 
-    test Dyncall-path-1 {Dyncall path (default image)} -setup {
-        ${NS}::Dyncall create dll
+    test dyncall-Library-path-1 {dyncall::Library path (default image)} -setup {
+        $libraryClass create dll
     } -cleanup {
         dll destroy
     } -body {
         file normalize [dll path]
     } -result [file normalize [info nameofexecutable]]
 
-    test Dyncall-path-error-1 {Dyncall path (extra args)} -setup {
-        ${NS}::Dyncall create dll
+    test dyncall-Library-path-error-1 {dyncall::Library path (extra args)} -setup {
+        $libraryClass create dll
     } -cleanup {
         dll destroy
     } -body {
@@ -117,16 +119,16 @@ namespace eval cffi::test {
 
     ####
 
-    test Dyncall-addressof-0 {Dyncall addressof} -setup {
-        ${NS}::Dyncall create dll $testDllPath
+    test dyncall-Library-addressof-0 {dyncall::Library addressof} -setup {
+        $libraryClass create dll $testDllPath
     } -cleanup {
         dll destroy
     } -body {
         dll addressof schar_to_schar
     } -result {^0x[[:xdigit:]]{8,16}$} -match regexp
 
-    test Dyncall-addressof-error-0 {Dyncall addressof (invalid symbol)} -setup {
-        ${NS}::Dyncall create dll $testDllPath
+    test dyncall-Library-addressof-error-0 {dyncall::Library addressof (invalid symbol)} -setup {
+        $libraryClass create dll $testDllPath
     } -cleanup {
         dll destroy
     } -body {
@@ -135,8 +137,8 @@ namespace eval cffi::test {
         } result] $result $::errorCode
     } -result {1 {Symbol "nosuchsym" not found or inaccessible. } {cffi NOT_FOUND {Symbol "nosuchsym" not found or inaccessible. }}}
 
-    test Dyncall-addressof-error-1 {Dyncall addressof (no args)} -setup {
-        ${NS}::Dyncall create dll $testDllPath
+    test dyncall-Library-addressof-error-1 {dyncall::Library addressof (no args)} -setup {
+        $libraryClass create dll $testDllPath
     } -cleanup {
         dll destroy
     } -body {
@@ -145,8 +147,8 @@ namespace eval cffi::test {
         } result] $result $::errorCode
     } -result {1 {wrong # args: should be "dll addressof SYMBOL"} {TCL WRONGARGS}}
 
-    test Dyncall-addressof-error-2 {Dyncall addressof (extra args)} -setup {
-        ${NS}::Dyncall create dll $testDllPath
+    test dyncall-Library-addressof-error-2 {dyncall::Library addressof (extra args)} -setup {
+        $libraryClass create dll $testDllPath
     } -cleanup {
         dll destroy
     } -body {

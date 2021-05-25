@@ -1,13 +1,12 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
-# This file contains tests for cffi::Dyncall pertaining to definition and
+# This file contains tests for cffi::dyncall::Library pertaining to definition and
 # invocation of functions.
 
 source [file join [file dirname [info script]] common.tcl]
 
 namespace eval ${NS}::test {
-    cffi::Dyncall create testDll $testDllPath
     testDll function getEinvalString void {buf {chars[1000] out}}
     variable einvalMessage
     getEinvalString einvalMessage

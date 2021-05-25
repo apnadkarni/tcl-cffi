@@ -351,21 +351,21 @@ namespace eval Concepts {
         may be specified. These are merged with those included in the
         type alias definition.
 
-        For convenience, the package provides the [::cffi::type load] command
+        For convenience, the package provides the [::cffi::alias load] command
         which defines some standard C type aliases like `size_t` as well as some
         platform-specific type aliases such as `HANDLE` on Windows.
 
         Currently defined type aliases can be listed with the
-        [::cffi::alias aliases] command and removed with
-        [::cffi::type unalias].
+        [::cffi::alias list] command and removed with
+        [::cffi::alias delete].
 
         ## Functions
 
         To invoke a function in a DLL or shared library, the library must first
-        be loaded through the creation of a [::cffi::Dyncall] wrapper object. The
+        be loaded through the creation of a [::cffi::dyncall::Library] wrapper object. The
         prototype for each function of interest must then be defined through any
-        appropriate method of that object such as [::cffi::Dyncall.function] or
-        [::cffi::Dyncall.stdcall]. This also creates a Tcl command which can then
+        appropriate method of that object such as [::cffi::dyncall::Library.function] or
+        [::cffi::dyncall::Library.stdcall]. This also creates a Tcl command which can then
         be used to invoke the function.
 
         ### Calling conventions
@@ -376,9 +376,9 @@ namespace eval Concepts {
         terms of parameter and stack management and it is crucial that the
         correct convention be used when defining the corresponding FFI.
 
-        * The [::cffi::Dyncall.function] method should be used for declaring
+        * The [::cffi::dyncall::Library.function] method should be used for declaring
         C functions that use the default C calling convention.
-        * The [::cffi::Dyncall.stdcall] method should be used for declaring
+        * The [::cffi::dyncall::Library.stdcall] method should be used for declaring
         C functions that use the stdcall calling convention.
 
         Other than use of the two separate methods for definition, there is
@@ -393,11 +393,11 @@ namespace eval Concepts {
 
         A function prototype in C defines the types of the parameters and return
         value from the function. A function prototype as expected by the
-        [::cffi::Dyncall.function] and related methods is similar but permits
+        [::cffi::dyncall::Library.function] and related methods is similar but permits
         the type declarations to have annotations that control behaviour and
         conversion between Tcl and C values.
 
-        A function prototype defined with the [::cffi::Dyncall.function] method
+        A function prototype defined with the [::cffi::dyncall::Library.function] method
         takes the form
 
         ```
