@@ -913,7 +913,7 @@ CffiSymbolsAtAddressCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], DLSyms 
     /* TBD - use pointer type instead of WideInt? */
     CHECK(Tcl_GetWideIntFromObj(ip, objv[2], &wide));
 
-    symName = dlSymsNameFromValue(dlsP, (void *)wide);
+    symName = dlSymsNameFromValue(dlsP, (void *) (intptr_t) wide);
     if (symName == NULL)
         return Tclh_ErrorNotFound(
             ip,

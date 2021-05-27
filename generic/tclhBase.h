@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "tcl.h"
 
 #ifdef _WIN32
@@ -596,12 +597,12 @@ char *TclhPrintAddress(const void *address, char *buf, int buflen)
     TCLH_ASSERT(buflen > 2);
 
     if (sizeof(void*) == sizeof(int)) {
-        unsigned int i = (unsigned int) (unsigned long long) address;
+        unsigned int i = (unsigned int) (intptr_t) address;
         snprintf(buf, buflen, "0x%.8x", i);
     }
     else {
         TCLH_ASSERT(sizeof(void *) == sizeof(unsigned long long));
-        unsigned long long ull = (unsigned long long)address;
+        unsigned long long ull = (intptr_t)address;
         snprintf(buf, buflen, "0x%.16llx", ull);
     }
     return buf;

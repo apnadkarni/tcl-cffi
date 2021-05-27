@@ -2222,12 +2222,12 @@ CffiPointerToObj(Tcl_Interp *ip,
         Tcl_Obj *valueObj;
         Tcl_WideInt sysError;
         const char *message;
-        sysError = CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)pointer);
+        sysError = CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
         valueObj = Tclh_PointerWrap(pointer, NULL);
         message  = pointer == NULL ? "Function returned NULL pointer."
                                    : "Function returned non-NULL pointer.";
         Tcl_IncrRefCount(valueObj);
-        CffiReportRequirementError(ip, typeAttrsP, (Tcl_WideInt) pointer, valueObj, sysError, message);
+        CffiReportRequirementError(ip, typeAttrsP, (Tcl_WideInt) (intptr_t) pointer, valueObj, sysError, message);
         Tcl_DecrRefCount(valueObj);
         return TCL_ERROR;
     }

@@ -4890,6 +4890,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
+DYNCALL_LIBS="-ldynload_s -ldyncall_s -ldyncallback_s"
 
     vars="generic/tclCffi.c \
                      generic/tclCffiTypes.c \
@@ -4929,7 +4930,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 
 
-    vars="generic/tclCffiInt.h"
+    vars=""
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
@@ -4946,7 +4947,6 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
     done
 
 
-DYNCALL_LIBS="-ldynload_s -ldyncall_s -ldyncallback_s"
 
     vars="${DYNCALL_LIBS}"
     for i in $vars; do

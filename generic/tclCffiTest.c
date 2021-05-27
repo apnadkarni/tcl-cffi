@@ -111,7 +111,7 @@ EXTERN int noargs () { return 42; }
 EXTERN int onearg (int arga) { return -arga; }
 EXTERN int twoargs (int arga, int argb) { return arga + argb; }
 
-EXTERN double CFFI_STDCALL stdcalltest(double arga, double argb) {
+DLLEXPORT double CFFI_STDCALL stdcalltest(double arga, double argb) {
   /* Division so order of argument errors will be caught */
     return arga / argb;
 }

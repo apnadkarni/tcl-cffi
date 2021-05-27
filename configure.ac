@@ -71,13 +71,13 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
+DYNCALL_LIBS="-ldynload_s -ldyncall_s -ldyncallback_s"
 TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiTypes.c \
                      generic/memlifo.c \
                      generic/tclCffiTest.c])
-TEA_ADD_HEADERS([generic/tclCffiInt.h])
+TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([-I${srcdir}/generic}])
-DYNCALL_LIBS="-ldynload_s -ldyncall_s -ldyncallback_s"
 TEA_ADD_LIBS([${DYNCALL_LIBS}])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
