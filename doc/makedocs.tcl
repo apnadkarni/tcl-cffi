@@ -5,8 +5,9 @@ package require ruff
 
 set NS cffi
 
+source cffi.ruff
 source start.ruff
-source reference.ruff
+source concepts.ruff
 source dyncall.ruff
 source memory.ruff
 source struct.ruff

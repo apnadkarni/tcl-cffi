@@ -60,7 +60,7 @@ set start_page {
     functions of interest is loaded.
 
     ````
-    % package require dyncall
+    % package require cffi
     0.1
     % cffi::dyncall::Library create user32 [file join $env(windir) system32 user32.dll]
     ::user32
@@ -93,7 +93,7 @@ set start_page {
     The prototype for the above Windows function can then be defined as:
 
     ````
-    % user32 function GetDesktopWindow pointer.HWND {}
+    % user32 stdcall GetDesktopWindow pointer.HWND {}
     ````
 
     The last argument is the parameter list which in this case is empty.
@@ -102,7 +102,7 @@ set start_page {
     have as well just typed it as `pointer` which would be the equivalent of
     `void*` in C but that would lose the ability to check types.
 
-    The function can then be called as any other Tcl command.
+    The C function can be called as any other Tcl command.
 
     ````
     % set win [GetDesktopWindow]
@@ -131,11 +131,11 @@ set start_page {
     ````
 
     A structure is defined simply by a list of alternating field names and
-    types of which `int32` is one of several numeric types available. The result
+    types of which `int` is one of several numeric types available. The result
     is a `Struct` object which can be used in function declarations, memory
     allocations and other places.
 
-    The `GetWindowRect` is then defined using this struct definition.
+    The `GetWindowRect` is defined using this struct definition.
 
     ````
     % user32 stdcall GetWindowRect int {hwnd pointer.HWND rect {struct.RECT out}}
@@ -254,7 +254,7 @@ set start_page {
     C functions indicate errors primarily through their return values. In
     some cases, the return value is the error code while in others it
     is only a boolean status indicator with
-    detail being available either through another functions such as
+    detail being available either through another function such as
     `GetLastError` on Windows or a global variable such as `errno`.
 
     Here is an attempt to change to a non-existing directory.
@@ -275,7 +275,7 @@ set start_page {
     overwritten.
 
     To deal with the first, a return type can be annotated with
-    conditions that should be treated as failures. Since
+    conditions that specify expected return values. Since
     `SetCurrentDirectory` returns a non-zero value on success, the function
     return type may be annotated with `nonzero`:
 
@@ -396,27 +396,18 @@ set start_page {
     are cases, for example variable length structures in memory, where this
     is required.
 
-    #### Pointer safety
-
-    There are two mechanisms provided to help protect against pointer errors.
-
-    The first is type safety implemented using the optional tags specified for a
-    pointer (e.g. the `HWND` from `pointer.HWND`).
-
-    The following attempt to retrieve the window fails because the parameters
-    are passed in the wrong order causing the tag-based type checks to fail.
+    As an example of the protection against errors offered by pointer tags,
+    here is an attempt to retrieve the window dimensions where the arguments
+    are passed in the wrong order.
 
     ````
     % GetWindowRect $prect $win
     Value "0x000001E53EA3BEB0^RECT" has the wrong type. Pointer type mismatch.
     ````
 
-    **Note that pointer tags is an abstract typing mechanism and orthogonal to
-    the data type and struct definitions**.
-
-    The second safety mechanism guards against invalid pointers and double frees.
-    For example, attempting to free previously freed raw memory that we already
-    freed above results in an error being raised.
+    While tags offer protection against type mismatches, another mechanism
+    guards against invalid pointers and double frees. For example, attempting to
+    free memory that we already freed above results in an error being raised.
 
     ````
     % cffi::memory free $praw
@@ -463,7 +454,7 @@ set start_page {
     ```
 
     On Windows, this will define common types like `DWORD` etc. so the
-    function defintions can be defined as
+    functions can be defined as
 
     ```
     kernel stdcall HeapCreate pointer.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
@@ -501,7 +492,7 @@ set start_page {
     % fclose $fileptr
     0
     % fclose $fileptr
-    Pointer 0x55a273bf32e0 of type SOMETHING is not registered.
+    Pointer 0x55a273bf32e0^SOMETHING is not registered.
     ```
 
     There are a couple of situations where this pointer registration mechanism
@@ -539,7 +530,7 @@ set start_page {
 
     When multiple calls are made to this function, it returns the *same* pointer
     while keeping an internal reference count. However, registered pointers
-    are expected to be unique and the following sequence of calls fails.
+    are expected to be unique by default and the following sequence of calls fails.
 
     ````
     % set libptr [LoadLibraryA advapi32.dll]
@@ -565,7 +556,7 @@ set start_page {
     ```
 
     Now multiple registrations are allowed which stay valid until
-    a corresponding number of disposals.
+    a corresponding number of disposals are done.
 
     ````
     % set libptr [LoadLibraryA advapi32.dll]
@@ -580,13 +571,6 @@ set start_page {
     Pointer 00007FFDD0000000 of type HMODULE is not registered.
     ````
 
-    ### Arrays
-
-    Arrays are defined through the optional count element in a type
-    specification.
-
-    TBD - example
-
     ### Type aliases
 
     Type aliases are a convenience feature to avoid repetition and improve
@@ -598,9 +582,9 @@ set start_page {
     kernel stdcall SetCurrentDirectoryA {int nonzero lasterror} {path string}
     ````
 
-    This return type is very common for Windows API calls. Instead of repeating
-    this triple for every such call, a new type can be defined for the purpose
-    and used in all prototypes.
+    This return type declaration is very common for Windows API calls. Instead
+    of repeating this triple for every such call, a new type can be defined for
+    the purpose and used in all prototypes.
 
     ```
     cffi::alias define LASTERROR {int nonzero lasterror}
@@ -633,10 +617,11 @@ set start_page {
 
     ### Limitations
 
-    The current version of dyncall has the following limitations:
+    The current version has the following limitations:
 
-    - Arrays and structs cannot be passed by value, only by reference.
+    - Arrays of non-numeric types are not implemented.
+    - Structs cannot be passed or returned by value, only by reference.
     - Callbacks into Tcl from C functions are not implemented.
-    - C functions with a variable number of arguments are not supported.
+    - C functions with a variable number of arguments are not implemented.
 }
 

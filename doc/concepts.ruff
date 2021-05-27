@@ -1,18 +1,9 @@
-# (c) 2021 Ashok P. Nadkarni
-# See LICENSE for license terms.
-
-namespace eval $NS {
-    # Leading space intentional to match main content below to not confuse ruff
-    variable _ruff_preamble "        This is the reference for the `$::NS` package."
-    append _ruff_preamble " For an introductory usage guide, see the \[Start page\]($::NS.html)."
-    append _ruff_preamble {
-        The package is loaded in standard fashion with `package require`:
-
-            package require dyncall
-    }
-}
 namespace eval Concepts {
     variable _ruff_preamble {
+
+        This page describes the mapping of C types and program elements to
+        the Tcl script level. Basic knowledge of the package as described in
+        [Quick start] is assumed.
 
         ## Type declarations
 
@@ -24,15 +15,15 @@ namespace eval Concepts {
 
         - As part of a field description in a struct
 
-        A type declaration consists of the type itself followed by zero or
-        more annotations that provide further information about the type
-        in that particular context. For example, a parameter may have
-        the `out` annotation to indicate that it is an output parameter
-        for the function. A pointer type declaration may have the `unsafe`
+        At the script level, a type declaration consists of the type itself
+        followed by zero or more annotations that provide further information
+        about the type in that particular context. For example, a parameter may
+        have the `out` annotation to indicate that it is an output parameter for
+        the function. A pointer type declaration may have the `unsafe`
         annotation to indicate it is not to be checked for validity.
 
         The annotations that are valid in each context are described in
-        the corresponding sections below.
+        the relevant sections below.
 
         ## Data types
 
@@ -52,7 +43,6 @@ namespace eval Concepts {
 
         The following numeric types are supported.
 
-        `void` - C `void`
         `schar` - C `signed char`
         `uchar` - C `unsigned char`
         `short` - C `signed short`
@@ -116,8 +106,7 @@ namespace eval Concepts {
 
         There are two exceptions to the above. A field or parameter declared
         as `pointer` (without a tag) or `pointer.void` reflects a C `void *`
-        pointer and will accept pointers with any tag. Second, the value `0`
-        can be assigned to any pointer type.
+        pointer and will accept pointers with any tag.
 
         #### Pointer safety
 
@@ -131,7 +120,7 @@ namespace eval Concepts {
 
         Pointers that have been registered are unregistered when they are
         passed to a C function as an argument for a parameter that has been
-        annotate with the `dispose` attribute.
+        annotated with the `dispose` attribute.
 
         The following fragment illustrates safe pointers. The fragment assumes a
         wrapper object `crtl` for the C runtime library has already been
@@ -144,13 +133,13 @@ namespace eval Concepts {
         0x55dbb8b2ca10^void
         % free $p
         % free $p
-        Pointer 0x55dbb8b2ca10 is not registered.
+        Pointer 0x55dbb8b2ca10^ is not registered.
         ```
 
         The pointer returned by `malloc` is automatically registered. When
         the `free` function is invoked, its argument is checked for registration.
         Moreover, because the `free` function's `ptr` parameter has the
-        `dispose` attribute, it is unregistered before the function is called.
+        `dispose` annotation, it is unregistered before the function is called.
         The second call to `free` therefore fails as desired.
 
         ##### Reference counted pointers
@@ -167,18 +156,20 @@ namespace eval Concepts {
         below illustrates this.
 
         ```
+        % cffi::dyncall::Library create crtl
+        ::crtl
         % crtl function dlopen {pointer counted} {path string flags int}
         % crtl function dlclose int {dlptr {pointer dispose}}
         % set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
-        0x7fbfe98a4500^void
+        0x00007fb07ebb7500^
         % set dlptrB [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
-        0x7fbfe98a4500^void
+        0x00007fb07ebb7500^
         % dlclose $dlptrA
         0
-        % dlclose $dlptrA
+        % dlclose $dlptrB
         0
         % dlclose $dlptrA
-        Pointer 0x7fbfe98a4500 is not registered.
+        Pointer 0x00007fb07ebb7500^ is not registered.
         ```
 
         ##### Unsafe pointers
@@ -212,7 +203,7 @@ namespace eval Concepts {
         as a `char *` or as an array of `char` where the size of the array
         places a limit on the maximum length.
 
-        At the script level, there can be declared in multiple ways:
+        At the script level, these can be declared in multiple ways:
 
         `pointer` - As discussed in the previous section, this is a pointer
         to raw memory. To access the underlying string, the memory referenced by
@@ -244,31 +235,17 @@ namespace eval Concepts {
         The choice of using `pointer`, `string` (and `unistring`), or `chars`
         (and `unichars`) depends on the C declaration and context as well as
         convenience. The `string` and `chars` types are both more convenient and
-        safer to use. But there are some limitations in the contexts they can be
-        used.
-
-        - Within C structs, a field of type character array must be declared
-        as `chars` at the script level. If the field is a `char *`, it may be
-        declared as a `string` if the structure is only read from and never
-        written to (for example, when returned from a function call). If the
-        structure is written to, the field must be a pointer and the memory
-        for the string has to be explicitly managed.
-
-        - Function parameters that are pure input are most conveniently
-        declared as `string`. Function parameters that passed as pointers
-        to output buffers are most conveniently typed as `chars`. In both
-        cases `pointer` can be used as well, but again is less convenient and
-        more error-prone.
+        safer to use.
 
         ### Binary strings
 
-        The types `binary` or `bytes` are used to declare a sequence of bytes in memory.
-        The `binary` type is like the `string` type except that the referenced
-        memory is treated as a Tcl binary string (byte array) and not a string
-        of characters. Similarly, the `bytes` type is analogous to the `chars`
-        type except it declares a fixed size array of bytes, not characters.
-        These types are converted between Tcl values and C values with the
-        `Tcl_GetByteArrayFromObj` and `Tcl_NewByteArrayFromObj` functions.
+        The types `binary` or `bytes` are used to declare a sequence of bytes in
+        memory. The `binary` type translates to a C `unsigned char *` type where
+        the memory is treated as a Tcl binary string (byte array). Similarly,
+        the `bytes` type is analogous to the `chars` type except it declares a
+        fixed size array of bytes, not characters. These types are converted
+        between Tcl values and C values with the `Tcl_GetByteArrayFromObj` and
+        `Tcl_NewByteArrayFromObj` functions.
 
 
         ### Structs
@@ -291,20 +268,26 @@ namespace eval Concepts {
         any leading `::` global namespace prefix.
 
         C struct values are generally represented as Tcl dictionaries with the
-        struct field names as dictionary keys. Input arguments to function calls
-        for the above `Point` structure need to be supplied as a dictionary with
-        keys `x` and `y`. Conversely, output parameter results are returned as a
+        struct field names as dictionary keys. C function parameter declarations
+        that take pointers to structs can be declared as `struct.STRUCTNAME
+        byref`, for example `struct.Point byref`. The [byref][Parameters] is
+        required as structs can currently only be passed by reference.
+        The corresponding input argument for the parameter when the function is
+        called should be the dictionary value.
+        Conversely, output parameter results are returned as a
         dictionary of the same form.
 
-        Alternatively, structs can also be manipulated using pointers and
-        explicit encoding and decoding. For example,
+        Alternatively, structs can also be manipulated using raw pointers and
+        explicit transforms to native C structures in memory. For example,
 
         ````
-        % set pPoint [Point encode {x 0 y 0}]
-        0x0000017727DDE050^Point
-        % Point decode $pPoint
-        x 0 y 0
-        % Point free $pPoint
+        % set pPoint [Point allocate]
+        0x00000211cb924de0^Point
+        % Point tonative
+        wrong # args: should be "Point tonative POINTER INITIALIZER ?INDEX?"
+        % Point tonative $pPoint {x 0 y 1}
+        % Point fromnative $pPoint
+        x 0 y 1
         ````
 
         See [::cffi::Struct] for other methods related to allocation,
@@ -313,7 +296,7 @@ namespace eval Concepts {
         ## Type aliases
 
         Type aliases provide a convenient way to bind data types and one or more
-        annotations. They can then be used in type declaration in the same
+        annotations. They can then be used in type declarations in the same
         manner as the built-in types.
 
         In addition to avoiding repetition, type aliases facilitate abstraction.
@@ -324,8 +307,8 @@ namespace eval Concepts {
         ```
         cffi::alias define OUTPUT_PATH {unichar[512] out}
         ```
-        
-        can be used in function declarations.
+
+        can be used in function and struct field declarations.
 
         Similarly, type aliases can be used to hide platform differences. For
         example, in the following function prototype,
@@ -369,7 +352,7 @@ namespace eval Concepts {
         ### Calling conventions
 
         The 32-bit Windows platform uses two common calling conventions for
-        functions - the default C calling convention and the stdcall calling
+        functions: the default C calling convention and the stdcall calling
         convention which is used by most system libraries. These differ in
         terms of parameter and stack management and it is crucial that the
         correct convention be used when defining the corresponding FFI.
@@ -415,15 +398,14 @@ namespace eval Concepts {
 
         The following annotations may be follow the type in the declaration.
 
-        The error checking annotations
+        - For integer types, the error checking annotations
         `zero`, `nonzero`, `nonnegative`, `positive` as well as the error
         reporting annotations `errno`, `lasterror` and `winerror` may be
-        specified for integer types. For pointer type, the `nonzero` error
-        checking annotation and the `errno` and `lasterror` annotations
-        may be specified. See [Error handling] for details on these.
-
-        In addition, for pointer types only, the `unsafe` and `counted`
-        annotations may be specified (not `dispose`). See [Pointer safety] for
+        specified.
+        See [Error handling] for details on these.
+        - For pointer type, `nonzero`, `errno` and `lasterror` annotations
+        may be specified as well as the `unsafe` and `counted`
+        annotations (but not `dispose`). See [Pointer safety] for
         the meaning of these annotations.
 
         #### Parameters

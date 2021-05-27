@@ -1,0 +1,18 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval $NS {
+    # Leading space intentional to match main content below to not confuse ruff
+    variable _ruff_preamble "        This is the reference for commands in the `$::NS` namespace."
+    append _ruff_preamble " See the \[Start page\]($::NS.html) for an introductory usage guide."
+    append _ruff_preamble { See [Concepts][::Concepts] for a mapping of C types and program elements to the script level.}
+    append _ruff_preamble {
+
+        The package is loaded in standard fashion with `package require`:
+
+        ````
+        package require cffi
+        ````
+    }
+}
+

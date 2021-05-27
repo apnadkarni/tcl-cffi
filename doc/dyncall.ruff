@@ -4,7 +4,8 @@
 namespace eval ${NS}::dyncall {
     variable _ruff_preamble {
         This namespace contains classes wrapping the `dyncall` library for
-        calling C functions in shared library.
+        calling C functions in shared library. The namespace is automatically
+        loaded with the `cffi` package.
     }
 }
 
@@ -85,18 +86,18 @@ oo::class create ${NS}::dyncall::Library {
         # on some platforms.
     }
     method addressof {symbol} {
-        # Returns the address of a symbol from the loaded DLL.
+        # Returns the address of a symbol from the loaded library.
         #   symbol - name of the symbol
         # The command will raise an error if the symbol is not found.
     }
     method function {fnname fntype parameters} {
-        # Creates a Tcl command to invoke a C function in the loaded DLL.
+        # Creates a Tcl command to invoke a C function in the loaded library.
         #  fnname - name of the function and optionally, Tcl command
         #  fntype - The type definition for the return value from the function
         #  parameters - List of alternating parameter name and type definitions
         #
         # The command creates a Tcl command corresponding to a C function
-        # contained in the DLL. The function must be one that follows the
+        # contained in the library. The function must be one that follows the
         # default C calling convention (See [Calling conventions]).
         #
         # The $fnname argument is a one or two element list, the first being the
@@ -126,13 +127,13 @@ oo::class create ${NS}::dyncall::Library {
     }
     method stdcall {fnname fntype parameters} {
         # Creates a Tcl command to invoke a C function that uses the
-        # `__stdcall` calling convention from the loaded DLL.
+        # `__stdcall` calling convention from the loaded library..
         #  fnname - name of the function and optionally, Tcl command
         #  fntype - The type definition for the return value from the function
         #  parameters - List of alternating parameter name and type definitions
         #
         # The command creates a Tcl command corresponding to a C function
-        # contained in the DLL. The function must be one that follows the
+        # contained in the library. The function must be one that follows the
         # `__stdcall` calling convention (See [Calling conventions]). The only
         # platform where this differs from the C calling convention is
         # 32-bit Windows. On other platforms, this method is a synonym for
@@ -143,7 +144,7 @@ oo::class create ${NS}::dyncall::Library {
         # Returns the name of the created Tcl command.
     }
     method functions {fnlist} {
-        # Creates Tcl commands for multiple C functions within the DLL.
+        # Creates Tcl commands for multiple C functions within the loaded library.
         #  fnlist - list of function definitions
         # This is a wrapper around the [function] method that provides some
         # syntactic sugar for defining multiple functions. The $fnlist
@@ -152,7 +153,7 @@ oo::class create ${NS}::dyncall::Library {
         # method.
     }
     method stdcalls {fnlist} {
-        # Creates Tcl commands for multiple C functions within the DLL
+        # Creates Tcl commands for multiple C functions within the loaded library
         # that all use the `__stdcall` calling convention.
         #  fnlist - list of function definitions
         # This is a wrapper around the [stdcall] method that provides some

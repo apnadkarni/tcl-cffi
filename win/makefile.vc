@@ -17,7 +17,6 @@
 #------------------------------------------------------------------------------
 # The name of the package
 PROJECT = cffi
-DOTVERSION = 0.1
 
 !include "rules-ext.vc"
 

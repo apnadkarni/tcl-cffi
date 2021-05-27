@@ -203,7 +203,13 @@ namespace eval cffi::test {
     } -constraints win -body {
         cffi::alias load win32
         lsort [cffi::alias list]
-    } -result "BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPSTR LPVOID LPWSTR LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM dev_t ino_t off_t time_t"
+    } -result "BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPSTR LPVOID LPWSTR LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM"
+    test alias-load-2-win "alias load" -setup {
+        cffi::alias delete *
+    } -constraints win -body {
+        cffi::alias load posix
+        lsort [cffi::alias list]
+    } -result "dev_t ino_t off_t time_t"
 
     test alias-load-1-posix "alias load" -setup {
         cffi::alias delete *
@@ -214,7 +220,7 @@ namespace eval cffi::test {
 
     test alias-load-error-0 "alias load - unknown set" -body {
         cffi::alias load xx
-    } -result "Invalid value \"xx\". Must be \"C\", \"posix\" or \"win32\"." -returnCodes error
+    } -result "Invalid value \"xx\". Unknown predefined alias set." -returnCodes error
 
 }
 ::tcltest::cleanupTests

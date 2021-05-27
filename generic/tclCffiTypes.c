@@ -3527,16 +3527,17 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             return TCL_ERROR;
         if (CffiAliasAddStr(ipCtxP, "LPWSTR", "unistring") != TCL_OK)
             return TCL_ERROR;
-
+    }
+#endif
+    else if (!strcmp(s, "posix")) {
+        /* sys/types.h */
+#ifdef _WIN32
         /* POSIX defines on Windows */
         ADDINTTYPE(time_t);
         ADDINTTYPE(ino_t);
         ADDINTTYPE(off_t);
         ADDINTTYPE(dev_t);
-    }
 #else
-    else if (!strcmp(s, "posix")) {
-        /* sys/types.h */
         ADDINTTYPE(blkcnt_t);
         ADDINTTYPE(blksize_t);
         ADDINTTYPE(clock_t);
@@ -3557,11 +3558,11 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         ADDINTTYPE(suseconds_t);
         ADDINTTYPE(time_t);
         ADDINTTYPE(uid_t);
-    }
 #endif
+    }
     else {
         return Tclh_ErrorInvalidValue(
-            ipCtxP->interp, objP, "Must be \"C\", \"posix\" or \"win32\".");
+            ipCtxP->interp, objP, "Unknown predefined alias set.");
     }
 
     return TCL_OK;
