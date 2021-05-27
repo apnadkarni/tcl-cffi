@@ -419,7 +419,7 @@ namespace eval cffi::test {
         cffi::Struct create S {x int p Pointer}
     } -body {
         S info
-    } -result "size 16 alignment 8 fields {x {size 4 offset 0 definition int} p {size 8 offset 8 definition {pointer unsafe}}}"
+    } -result "size [expr {2*$::tcl_platform(pointerSize)}] alignment $::tcl_platform(pointerSize) fields {x {size 4 offset 0 definition int} p {size $::tcl_platform(pointerSize) offset $::tcl_platform(pointerSize) definition {pointer unsafe}}}"
 
     test struct-alias-1 "struct field array alias" -setup {
         cffi::alias define Array {int[4]}

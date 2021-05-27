@@ -104,7 +104,13 @@ namespace eval ${NS}::test {
     } -result {1 {Symbol "nosuchfunction" not found or inaccessible. } {cffi NOT_FOUND {Symbol "nosuchfunction" not found or inaccessible. }}}
 
     test stdcall-0 {stdcall} -body {
-        testDll stdcall stdcalltest double {a double b double}
+
+        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+            set fn {_stdcalltest@16 stdcalltest}
+        } else {
+            set fn stdcalltest
+        }
+        testDll stdcall $fn double {a double b double}
         stdcalltest 1 2
     } -result 0.5
 
@@ -144,11 +150,16 @@ namespace eval ${NS}::test {
         rename stdcalltest {}
         rename stdcall-alias {}
     } -body {
-        testDll stdcalls {
-            stdcalltest double {a double b double}
-            {stdcalltest stdcall-alias} double {a double b double}
+        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+            set fn _stdcalltest@16
+        } else {
+            set fn stdcalltest
         }
-        list [stdcalltest 1.0 2] [stdcall-alias 1 4.0] [catch {uplevel #0 stdcalltest 1 2}]
+        testDll stdcalls [list \
+                              $fn double {a double b double} \
+                              [list $fn stdcall-alias] double {a double b double} \
+                             ]
+        list [$fn 1.0 2] [stdcall-alias 1 4.0] [catch [list uplevel #0 $fn 1 2]]
     } -result {0.5 0.25 1}
 
     # Basic type conversion to test input parameters and return types

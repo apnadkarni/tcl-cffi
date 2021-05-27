@@ -7,13 +7,19 @@ package require tcltest
 eval tcltest::configure $argv
 
 set NS cffi
-if {$tcl_platform(platform) eq "windows"} {
-    set BINDIR ../win/Release_AMD64_VC1916
-} else {
-    set BINDIR ../build
+if {[catch {package require $NS}]} {
+    if {$tcl_platform(platform) eq "windows"} {
+        if {$tcl_platform(pointerSize) == 8} {
+            set BINDIR ../win/Release_AMD64_VC1916
+        } else {
+            set BINDIR ../win/Release_VC1916
+        }
+    } else {
+        set BINDIR ../build
+    }
+    lappend auto_path $BINDIR
+    package require $NS
 }
-lappend auto_path $BINDIR
-package require cffi
 
 namespace eval cffi::test {
     namespace import ::tcltest::test

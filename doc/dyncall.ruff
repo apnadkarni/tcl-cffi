@@ -57,7 +57,8 @@ oo::class create ${NS}::dyncall::Symbols {
 oo::class create ${NS}::dyncall::Library {
     constructor {{path {}}} {
         # Wraps a shared library / DLL, loading it in the process.
-        #   path - path to the shared library
+        #   path - path to the shared library. If an empty string, the process
+        #          main executable is wrapped.
         #
         # It is strongly recommended that the path to the shared library be
         # specified as an absolute path. Otherwise, it is located in a
@@ -77,7 +78,7 @@ oo::class create ${NS}::dyncall::Library {
         # holding a reference to it.
     }
     method path {} {
-        # Returns the file system path for the DLL or image wrapped
+        # Returns the file system path for the wrapped library or image wrapped
         # by the object.
         #
         # The returned path may be or may not be normalized and may be

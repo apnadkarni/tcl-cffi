@@ -267,8 +267,9 @@ namespace eval ${NS}::test  {
     # Symbols index
     testnumargs dyncall-Symbols-index "testSyms index" "INDEX" ""
     test dyncall-Symbols-index-0 {dyncall::Symbols index} -body {
-        testSyms index 1
-    } -result [expr {$::tcl_platform(platform) eq "windows" ? "binary_out" : "dl_iterate_phdr"}]
+        set sym [testSyms index 1]
+        expr {$sym in {binary_out dl_iterate_phdr _stdcalltest@16}}
+    } -result 1
     test dyncall-Symbols-index-1 {dyncall::Symbols index} -body {
         testSyms index [expr {[testSyms count]-1}]
     } -result [expr {$::tcl_platform(platform) eq "windows" ? "ushort_to_void" : "uchar_array_out"}]
@@ -279,17 +280,16 @@ namespace eval ${NS}::test  {
         testSyms index -1
     } -result {Symbol index "-1" not found or inaccessible. No symbol at specified index.} -returnCodes error
 
-
-
     ###
     # Symbols ataddress
     testnumargs dyncall-Symbols-ataddress "testSyms ataddress" "ADDRESS" ""
     test dyncall-Symbols-ataddress-0 "Symbols ataddress" -body {
-        set addr [testDll addressof int_to_void]
+        # IMPORTANT: use a function that the linker cannot combine with another
+        set addr [testDll addressof getTestStruct]
         testSyms ataddress $addr
-    } -result int_to_void
+    } -result getTestStruct
     test dyncall-Symbols-ataddress-error-0 "Symbols ataddress" -body {
-        set addr [testDll addressof int_to_void]
+        set addr [testDll addressof getTestStruct]
         testSyms ataddress [expr {$addr+1}]
     } -result "Address \"*\" not found or inaccessible. No symbol at specified address or library not loaded." -returnCodes error -match glob
 }
