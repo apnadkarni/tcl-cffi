@@ -16,7 +16,7 @@ source alias.ruff
 source pointer.ruff
 
 ruff::document [list Concepts $NS ${NS}::dyncall] \
-    -output [file join [file dirname [info script]] $NS.html] \
+    -output [file join [file dirname [info script]] html $NS.html] \
     -sortnamespaces false \
     -preamble $start_page \
     -pagesplit namespace \

@@ -1,0 +1,670 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>CFFI Reference</title>
+<style>
+/*
+Copyright (c) 2009, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.7.0
+*/
+html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,button,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var,optgroup{font-style:inherit;font-weight:inherit;}del,ins{text-decoration:none;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:baseline;}sub{vertical-align:baseline;}legend{color:#000;}input,button,textarea,select,optgroup,option{font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;}input,button,textarea,select{*font-size:100%;}body{font:13px/1.231 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small;}select,input,button,textarea,button{font:99% arial,helvetica,clean,sans-serif;}table{font-size:inherit;font:100%;}pre,code,kbd,samp,tt{font-family:monospace;*font-size:108%;line-height:100%;}body{text-align:center;}#doc,#doc2,#doc3,#doc4,.yui-t1,.yui-t2,.yui-t3,.yui-t4,.yui-t5,.yui-t6,.yui-t7{margin:auto;text-align:left;width:57.69em;*width:56.25em;}#doc2{width:73.076em;*width:71.25em;}#doc3{margin:auto 10px;width:auto;}#doc4{width:74.923em;*width:73.05em;}.yui-b{position:relative;}.yui-b{_position:static;}#yui-main .yui-b{position:static;}#yui-main,.yui-g .yui-u .yui-g{width:100%;}.yui-t1 #yui-main,.yui-t2 #yui-main,.yui-t3 #yui-main{float:right;margin-left:-25em;}.yui-t4 #yui-main,.yui-t5 #yui-main,.yui-t6 #yui-main{float:left;margin-right:-25em;}.yui-t1 .yui-b{float:left;width:12.30769em;*width:12.00em;}.yui-t1 #yui-main .yui-b{margin-left:13.30769em;*margin-left:13.05em;}.yui-t2 .yui-b{float:left;width:13.8461em;*width:13.50em;}.yui-t2 #yui-main .yui-b{margin-left:14.8461em;*margin-left:14.55em;}.yui-t3 .yui-b{float:left;width:23.0769em;*width:22.50em;}.yui-t3 #yui-main .yui-b{margin-left:24.0769em;*margin-left:23.62em;}.yui-t4 .yui-b{float:right;width:13.8456em;*width:13.50em;}.yui-t4 #yui-main .yui-b{margin-right:14.8456em;*margin-right:14.55em;}.yui-t5 .yui-b{float:right;width:18.4615em;*width:18.00em;}.yui-t5 #yui-main .yui-b{margin-right:19.4615em;*margin-right:19.125em;}.yui-t6 .yui-b{float:right;width:23.0769em;*width:22.50em;}.yui-t6 #yui-main .yui-b{margin-right:24.0769em;*margin-right:23.62em;}.yui-t7 #yui-main .yui-b{display:block;margin:0 0 1em 0;}#yui-main .yui-b{float:none;width:auto;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf,.yui-gc .yui-u,.yui-gd .yui-g,.yui-g .yui-gc .yui-u,.yui-ge .yui-u,.yui-ge .yui-g,.yui-gf .yui-g,.yui-gf .yui-u{float:right;}.yui-g div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first,.yui-ge div.first,.yui-gf div.first,.yui-g .yui-gc div.first,.yui-g .yui-ge div.first,.yui-gc div.first div.first{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf{width:49.1%;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{width:32%;margin-left:1.99%;}.yui-gb .yui-u{*margin-left:1.9%;*width:31.9%;}.yui-gc div.first,.yui-gd .yui-u{width:66%;}.yui-gd div.first{width:32%;}.yui-ge div.first,.yui-gf .yui-u{width:74.2%;}.yui-ge .yui-u,.yui-gf div.first{width:24%;}.yui-g .yui-gb div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first{margin-left:0;}.yui-g .yui-g .yui-u,.yui-gb .yui-g .yui-u,.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u,.yui-ge .yui-g .yui-u,.yui-gf .yui-g .yui-u{width:49%;*width:48.1%;*margin-left:0;}.yui-g .yui-g .yui-u{width:48.1%;}.yui-g .yui-gb div.first,.yui-gb .yui-gb div.first{*margin-right:0;*width:32%;_width:31.7%;}.yui-g .yui-gc div.first,.yui-gd .yui-g{width:66%;}.yui-gb .yui-g div.first{*margin-right:4%;_margin-right:1.3%;}.yui-gb .yui-gc div.first,.yui-gb .yui-gd div.first{*margin-right:0;}.yui-gb .yui-gb .yui-u,.yui-gb .yui-gc .yui-u{*margin-left:1.8%;_margin-left:4%;}.yui-g .yui-gb .yui-u{_margin-left:1.0%;}.yui-gb .yui-gd .yui-u{*width:66%;_width:61.2%;}.yui-gb .yui-gd div.first{*width:31%;_width:29.5%;}.yui-g .yui-gc .yui-u,.yui-gb .yui-gc .yui-u{width:32%;_float:right;margin-right:0;_margin-left:0;}.yui-gb .yui-gc div.first{width:66%;*float:left;*margin-left:0;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf .yui-u{margin:0;}.yui-gb .yui-gb .yui-u{_margin-left:.7%;}.yui-gb .yui-g div.first,.yui-gb .yui-gb div.first{*margin-left:0;}.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u{*width:48.1%;*margin-left:0;}.yui-gb .yui-gd div.first{width:32%;}.yui-g .yui-gd div.first{_width:29.9%;}.yui-ge .yui-g{width:24%;}.yui-gf .yui-g{width:74.2%;}.yui-gb .yui-ge div.yui-u,.yui-gb .yui-gf div.yui-u{float:right;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf div.first{float:left;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf div.first{*width:24%;_width:20%;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf .yui-u{*width:73.5%;_width:65.5%;}.yui-ge div.first .yui-gd .yui-u{width:65%;}.yui-ge div.first .yui-gd div.first{width:32%;}#hd:after,#bd:after,#ft:after,.yui-g:after,.yui-gb:after,.yui-gc:after,.yui-gd:after,.yui-ge:after,.yui-gf:after{content:".";display:block;height:0;clear:both;visibility:hidden;}#hd,#bd,#ft,.yui-g,.yui-gb,.yui-gc,.yui-gd,.yui-ge,.yui-gf{zoom:1;}
+
+body{margin:10px;}h1{font-size:138.5%;}h2{font-size:123.1%;}h3{font-size:108%;}h1,h2,h3{margin:1em 0;}h1,h2,h3,h4,h5,h6,strong,dt{font-weight:bold;}optgroup{font-weight:normal;}abbr,acronym{border-bottom:1px dotted #000;cursor:help;}em{font-style:italic;}del{text-decoration:line-through;}blockquote,ul,ol,dl{margin:1em;}ol,ul,dl{margin-left:2em;}ol li{list-style:decimal outside;}ul li{list-style:disc outside;}dl dd{margin-left:1em;}th,td{border:1px solid #000;padding:.5em;}th{font-weight:bold;text-align:center;}caption{margin-bottom:.5em;text-align:center;}sup{vertical-align:super;}sub{vertical-align:sub;}p,fieldset,table,pre{margin-bottom:1em;}button,input[type="checkbox"],input[type="radio"],input[type="reset"],input[type="submit"]{padding:1px;}
+
+
+/* Ruff default CSS */
+
+body {
+  max-width: 70em;
+  margin: 0;
+}
+
+h1,h2 {
+  color: #888888;
+  margin-bottom: 0.5em;
+  margin-top: 0em;
+}
+
+#ft {
+  text-align: left;
+  border-top: 1px solid #006666;
+  color: #888888;
+  margin-top: 10px;
+}
+
+.banner h2 {
+  color: #006666;
+}
+
+#hd.banner {
+ font-family: "Times New Roman", serif;
+ font-size: 200%;
+ line-height: 64px;
+ border-bottom: thin solid #006666;
+ color: #006666;
+}
+
+p.linkline {
+    text-align: right;
+    font-size: smaller;
+    /*    margin-top: -1em; */
+    margin-bottom: 0;
+}
+
+.tinylink {
+    font-size: x-small;
+    font-variant: normal;
+    font-family: Arial, sans-serif;
+    float: right;
+    padding:2px;
+}
+
+h1 .tinylink a {
+    color: white;
+}
+
+a {
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+.tinylink a {
+    text-decoration: underline;
+}
+
+#bd {
+font-family: Arial, sans-serif;
+font-size: 108%;
+}
+
+div.navbox {
+  /* margin-top: 1em; */
+    background-color: #006666;
+    color: white;
+    padding: 3px 4px 2px 4px;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+div.navbox:hover {
+    overflow: visible;
+}
+
+/* Note .navbox header css should be based on $header_levels */
+.navbox h1, .navbox h2, .navbox h3, .navbox h4, .navbox h5 {
+  font-size: 85%;
+  margin: 0px;
+  font-weight: normal;
+}
+.navbox h1 {
+    font-weight: bold; /* Override */
+}
+.navbox h2 {
+  padding-left: 1em;
+}
+.navbox h3 {
+  padding-left: 2em;
+}
+.navbox h4 {
+  padding-left: 2.5em;
+  font-weight: normal;
+}
+.navbox h5 {
+  padding-left: 3em;
+  font-weight: normal;
+}
+.navbox hr {
+  color: white;
+  margin-top:0.1em;
+  margin-bottom:0.1em;
+}
+
+.navbox a:link, .navbox a:visited, .navbox a:hover {
+  text-decoration: none;
+  color: white;
+  background-color: #006666;
+}
+
+.navbox a:hover {
+   font-weight: bold;
+}
+
+/* Tooltip text - see https://www.w3schools.com/css/css_tooltip.asp */
+.tooltip {
+    position: relative;
+    /* display: inline-block; */
+}
+
+.tooltip .tooltiptext {
+    width: 100%;
+    font-weight: bold;
+    background-color: white;
+    color: #006666;
+    text-align: left;
+    border: 1px solid #006666;
+    /* border-radius: 4px; */
+    position: absolute;
+    z-index: 1;
+    margin-left: 4px;
+    padding: 2px 3px;
+    visibility: hidden;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+span.ns_scope {
+    color: #aaaaaa;
+}
+
+span.ns_scope a:link, span.ns_scope a:visited {
+  text-decoration: none;
+  color: #aaaaaa;
+
+}
+
+li {
+  margin-top: 0.5em;
+}
+
+span.ns_scope a:hover {
+  text-decoration: none;
+  color: #666666;
+}
+
+table {
+  margin: 1em;
+  margin-top: 0.5em;
+  border: thin solid;
+  border-collapse: collapse;
+  border-color: #808080;
+  padding: 4px;
+}
+
+td {
+  border: thin solid;
+  border-color: #808080;
+  vertical-align: top;
+  font-size: 93%;
+  padding: 0.3em;
+  padding-top: 0.1em;
+}
+th {
+  border: thin solid;
+  border-color: #808080;
+  padding: 0.3em;
+  padding-top: 0.1em;
+  background-color: #CCCCCC;
+}
+
+dt, dd {
+   font-size: 93%;
+}
+
+h1.ruff {
+    background-color: #006666;
+    color: #ffffff;
+    padding-left: 0.2em;
+    font-family: "Times New Roman", serif;
+}
+h2.ruff {
+    font-variant: small-caps;
+    color: #006666;
+    font-family: "Times New Roman", serif;
+}
+
+h3.ruff, h4.ruff, h5.ruff, h6.ruff {
+    color: #006666;
+    margin-bottom: 0.2em;
+}
+
+
+h5.ruff {
+    font-style: italic;
+    font-weight: normal;
+}
+h6.ruff {
+    font-weight: normal;
+}
+h3.ruffclass, h3.ruffproc, h3.ruffmethod,
+h4.ruffclass, h4.ruffproc, h4.ruffmethod,
+h5.ruffclass, h5.ruffproc, h5.ruffmethod {
+    border-bottom: thin solid #006666;
+    color: #006666;
+    margin-bottom: 0.2em;
+}
+
+pre {
+    background-color: #eeeeee;
+    margin-top: 1em;
+    margin-left: 1em;
+    padding: 5px;
+    font-family: Consolas, "Courier New", monospace;
+    //width: max-content;
+    font-size: smaller;
+    line-height: 1.2em;
+}
+
+.ruff_dyn_src {
+    display: none; /* Displayed via JS */
+}
+
+.ruff_synopsis {
+    border: thin solid #cccccc;
+    background: #eeeeee;
+    //font-size: smaller;
+    font-family: Consolas, "Courier New", monospace;
+    padding: 3px;
+    margin: 0em 2em 1em;
+}
+
+.ruff_const, .ruff_cmd, code {
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: bold;
+    font-size: smaller;
+    //background-color: #eeeeee;
+    //padding: 0px 2px;
+    //border-radius: 3px;
+}
+
+ruff_defitem {
+    font-weight: bold;
+    font-family: Consolas, "Courier New", monospace;
+}
+.ruff_arg {
+    font-style: italic;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: smaller;
+}
+
+.ruff_source_link {
+    font-size: smaller;
+}
+
+.ruff_index {
+    font-size: small;
+    color: grey;
+    line-height: 1;
+}
+
+.ruff_index ul li {
+    list-style-type: none;
+}
+
+.ruff_index ul li a {
+    text-decoration: none;
+}
+</style>
+<script>function toggleSource( id )
+{
+    /* Copied from Rails */
+    var elem
+    var link
+
+    if( document.getElementById )
+    {
+        elem = document.getElementById( id )
+        link = document.getElementById( "l_" + id )
+    }
+    else if ( document.all )
+    {
+        elem = eval( "document.all." + id )
+        link = eval( "document.all.l_" + id )
+    }
+    else
+        return false;
+
+    if( elem.style.display == "block" )
+    {
+        elem.style.display = "none"
+        link.innerHTML = "Show source"
+    }
+    else
+    {
+        elem.style.display = "block"
+        link.innerHTML = "Hide source"
+    }
+}
+</script></head>
+<body><div id='doc3' class='yui-t2'><div id='hd' class='banner'>
+<a style='text-decoration:none;' href='cffi.html'>CFFI Reference</a>
+</div>
+<div id='bd'><div id='yui-main'><div class='yui-b'><h1 class='ruff'><a name='Getting started'></a>Getting started<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
+<div style='clear:both;'></div>
+<p class='ruff'>This package implements a <em>foreign function interface</em> (FFI) for Tcl based on the cross-platform C library, <a href="https://dyncall.org" >dyncall</a> from Daniel Adler and Tassilo Philipp.</p>
+<h2 class='ruff'><a name='Overview'></a>Overview<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>A FFI provides the ability for Tcl to invoke, with some limitations, arbitrary functions from any dynamically linked shared library without having to write C code.</p>
+<p class='ruff'>Calling a C function from a shared library (or DLL, using the term interchangeably) using <code>cffi</code> involves</p>
+<ul class='ruff'>
+<li>First loading the library into the process by instantiating a <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a> object.</li>
+<li>Then defining function prototypes for the C functions of interest in that library through method calls on that object.</li>
+</ul>
+<p class='ruff'>The created commands thus created can then be invoked as any other Tcl commands.</p>
+<p class='ruff'>This page provides an introduction to the package. Details are described in</p>
+<ul class='ruff'>
+<li>The <a href="cffi_Concepts.html#::Concepts" title="Concepts" class='ruff_cmd'>Concepts</a> page, which describes how C level constructs are translated to the Tcl script level; for example, type definitions, memory management, pointers etc.</li>
+<li>The <a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a> page which contains reference documentation for the above</li>
+<li>The <a href="cffi_cffi_dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a> page which contains reference documentation for loading shared libraries using the <code>dyncall</code> library and declaring function prototypes.</li>
+</ul>
+<h2 class='ruff'><a name='Downloads'></a>Downloads<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>Source distributions and binaries for some platforms are available from <a href="https://sourceforge.net/projects/magicsplat/files/cffi">https://sourceforge.net/projects/magicsplat/files/cffi</a>.</p>
+<h2 class='ruff'><a name='Installation'></a>Installation<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>Binary distributions can be extracted into any directory present in Tcl's <code>auto_path</code> variable.</p>
+<p class='ruff'>To install from source, please see the <code>BUILD.md</code> file in the source distribution.</p>
+<h2 class='ruff'><a name='Quick start'></a>Quick start<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>The following examples illustrate basic usage of the package. Most examples use Windows as they have standard system libraries in known locations. The usage is identical on other platforms.</p>
+<h3 class='ruff'><a name='Basic calls'></a>Basic calls<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>After loading the package, the <code>user32</code> system DLL which contains the functions of interest is loaded.</p>
+<pre class='ruff'>
+% package require cffi
+0.1
+% cffi::dyncall::Library create user32 [file join $env(windir) system32 user32.dll]
+::user32
+</pre>
+<p class='ruff'>This creates a shared library object that can then be used for defining functions implemented within the library. It is recommended to always pass a full path to the shared library though that is not strictly required on Windows.</p>
+<p class='ruff'>The next step is to define the prototype for the function to get a handle to the desktop window. In C, this would look like</p>
+<pre class='ruff'>
+HWND GetDesktopWindow()
+</pre>
+<p class='ruff'>where <code>HWND</code> is actually a C pointer typedef.</p>
+<p class='ruff'>To call this function from Tcl we first have to define a prototype for it. Prototypes can be defined with either the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> or <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> methods on the shared library object that implements the function. The two commands are identical on all platforms except <strong>32-bit</strong> Windows where <code>function</code> is used to call functions that use the C calling convention while <code>stdcall</code> is used to call functions using the stdcall calling convention. On all other platforms, including 64-bit Windows, the two are identical. Since we are demonstrating using Windows, the <code>stdcall</code> command is used in some of the examples.</p>
+<p class='ruff'>The prototype for the above Windows function can then be defined as:</p>
+<pre class='ruff'>
+% user32 stdcall GetDesktopWindow pointer.HWND {}
+</pre>
+<p class='ruff'>The last argument is the parameter list which in this case is empty. The <code>pointer.HWND</code> return value is a tagged pointer. As illustrated later, pointer tags help in type safety. The definition could have as well just typed it as <code>pointer</code> which would be the equivalent of <code>void*</code> in C but that would lose the ability to check types.</p>
+<p class='ruff'>The C function can be called as any other Tcl command.</p>
+<pre class='ruff'>
+% set win [GetDesktopWindow]
+0x0000000000010010^HWND
+</pre>
+<p class='ruff'>Note how the return pointer value is tagged as <code>HWND</code>.</p>
+<h3 class='ruff'><a name='Structures'></a>Structures<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>To retrieve the dimensions of this window we need to call the <code>GetWindowRect</code> function from the same library. This has a slightly more complex prototype.</p>
+<pre class='ruff'>
+int GetWindowRect(HWND hWnd, RECT *lpRect);
+</pre>
+<p class='ruff'>In particular, the window dimensions are returned in a <code>RECT</code> structure whose address is passed in to the function. We thus need to first define a corresponding structure.</p>
+<pre class='ruff'>
+% cffi::Struct create RECT {left int top int right int bottom int}
+::RECT
+</pre>
+<p class='ruff'>A structure is defined simply by a list of alternating field names and types of which <code>int</code> is one of several numeric types available. The result is a <code>Struct</code> object which can be used in function declarations, memory allocations and other places.</p>
+<p class='ruff'>The <code>GetWindowRect</code> is defined using this struct definition.</p>
+<pre class='ruff'>
+% user32 stdcall GetWindowRect int {hwnd pointer.HWND rect {struct.RECT out}}
+</pre>
+<p class='ruff'>The parameter list for a function follows the same form as for structs, an alternating list of parameter names and type declarations. The name of the parameter is irrelevant for invocation but requiring parameter names makes for more informative error messages.</p>
+<p class='ruff'>Note how the type for the second parameter, <code>rect</code>, is specified. In general, type declarations consist of a type optionally followed by a list of annotations that serve multiple purposes as we will see below. In this case <code>struct.RECT</code> specifies the data type while <code>out</code> is an annotation that indicates it is an output parameter for the function and thus to be passed by reference. At the script level, the parameter must then be a <strong>variable name</strong>, and not a <strong>value</strong>, into which the output can be stored.</p>
+<p class='ruff'>The function is called as:</p>
+<pre class='ruff'>
+% GetWindowRect $win dimensions
+1
+% set dimensions
+left 0 top 0 right 1920 bottom 1080
+</pre>
+<p class='ruff'>As seen above, <code>struct</code> values are automatically decoded into dictionaries with keys corresponding to struct field names. As we see later, we could have also selected to receive structs as binary values in their native form.</p>
+<h3 class='ruff'><a name='Strings and binaries'></a>Strings and binaries<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The <code>char *</code> type in C is more often than not used for null-terminated strings. These may be dealt with in the same fashion as pointers at the script level as discussed in <a href="cffi_Concepts.html#::Concepts-Pointers" title="Pointers" >Pointers</a> further on. However, in most cases it is more convenient to use the <code>string</code> and <code>chars</code> types. The difference between the two is that the former corresponds to a C <code>char *</code> pointer while the latter corresponds to a C <code>char[N]</code> array. When passed to a function, of course both are passed as <code>char *</code> pointers but the latter is more convenient for output buffers where the parameter corresponds to a output buffer of some maximum size. The former on the other hand is convenient for input parameters where the size is of no concern.</p>
+<p class='ruff'>The following fragment illustrates their use.</p>
+<pre class='ruff'>
+% cffi::dyncall::Library create kernel kernel32.dll
+::kernel
+% kernel stdcalls {
+    GetCurrentDirectoryA uint {nchars int path {chars[512] out}}
+    SetCurrentDirectoryA uint {path string}
+}
+</pre>
+<p class='ruff'>As an aside, note the <code>stdcalls</code> method above to define multiple functions in a single call. There is also a corresponding <code>functions</code> method.</p>
+<p class='ruff'>The above functions can then be simply invoked.</p>
+<pre class='ruff'>
+% GetCurrentDirectoryA 512 buffer
+40
+% set buffer
+D:\src\tcl-cffi\win\Release_AMD64_VC1916
+% SetCurrentDirectoryA d:/temp
+1
+% pwd
+D:/Temp
+% SetCurrentDirectoryA $buffer
+1
+% pwd
+D:/src/tcl-cffi/win/Release_AMD64_VC1916 
+</pre>
+<p class='ruff'>Note that <code>string</code> can be used as a type for output parameters as well. For example, <code>GetCurrentDirectoryA</code> could have been declared as</p>
+<pre class='ruff'>
+% kernel stdcall GetCurrentDirectoryA uint {nchars int path {string out}}
+</pre>
+<p class='ruff'>However, now the output buffer space has to be specified at the call site along with the output variable which is less convenient.</p>
+<pre class='ruff'>
+% GetCurrentDirectoryA 512 [list buffer 512]
+40
+% set buffer
+D:\src\tcl-cffi\win\Release_AMD64_VC1916
+</pre>
+<p class='ruff'>In the above examples, the strings in all cases are encoded in the system encoding before being passed to the C function. Similarly, the output buffers returned by the C function are assumed to be in system encoding and translated into Tcl's internal form accordingly. Both <code>string</code> and <code>chars</code> can be tagged with an encoding name. For example, if the functions were defined using <code>string.jis0208</code> or <code>chars[512].jis0208</code>, the JIS0208 encoding would be used to transform the strings in both directions.</p>
+<p class='ruff'>The package has other related types that server a similar purpose.</p>
+<ul class='ruff'>
+<li>The <code>unistring</code> and <code>unichars</code> type are analogous to <code>string</code> and <code>chars</code> except they assume the encoding is that of the <code>Tcl_UniChar</code> C type and have all sizes specified in <code>Tcl_UniChar</code> units as opposed to chars/bytes. This is primarily useful on Windows.</li>
+<li>The <code>binary</code> and <code>bytes</code> types are again analogous except they assume binary data (Tcl byte array at the C level).</li>
+</ul>
+<h3 class='ruff'><a name='Error checking'></a>Error checking<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>C functions indicate errors primarily through their return values. In some cases, the return value is the error code while in others it is only a boolean status indicator with detail being available either through another function such as <code>GetLastError</code> on Windows or a global variable such as <code>errno</code>.</p>
+<p class='ruff'>Here is an attempt to change to a non-existing directory.</p>
+<pre class='ruff'>
+% SetCurrentDirectoryA &quot;nosuchdir&quot;
+0
+</pre>
+<p class='ruff'>The return value of <code>0</code> here indicates failure. The caller must then specifically check for errors. Moreover, if the return value does not actually indicate cause of error, another call has to be made to <code>GetLastError</code> etc.. This has multiple issues:</p>
+<ul class='ruff'>
+<li>first, caller has to specifically check for errors,</li>
+<li>second, and more important, by the time a secondary call is made to retrieve <code>errno</code> etc. the originally error is likely to have been overwritten.</li>
+</ul>
+<p class='ruff'>To deal with the first, a return type can be annotated with conditions that specify expected return values. Since <code>SetCurrentDirectory</code> returns a non-zero value on success, the function return type may be annotated with <code>nonzero</code>:</p>
+<pre class='ruff'>
+% kernel stdcall SetCurrentDirectoryA {int nonzero} {path string}
+</pre>
+<p class='ruff'>Passing a non-existing directory will then raise an error exception.</p>
+<pre class='ruff'>
+% SetCurrentDirectoryA &quot;nosuchdir&quot;
+Invalid value &quot;0&quot;. Function returned zero.
+</pre>
+<p class='ruff'>Note however, that the error message is generic and only indicates the function return value did not meet the expected success criterion. To fix this, the function definition can include an annotation for an error retrieval mechanism:</p>
+<pre class='ruff'>
+% kernel stdcall SetCurrentDirectoryA {int nonzero lasterror} {path string}
+% SetCurrentDirectoryA &quot;nosuchdir&quot;
+The system cannot find the file specified.
+% set errorCode
+cffi WINERROR {The system cannot find the file specified. }
+</pre>
+<p class='ruff'>With the inclusion <code>lasterror</code> in the type declaration, the error message is much clearer. This also eliminates the second issue mentioned above with the error detail being lost before the call to retrieve it is made.</p>
+<p class='ruff'>While <code>lasterror</code> implies <code>GetLastError</code> as the retrieval mechanism and is specific to Windows, other annotation for error retrieval are also available. For example, the <code>errno</code> annotation serves a similar purpose except it retrieves the error based on the <code>errno</code> facility which is cross-platform and commonly applicable to both the C runtime as well as system calls on Unix.</p>
+<h3 class='ruff'><a name='Pointers and memory'></a>Pointers and memory<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Pointers are ubiquitous in C. They give C much of its power while also being the source of many bugs. In many cases, pointers can be avoided through the use of the <code>out</code> parameters and <code>struct</code>, <code>string</code> and <code>binary</code> types that use pointers under the covers. Many times though, this is not possible or desirable and raw access to the native storage of the data is needed. The <code>pointer</code> type provides this access while also attempting to guard against some common errors through multiple mechanisms:</p>
+<ul class='ruff'>
+<li>pointers can be optionally tagged so a pointer to the wrong resource type is not inadvertently passed where a different one is expected.</li>
+<li>Pointers are marked as <em>safe</em> by default when returned from a function. Safe pointers are registered in an internal table which is checked whenever a pointer is accessed. It is sometimes necessary to bypass this check and the <code>unsafe</code> attribute is provided for the purpose.</li>
+</ul>
+<p class='ruff'>Note a pointer tag is <strong>not</strong> the same as a data type. For example, you may have a single C structure type <code>XY</code> containing two numerical fields. You can choose to tag pointers to the structure with two different tags, <code>Point</code> and <code>Dimensions</code> depending on whether it is used as co-ordinates of a point or as width/height dimensions. The two tags will be treated as different.</p>
+<p class='ruff'>The examples below repeat the previous ones, but this time using pointers in place of structs and strings.</p>
+<p class='ruff'>First, define the call to <code>GetWindowRect</code> using pointers. Note we are renaming the function as <code>GetWindowRectAsPointer</code> so distinguish from our previous definition.</p>
+<pre class='ruff'>
+% user32 stdcall {GetWindowRect GetWindowRectAsPointer} int {hwnd pointer.HWND rect pointer.RECT}
+</pre>
+<p class='ruff'>Since the pointer value itself is passed by value, notice the <code>rect</code> parameter in the function definition was <strong>not</strong> marked as an <code>out</code> parameter and was passed as a value in the actual call itself.</p>
+<p class='ruff'>Unlike the case with the <code>struct</code> type, memory to hold the structure has now to be explicitly allocated because we are passing raw pointers.</p>
+<pre class='ruff'>
+% set prect [RECT allocate]
+0x00000274be29a510^RECT
+% GetWindowRectAsPointer $win $prect
+1
+</pre>
+<p class='ruff'>Finally, the structure contents can be extracted.</p>
+<pre class='ruff'>
+% RECT fromnative $prect
+left 0 top 0 right 1920 bottom 1080
+</pre>
+<p class='ruff'>It is not even strictly necessary to even define a structure at all. Below is yet another way to get dimensions without making use of the <code>RECT</code> struct and using direct memory allocation.</p>
+<pre class='ruff'>
+% set praw [cffi::memory allocate 16 RECT]
+0x000001E53EAB8F90^RECT
+% GetWindowRectAsPointer $win $praw
+1
+% binary scan [cffi::memory tobinary $praw 16] iiii left top right bottom
+4
+% puts [list $left $top $right $bottom]
+0 0 1920 1080
+% cffi::memory free $praw
+</pre>
+<p class='ruff'>In the above fragment, <code>cffi::memory allocate</code> is used to allocate memory tagged as <code>RECT</code>. Note that this does <strong>not</strong> require that the <strong>struct</strong> <code>RECT</code> have been previously defined. The <code>cffi::memory tobinary</code> command is then used to convert the allocated memory content to a Tcl binary string.</p>
+<p class='ruff'>Needless to say, the use of <code>struct</code> definitions is to be preferred to this raw memory access for convenience and safety reasons. Still, there are cases, for example variable length structures in memory, where this is required.</p>
+<p class='ruff'>As an example of the protection against errors offered by pointer tags, here is an attempt to retrieve the window dimensions where the arguments are passed in the wrong order.</p>
+<pre class='ruff'>
+% GetWindowRect $prect $win
+Value &quot;0x000001E53EA3BEB0^RECT&quot; has the wrong type. Pointer type mismatch.
+</pre>
+<p class='ruff'>While tags offer protection against type mismatches, another mechanism guards against invalid pointers and double frees. For example, attempting to free memory that we already freed above results in an error being raised.</p>
+<pre class='ruff'>
+% cffi::memory free $praw
+Pointer 000001E53EAB8F90^ is not registered.
+</pre>
+<p class='ruff'>Similarly, explicitly allocated <code>struct</code> storage needs to be freed. Attempting to free multiple times will raise an error. The first call below succeeds but the second fails.</p>
+<pre class='ruff'>
+% RECT free $prect
+% RECT free $prect
+Pointer 000001E53EA3BEB0^ of type RECT is not registered.
+</pre>
+<p class='ruff'>Needless to say, these protection mechanisms are far from foolproof.</p>
+<p class='ruff'>The above mechanism for detecting invalid pointers can clearly work for memory allocated through the package where it can be internally tracked. But what about allocations done through calls to loaded shared libraries? For this, the package treats any pointer returned from a function or through an output parameter as a valid pointer and registers it internally. Any pointers that are passed as input to a function are by default checked to ensure they were previously registered and an error raised otherwise. The question then remains as to how and when the pointer is marked as invalid. The <code>dispose</code> type attribute is provided for this purpose.</p>
+<p class='ruff'>The following Windows calls to allocate heaps illustrate the use. The C functions are prototyped as</p>
+<pre class='ruff'>
+HANDLE HeapCreate(DWORD  flOptions, SIZE_T dwInitialSize, SIZE_T dwMaximumSize);
+BOOL HeapDestroy(HANDLE hHeap);
+</pre>
+<p class='ruff'>The above C prototypes use Windows type definitions. Rather than translate them into appropriate (32- or 64-bit) native C types, the <code>cffi::alias</code> command, detailed later, allows platform-specific type definitions to be predefined.</p>
+<pre class='ruff'>
+cffi::alias load win32
+</pre>
+<p class='ruff'>On Windows, this will define common types like <code>DWORD</code> etc. so the functions can be defined as</p>
+<pre class='ruff'>
+kernel stdcall HeapCreate pointer.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
+kernel stdcall HeapDestroy {BOOL nonzero lasterror} {heapPtr {pointer.HEAP dispose}}
+</pre>
+<p class='ruff'>The pointer value returned from <code>HeapCreate</code> is by default registered as a valid pointer. When the pointer is passed to <code>HeapDestroy</code>, it is first validated. The presence of the <code>dispose</code> attribute will then remove its registration causing any further attempts to use it, for example even to free it, to fail.</p>
+<pre class='ruff'>
+% set p [HeapCreate 0 1024 1024]
+0x00000274c0b50000^HEAP
+% HeapDestroy $p
+1
+% HeapDestroy $p
+Pointer 0x00000274c0b50000^HEAP is not registered.
+</pre>
+<p class='ruff'>Here is another example, this time from Linux. Note the tag <code>SOMETHING</code>, chosen to reinforce that tags have no semantics in terms of the actual type that the pointer references. A tag of <code>FILE</code> would have of course been more reflective of the referenced type, but this is not mandated.</p>
+<pre class='ruff'>
+% cffi::dyncall::Library create myprocess
+::myprocess
+% myprocess function fopen {pointer.SOMETHING nonzero errno} {path string mode string}
+% myprocess function fclose int {file {pointer.SOMETHING dispose}}
+% set fileptr [fopen test.txt w]
+0x55a273bf32e0^SOMETHING
+% fclose $fileptr
+0
+% fclose $fileptr
+Pointer 0x55a273bf32e0^SOMETHING is not registered.
+</pre>
+<p class='ruff'>There are a couple of situations where this pointer registration mechanism is a hindrance.</p>
+<ul class='ruff'>
+<li>One is when the pointer is acquired by some means other than through a call made through this package.</li>
+<li>Another case is when the pointer is to a resource that is reference counted and whose acquisition may return the same pointer value multiple times.</li>
+</ul>
+<p class='ruff'>To deal with the first case, a pointer return type or parameter may have the <code>unsafe</code> attribute. This will result in bypassing of any pointer registration or checks. So for example, if the heap functions had been defined as below, multiple calls could be made to <code>HeapDestroy</code>. <strong>NOTE: Do not actually try it as your shell will crash as Windows does not itself check pointer validity for <code>HeapDestroy</code>.</strong></p>
+<pre class='ruff'>
+kernel stdcall HeapCreate {pointer.HEAP unsafe} {opts DWORD initSize SIZE_T maxSize SIZE_T}
+kernel stdcall HeapDestroy {BOOL nonzero lasterror} {heapPtr {pointer.HEAP unsafe}}
+</pre>
+<p class='ruff'>Note that unsafe pointers only bypass registration checks; the pointer tags are still verified.</p>
+<p class='ruff'>The second case has to do with API calls like <code>LoadLibrary</code> which we can prototype as</p>
+<pre class='ruff'>
+kernel stdcall LoadLibraryA pointer.HMODULE {path string}
+kernel stdcall FreeLibrary BOOL {libhandle {pointer.HMODULE dispose}}
+</pre>
+<p class='ruff'>When multiple calls are made to this function, it returns the <em>same</em> pointer while keeping an internal reference count. However, registered pointers are expected to be unique by default and the following sequence of calls fails.</p>
+<pre class='ruff'>
+% set libptr [LoadLibraryA advapi32.dll]
+0x00007FFDD0000000^HMODULE
+% set libptr [LoadLibraryA advapi32.dll]
+Registered pointer already exists. 
+</pre>
+<p class='ruff'>The registered pointer needs to be freed first with <code>FreeLibrary</code> before another call to load the same library is made. This artificial limitation on the use of <code>LoadLibrary</code> can be worked around using the <code>unsafe</code> attribute discussed earlier. However, that would mean there could be more calls made to <code>FreeLibrary</code> than to <code>LoadLibraryA</code> resulting in whatever Windows decided was an appropriate failure mode, most likely random crashes.</p>
+<p class='ruff'>The <code>counted</code> attribute is provided for this use case. When specified, the pointer is still registered but permits multiple registrations and a corresponding number of disposals. To illustrate,</p>
+<pre class='ruff'>
+kernel stdcall LoadLibraryA {pointer.HMODULE counted} {path string}
+kernel stdcall FreeLibrary BOOL {libhandle {pointer.HMODULE dispose}}
+</pre>
+<p class='ruff'>Now multiple registrations are allowed which stay valid until a corresponding number of disposals are done.</p>
+<pre class='ruff'>
+% set libptr [LoadLibraryA advapi32.dll]
+0x00007FFDD0000000^HMODULE
+% set libptr2 [LoadLibraryA advapi32.dll]
+0x00007FFDD0000000^HMODULE
+% FreeLibrary $libptr
+1
+% FreeLibrary $libptr2
+1
+% FreeLibrary $libptr
+Pointer 00007FFDD0000000 of type HMODULE is not registered.
+</pre>
+<h3 class='ruff'><a name='Type aliases'></a>Type aliases<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Type aliases are a convenience feature to avoid repetition and improve readability. They may be added with the <a href="cffi_cffi.html#::cffi::alias define" title="::cffi::alias define" class='ruff_cmd'>::cffi::alias define</a> command. As an example, consider our previous prototype for the <code>SetCurrentDirectoryA</code> function.</p>
+<pre class='ruff'>
+kernel stdcall SetCurrentDirectoryA {int nonzero lasterror} {path string}
+</pre>
+<p class='ruff'>This return type declaration is very common for Windows API calls. Instead of repeating this triple for every such call, a new type can be defined for the purpose and used in all prototypes.</p>
+<pre class='ruff'>
+cffi::alias define LASTERROR {int nonzero lasterror}
+kernel stdcall SetCurrentDirectoryA LASTERROR {path string}
+</pre>
+<p class='ruff'>This facility is also useful for abstracting platform differences. For example, many windows allocation functions use the C typedef <code>SIZE_T</code> which translates to either a 64-bit or 32-bit C integer type depending on whether the program was built for 32- or 64-bit Windows. Instead of defining separate prototypes for every function using the type, a single type definition can be used.</p>
+<pre class='ruff'>
+if {$tcl_platform(pointerSize) == 8} {
+    cffi::type SIZE_T ulonglong
+} else {
+    cffi::type SIZE_T ulonglong
+}
+kernel stdcalls {
+    HeapCreate pointer.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
+    HeapDestroy LASTERROR {heapPtr {pointer.HEAP dispose}}
+    HeapAlloc {pointer nonzero} {heapPtr pointer.HEAP flags uint size SIZE_T}
+}
+</pre>
+<p class='ruff'>As a further convenience, the <a href="cffi_cffi.html#::cffi::alias load" title="::cffi::alias load" class='ruff_cmd'>::cffi::alias load</a> command defines commonly useful typedefs including cross-platform ones such as <code>size_t</code> as well as platform-specific ones such as <code>HANDLE</code>, <code>DWORD</code> etc. on Windows.</p>
+<h3 class='ruff'><a name='Limitations'></a>Limitations<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The current version has the following limitations:</p>
+<ul class='ruff'>
+<li>Arrays of non-numeric types are not implemented.</li>
+<li>Structs cannot be passed or returned by value, only by reference.</li>
+<li>Callbacks into Tcl from C functions are not implemented.</li>
+<li>C functions with a variable number of arguments are not implemented.</li>
+</ul>
+</div></div><div class='yui-b navbox' style='position: sticky; top: 0;'><h1><a style='padding-top:2px;color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi.html'>Start page</a></h1>
+<h1><a href='cffi_docindex.html' accesskey='i'>Index</a></h1>
+<hr>
+<h1><a href='cffi_Concepts.html'>Concepts</a></h1>
+<h1><a href='cffi_cffi.html'>cffi</a></h1>
+<h1><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
+<hr><h1><a href='#Getting started'>Getting started</a></h1><h2><a href='#Overview'>Overview</a></h2><h2><a href='#Downloads'>Downloads</a></h2><h2><a href='#Installation'>Installation</a></h2><h2><a href='#Quick start'>Quick start</a></h2><h3><a href='#Basic calls'>Basic calls</a></h3><h3><a href='#Structures'>Structures</a></h3><h3><a href='#Strings and binaries'>Strings and binaries</a></h3><h3><a href='#Error checking'>Error checking</a></h3><h3><a href='#Pointers and memory'>Pointers and memory</a></h3><h3><a href='#Type aliases'>Type aliases</a></h3><h3><a href='#Limitations'>Limitations</a></h3></div></div><div id='ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div></div>
+</div></body></html>

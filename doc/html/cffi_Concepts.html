@@ -1,0 +1,557 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>CFFI Reference</title>
+<style>
+/*
+Copyright (c) 2009, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.7.0
+*/
+html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,button,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var,optgroup{font-style:inherit;font-weight:inherit;}del,ins{text-decoration:none;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:baseline;}sub{vertical-align:baseline;}legend{color:#000;}input,button,textarea,select,optgroup,option{font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;}input,button,textarea,select{*font-size:100%;}body{font:13px/1.231 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small;}select,input,button,textarea,button{font:99% arial,helvetica,clean,sans-serif;}table{font-size:inherit;font:100%;}pre,code,kbd,samp,tt{font-family:monospace;*font-size:108%;line-height:100%;}body{text-align:center;}#doc,#doc2,#doc3,#doc4,.yui-t1,.yui-t2,.yui-t3,.yui-t4,.yui-t5,.yui-t6,.yui-t7{margin:auto;text-align:left;width:57.69em;*width:56.25em;}#doc2{width:73.076em;*width:71.25em;}#doc3{margin:auto 10px;width:auto;}#doc4{width:74.923em;*width:73.05em;}.yui-b{position:relative;}.yui-b{_position:static;}#yui-main .yui-b{position:static;}#yui-main,.yui-g .yui-u .yui-g{width:100%;}.yui-t1 #yui-main,.yui-t2 #yui-main,.yui-t3 #yui-main{float:right;margin-left:-25em;}.yui-t4 #yui-main,.yui-t5 #yui-main,.yui-t6 #yui-main{float:left;margin-right:-25em;}.yui-t1 .yui-b{float:left;width:12.30769em;*width:12.00em;}.yui-t1 #yui-main .yui-b{margin-left:13.30769em;*margin-left:13.05em;}.yui-t2 .yui-b{float:left;width:13.8461em;*width:13.50em;}.yui-t2 #yui-main .yui-b{margin-left:14.8461em;*margin-left:14.55em;}.yui-t3 .yui-b{float:left;width:23.0769em;*width:22.50em;}.yui-t3 #yui-main .yui-b{margin-left:24.0769em;*margin-left:23.62em;}.yui-t4 .yui-b{float:right;width:13.8456em;*width:13.50em;}.yui-t4 #yui-main .yui-b{margin-right:14.8456em;*margin-right:14.55em;}.yui-t5 .yui-b{float:right;width:18.4615em;*width:18.00em;}.yui-t5 #yui-main .yui-b{margin-right:19.4615em;*margin-right:19.125em;}.yui-t6 .yui-b{float:right;width:23.0769em;*width:22.50em;}.yui-t6 #yui-main .yui-b{margin-right:24.0769em;*margin-right:23.62em;}.yui-t7 #yui-main .yui-b{display:block;margin:0 0 1em 0;}#yui-main .yui-b{float:none;width:auto;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf,.yui-gc .yui-u,.yui-gd .yui-g,.yui-g .yui-gc .yui-u,.yui-ge .yui-u,.yui-ge .yui-g,.yui-gf .yui-g,.yui-gf .yui-u{float:right;}.yui-g div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first,.yui-ge div.first,.yui-gf div.first,.yui-g .yui-gc div.first,.yui-g .yui-ge div.first,.yui-gc div.first div.first{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf{width:49.1%;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{width:32%;margin-left:1.99%;}.yui-gb .yui-u{*margin-left:1.9%;*width:31.9%;}.yui-gc div.first,.yui-gd .yui-u{width:66%;}.yui-gd div.first{width:32%;}.yui-ge div.first,.yui-gf .yui-u{width:74.2%;}.yui-ge .yui-u,.yui-gf div.first{width:24%;}.yui-g .yui-gb div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first{margin-left:0;}.yui-g .yui-g .yui-u,.yui-gb .yui-g .yui-u,.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u,.yui-ge .yui-g .yui-u,.yui-gf .yui-g .yui-u{width:49%;*width:48.1%;*margin-left:0;}.yui-g .yui-g .yui-u{width:48.1%;}.yui-g .yui-gb div.first,.yui-gb .yui-gb div.first{*margin-right:0;*width:32%;_width:31.7%;}.yui-g .yui-gc div.first,.yui-gd .yui-g{width:66%;}.yui-gb .yui-g div.first{*margin-right:4%;_margin-right:1.3%;}.yui-gb .yui-gc div.first,.yui-gb .yui-gd div.first{*margin-right:0;}.yui-gb .yui-gb .yui-u,.yui-gb .yui-gc .yui-u{*margin-left:1.8%;_margin-left:4%;}.yui-g .yui-gb .yui-u{_margin-left:1.0%;}.yui-gb .yui-gd .yui-u{*width:66%;_width:61.2%;}.yui-gb .yui-gd div.first{*width:31%;_width:29.5%;}.yui-g .yui-gc .yui-u,.yui-gb .yui-gc .yui-u{width:32%;_float:right;margin-right:0;_margin-left:0;}.yui-gb .yui-gc div.first{width:66%;*float:left;*margin-left:0;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf .yui-u{margin:0;}.yui-gb .yui-gb .yui-u{_margin-left:.7%;}.yui-gb .yui-g div.first,.yui-gb .yui-gb div.first{*margin-left:0;}.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u{*width:48.1%;*margin-left:0;}.yui-gb .yui-gd div.first{width:32%;}.yui-g .yui-gd div.first{_width:29.9%;}.yui-ge .yui-g{width:24%;}.yui-gf .yui-g{width:74.2%;}.yui-gb .yui-ge div.yui-u,.yui-gb .yui-gf div.yui-u{float:right;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf div.first{float:left;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf div.first{*width:24%;_width:20%;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf .yui-u{*width:73.5%;_width:65.5%;}.yui-ge div.first .yui-gd .yui-u{width:65%;}.yui-ge div.first .yui-gd div.first{width:32%;}#hd:after,#bd:after,#ft:after,.yui-g:after,.yui-gb:after,.yui-gc:after,.yui-gd:after,.yui-ge:after,.yui-gf:after{content:".";display:block;height:0;clear:both;visibility:hidden;}#hd,#bd,#ft,.yui-g,.yui-gb,.yui-gc,.yui-gd,.yui-ge,.yui-gf{zoom:1;}
+
+body{margin:10px;}h1{font-size:138.5%;}h2{font-size:123.1%;}h3{font-size:108%;}h1,h2,h3{margin:1em 0;}h1,h2,h3,h4,h5,h6,strong,dt{font-weight:bold;}optgroup{font-weight:normal;}abbr,acronym{border-bottom:1px dotted #000;cursor:help;}em{font-style:italic;}del{text-decoration:line-through;}blockquote,ul,ol,dl{margin:1em;}ol,ul,dl{margin-left:2em;}ol li{list-style:decimal outside;}ul li{list-style:disc outside;}dl dd{margin-left:1em;}th,td{border:1px solid #000;padding:.5em;}th{font-weight:bold;text-align:center;}caption{margin-bottom:.5em;text-align:center;}sup{vertical-align:super;}sub{vertical-align:sub;}p,fieldset,table,pre{margin-bottom:1em;}button,input[type="checkbox"],input[type="radio"],input[type="reset"],input[type="submit"]{padding:1px;}
+
+
+/* Ruff default CSS */
+
+body {
+  max-width: 70em;
+  margin: 0;
+}
+
+h1,h2 {
+  color: #888888;
+  margin-bottom: 0.5em;
+  margin-top: 0em;
+}
+
+#ft {
+  text-align: left;
+  border-top: 1px solid #006666;
+  color: #888888;
+  margin-top: 10px;
+}
+
+.banner h2 {
+  color: #006666;
+}
+
+#hd.banner {
+ font-family: "Times New Roman", serif;
+ font-size: 200%;
+ line-height: 64px;
+ border-bottom: thin solid #006666;
+ color: #006666;
+}
+
+p.linkline {
+    text-align: right;
+    font-size: smaller;
+    /*    margin-top: -1em; */
+    margin-bottom: 0;
+}
+
+.tinylink {
+    font-size: x-small;
+    font-variant: normal;
+    font-family: Arial, sans-serif;
+    float: right;
+    padding:2px;
+}
+
+h1 .tinylink a {
+    color: white;
+}
+
+a {
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+.tinylink a {
+    text-decoration: underline;
+}
+
+#bd {
+font-family: Arial, sans-serif;
+font-size: 108%;
+}
+
+div.navbox {
+  /* margin-top: 1em; */
+    background-color: #006666;
+    color: white;
+    padding: 3px 4px 2px 4px;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+div.navbox:hover {
+    overflow: visible;
+}
+
+/* Note .navbox header css should be based on $header_levels */
+.navbox h1, .navbox h2, .navbox h3, .navbox h4, .navbox h5 {
+  font-size: 85%;
+  margin: 0px;
+  font-weight: normal;
+}
+.navbox h1 {
+    font-weight: bold; /* Override */
+}
+.navbox h2 {
+  padding-left: 1em;
+}
+.navbox h3 {
+  padding-left: 2em;
+}
+.navbox h4 {
+  padding-left: 2.5em;
+  font-weight: normal;
+}
+.navbox h5 {
+  padding-left: 3em;
+  font-weight: normal;
+}
+.navbox hr {
+  color: white;
+  margin-top:0.1em;
+  margin-bottom:0.1em;
+}
+
+.navbox a:link, .navbox a:visited, .navbox a:hover {
+  text-decoration: none;
+  color: white;
+  background-color: #006666;
+}
+
+.navbox a:hover {
+   font-weight: bold;
+}
+
+/* Tooltip text - see https://www.w3schools.com/css/css_tooltip.asp */
+.tooltip {
+    position: relative;
+    /* display: inline-block; */
+}
+
+.tooltip .tooltiptext {
+    width: 100%;
+    font-weight: bold;
+    background-color: white;
+    color: #006666;
+    text-align: left;
+    border: 1px solid #006666;
+    /* border-radius: 4px; */
+    position: absolute;
+    z-index: 1;
+    margin-left: 4px;
+    padding: 2px 3px;
+    visibility: hidden;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+span.ns_scope {
+    color: #aaaaaa;
+}
+
+span.ns_scope a:link, span.ns_scope a:visited {
+  text-decoration: none;
+  color: #aaaaaa;
+
+}
+
+li {
+  margin-top: 0.5em;
+}
+
+span.ns_scope a:hover {
+  text-decoration: none;
+  color: #666666;
+}
+
+table {
+  margin: 1em;
+  margin-top: 0.5em;
+  border: thin solid;
+  border-collapse: collapse;
+  border-color: #808080;
+  padding: 4px;
+}
+
+td {
+  border: thin solid;
+  border-color: #808080;
+  vertical-align: top;
+  font-size: 93%;
+  padding: 0.3em;
+  padding-top: 0.1em;
+}
+th {
+  border: thin solid;
+  border-color: #808080;
+  padding: 0.3em;
+  padding-top: 0.1em;
+  background-color: #CCCCCC;
+}
+
+dt, dd {
+   font-size: 93%;
+}
+
+h1.ruff {
+    background-color: #006666;
+    color: #ffffff;
+    padding-left: 0.2em;
+    font-family: "Times New Roman", serif;
+}
+h2.ruff {
+    font-variant: small-caps;
+    color: #006666;
+    font-family: "Times New Roman", serif;
+}
+
+h3.ruff, h4.ruff, h5.ruff, h6.ruff {
+    color: #006666;
+    margin-bottom: 0.2em;
+}
+
+
+h5.ruff {
+    font-style: italic;
+    font-weight: normal;
+}
+h6.ruff {
+    font-weight: normal;
+}
+h3.ruffclass, h3.ruffproc, h3.ruffmethod,
+h4.ruffclass, h4.ruffproc, h4.ruffmethod,
+h5.ruffclass, h5.ruffproc, h5.ruffmethod {
+    border-bottom: thin solid #006666;
+    color: #006666;
+    margin-bottom: 0.2em;
+}
+
+pre {
+    background-color: #eeeeee;
+    margin-top: 1em;
+    margin-left: 1em;
+    padding: 5px;
+    font-family: Consolas, "Courier New", monospace;
+    //width: max-content;
+    font-size: smaller;
+    line-height: 1.2em;
+}
+
+.ruff_dyn_src {
+    display: none; /* Displayed via JS */
+}
+
+.ruff_synopsis {
+    border: thin solid #cccccc;
+    background: #eeeeee;
+    //font-size: smaller;
+    font-family: Consolas, "Courier New", monospace;
+    padding: 3px;
+    margin: 0em 2em 1em;
+}
+
+.ruff_const, .ruff_cmd, code {
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: bold;
+    font-size: smaller;
+    //background-color: #eeeeee;
+    //padding: 0px 2px;
+    //border-radius: 3px;
+}
+
+ruff_defitem {
+    font-weight: bold;
+    font-family: Consolas, "Courier New", monospace;
+}
+.ruff_arg {
+    font-style: italic;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: smaller;
+}
+
+.ruff_source_link {
+    font-size: smaller;
+}
+
+.ruff_index {
+    font-size: small;
+    color: grey;
+    line-height: 1;
+}
+
+.ruff_index ul li {
+    list-style-type: none;
+}
+
+.ruff_index ul li a {
+    text-decoration: none;
+}
+</style>
+<script>function toggleSource( id )
+{
+    /* Copied from Rails */
+    var elem
+    var link
+
+    if( document.getElementById )
+    {
+        elem = document.getElementById( id )
+        link = document.getElementById( "l_" + id )
+    }
+    else if ( document.all )
+    {
+        elem = eval( "document.all." + id )
+        link = eval( "document.all.l_" + id )
+    }
+    else
+        return false;
+
+    if( elem.style.display == "block" )
+    {
+        elem.style.display = "none"
+        link.innerHTML = "Show source"
+    }
+    else
+    {
+        elem.style.display = "block"
+        link.innerHTML = "Hide source"
+    }
+}
+</script></head>
+<body><div id='doc3' class='yui-t2'><div id='hd' class='banner'>
+<a style='text-decoration:none;' href='cffi.html'>CFFI Reference</a>
+</div>
+<div id='bd'><div id='yui-main'><div class='yui-b'><h1 class='ruff'><a name='Concepts'></a>Concepts<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
+<div style='clear:both;'></div>
+<p class='ruff'>This page describes the mapping of C types and program elements to the Tcl script level. Basic knowledge of the package as described in <a href="cffi.html#Quick start" title="Quick start" >Quick start</a> is assumed.</p>
+<h2 class='ruff'><a name='::Concepts-Type declarations'></a>Type declarations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>Type declarations appear in three different contexts:</p>
+<ul class='ruff'>
+<li>As the return value from a function</li>
+<li>As part of a parameter description in a function declaration</li>
+<li>As part of a field description in a struct</li>
+</ul>
+<p class='ruff'>At the script level, a type declaration consists of the type itself followed by zero or more annotations that provide further information about the type in that particular context. For example, a parameter may have the <code>out</code> annotation to indicate that it is an output parameter for the function. A pointer type declaration may have the <code>unsafe</code> annotation to indicate it is not to be checked for validity.</p>
+<p class='ruff'>The annotations that are valid in each context are described in the relevant sections below.</p>
+<h2 class='ruff'><a name='::Concepts-Data types'></a>Data types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>This section describes the various data types supported by the package and their relation to C types. At runtime, the <a href="cffi_cffi.html#::cffi::type info" title="::cffi::type info" class='ruff_cmd'>::cffi::type info</a>, <a href="cffi_cffi.html#::cffi::type size" title="::cffi::type size" class='ruff_cmd'>::cffi::type size</a> and <a href="cffi_cffi.html#::cffi::type count" title="::cffi::type count" class='ruff_cmd'>::cffi::type count</a> commands may be used to obtain information about a type.</p>
+<h3 class='ruff'><a name='::Concepts-The void type'></a>The void type<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>This corresponds to the C <code>void</code> type and is only permitted as the return type in a function prototype. Note that the C <code>void *</code> type is declared as a <a href="cffi_Concepts.html#::Concepts-Pointers" title="pointer" >pointer</a> type.</p>
+<h3 class='ruff'><a name='::Concepts-Numeric types'></a>Numeric types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The following numeric types are supported.</p>
+<table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>schar</code></td><td class='ruff_defitem'>C <code>signed char</code></td></tr>
+<tr><td class='ruff_defitem'><code>uchar</code></td><td class='ruff_defitem'>C <code>unsigned char</code></td></tr>
+<tr><td class='ruff_defitem'><code>short</code></td><td class='ruff_defitem'>C <code>signed short</code></td></tr>
+<tr><td class='ruff_defitem'><code>ushort</code></td><td class='ruff_defitem'>C <code>unsigned short</code></td></tr>
+<tr><td class='ruff_defitem'><code>int</code></td><td class='ruff_defitem'>C <code>signed int</code></td></tr>
+<tr><td class='ruff_defitem'><code>uint</code></td><td class='ruff_defitem'>C <code>unsigned int</code></td></tr>
+<tr><td class='ruff_defitem'><code>long</code></td><td class='ruff_defitem'>C <code>signed long</code></td></tr>
+<tr><td class='ruff_defitem'><code>ulong</code></td><td class='ruff_defitem'>C <code>unsigned long</code></td></tr>
+<tr><td class='ruff_defitem'><code>longlong</code></td><td class='ruff_defitem'>C <code>signed long long</code></td></tr>
+<tr><td class='ruff_defitem'><code>ulonglong</code></td><td class='ruff_defitem'>C <code>unsigned long long</code></td></tr>
+<tr><td class='ruff_defitem'><code>float</code></td><td class='ruff_defitem'>C <code>float</code></td></tr>
+<tr><td class='ruff_defitem'><code>double</code></td><td class='ruff_defitem'>C <code>double</code></td></tr>
+</table>
+<h3 class='ruff'><a name='::Concepts-Arrays'></a>Arrays<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Arrays are declared as</p>
+<pre class='ruff'>
+TYPE[N]
+</pre>
+<p class='ruff'>where <code>N</code> is a positive integer indicating the number of elements in an array of values of type <code>TYPE</code>. At the script level, arrays are represented as Tcl lists.</p>
+<h3 class='ruff'><a name='::Concepts-Pointers'></a>Pointers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Pointers are declared in function prototypes or <code>struct</code> fields in one of the following forms:</p>
+<pre class='ruff'>
+pointer
+pointer.TAG
+</pre>
+<p class='ruff'>The first is the equivalent of a <code>void*</code> C pointer. The second form associates the pointer type with a tag.</p>
+<h4 class='ruff'><a name='::Concepts-Pointer tags'></a>Pointer tags<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>A pointer tag is used to provide for some measure of type safety. Tags are associated with both pointer values and pointer types declared in function prototypes and <code>struct</code> fields. The tag attached to a pointer value must match the tag for the <code>struct</code> field it is assigned to or the function parameter it is passed as. Otherwise an error is raised.</p>
+<p class='ruff'>Note however that, although similar, pointer tags are orthogonal to the type system. Any tag may be associated with a pointer type or value, irrespective of the underlying C pointer type.</p>
+<p class='ruff'>Tags for pointer types are defined in the corresponding <code>struct</code> or function declarations. Pointer values are associated with the tags of the type through which they are created. For example, the pointer returned by a function declared as</p>
+<pre class='ruff'>
+function get_path pointer.PATH {}
+</pre>
+<p class='ruff'>will be tagged with <code>PATH</code>. It can then only be assigned to a <code>struct</code> field or passed as a parameter if the corresponding pointer type is also tagged as <code>PATH</code>.</p>
+<p class='ruff'>There are two exceptions to the above. A field or parameter declared as <code>pointer</code> (without a tag) or <code>pointer.void</code> reflects a C <code>void *</code> pointer and will accept pointers with any tag.</p>
+<h4 class='ruff'><a name='::Concepts-Pointer safety'></a>Pointer safety<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Pointer type checking via tags does not protect against errors related to invalid pointers, double frees etc. To provide some level of protection against these types of errors, pointers returned from functions, either as return values or through output parameters are by default registered in an internal table. These are referred to as <em>safe</em> pointers. Any pointer use is then checked for registration and an error raised if it is not found.</p>
+<p class='ruff'>Pointers that have been registered are unregistered when they are passed to a C function as an argument for a parameter that has been annotated with the <code>dispose</code> attribute.</p>
+<p class='ruff'>The following fragment illustrates safe pointers. The fragment assumes a wrapper object <code>crtl</code> for the C runtime library has already been created.</p>
+<pre class='ruff'>
+% crtl function malloc pointer {sz size_t}
+% crtl function free void {ptr {pointer dispose}}
+% set p [malloc 10]
+0x55dbb8b2ca10^void
+% free $p
+% free $p
+Pointer 0x55dbb8b2ca10^ is not registered.
+</pre>
+<p class='ruff'>The pointer returned by <code>malloc</code> is automatically registered. When the <code>free</code> function is invoked, its argument is checked for registration. Moreover, because the <code>free</code> function's <code>ptr</code> parameter has the <code>dispose</code> annotation, it is unregistered before the function is called. The second call to <code>free</code> therefore fails as desired.</p>
+<h5 class='ruff'>Reference counted pointers</h5><p class='ruff'>A safe pointer cannot be registered if it is already registered. However, some C API's return the same resource pointer multiple times while internally maintaining a reference count. Examples are <code>dlopen</code> on Linux or <code>LoadLibrary</code> and COM API's on Windows. Such pointers need to be declared with the <code>counted</code> attribute. This works similarly to the default safe pointers except that the same pointer value can be registered multiple times. Correspondingly, the pointer can be accessed until the same number of calls are made to a function that disposes of the pointer. The Linux example below illustrates this.</p>
+<pre class='ruff'>
+% cffi::dyncall::Library create crtl
+::crtl
+% crtl function dlopen {pointer counted} {path string flags int}
+% crtl function dlclose int {dlptr {pointer dispose}}
+% set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
+0x00007fb07ebb7500^
+% set dlptrB [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
+0x00007fb07ebb7500^
+% dlclose $dlptrA
+0
+% dlclose $dlptrB
+0
+% dlclose $dlptrA
+Pointer 0x00007fb07ebb7500^ is not registered.
+</pre>
+<h5 class='ruff'>Unsafe pointers</h5><p class='ruff'>For those situations where neither safe nor counted pointers are suitable, pointer declarations can be annotated as <code>unsafe</code>. Return values from functions and output parameters with this annotation will not be registered. Input parameters with this designation will not be checked for registration. Needless to say, the <code>unsafe</code> annotation should be used with care.</p>
+<h4 class='ruff'><a name='::Concepts-Memory operations'></a>Memory operations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Pointers are ofttimes returned by functions but more often than not the referenced memory has to be allocated and passed in to functions. Some type constructs like strings and structs hide this at the script level but there are times when direct access to the memory content addressed by pointers is desired.</p>
+<p class='ruff'>A set of commands grouped as the <code>memory</code> command ensemble provide such functionality. The commands <a href="cffi_cffi.html#::cffi::memory allocate" title="::cffi::memory allocate" class='ruff_cmd'>::cffi::memory allocate</a> and <a href="cffi_cffi.html#::cffi::memory free" title="::cffi::memory free" class='ruff_cmd'>::cffi::memory free</a> provide memory management facilities. Access to the content is available through <a href="cffi_cffi.html#::cffi::memory tobinary" title="::cffi::memory tobinary" class='ruff_cmd'>::cffi::memory tobinary</a> and <a href="cffi_cffi.html#::cffi::memory frombinary" title="::cffi::memory frombinary" class='ruff_cmd'>::cffi::memory frombinary</a> commands which convert to and from Tcl binary strings.</p>
+<h3 class='ruff'><a name='::Concepts-Strings'></a>Strings<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Strings in C are generally represented in memory as a sequence of null terminated bytes in some specific encoding. They may be declared either as a <code>char *</code> or as an array of <code>char</code> where the size of the array places a limit on the maximum length.</p>
+<p class='ruff'>At the script level, these can be declared in multiple ways:</p>
+<table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>As discussed in the previous section, this is a pointer to raw memory. To access the underlying string, the memory referenced by the pointer has to be read into a Tcl binary string with <a href="cffi_cffi.html#::cffi::memory tobinary" title="::cffi::memory tobinary" class='ruff_cmd'>::cffi::memory tobinary</a> and then decoded with the Tcl <code>encoding convertfrom</code> command.</td></tr>
+<tr><td class='ruff_defitem'><code>string.ENCODING</code></td><td class='ruff_defitem'>Values declared using this type are still pointers at the C level but are converted to and from Tcl strings implicitly at the C API interface itself using the specified encoding. If <code>.ENCODING</code> is left off, the system encoding is used.</td></tr>
+<tr><td class='ruff_defitem'><code>unistring</code></td><td class='ruff_defitem'>This is similar to <code>string.ENCODING</code> except the values are <code>Tcl_UniChar*</code> at the C level and the encoding is implicitly the one used by Tcl for the <code>Tcl_UniChar</code> data type.</td></tr>
+<tr><td class='ruff_defitem'><code>chars.ENCODING</code></td><td class='ruff_defitem'>The value is an array of characters at the C level. The type must always appear as an array, for example, <code>chars.utf-8[10]</code> and not as a scalar <code>chars.utf-8</code>. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding.</td></tr>
+<tr><td class='ruff_defitem'><code>unichars</code></td><td class='ruff_defitem'>The value is an array of <code>Tcl_UniChar</code> characters and follows the same rules as <code>chars</code> except that the encoding is always that used by Tcl for the <code>Tcl_UniChar</code> type.</td></tr>
+</table>
+<p class='ruff'>The choice of using <code>pointer</code>, <code>string</code> (and <code>unistring</code>), or <code>chars</code> (and <code>unichars</code>) depends on the C declaration and context as well as convenience. The <code>string</code> and <code>chars</code> types are both more convenient and safer to use.</p>
+<h3 class='ruff'><a name='::Concepts-Binary strings'></a>Binary strings<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The types <code>binary</code> or <code>bytes</code> are used to declare a sequence of bytes in memory. The <code>binary</code> type translates to a C <code>unsigned char *</code> type where the memory is treated as a Tcl binary string (byte array). Similarly, the <code>bytes</code> type is analogous to the <code>chars</code> type except it declares a fixed size array of bytes, not characters. These types are converted between Tcl values and C values with the <code>Tcl_GetByteArrayFromObj</code> and <code>Tcl_NewByteArrayFromObj</code> functions.</p>
+<h3 class='ruff'><a name='::Concepts-Structs'></a>Structs<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>C structs are defined through the <a href="cffi_cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> class. This encapsulates the layout of the struct and provides various methods for manipulation. A structure layout is a list of alternating field name and type declarations. An example of a definition would be</p>
+<pre class='ruff'>
+::cffi::Struct create Point {
+    x int
+    y int
+}
+</pre>
+<p class='ruff'>Once defined, structs can be referenced in function prototypes and in other structs as <code>struct.STRUCTNAME</code>, for example <code>struct.Point</code>. Note that the struct name is the name of the object without the any leading <code>::</code> global namespace prefix.</p>
+<p class='ruff'>C struct values are generally represented as Tcl dictionaries with the struct field names as dictionary keys. C function parameter declarations that take pointers to structs can be declared as <code>struct.STRUCTNAME byref</code>, for example <code>struct.Point byref</code>. The <a href="cffi_Concepts.html#::Concepts-Parameters" title="byref" >byref</a> is required as structs can currently only be passed by reference. The corresponding input argument for the parameter when the function is called should be the dictionary value. Conversely, output parameter results are returned as a dictionary of the same form.</p>
+<p class='ruff'>Alternatively, structs can also be manipulated using raw pointers and explicit transforms to native C structures in memory. For example,</p>
+<pre class='ruff'>
+% set pPoint [Point allocate]
+0x00000211cb924de0^Point
+% Point tonative
+wrong # args: should be &quot;Point tonative POINTER INITIALIZER ?INDEX?&quot;
+% Point tonative $pPoint {x 0 y 1}
+% Point fromnative $pPoint
+x 0 y 1
+</pre>
+<p class='ruff'>See <a href="cffi_cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> for other methods related to allocation, conversion between Tcl binary strings and other utilities.</p>
+<h2 class='ruff'><a name='::Concepts-Type aliases'></a>Type aliases<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>Type aliases provide a convenient way to bind data types and one or more annotations. They can then be used in type declarations in the same manner as the built-in types.</p>
+<p class='ruff'>In addition to avoiding repetition, type aliases facilitate abstraction. For example, many Windows API's have an output parameter that is typed as a fixed size buffer of length MAX_PATH characters. A type alias <code>OUTPUT_PATH</code> defined as</p>
+<pre class='ruff'>
+cffi::alias define OUTPUT_PATH {unichar[512] out}
+</pre>
+<p class='ruff'>can be used in function and struct field declarations.</p>
+<p class='ruff'>Similarly, type aliases can be used to hide platform differences. For example, in the following function prototype,</p>
+<pre class='ruff'>
+kernel stdcall HeapCreate pointer.HEAP {opts uint initSize SIZE_T maxSize SIZE_T}
+</pre>
+<p class='ruff'><code>SIZE_T</code> is an alias that resolves to either <code>uint</code> or <code>ulonglong</code> depending on whether the platform is 32- or 64-bit.</p>
+<p class='ruff'>Various points to note about type aliases:</p>
+<ul class='ruff'>
+<li>A type alias must begin with an alphabetic character, an underscore or a colon. Subsequent characters may be one of these or a digit.</li>
+<li>Type aliases can be nested, i.e. one alias may be defined in terms of another.</li>
+<li>When a type alias is used in a declaration, additional annotations may be specified. These are merged with those included in the type alias definition.</li>
+</ul>
+<p class='ruff'>For convenience, the package provides the <a href="cffi_cffi.html#::cffi::alias load" title="::cffi::alias load" class='ruff_cmd'>::cffi::alias load</a> command which defines some standard C type aliases like <code>size_t</code> as well as some platform-specific type aliases such as <code>HANDLE</code> on Windows.</p>
+<p class='ruff'>Currently defined type aliases can be listed with the <a href="cffi_cffi.html#::cffi::alias list" title="::cffi::alias list" class='ruff_cmd'>::cffi::alias list</a> command and removed with <a href="cffi_cffi.html#::cffi::alias delete" title="::cffi::alias delete" class='ruff_cmd'>::cffi::alias delete</a>.</p>
+<h2 class='ruff'><a name='::Concepts-Functions'></a>Functions<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>To invoke a function in a DLL or shared library, the library must first be loaded through the creation of a <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a> wrapper object. The prototype for each function of interest must then be defined through any appropriate method of that object such as <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> or <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="::cffi::dyncall::Library.stdcall" class='ruff_cmd'>::cffi::dyncall::Library.stdcall</a>. This also creates a Tcl command which can then be used to invoke the function.</p>
+<h3 class='ruff'><a name='::Concepts-Calling conventions'></a>Calling conventions<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The 32-bit Windows platform uses two common calling conventions for functions: the default C calling convention and the stdcall calling convention which is used by most system libraries. These differ in terms of parameter and stack management and it is crucial that the correct convention be used when defining the corresponding FFI.</p>
+<ul class='ruff'>
+<li>The <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> method should be used for declaring C functions that use the default C calling convention.</li>
+<li>The <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="::cffi::dyncall::Library.stdcall" class='ruff_cmd'>::cffi::dyncall::Library.stdcall</a> method should be used for declaring C functions that use the stdcall calling convention.</li>
+</ul>
+<p class='ruff'>Other than use of the two separate methods for definition, there is no difference in terms of the function prototype used for definition or the method of invocation.</p>
+<p class='ruff'>Note that this difference in calling convention is only applicable to 32-bit Windows. For other platforms, including 64-bit Windows, <code>stdcall</code> behaves in identical fashion to <code>function</code>.</p>
+<h3 class='ruff'><a name='::Concepts-Function prototypes'></a>Function prototypes<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>A function prototype in C defines the types of the parameters and return value from the function. A function prototype as expected by the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> and related methods is similar but permits the type declarations to have annotations that control behaviour and conversion between Tcl and C values.</p>
+<p class='ruff'>A function prototype defined with the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> method takes the form</p>
+<pre class='ruff'>
+DLLOBJ function FNNAME RETTYPE PARAMS
+</pre>
+<p class='ruff'>where <code>FNNAME</code> is the name of the function (and an optional Tcl alias), <code>RETTYPE</code> is the function return type declaration and <code>PARAMS</code> is a list of alternating parameter names and type declarations.</p>
+<h4 class='ruff'><a name='::Concepts-Return types'></a>Return types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>A function return declaration is a type or type alias followed by zero or more annotations. The resolved type must not be a struct or an array including implicit array types <code>string</code>, <code>unistring</code>, <code>chars</code>, <code>unichars</code>, <code>binary</code> and <code>bytes</code>. Note pointers to these are permitted.</p>
+<p class='ruff'>The following annotations may be follow the type in the declaration.</p>
+<ul class='ruff'>
+<li>For integer types, the error checking annotations <code>zero</code>, <code>nonzero</code>, <code>nonnegative</code>, <code>positive</code> as well as the error reporting annotations <code>errno</code>, <code>lasterror</code> and <code>winerror</code> may be specified. See <a href="cffi_Concepts.html#::Concepts-Error handling" title="Error handling" >Error handling</a> for details on these.</li>
+<li>For pointer type, <code>nonzero</code>, <code>errno</code> and <code>lasterror</code> annotations may be specified as well as the <code>unsafe</code> and <code>counted</code> annotations (but not <code>dispose</code>). See <a href="cffi_Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a> for the meaning of these annotations.</li>
+</ul>
+<h4 class='ruff'><a name='::Concepts-Parameters'></a>Parameters<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>The <code>PARAMS</code> argument in a function prototype is a list of alternating parameter name and parameter type declaration elements.</p>
+<p class='ruff'>A parameter type declaration may begin with any supported type except <code>void</code>. Subsequent annotations that are valid for parameters are those related to pointers and those related to argument passing.</p>
+<p class='ruff'>Annotations in the first category are <code>unsafe</code>, <code>counted</code> and <code>dispose</code>. See <a href="cffi_Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a> for details.</p>
+<p class='ruff'>The remaining deal with how arguments are passed to the C function. C functions are passed arguments either by value or by reference (i.e. as a pointer to a value). Moreover, parameters may be used to pass values to the function (input parameters), retrieve values (output parameters) or both. Correspondingly, a parameter type may be annotated with <code>in</code> (default), <code>out</code> and <code>inout</code>.</p>
+<p class='ruff'>In the case of <code>in</code> parameters, at the time of calling the function the argument must be specified as a Tcl value. These are then passed in to the C function by value if a scalar or by reference if an array, one of the string variants or a struct. Scalars can be forced to be passed by reference by annotating the parameter with <code>byref</code>.</p>
+<p class='ruff'>In the case of <code>out</code> or <code>inout</code> parameters, the argument to the function must be specified as the name of a variable in the caller's context. For <code>inout</code> parameters, the variable must exist and contain a valid value for the parameter type. For <code>out</code> parameters, the variable need not exist. In both cases, on return from the function the output value stored in the parameter by the function will be stored in the variable. Parameters annotated with <code>out</code> and <code>inout</code> are always passed by reference for all types and use of <code>byref</code> is redundant.</p>
+<p class='ruff'>The case of <code>out</code> and <code>inout</code> parameters of type <code>string</code>, <code>unistring</code> and <code>binary</code> need special treatment. The package needs to know how much memory is to be allocated for the function to store the output value. Therefore, the corresponding argument has to be passed as a list of two elements: the first is the name of a variable, as above, and the second is the number of bytes of storage to allocate in the case of <code>string</code> and <code>binary</code>, and number of Tcl_UniChar characters in the case of <code>unistring</code>.</p>
+<h4 class='ruff'><a name='::Concepts-Error handling'></a>Error handling<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>C functions generally indicate errors through their return value. Details of the error are either in the return value itself or intended to be retrieved by some other mechanism.</p>
+<p class='ruff'>One way to deal with this at the script level is to simply check the return value (generally an integer or pointer) and take appropriate action. This has two downsides. The first is that error conditions in Tcl are almost always signalled by raising an exception rather than through a return status mechanism. The second, perhaps more important, downside is that the detail behind the error, stored in <code>errno</code> or available via <code>GetLastError()</code> on Windows, is often lost by the time the Tcl interpreter returns to the script level.</p>
+<p class='ruff'>Two additional sets of type annotations are provided to solve these issues. The first set of annotations is used to define the error check conditions to be applied to function return values. The second set is used to specify how the error detail is to be retrieved.</p>
+<p class='ruff'>The annotations for error checking are:</p>
+<table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>zero</code></td><td class='ruff_defitem'>The value must be zero.</td></tr>
+<tr><td class='ruff_defitem'><code>nonzero</code></td><td class='ruff_defitem'>The value must be non-zero.</td></tr>
+<tr><td class='ruff_defitem'><code>nonnegative</code></td><td class='ruff_defitem'>The value must be zero or greater.</td></tr>
+<tr><td class='ruff_defitem'><code>positive</code></td><td class='ruff_defitem'>The value must be greater than 0.</td></tr>
+</table>
+<p class='ruff'>These annotations may only be used with integer types except <code>nonzero</code> which can also be used for pointer types.</p>
+<p class='ruff'>At most one of the above annotations can be attached to a return type. The function value is then checked whether the corresponding condition is met. If not, an error exception is raised.</p>
+<p class='ruff'>However, in the above situation the error message generated is very generic and does not provide detail about why the error occured. The following error retrieval annotations specify how detail about the error is to be obtained.</p>
+<table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>errno</code></td><td class='ruff_defitem'>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function.</td></tr>
+<tr><td class='ruff_defitem'><code>lasterror</code></td><td class='ruff_defitem'>(Windows only). The error code and message is retrieved using the Windows <code>GetLastError</code> and <code>FormatMessage</code> functions.</td></tr>
+<tr><td class='ruff_defitem'><code>winerror</code></td><td class='ruff_defitem'>(Windows only). The numeric return value is itself the Windows error code and the error message is generated with <code>FormatMessage</code>. This annotation can only be used with the <code>zero</code> error checking annotation.</td></tr>
+</table>
+<p class='ruff'>Any of these annotations can be used with the integer types while the <code>errno</code> and <code>lasterror</code> can be used with pointer types as well.</p>
+<p class='ruff'>At most one of the above error detail retrieval annotations may be specified for a type.</p>
+</div></div><div class='yui-b navbox' style='position: sticky; top: 0;'><h1><a style='padding-top:2px;' href='cffi.html'>Start page</a></h1>
+<h1><a href='cffi_docindex.html' accesskey='i'>Index</a></h1>
+<hr>
+<h1><a style='color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi_Concepts.html'>Concepts</a></h1>
+<h1><a href='cffi_cffi.html'>cffi</a></h1>
+<h1><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
+<hr><h1><a href='#Concepts'>Concepts</a></h1><h2><a href='#::Concepts-Type declarations'>Type declarations</a></h2><h2><a href='#::Concepts-Data types'>Data types</a></h2><h3><a href='#::Concepts-The void type'>The void type</a></h3><h3><a href='#::Concepts-Numeric types'>Numeric types</a></h3><h3><a href='#::Concepts-Arrays'>Arrays</a></h3><h3><a href='#::Concepts-Pointers'>Pointers</a></h3><h4><a href='#::Concepts-Pointer tags'>Pointer tags</a></h4><h4><a href='#::Concepts-Pointer safety'>Pointer safety</a></h4><h4><a href='#::Concepts-Memory operations'>Memory operations</a></h4><h3><a href='#::Concepts-Strings'>Strings</a></h3><h3><a href='#::Concepts-Binary strings'>Binary strings</a></h3><h3><a href='#::Concepts-Structs'>Structs</a></h3><h2><a href='#::Concepts-Type aliases'>Type aliases</a></h2><h2><a href='#::Concepts-Functions'>Functions</a></h2><h3><a href='#::Concepts-Calling conventions'>Calling conventions</a></h3><h3><a href='#::Concepts-Function prototypes'>Function prototypes</a></h3><h4><a href='#::Concepts-Return types'>Return types</a></h4><h4><a href='#::Concepts-Parameters'>Parameters</a></h4><h4><a href='#::Concepts-Error handling'>Error handling</a></h4></div></div><div id='ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div></div>
+</div></body></html>
