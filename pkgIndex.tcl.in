@@ -1,9 +1,19 @@
 #
-# Tcl package index file
+# Tcl package index file - generated from pkgIndex.tcl.in
 #
 package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
     [list apply [list {dir} {
-        namespace eval @PACKAGE_NAME@ {variable dll_path}
-        set @PACKAGE_NAME@::dll_path [file join $dir @PKG_LIB_FILE@]
+        namespace eval @PACKAGE_NAME@ { variable dll_path }
+        # Next line is generated from template line
+        #  set arch_specific_dll [file join $dir "@MACHINE@" "@PKG_LIB_FILE@"]
+        # Intent is to permit multiplatform directories, at least on Windows
+        # On other platforms MACHINE will not be defined.
+        set arch_specific_dll [file join $dir "@MACHINE@" "@PKG_LIB_FILE@"]
+        if {[file exists $arch_specific_dll]} {
+            set @PACKAGE_NAME@::dll_path $arch_specific_dll
+        } else {
+            set @PACKAGE_NAME@::dll_path [file join $dir "@PKG_LIB_FILE@"]
+        }
         load $@PACKAGE_NAME@::dll_path
     }] $dir]
+

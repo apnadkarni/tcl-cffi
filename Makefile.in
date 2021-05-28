@@ -118,6 +118,9 @@ TCL_SRC_DIR	= @TCL_SRC_DIR@
 # Not used, but retained for reference of what libs Tcl required
 #TCL_LIBS	= @TCL_LIBS@
 
+# Non-standard - added so DLL can go into arch-specific subdir (Windows-only)
+MACHINE         = @MACHINE@
+
 #========================================================================
 # TCLLIBPATH seeds the auto_path in Tcl's init.tcl so we can test our
 # package without installing.  The other environment variables allow us
@@ -391,14 +394,19 @@ install-lib-binaries: binaries
 	@$(INSTALL_DATA_DIR) "$(DESTDIR)$(pkglibdir)"
 	@list='$(lib_BINARIES)'; for p in $$list; do \
 	  if test -f $$p; then \
-	    echo " $(INSTALL_LIBRARY) $$p $(DESTDIR)$(pkglibdir)/$$p"; \
-	    $(INSTALL_LIBRARY) $$p "$(DESTDIR)$(pkglibdir)/$$p"; \
 	    ext=`echo $$p|sed -e "s/.*\.//"`; \
+	    if test "x$(MACHINE)" = "x"; then \
+	        todir="$(DESTDIR)$(pkglibdir)"; \
+	    else \
+		todir="$(DESTDIR)$(pkglibdir)/$(MACHINE)"; \
+	    fi; \
+	    echo " $(INSTALL_LIBRARY) $$p $$todir/$$p"; \
+	    $(INSTALL_LIBRARY) $$p "$$todir/$$p"; \
 	    if test "x$$ext" = "xdll"; then \
 		lib=`basename $$p|sed -e 's/.[^.]*$$//'`.lib; \
 		if test -f $$lib; then \
-		    echo " $(INSTALL_DATA) $$lib $(DESTDIR)$(pkglibdir)/$$lib"; \
-	            $(INSTALL_DATA) $$lib "$(DESTDIR)$(pkglibdir)/$$lib"; \
+		    echo " $(INSTALL_DATA) $$lib $$todir/$$lib"; \
+	            $(INSTALL_DATA) $$lib "$$todir/$$lib"; \
 		fi; \
 	    fi; \
 	  fi; \

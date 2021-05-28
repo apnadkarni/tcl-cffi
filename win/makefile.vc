@@ -64,15 +64,24 @@ PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS
 # Define the standard targets
 !include "$(_RULESDIR)\targets.vc"
 
-# We must define a pkgindex target that will create a pkgIndex.tcl
-# file in the $(OUT_DIR) directory. We can just redirect to the
-# default-pkgindex target for our sample extension.
-pkgindex: default-pkgindex-tea
+# We cannot just redirect to the default-pkgindex-tea target for our extension
+# because we want to replace MACHINE as well.
+pkgindex: $(ROOT)\pkgIndex.tcl.in
+	@if exist $(ROOT)\pkgIndex.tcl.in nmakehlp -s << $(ROOT)\pkgIndex.tcl.in > $(OUT_DIR)\pkgIndex.tcl
+@PACKAGE_VERSION@    $(DOTVERSION)
+@PACKAGE_NAME@       $(PRJ_PACKAGE_TCLNAME)
+@PACKAGE_TCLNAME@    $(PRJ_PACKAGE_TCLNAME)
+@PKG_LIB_FILE@       $(PRJLIBNAME)
+@MACHINE@            $(MACHINE)
+<<
 
 # The default install target only installs binaries and scripts so add
 # an additional target for our documentation. Note this *adds* a target
 # since no commands are listed after it. The original targets for
 # install (from targets.vc) will remain.
-install: default-install-docs-html
+install: $(PRJLIB) default-install-docs-html
+	@echo Installing binaries to '$(LIB_INSTALL_DIR)\$(MACHINE)'
+	@if not exist "$(LIB_INSTALL_DIR)\$(MACHINE)" mkdir "$(LIB_INSTALL_DIR)\$(MACHINE)"
+	@$(CPY) $(PRJLIB) "$(LIB_INSTALL_DIR)\$(MACHINE)" >NUL
 
 $(PRJ_OBJS): $(HEADERS)
