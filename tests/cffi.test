@@ -10,7 +10,7 @@ source [file join [file dirname [info script]] common.tcl]
 namespace eval ${NS}::test {
     test version-0 {Version check} -body {
         uplevel #0 package require cffi
-    } -result 1.0a2
+    } -result 1.0a3
 }
 
 ::tcltest::cleanupTests

@@ -31,7 +31,7 @@ The `cffi` package can then be built like any standard TEA based Tcl extension.
 ```
 $ mkdir build-ubuntu-x64
 $ cd build-ubuntu-x64
-$ LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include ../configure --enable-64bit
+$ ../configure --enable-64bit LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include 
 $ make
 $ make install
 ```
@@ -39,11 +39,17 @@ $ make install
 Note the `LDFLAGS` and `CPPFLAGS` environment variables have to be specified if
 `dyncall` libraries and headers are not in a standard system directory.
 
+The TEA build system using gcc does not strip symbols so you may want to
+optionally strip the built library if desired. You can either do this using
+`strip` after building or include the `-s` flag in `LDFLAGS` on the `configure`
+commands above.
+
+
 ## Building on Windows
 
-The `dyncall` documentation describes multiple ways to build on Windows. Just two
-of these are illustrated here. Note that pre-built binaries are also available from
-https://sourceforge.net/projects/magicsplat/files/cffi.
+The `dyncall` documentation describes multiple ways to build on Windows. Just
+two of these are illustrated here. Note that pre-built binaries are also
+available from https://sourceforge.net/projects/magicsplat/files/cffi.
 
 ### Building with Visual C++
 
@@ -106,7 +112,7 @@ Then build the `cffi` package. From the `cffi` top level directory,
 ```
 $ mkdir build-mingw-x64
 $ cd build-mingw-x64
-$ LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include ../configure --enable-64bit --with-tcl=/d/tcl/mingw-8610/x64/lib
+$ ../configure --enable-64bit --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include 
 $ make
 $ make install
 ```
@@ -115,3 +121,8 @@ Note that the `--with-tcl` option has to be specified pointing to a Tcl
 installation that was also built with MinGW-w64. Without this, the build system
 will use the `tclsh` that comes with the `msys2` installation that comes with
 MinGW-w64. That is **not** what you want.
+
+The TEA build system using gcc does not strip symbols so you may want to optionally
+strip the built library if desired. On Windows, this will shrink the binary by
+more than a factor of three. You can either do this using `strip` after building
+or include the `-s` flag in `LDFLAGS` on the `configure` commands above.

@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([cffi],[1.0a2])
+AC_INIT([cffi],[1.0a3])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -71,13 +71,13 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-DYNCALL_LIBS="-ldynload_s -ldyncall_s -ldyncallback_s"
+DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiTypes.c \
                      generic/memlifo.c \
                      generic/tclCffiTest.c])
 TEA_ADD_HEADERS([])
-TEA_ADD_INCLUDES([-I${srcdir}/generic}])
+TEA_ADD_INCLUDES([-I${srcdir}/generic])
 TEA_ADD_LIBS([${DYNCALL_LIBS}])
 TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])

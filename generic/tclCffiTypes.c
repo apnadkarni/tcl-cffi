@@ -1490,13 +1490,13 @@ CffiReturnPrepare(CffiCallVmCtx *vmCtxP,
                   CffiValue *valueP)
 {
     /* Function prototype parser should already have disallowed these */
-    CFFI_ASSERT(typeAttrP->baseType != CFFI_K_TYPE_STRUCT
-                 && typeAttrP->baseType != CFFI_K_TYPE_ASTRING
-                 && typeAttrP->baseType != CFFI_K_TYPE_UNISTRING
-                 && typeAttrP->baseType != CFFI_K_TYPE_CHAR_ARRAY
-                 && typeAttrP->baseType != CFFI_K_TYPE_UNICHAR_ARRAY
-                 && typeAttrP->baseType != CFFI_K_TYPE_BYTE_ARRAY
-                 && typeAttrP->baseType != CFFI_K_TYPE_BINARY);
+    CFFI_ASSERT(typeAttrP->dataType.baseType != CFFI_K_TYPE_STRUCT
+                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_ASTRING
+                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_UNISTRING
+                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_CHAR_ARRAY
+                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_UNICHAR_ARRAY
+                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_BYTE_ARRAY
+                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_BINARY);
 
     if (typeAttrP->dataType.count) {
         return ErrorInvalidValue(vmCtxP->ipCtxP->interp, NULL, "Arrays not supported.");
