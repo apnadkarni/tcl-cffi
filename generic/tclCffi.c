@@ -2091,36 +2091,6 @@ CffiSandboxObjCmd(ClientData cdata,
 {
     unsigned long long ull;
 
-#ifdef _POSIX_C_SOURCE
-
-#ifdef _GNU_SOURCE
-
-#if _GNU_SOURCE
-#error _POSIX_C_SOURCE _GNU_SOURCE=1
-#else
-#error _POSIX_C_SOURCE _GNU_SOURCE=0
-#endif
-
-#else /* _GNU_SOURCE not defined */
-#error _POSIC_C_SOURCE
-#endif 
-
-#else /* _POSIX_C_SOURCE undefined */
-
-#ifdef _GNU_SOURCE
-
-#if _GNU_SOURCE
-#error _GNU_SOURCE=1
-#else
-#error _GNU_SOURCE=0
-#endif
-
-#else
-#error No defines
-#endif
-
-#endif
-
     if (Tclh_ObjToULongLong(ip, objv[1], &ull) != TCL_OK)
         return TCL_ERROR;
     else {
