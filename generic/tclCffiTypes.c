@@ -3187,16 +3187,23 @@ CffiReportRequirementError(Tcl_Interp *ip,
     if (flags & CFFI_F_ATTR_ERRNO) {
         char buf[256];
         char *bufP;
+        buf[0] = 0;             /* Safety check against misconfig */
 #ifdef _WIN32
         strerror_s(buf, sizeof(buf) / sizeof(buf[0]), (int) sysError);
         bufP = buf;
 #else
-#if (_POSIX_C_SOURCE >= 200112L) && ! _GNU_SOURCE
+        /*
+         * This is tricky. See manpage for gcc/linux for the strerror_r
+         * to be selected. BUT Apple for example does not follow the same
+         * feature test macro conventions.
+         */
+#if _GNU_SOURCE || (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE < 200112L)
+        bufP = strerror_r((int) sysError, buf, sizeof(buf) / sizeof(buf[0]));
+        /* Returned bufP may or may not be buf! */
+#else
+        /* XSI/POSIX standard version */
         strerror_r((int) sysError, buf, sizeof(buf) / sizeof(buf[0]));
         bufP = buf;
-#else
-        bufP = strerror_r((int) sysError, buf, sizeof(buf) / sizeof(buf[0]));
-        /* bufP may or may not be buf! */
 #endif
 #endif
         Tcl_SetResult(ip, bufP, TCL_VOLATILE);

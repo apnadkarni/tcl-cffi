@@ -727,11 +727,14 @@ CffiDyncallPathCmd(Tcl_Interp *ip,
     char buf[1024 + 1]; /* TBD - what size ? */
 
     len = dlGetLibraryPath(ctxP->dlP, buf, sizeof(buf) / sizeof(buf[0]));
+    /*
+     * Workarounds for bugs in dyncall 1.2 on some platforms when dcLoad was
+     * called with null argument.
+     */
     if (len <= 0)
-        return Tclh_ErrorGeneric(
-            ip, "NOT_FOUND", "Could not get shared library path.");
+        return TCL_OK; /* Return empty string */
     if (buf[len-1] == '\0')
-        --len; /* Workaround for dlGetLibaryPath on some platforms */
+        --len;
     Tcl_SetObjResult(ip, Tcl_NewStringObj(buf, len));
     return TCL_OK;
 }
@@ -895,12 +898,14 @@ CffiSymbolsIndexCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], DLSyms *dls
      * For at least one executable format (PE), dyncall 1.2 does not check
      * index range so do so ourselves.
      */
-    if (ival < 0 || ival >= dlSymsCount(dlsP) ||
-        (symName = dlSymsName(dlsP, ival)) == NULL) {
+    if (ival < 0 || ival >= dlSymsCount(dlsP)) {
         return Tclh_ErrorNotFound(
             ip, "Symbol index", objv[2], "No symbol at specified index.");
     }
-    Tcl_SetResult(ip, (char *)symName, TCL_VOLATILE);
+    symName = dlSymsName(dlsP, ival);
+    if (symName != NULL) {
+        Tcl_SetResult(ip, (char *)symName, TCL_VOLATILE);
+    }
     return TCL_OK;
 }
 
