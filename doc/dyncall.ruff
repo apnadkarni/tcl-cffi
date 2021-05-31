@@ -46,6 +46,8 @@ oo::class create ${NS}::dyncall::Symbols {
     method index {index} {
         # Returns the name of the symbol at a specified index.
         #  index - index into symbol table
+        # The returned value may be an empty string if there is an entry
+        # in the symbol table at that index but no name.
     }
     method ataddress {addr} {
         # Returns the name of the symbol at a specified address.

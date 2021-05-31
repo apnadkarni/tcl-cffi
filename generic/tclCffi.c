@@ -898,12 +898,14 @@ CffiSymbolsIndexCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], DLSyms *dls
      * For at least one executable format (PE), dyncall 1.2 does not check
      * index range so do so ourselves.
      */
-    if (ival < 0 || ival >= dlSymsCount(dlsP) ||
-        (symName = dlSymsName(dlsP, ival)) == NULL) {
+    if (ival < 0 || ival >= dlSymsCount(dlsP)) {
         return Tclh_ErrorNotFound(
             ip, "Symbol index", objv[2], "No symbol at specified index.");
     }
-    Tcl_SetResult(ip, (char *)symName, TCL_VOLATILE);
+    symName = dlSymsName(dlsP, ival);
+    if (symName != NULL) {
+        Tcl_SetResult(ip, (char *)symName, TCL_VOLATILE);
+    }
     return TCL_OK;
 }
 
