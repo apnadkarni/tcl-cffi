@@ -14,16 +14,10 @@ jobs:
 
     - name: Install Tcl
       run: |
-        echo $GITHUB_WORKSPACE
-        echo ~
-        pwd
         sudo apt-get install -y tcl8.6-dev
 
     - name: Install dyncall
       run: |
-        echo $GITHUB_WORKSPACE
-        echo ~
-        pwd
         wget https://dyncall.org/r1.2/dyncall-1.2.tar.gz
         tar xf dyncall-1.2.tar.gz
         cd dyncall-1.2
@@ -35,9 +29,6 @@ jobs:
 
     - name: Configure
       run: |
-        echo $GITHUB_WORKSPACE
-        echo ~
-        pwd
         mkdir build
         cd build
         ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include
@@ -46,7 +37,5 @@ jobs:
       run: |
         cd build
         make
+        make test
 
-    - name: Test
-      working-directory: tcl-cffi/build
-      run: make test
