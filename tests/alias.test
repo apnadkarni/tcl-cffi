@@ -189,7 +189,7 @@ namespace eval cffi::test {
 
     ###
     # alias load
-    # 
+    #
     testnumargs alias-load "cffi::alias load" "ALIASSET"
     test alias-load-0 "alias load" -setup {
         cffi::alias delete *
@@ -216,7 +216,7 @@ namespace eval cffi::test {
     } -constraints !win -body {
         cffi::alias load posix
         lsort [cffi::alias list]
-    } -result "blkcnt_t blksize_t clock_t clockid_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t"
+    } -result "blkcnt_t blksize_t clock_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t"
 
     test alias-load-error-0 "alias load - unknown set" -body {
         cffi::alias load xx

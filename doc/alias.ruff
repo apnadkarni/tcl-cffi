@@ -44,8 +44,8 @@ namespace eval ${NS}::alias {
         # or `posix` (platform dependent).
         #
         # The `C` predefined alias set includes
-        # `int8_t` `uint8_t` `int16_t` `uint16_t` `int32_t` 
-        #   `uint32_t` `int64_t` `uint64_t` `size_t` 
+        # `int8_t` `uint8_t` `int16_t` `uint16_t` `int32_t`
+        #   `uint32_t` `int64_t` `uint64_t` `size_t`
         #
         # The `win32` predefined alias set includes `BOOL` `BOOLEAN` `BYTE`
         # `CHAR` `DWORD` `DWORDLONG` `DWORD_PTR` `HALF_PTR` `HANDLE` `INT`
@@ -54,11 +54,12 @@ namespace eval ${NS}::alias {
         # `UINT_PTR` `ULONG` `ULONGLONG` `ULONG_PTR` `USHORT` `WORD` `WPARAM`
         #
         # The `posix` alias set is platform dependent. In POSIX compliant
-        # environments, it includes `blkcnt_t` `blksize_t` `clock_t` `clockid_t`
+        # environments, it includes `blkcnt_t` `blksize_t` `clock_t`
         # `dev_t` `fsblkcnt_t` `fsfilcnt_t` `gid_t` `id_t` `ino_t` `key_t`
         # `mode_t` `nlink_t` `off_t` `pid_t` `size_t` `ssize_t` `suseconds_t`
         # `time_t` `uid_t`. On Windows, it only includes `dev_t` `ino_t` `off_t`
         # `time_t`.
+        #
     }
     namespace export *
     namespace ensemble create

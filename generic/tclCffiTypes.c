@@ -3541,7 +3541,10 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         ADDINTTYPE(blkcnt_t);
         ADDINTTYPE(blksize_t);
         ADDINTTYPE(clock_t);
+#ifdef NOTYET
+        /* MacOS Catalina does not define this. Should we keep it in? */
         ADDINTTYPE(clockid_t);
+#endif
         ADDINTTYPE(dev_t);
         ADDINTTYPE(fsblkcnt_t);
         ADDINTTYPE(fsfilcnt_t);
