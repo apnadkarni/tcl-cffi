@@ -30,7 +30,7 @@ jobs:
         cd dyncall-1.2
         mkdir build
         cd build
-        ../configure --prefix=~/tcl-cffi/external-libs/ubuntu/x64
+        ../configure --prefix=$GITHUB_WORKSPACE/external-libs/ubuntu/x64
         make
         make install
 
@@ -41,7 +41,7 @@ jobs:
         pwd
         mkdir build
         cd build
-#        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit LDFLAGS=-L~/external-libs/ubuntu/x64/lib CPPFLAGS=-I~/external-libs/ubuntu/x64/include
+#        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit LDFLAGS=-L$GITHUB_WORKSPAGE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include
 
     - name: Make
       run: |
