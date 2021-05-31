@@ -727,11 +727,14 @@ CffiDyncallPathCmd(Tcl_Interp *ip,
     char buf[1024 + 1]; /* TBD - what size ? */
 
     len = dlGetLibraryPath(ctxP->dlP, buf, sizeof(buf) / sizeof(buf[0]));
+    /*
+     * Workarounds for bugs in dyncall 1.2 on some platforms when dcLoad was
+     * called with null argument.
+     */
     if (len <= 0)
-        return Tclh_ErrorGeneric(
-            ip, "NOT_FOUND", "Could not get shared library path.");
+        return TCL_OK; /* Return empty string */
     if (buf[len-1] == '\0')
-        --len; /* Workaround for dlGetLibaryPath on some platforms */
+        --len;
     Tcl_SetObjResult(ip, Tcl_NewStringObj(buf, len));
     return TCL_OK;
 }
