@@ -1,0 +1,41 @@
+name: mac
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+
+    - name: Checkout tcl-cffi  
+      uses: actions/checkout@v2
+
+    - name: Install Tcl
+      run: |
+        brew update
+        brew install tcl-tk || true
+
+    - name: Install dyncall
+      run: |
+        wget https://dyncall.org/r1.2/dyncall-1.2.tar.gz
+        tar xf dyncall-1.2.tar.gz
+        cd dyncall-1.2
+        mkdir build
+        cd build
+        ../configure --prefix=$GITHUB_WORKSPACE/external-libs/macos
+        make
+        make install
+
+    - name: Configure
+      run: |
+        mkdir build
+        cd build
+        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include
+
+    - name: Make
+      run: |
+        cd build
+        make
+        make test
