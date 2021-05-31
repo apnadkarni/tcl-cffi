@@ -1,10 +1,8 @@
 name: C/C++ CI
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
+    branches: [ master ]
 
 jobs:
   build:
@@ -13,11 +11,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: configure
-      run: ./configure
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y tcl8.6-dev
+    - name: Configure
+      run: ./configure --with-tcl=/usr/lib/tcl8.6
     - name: make
       run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    - name: Test
+      run: make test
