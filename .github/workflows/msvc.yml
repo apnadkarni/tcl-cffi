@@ -45,7 +45,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: C:/dyncall/msvc/x64
-        key: ${{ runner.os }}-dyncall
+        key: ${{ runner.os }}-dyncall-msvc-x64
 
     - name: Install dyncall
       if: steps.dyncall-msvc-x64-cache.outputs.cache-hit != 'true'
@@ -58,7 +58,7 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\x64 -G"NMake Makefiles" ..
         cd ..
         cmake --build build-msvc-x64 --config Release
-        cmake --build build-msvc-x64 --config Release install
+        cmake --build build-msvc-x64 --config Release --target install
 
     - name: Make
       run: |
