@@ -39,8 +39,8 @@ jobs:
 
     - name: Build Tcl
       if: steps.tcl-cache.outputs.cache-hit != 'true'
-      working-directory: win
       run: |
+        cd win
         mkdir build
         cd build
         ../configure --enable-64bit --prefix=C:/tcl || (cat config.log && exit 1)
