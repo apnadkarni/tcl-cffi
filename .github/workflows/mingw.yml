@@ -41,8 +41,10 @@ jobs:
       if: steps.tcl-cache.outputs.cache-hit != 'true'
       run: |
         cd win
+        ls
         mkdir build
         cd build
+        ls ..
         ../configure --enable-64bit --prefix=C:/tcl || (cat config.log && exit 1)
         make
         make install
