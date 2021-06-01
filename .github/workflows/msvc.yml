@@ -63,5 +63,5 @@ jobs:
     - name: Make
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=d:\dyncall\msvc\x64
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=d:\dyncall\msvc\x64 test
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=c:\dyncall\msvc\x64
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=c:\dyncall\msvc\x64 test
