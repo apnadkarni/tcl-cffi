@@ -40,7 +40,7 @@ jobs:
     - name: Build Tcl
       if: steps.tcl-cache.outputs.cache-hit != 'true'
       run: |
-        cd win
+        cd tcl/win
         ls
         mkdir build
         cd build
