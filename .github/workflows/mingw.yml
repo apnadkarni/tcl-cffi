@@ -10,40 +10,40 @@ jobs:
       run:
         shell: msys2 {0}
 
-  steps:
-  - name: Checkout tcl-cffi
-    uses: actions/checkout@v2
+    steps:
+    - name: Checkout tcl-cffi
+      uses: actions/checkout@v2
 
-  - name: Set up msys2
-    uses: msys2/setup-msys2@v2
-    with:
-      msystem: MINGW64
-      path-type: minimal
-      release: false
-      update: false
+    - name: Set up msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        path-type: minimal
+        release: false
+        update: false
 
-  - name: Cache Tcl build
-    id: tcl-cache
-    uses: actions/cache@v2
-    with:
-      path: C:/tcl
-      key: ${{ runner.os }}-tcl
+    - name: Cache Tcl build
+      id: tcl-cache
+      uses: actions/cache@v2
+      with:
+        path: C:/tcl
+        key: ${{ runner.os }}-tcl
 
-  - name: Checkout Tcl
-    if: steps.tcl-cache.outputs.cache-hit != 'true'
-    uses: actions/checkout@v2
-    with:
-      repository: tcltk/tcl
-      ref: core-8-6-11
-      path: tcl
+    - name: Checkout Tcl
+      if: steps.tcl-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: tcltk/tcl
+        ref: core-8-6-11
+        path: tcl
 
-  - name: Build Tcl
-    if: steps.tcl-cache.outputs.cache-hit != 'true'
-    working-directory: win
-    run: |
-      mkdir build
-      cd build
-      ../configure --enable-64bit --prefix=C:/tcl || (cat config.log && exit 1)
-      make
-      make install
+    - name: Build Tcl
+      if: steps.tcl-cache.outputs.cache-hit != 'true'
+      working-directory: win
+      run: |
+        mkdir build
+        cd build
+        ../configure --enable-64bit --prefix=C:/tcl || (cat config.log && exit 1)
+        make
+        make install
 
