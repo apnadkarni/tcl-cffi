@@ -1,0 +1,56 @@
+name: Visual C++
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    # Note msvc defaults to 64-bit
+    - name: Init MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Checkout tcl-cffi
+      uses: actions/checkout@v2
+
+    - name: Cache Tcl build
+      id: tcl-msvc-x64-cache
+      uses: actions/cache@v2
+      with:
+        path: C:/tcl/msvc/x64
+        key: ${{ runner.os }}-tcl-msvc-x64
+
+    - name: Checkout Tcl
+      if: steps.tcl-msvc-x64-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v2
+      with:
+        repository: tcltk/tcl
+        ref: core-8-6-11
+        path: tcl
+
+    - name: Cache dyncall
+      id: dyncall-msvc-x64-cache
+      uses: actions/cache@v2
+      with:
+        path: C:/dyncall/msvc/x64
+        key: ${{ runner.os }}-dyncall
+
+    - name: Install dyncall
+      if: steps.dyncall-msvc-x64-cache.outputs.cache-hit != 'true'
+      run: |
+        curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
+        7z x dyncall-1.2.zip
+        cd dyncall-1.2
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\x64 -G"NMake Makefiles" ..
+        cd ..
+        cmake --build build-msvc-x64 --config Release
+        cmake --build build-msvc-x64 --config Release install
+
+    - name: Make
+      run: |
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=d:\dyncall\msvc\x64
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=d:\dyncall\msvc\x64 test
