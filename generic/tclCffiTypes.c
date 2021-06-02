@@ -2286,13 +2286,8 @@ CffiPointerFromObj(Tcl_Interp *ip,
 
     if (typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)
         ret = Tclh_PointerUnwrap(ip, pointerObj, &pv, tagObj);
-    else {
-        if (typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)
-            ret = Tclh_PointerObjUnregister(
-                ip, pointerObj, &pv, tagObj);
-        else
-            ret = Tclh_PointerObjVerify( ip, pointerObj, &pv, tagObj);
-    }
+    else
+        ret = Tclh_PointerObjVerify(ip, pointerObj, &pv, tagObj);
     if (ret != TCL_OK)
         return ret;
     if (typeAttrsP->flags & CFFI_F_ATTR_NONZERO && pv == NULL) {

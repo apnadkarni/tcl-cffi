@@ -658,6 +658,37 @@ namespace eval ${NS}::test {
         list [pointer_noop 1^] [cffi::pointer isvalid 1^] [pointer_noop 1^] [cffi::pointer isvalid 1^]
     } -result {{} 1 {} 0}
 
+    test function-pointer-param-safety-10 "pointer safe dispose - after param checks" -setup {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        testDll function pointer_add {pointer unsafe} {p {pointer dispose} n int}
+    } -body {
+        # Verifies that pointer is not disposed if parameter has an error
+        list \
+            [cffi::pointer isvalid $p] \
+            [catch {pointer_add $p notanint}] \
+            [cffi::pointer isvalid $p] \
+            [catch {pointer_add $p 0}] \
+            [cffi::pointer isvalid $p] 
+    } -result {1 1 1 0 0}
+
+    test function-pointer-param-safety-11 "pointer counted dispose - after param checks" -setup {
+        set p [makeptr 1]
+        cffi::pointer counted $p
+        cffi::pointer counted $p
+        testDll function pointer_add {pointer unsafe} {p {pointer dispose} n int}
+    } -body {
+        # Verifies that pointer is not disposed if parameter has an error
+        list \
+            [cffi::pointer isvalid $p] \
+            [catch {pointer_add $p notanint}] \
+            [cffi::pointer isvalid $p] \
+            [catch {pointer_add $p 0}] \
+            [cffi::pointer isvalid $p] \
+            [catch {pointer_add $p 0}] \
+            [cffi::pointer isvalid $p]
+    } -result {1 1 1 0 1 0 0}
+
     # pointer tags
     test function-pointer-param-tag-0 "pointer tag safe" -setup {
         testDll function pointer_noop void {p pointer.TAG}

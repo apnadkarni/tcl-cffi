@@ -348,6 +348,30 @@ CffiFunctionInstanceCmd(ClientData cdata,
         goto pop_and_error;
     }
 
+    /* Only dispose of pointers AFTER all above param checks pass */
+    for (i = 0; i < protoP->nParams; ++i) {
+        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
+            && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))
+            && (typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)) {
+            int nptrs = typeAttrsP->dataType.count;
+            /* Note no error checks because the CffiArgPrepare calls
+               above would have already done validation */
+            if (nptrs <= 1) {
+                if (valuesP[i].ptr != NULL)
+                    Tclh_PointerUnregister(ip, valuesP[i].ptr, NULL);
+            }
+            else {
+                int j;
+                void **ptrArray = valuesP[i].ptr;
+                for (j = 0; j < nptrs; ++j) {
+                    if (ptrArray[j] != NULL)
+                        Tclh_PointerUnregister(ip, ptrArray[j], NULL);
+                }
+            }
+        }
+    }
+
     /* Currently return values are always by value - enforced in prototype */
     CFFI_ASSERT((protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) == 0);
 

@@ -352,6 +352,9 @@ EXTERN void pointer_incr(char **pp) { *pp = *pp + 1; }
 EXTERN void *pointer_byref(void **pp) { return *pp; }
 EXTERN void pointer_noop(void *p) {}
 EXTERN void *pointer_to_pointer(void *p) { return p; }
+EXTERN void *pointer_add(void *p, int n) {
+    return n + (char *)p;
+}
 EXTERN void *pointer_errno(void *p) {
     errno = EINVAL;
     return p;
