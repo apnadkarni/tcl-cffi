@@ -6,9 +6,6 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: cmd
 
     steps:
     # Note msvc defaults to 64-bit
@@ -36,6 +33,7 @@ jobs:
     - name: Build Tcl
       if: steps.tcl-msvc-x64-cache.outputs.cache-hit != 'true'
       working-directory: tcl/win
+      shell: cmd
       run: |
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 install
@@ -49,6 +47,7 @@ jobs:
 
     - name: Install dyncall
       if: steps.dyncall-msvc-x64-cache.outputs.cache-hit != 'true'
+      shell: cmd
       run: |
         curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
         7z x dyncall-1.2.zip
@@ -61,6 +60,7 @@ jobs:
         cmake --build build-msvc-x64 --config Release --target install
 
     - name: Make
+      shell: cmd
       run: |
         cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=c:\dyncall\msvc\x64
