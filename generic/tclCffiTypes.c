@@ -1463,9 +1463,23 @@ CffiArgPostProcess(Tcl_Interp *ip,
     if (ret != TCL_OK)
         return ret;
 
-    if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, TCL_LEAVE_ERR_MSG) == NULL)
-        return TCL_ERROR;
-
+    /*
+     * Tcl_ObjSetVar2 will release valueObj if its ref count is 0
+     * preventing us from trying again after deleting the array so
+     * preserve the value obj.
+     */
+    Tcl_IncrRefCount(valueObj);
+    if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, 0) == NULL) {
+        /* Perhaps it is an array in which case we need to delete first */
+        Tcl_UnsetVar(ip, Tcl_GetString(varObjP), 0);
+        /* Retry */
+        if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, TCL_LEAVE_ERR_MSG)
+            == NULL) {
+            Tcl_DecrRefCount(valueObj);
+            return TCL_ERROR;
+        }
+    }
+    Tcl_DecrRefCount(valueObj);
     return TCL_OK;
 }
 

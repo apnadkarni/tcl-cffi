@@ -245,7 +245,18 @@ namespace eval ${NS}::test {
         set fn ${type}_out
         testDll function $fn $type [list inparam [list $type in] outparam [list $type out]]
         test function-paramout-$type-0 "$type out params" -body {
+            unset -nocomplain out
             list [$fn $val out] $out
+        } -result [list [expr {2+$val}] [expr {1+$val}]]
+        test function-paramout-$type-1 "$type out params - existing var" -body {
+            set out 99
+            list [$fn $val out] $out
+        } -result [list [expr {2+$val}] [expr {1+$val}]]
+        test function-paramout-$type-2 "$type out params - existing array var" -cleanup {
+            unset arr
+        } -body {
+            set arr(x) x
+            list [$fn $val arr] $arr
         } -result [list [expr {2+$val}] [expr {1+$val}]]
 
         set fn ${type}_inout
