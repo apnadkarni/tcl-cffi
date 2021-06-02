@@ -128,6 +128,7 @@ typedef struct CffiTypeAndAttrs {
 #define CFFI_F_ATTR_WINERROR  0x40000 /* Windows error code */
 #define CFFI_F_ATTR_ERROR_MASK                                                \
     (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR)
+#define CFFI_F_ATTR_NULLIFEMPTY 0x100000
 } CffiTypeAndAttrs;
 
 /*

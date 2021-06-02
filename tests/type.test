@@ -263,7 +263,7 @@ namespace eval cffi::test {
         }
 
         # Scalar tests - invalid attributes for type
-        foreach attr $pointerAttrs {
+        foreach attr [list {*}$pointerAttrs nullifempty] {
             testinvalidattr "$type $attr" param $errorMessages(attrtype)
             testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
         }
@@ -302,7 +302,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attributes for type
-        foreach attr $pointerAttrs {
+        foreach attr [list {*}$pointerAttrs nullifempty] {
             testinvalidattr "$type $attr" return $errorMessages(attrtype)
         }
         if {$type ni $intTypes} {
@@ -335,12 +335,12 @@ namespace eval cffi::test {
         testnumericarray "$type" 2 field ""
 
         # Failure tests - invalid attributes for type
-        foreach attr $pointerAttrs {
+        foreach attr [list {*}$pointerAttrs nullifempty] {
             testinvalidattr "$type $attr" field $errorMessages(attrtype)
         }
         if {$type ni $intTypes} {
             foreach attr $errorAttrs {
-                testinvalidattr "$type $attr" field $errorMessages(attrtype)
+                #testinvalidattr "$type $attr" field $errorMessages(attrtype)
             }
         }
 
@@ -412,7 +412,7 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
             }
         }
-        testinvalidattr "$type dispose out" param "The dispose attribute is invalid for pure out parameters in a type declaration."
+        testinvalidattr "$type dispose out" param "One or more annotations are invalid for out parameters."
         testinvalidattr "$type dispose unsafe" param $errorMessages(attrconflict)
         testinvalidattr "$type counted unsafe" param $errorMessages(attrconflict)
 
@@ -422,6 +422,7 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attr" param $errorMessages(attrtype)
             }
         }
+        testinvalidattr "$type nullifempty" param $errorMessages(attrtype)
 
         # Scalar tests - attributes invalid for param parse mode
         foreach attr $pointer_valid_error_attrs {
@@ -433,7 +434,6 @@ namespace eval cffi::test {
         foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" param "$errorMessages(arraysize)"
         }
-
 
         ### Parse mode = return
 
@@ -460,6 +460,7 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attr" return $errorMessages(attrtype)
             }
         }
+        testinvalidattr "$type nullifempty" return $errorMessages(attrtype)
 
         # Failure tests - invalid attribute for parse mode
         testinvalidattr "$type dispose" return $errorMessages(attrparsemode)
@@ -495,6 +496,8 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attr" field $errorMessages(attrtype)
             }
         }
+        testinvalidattr "$type nullifempty" field $errorMessages(attrtype)
+
         # Failure tests - invalid attribute for parse mode
         testinvalidattr "$type dispose" field $errorMessages(attrparsemode)
         foreach attr $paramAttrs {
@@ -568,7 +571,7 @@ namespace eval cffi::test {
             testinvalidattr $type $parse_mode $errorMessages(scalarchars)
 
             # Invalid attributes for type
-            foreach attr [concat $pointerAttrs $errorAttrs] {
+            foreach attr [concat $pointerAttrs $errorAttrs nullifempty] {
                 testinvalidattr "$type\[2\] $attr" $parse_mode $errorMessages(attrtype)
             }
 
@@ -620,6 +623,16 @@ namespace eval cffi::test {
                 testinvalidattr "$type" $parse_mode $errorMessages(typeparsemode)
                 foreach attr {in out inout} {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
+                }
+            }
+
+            if {$parse_mode eq "param" && $type ne "binary"} {
+                teststring "$type nullifempty" $parse_mode "in byref nullifempty"
+            } else {
+                if {$type ne "binary"} {
+                    testinvalidattr "$type nullifempty" $parse_mode $errorMessages(attrparsemode)
+                } else {
+                    testinvalidattr "$type nullifempty" $parse_mode $errorMessages(attrtype)
                 }
             }
 
@@ -690,7 +703,7 @@ namespace eval cffi::test {
             }
         }
         # Scalar tests - invalid attributes for type
-        foreach attr [concat $pointerAttrs $errorAttrs] {
+        foreach attr [concat $pointerAttrs $errorAttrs nullifempty] {
             testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
         }
 

@@ -389,14 +389,16 @@ namespace eval Concepts {
         `RETTYPE` is the function return type declaration and `PARAMS` is
         a list of alternating parameter names and type declarations.
 
-        #### Return types
+        ### Return types
 
         A function return declaration is a type or type alias followed by zero
         or more annotations. The resolved type must not be a struct or an
         array including implicit array types `string`, `unistring`, `chars`,
         `unichars`, `binary` and `bytes`. Note pointers to these are permitted.
 
-        The following annotations may be follow the type in the declaration.
+        #### Return annotations
+
+        The following annotations may be follow the type in a return type declaration.
 
         - For integer types, the error checking annotations
         `zero`, `nonzero`, `nonnegative`, `positive` as well as the error
@@ -408,13 +410,16 @@ namespace eval Concepts {
         annotations (but not `dispose`). See [Pointer safety] for
         the meaning of these annotations.
 
-        #### Parameters
+        ### Parameters
 
         The `PARAMS` argument in a function prototype is a list of alternating
         parameter name and parameter type declaration elements.
-
         A parameter type declaration may begin with any supported type except
-        `void`. Subsequent annotations that are valid for parameters are those
+        `void` and may be followed a sequence of optional type annotations.
+
+        #### Parameter annotations
+
+        Annotations that are valid for parameters are those
         related to pointers and those related to argument passing.
 
         Annotations in the first category are `unsafe`, `counted`
@@ -451,7 +456,12 @@ namespace eval Concepts {
         of `string` and `binary`, and number of Tcl_UniChar characters in the
         case of `unistring`.
 
-        #### Error handling
+        One additional annotation, `nullifempty`, is available only for `in`
+        parameters of type `string` and `unistring`. If present, a NULL pointer
+        is passed into the C function if the passed argument is an empty string.
+        This is particularly useful with many Windows API's.
+
+        ### Error handling
 
         C functions generally indicate errors through their return value.
         Details of the error are either in the return value itself or intended
@@ -465,6 +475,8 @@ namespace eval Concepts {
         downside is that the detail behind the error, stored in `errno` or
         available via `GetLastError()` on Windows, is often lost by the time the
         Tcl interpreter returns to the script level.
+
+        #### Error annotations
 
         Two additional sets of type annotations are provided to solve these
         issues. The first set of annotations is used to define the error check

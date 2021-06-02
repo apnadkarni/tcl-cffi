@@ -62,7 +62,7 @@ namespace eval cffi::test {
         attrconflict {Type declaration has repeated or conflicting attributes.}
         arraysize {Invalid array size or extra trailing characters.}
         scalarchars {Declarations of type chars, unichars and bytes must be arrays.}
-        structbyref {Parameters of type struct must have the byref attribute.}
+        structbyref {Parameters of type struct must have the byref annotation.}
         arrayreturn {Function return type declaration must not specify an array.}
     }
 

@@ -81,8 +81,8 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NONZERO
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO,
      sizeof(void *)},
-    {TOKENANDLEN(string), CFFI_K_TYPE_ASTRING, CFFI_F_ATTR_PARAM_MASK, sizeof(void*)},
-    {TOKENANDLEN(unistring), CFFI_K_TYPE_UNISTRING, CFFI_F_ATTR_PARAM_MASK, sizeof(void*)},
+    {TOKENANDLEN(string), CFFI_K_TYPE_ASTRING, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, sizeof(void*)},
+    {TOKENANDLEN(unistring), CFFI_K_TYPE_UNISTRING, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, sizeof(void*)},
     {TOKENANDLEN(binary), CFFI_K_TYPE_BINARY, CFFI_F_ATTR_PARAM_MASK, sizeof(unsigned char *)},
     {TOKENANDLEN(chars), CFFI_K_TYPE_CHAR_ARRAY, CFFI_F_ATTR_PARAM_MASK, sizeof(char)},
     {TOKENANDLEN(unichars), CFFI_K_TYPE_UNICHAR_ARRAY, CFFI_F_ATTR_PARAM_MASK, sizeof(Tcl_UniChar)},
@@ -162,7 +162,8 @@ enum cffiTypeAttrOpt {
     LASTERROR,
     ERRNO,
     WINERROR,
-    DEFAULT
+    DEFAULT,
+    NULLIFEMPTY
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -175,11 +176,7 @@ typedef struct CffiAttrs {
 static CffiAttrs cffiAttrs[] = {
     {"in", PARAM_IN, CFFI_F_ATTR_IN, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"out", PARAM_OUT, CFFI_F_ATTR_OUT, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"inout",
-     PARAM_INOUT,
-     CFFI_F_ATTR_INOUT,
-     CFFI_F_TYPE_PARSE_PARAM,
-     1},
+    {"inout", PARAM_INOUT, CFFI_F_ATTR_INOUT, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"byref", BYREF, CFFI_F_ATTR_BYREF, CFFI_F_TYPE_PARSE_PARAM, 1},
 #ifdef OBSOLETE
     {"safe",
@@ -209,11 +206,7 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_ATTR_NONNEGATIVE,
      CFFI_F_TYPE_PARSE_RETURN,
      1},
-    {"positive",
-     POSITIVE,
-     CFFI_F_ATTR_POSITIVE,
-     CFFI_F_TYPE_PARSE_RETURN,
-     1},
+    {"positive", POSITIVE, CFFI_F_ATTR_POSITIVE, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"errno", ERRNO, CFFI_F_ATTR_ERRNO, CFFI_F_TYPE_PARSE_RETURN, 1},
 #ifdef _WIN32
     {"lasterror",
@@ -224,7 +217,13 @@ static CffiAttrs cffiAttrs[] = {
     {"winerror", WINERROR, CFFI_F_ATTR_WINERROR, CFFI_F_TYPE_PARSE_RETURN, 1},
 #endif
     {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM, 2},
-    {NULL}};
+    {"nullifempty",
+     NULLIFEMPTY,
+     CFFI_F_ATTR_NULLIFEMPTY,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
+    {NULL}
+};
 
 
 /* Function: CffiBaseTypeInfoGet
@@ -848,6 +847,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto conflict;
             flags |= CFFI_F_ATTR_WINERROR;
             break;
+        case NULLIFEMPTY:
+            flags |= CFFI_F_ATTR_NULLIFEMPTY;
+            break;
         }
     }
 
@@ -885,14 +887,21 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             goto invalid_format;
         }
         /* For parameters at least one of IN, OUT, INOUT should be set */
-        if (flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) {
-            if ((flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_OUT))
-                == (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_OUT)) {
-                message = "The dispose attribute is invalid for pure out "
-                          "parameters in a type declaration.";
+        if (flags & CFFI_F_ATTR_INOUT) {
+            if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
+                message = "One or more annotations are invalid for inout "
+                          "parameters.";
                 goto invalid_format;
             }
-            flags |= CFFI_F_ATTR_BYREF; /* out/inout default to byref */
+            flags |= CFFI_F_ATTR_BYREF; /* inout default to byref */
+        }
+        else if (flags & CFFI_F_ATTR_OUT) {
+            if (flags & (CFFI_F_ATTR_DISPOSE|CFFI_F_ATTR_NULLIFEMPTY)) {
+                message = "One or more annotations are invalid for out "
+                          "parameters.";
+                goto invalid_format;
+            }
+            flags |= CFFI_F_ATTR_BYREF; /* out default to byref */
         }
         else {
             flags |= CFFI_F_ATTR_IN; /* in, or by default if nothing was said */
@@ -914,7 +923,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 case CFFI_K_TYPE_STRUCT:
                     if ((flags & CFFI_F_ATTR_BYREF) == 0) {
                         message = "Parameters of type struct must have the "
-                                  "byref attribute.";
+                                  "byref annotation.";
                         goto invalid_format;
                     }
                     break;
@@ -1053,6 +1062,7 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
     CffiResult ret;
     int memory_size;
     int flags;
+    char *p;
 
     /*
      * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
@@ -1316,19 +1326,35 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
     case CFFI_K_TYPE_ASTRING:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         /* Note this also handles case of pure OUT parameter */
-        ret = CffiArgPrepareString(ip, typeAttrsP, valueObj, memory_size, valueP);
+        ret =
+            CffiArgPrepareString(ip, typeAttrsP, valueObj, memory_size, valueP);
         if (ret != TCL_OK)
             return ret;
-        dcArgPointer(vmP, Tcl_DStringValue(&valueP->ds));
+        if ((typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+            && Tcl_DStringLength(&valueP->ds) == 0) {
+            p = NULL; /* Null if empty */
+        }
+        else {
+            p = Tcl_DStringValue(&valueP->ds);
+        }
+        dcArgPointer(vmP, p);
         break;
 
     case CFFI_K_TYPE_UNISTRING:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         /* Note this also handles case of pure OUT parameter */
-        ret = CffiArgPrepareUniString(ip, typeAttrsP, valueObj, memory_size, valueP);
+        ret = CffiArgPrepareUniString(
+            ip, typeAttrsP, valueObj, memory_size, valueP);
         if (ret != TCL_OK)
             return ret;
-        dcArgPointer(vmP, Tcl_DStringValue(&valueP->ds));
+        p = Tcl_DStringValue(&valueP->ds);
+        if ((typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+            && p[0] == 0 && p[1] == 0) {
+            p = NULL; /* Null if empty */
+        }
+        dcArgPointer(vmP, p);
         break;
 
     case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -2427,8 +2453,7 @@ CffiArgPrepareString(Tcl_Interp *ip,
  * typeAttrsP - parameter type descriptor
  * valueObj - the Tcl_Obj containing string to pass. May be NULL for pure
  *   output parameters
- * nUnichars - max number of Tcl_UniChar characters for unistring type. For
- *          unichars type, this is 0 as the type encodes the count
+ * nUnichars - max number of Tcl_UniChar characters for unistring type.
  * valueP - location to store the argument
  *
  * Arguments that are marked as pure input need not have a count specified

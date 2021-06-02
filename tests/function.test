@@ -266,7 +266,7 @@ namespace eval ${NS}::test {
             list [$fn param] $param
         } -result [list [expr {2+$val}] [expr {1+$val}]]
 
-        foreach attr $pointerAttrs {
+        foreach attr [linsert $pointerAttrs end nullifempty] {
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                 testDll function ${type}_to_void void [list param [list $type $attr]]
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -351,7 +351,26 @@ namespace eval ${NS}::test {
                 testDll function ${type}_to_void void [list param [list $type $attr]]
             } -result "Invalid value \"$type $attr\". $msg" -returnCodes error
         }
+
+        test function-$type-nullifempty-0 "$type in nullifempty" -setup {
+            testDll function pointer_to_pointer {pointer unsafe} {s {string nullifempty}}
+        } -body {
+            pointer_to_pointer ""
+        } -result [makeptr 0]
+        set fn ${type}_out
+        testDll function $fn int [list input [list $type in nullifempty] output [list $type out]]
+        test function-$type-nullifempty-1 "$type in nullifempty" -body {
+            list [$fn $val [list result [expr {$len+1}]]] $result
+        } -result [list $len $val]
+        test function-$type-nullifempty-error-0 "$type inout nullifempty" -body {
+            testDll function ${type}_reverse_inout int [list param [list $type inout nullifempty]]
+        } -result "Invalid value \"$type inout nullifempty\". One or more annotations are invalid for inout parameters." -returnCodes error
+        test function-$type-nullifempty-error-1 "$type out nullifempty" -body {
+            testDll function ${type}_out int [list input $type output [list $type out nullifempty]]
+        } -result "Invalid value \"$type out nullifempty\". One or more annotations are invalid for out parameters." -returnCodes error
+
     }
+
 
     # string.encoding
     set val \u543e
@@ -451,7 +470,7 @@ namespace eval ${NS}::test {
         } else {
             set fn ${type}_to_void
         }
-        foreach attr $pointerAttrs {
+        foreach attr [linsert $pointerAttrs end nullifempty] {
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                 testDll function $fn void [list param [list $type\[2\] $attr]]
             } -result "Invalid value \"{$type\[2\]} $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -783,7 +802,7 @@ namespace eval ${NS}::test {
     } -result {1 {Value "1^" has the wrong type. Pointer type mismatch.}}
 
     # Pointer param error attributes
-    foreach attr $errorAttrs {
+    foreach attr [linsert $errorAttrs end nullifempty] {
         if {$attr in {winerror lasterror}} {
             set constraints win
         } else {
@@ -802,7 +821,7 @@ namespace eval ${NS}::test {
     ## Parameter - struct
     test function-struct-byval-0 "Param struct by value - error" -body {
         testDll function getTestStruct int {s struct.TestStruct}
-    } -result "Invalid value \"struct.TestStruct\". Parameters of type struct must have the byref attribute." -returnCodes error
+    } -result "Invalid value \"struct.TestStruct\". Parameters of type struct must have the byref annotation." -returnCodes error
 
     test function-struct-out-0 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
@@ -882,7 +901,7 @@ namespace eval ${NS}::test {
                 testDll function ${type}_to_${type} [list $type $attr] {}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
         }
-        foreach attr $pointerAttrs {
+        foreach attr [linsert $pointerAttrs end nullifempty] {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -928,7 +947,7 @@ namespace eval ${NS}::test {
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function ${type}_to_${type} $type\[2\] {}
         } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
-        foreach attr $errorAttrs {
+        foreach attr [linsert $errorAttrs end nullifempty] {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -1032,8 +1051,8 @@ namespace eval ${NS}::test {
             list [catch {pointer_lasterror 0^} result] $result
         } -result {1 {The data is invalid. }}
 
-        # Error checks that are not valid for pointers
-        foreach attr {zero nonnegative positive} {
+        # checks that are not valid for pointers
+        foreach attr {zero nonnegative positive nullifempty} {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -1042,7 +1061,6 @@ namespace eval ${NS}::test {
         test function-return-$type-${attr}-0 "return type $type $attr" -constraints win -body {
             testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
         } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
-
 
         # Error cases
         test function-return-$type-safe-dup-0 "return type $type safe - dup" -cleanup {
@@ -1064,7 +1082,6 @@ namespace eval ${NS}::test {
                 testDll function pointer_to_pointer [list $type unsafe $attr] {p {pointer unsafe}}
             } -result "Invalid value \"$type unsafe $attr\". $errorMessages(attrparsemode)" -returnCodes error
         }
-
 
     }
 
