@@ -291,7 +291,6 @@ Tcl_Obj *Tclh_PointerWrap(void *pointer, Tclh_PointerTypeTag tag);
  * pointerP - if not NULL, location to store unwrapped pointer.
  * expected_tag - Type tag for the pointer. May be *NULL* if type is not
  *                to be checked.
-he pointer.
  *
  * Returns:
  * TCL_OK    - Success, with the unwrapped pointer stored in *pointerP.

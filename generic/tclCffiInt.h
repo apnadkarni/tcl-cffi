@@ -185,7 +185,8 @@ typedef struct CffiInterpCtx {
                                Note this does not need to be protected against
                                deletion as contexts are unregistered before
                                interp deletion */
-    Tcl_HashTable typeAliases; /* typedef name -> CffiTypeAndAttrs */
+    Tcl_HashTable aliases; /* typedef name -> CffiTypeAndAttrs */
+    Tcl_HashTable prototypes; /* typedef name -> CffiTypeAndAttrs */
     MemLifo memlifo;        /* Software stack */
 } CffiInterpCtx;
 
@@ -207,9 +208,35 @@ typedef struct CffiStructCtx {
     CffiStruct *structP;
 } CffiStructCtx;
 
+/* Function parameter definition */
+typedef struct CffiParam {
+    Tcl_Obj *nameObj;           /* Parameter name */
+    CffiTypeAndAttrs typeAttrs;
+} CffiParam;
+
+/* Function prototype definition */
+typedef struct CffiProto {
+    int nRefs;             /* Reference count */
+    int nParams;           /* Number of params, sizeof params array */
+    CffiParam returnType;  /* Name and return type of function */
+    CffiParam params[1];   /* Real size depends on nparams which
+                               may even be 0!*/
+} CffiProto;
+CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
+    protoP->nRefs += 1;
+}
+
+/* Function definition */
+typedef struct CffiFunction {
+    CffiCallVmCtx *vmCtxP; /* Context for the call */
+    void *fnAddr;          /* Pointer to the function to call */
+    CffiProto *protoP;     /* Prototype for the call */
+} CffiFunction;
+
 /*
  * Prototypes
  */
+CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
 CffiResult CffiCallModeParse(Tcl_Interp *ip, Tcl_Obj *modeObj, DCint *modeP);
 
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
@@ -338,5 +365,38 @@ CffiResult CffiAliasAddStr(CffiInterpCtx *ipCtxP,
                                const char *nameStr,
                                const char *typedefStr);
 int CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP);
+
+CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
+                              Tcl_Obj *fnNameObj,
+                              Tcl_Obj *returnTypeObj,
+                              Tcl_Obj *paramsObj,
+                              CffiProto **protoPP);
+void CffiProtoUnref(CffiProto *protoP);
+void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
+CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
+Tcl_ObjCmdProc CffiPrototypeObjCmd;
+
+
+
+
+/* TBD - move these to Tclh headers */
+typedef struct Tclh_SubCommand {
+    const char *cmdName;
+    int minargs;
+    int maxargs;
+    const char *message;
+    int (*cmdFn)();
+    int flags; /* Command specific usage */
+} Tclh_SubCommand;
+
+CffiResult Tclh_SubCommandNameToIndex(Tcl_Interp *ip,
+                                      Tcl_Obj *nameObj,
+                                      Tclh_SubCommand *cmdTableP,
+                                      int *indexP);
+CffiResult Tclh_SubCommandLookup(Tcl_Interp *ip,
+                                 const Tclh_SubCommand *cmdTableP,
+                                 int objc,
+                                 Tcl_Obj *const objv[],
+                                 int *indexP);
 
 #endif /* CFFIINT_H */

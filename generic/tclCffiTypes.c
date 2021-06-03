@@ -634,13 +634,12 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
     }
 }
 
-/* Function: CffiTypeAliasGet
+/* Function: CffiAliasGet
  * Checks for the existence of a type definition and returns its internal form.
  *
  * Parameters:
- *   ip - Interpreter
- *   nameObj - name of the function/structure/field to which this type pertains
- *   typedefNameObj - typedef name
+ *   ipCtxP - Interpreter context
+ *   aliasNameObj - typedef name
  *   typeAttrP - pointer to structure to hold parsed information. Note this
  *               structure is *overwritten*, not merged.
  *
@@ -650,14 +649,14 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
  * returns 0.
  */
 static int
-CffiTypeAliasGet(CffiInterpCtx *ipCtxP,
-                Tcl_Obj *typedefNameObj,
-                CffiTypeAndAttrs *typeAttrP)
+CffiAliasGet(CffiInterpCtx *ipCtxP,
+             Tcl_Obj *aliasNameObj,
+             CffiTypeAndAttrs *typeAttrP)
 {
     Tcl_HashEntry *heP;
     CffiTypeAndAttrs *heValueP;
 
-    heP = Tcl_FindHashEntry(&ipCtxP->typeAliases, typedefNameObj);
+    heP = Tcl_FindHashEntry(&ipCtxP->aliases, aliasNameObj);
     if (heP == NULL)
         return 0;
     heValueP = Tcl_GetHashValue(heP);
@@ -719,7 +718,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /* First check for a type definition before base types */
-    found = CffiTypeAliasGet(ipCtxP, objs[0], typeAttrP);
+    found = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
     if (found)
         baseType = typeAttrP->dataType.baseType;
     else {
@@ -730,7 +729,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         typeAttrP->flags      = 0;
     }
 
-    flags = typeAttrP->flags; /* May be set in CffiTypeAliasGet */
+    flags = typeAttrP->flags; /* May be set in CffiAliasGet */
 
     /* Flags that determine valid attributes for this type */
     validAttrs = cffiBaseTypes[baseType].validAttrFlags;
@@ -3370,7 +3369,38 @@ CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
     return sysError;
 }
 
-/* Function: CffiTypedefAdd
+/* Function: CffiNameSyntaxCheck
+ * Verifies that a name matches permitted syntax.`
+ *
+ * Parameters:
+ * ip - interpreter
+ * nameObj - name to be checked
+ *
+ * Returns:
+ * *TCL_OK* if syntax is permitted, other *TCL_ERROR* with error message
+ * in interpreter.
+ */
+CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj)
+{
+    unsigned char ch;
+    const unsigned char *nameP; /* NOTE *unsigned* char for isalpha etc.*/
+
+    nameP = (unsigned char*) Tcl_GetString(nameObj);
+    ch    = *nameP++;
+    /* First letter must be alpha, _ or : */
+    if (isalpha(ch) || ch == '_' || ch == ':') {
+        /* Subsequent letter alphanumeric, _ or : */
+        while ((ch = *nameP++) != '\0') {
+            if (!isalnum(ch) && ch != '_' && ch != ':')
+                goto invalid_alias_syntax; /* Horrors, a goto */
+        }
+        return TCL_OK;
+    }
+invalid_alias_syntax:
+    return Tclh_ErrorInvalidValue(ip, nameObj, "Invalid name syntax.");
+}
+
+/* Function: CffiAliasAdd
  * Adds a new type definition, overwriting any existing ones.
  *
  * The alias must not match a base type name.
@@ -3389,7 +3419,6 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj)
     Tcl_HashEntry *heP;
     CffiTypeAndAttrs *typeAttrsP;
     const unsigned char *nameP; /* NOTE *unsigned* char for isalpha etc.*/
-    unsigned char ch;
     int new_entry;
     const CffiBaseTypeInfo *baseTypeInfoP;
 
@@ -3403,18 +3432,7 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj)
         }
     }
 
-    ch    = *nameP++;
-    /* First letter must be alpha, _ or : */
-    if (!isalpha(ch) && ch != '_' && ch != ':') {
-        invalid_alias_syntax:
-        return Tclh_ErrorInvalidValue(
-            ipCtxP->interp, nameObj, "Invalid type alias name syntax.");
-    }
-    /* Subsequent letter alphanumeric, _ or : */
-    while ((ch = *nameP++) != '\0') {
-        if (!isalnum(ch) && ch != '_' && ch != ':')
-            goto invalid_alias_syntax;/* Horrors, a goto */
-    }
+    CHECK(CffiNameSyntaxCheck(ipCtxP->interp, nameObj));
 
     typeAttrsP = ckalloc(sizeof(*typeAttrsP));
     if (CffiTypeAndAttrsParse(ipCtxP,
@@ -3428,7 +3446,7 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj)
         return TCL_ERROR;
     }
 
-    heP = Tcl_CreateHashEntry(&ipCtxP->typeAliases, (char *) nameObj, &new_entry);
+    heP = Tcl_CreateHashEntry(&ipCtxP->aliases, (char *) nameObj, &new_entry);
     if (! new_entry) {
         CffiTypeAndAttrs *oldP = Tcl_GetHashValue(heP);
         CffiTypeAndAttrsCleanup(oldP);

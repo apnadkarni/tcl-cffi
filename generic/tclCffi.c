@@ -10,30 +10,6 @@
 #include "tclCffiInt.h"
 
 
-typedef struct Tclh_SubCommand {
-    const char *cmdName;
-    int minargs;
-    int maxargs;
-    const char *message;
-    int (*cmdFn)();
-    int flags; /* Command specific usage */
-} Tclh_SubCommand;
-
-typedef struct CffiParam {
-    Tcl_Obj *nameObj;           /* Parameter name */
-    CffiTypeAndAttrs typeAttrs;
-} CffiParam;
-
-typedef struct CffiProto {
-    CffiLibCtx *libCtxP;         /* Context for the call */
-    void *fnP;                    /* Pointer to the function to call */
-    int nParams;                  /* Number of params, sizeof params array */
-    CffiParam returnType; /* Name and return type of function */
-    CffiParam params[1];  /* Real size depends on nparams which
-                              may even be 0!*/
-} CffiProto;
-
-
 /* Function: Tclh_SubCommandNameToIndex
  * Looks up a subcommand table and returns index of a matching entry.
  *
@@ -128,151 +104,22 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiParamCleanup
- * Releases resources associated with a CffiParam
- *
- * Parameters:
- * paramP - pointer to datum to clean up
- */
-static void CffiParamCleanup(CffiParam *paramP)
-{
-    CffiTypeAndAttrsCleanup(&paramP->typeAttrs);
-    if (paramP->nameObj)
-        Tcl_DecrRefCount(paramP->nameObj);
-}
-
-static CffiProto *CffiProtoCkalloc(int nparams)
-{
-    int         sz;
-    CffiProto *protoP;
-
-    sz = offsetof(CffiProto, params) + (nparams * sizeof(protoP->params[0]));
-    protoP = ckalloc(sz);
-    memset(protoP, 0, sz);
-    return protoP;
-}
-
-/* Note this does NOT release any resources within *protoP */
-CFFI_INLINE void CffiProtoFree(CffiProto *protoP) {
-    ckfree(protoP);
-}
-
-/* Function: CffiProtoCleanup
- * Cleans up resources associated with a prototype representation.
- *
- * Parameters:
- * protoP - pointer to a prototype representation. This must be in a
- *          consistent state.
- *
- * Returns:
- * Nothing. Any associated resources are released. Note that *protoP*
- * itself is not freed.
- */
-void
-CffiProtoCleanup(CffiProto *protoP)
-{
-    int i;
-    CffiParamCleanup(&protoP->returnType);
-    for (i = 0; i < protoP->nParams; ++i) {
-        CffiParamCleanup(&protoP->params[i]);
-    }
-    protoP->nParams = 0;
-}
-
-/* Function: CffiProtoParse
- * Parses a function prototype definition returning an internal representation.
- *
- * Parameters:
- * libContextP - pointer to the context in which function is to be called
- * fnNameObj - name of the function
- * returnTypeObj - return type of the function in format expected by
- *            CffiTypeAndAttrsParse
- * paramsObj - parameter definition list consisting of alternating parameter
- *            names and type definitions in the format expected by
- *            <CffiTypeAndAttrsParse>.
- * fnP      - address of function
- * protoPP  - location to hold a pointer to the allocated internal prototype
- *            representation. The pointer must be freed with
- *            <CffiProtoFree>.
- *
- *
- * Returns:
- * Returns *TCL_OK* on success with a pointer to the internal prototype
- * representation in *protoPP* and *TCL_ERROR* on failure with error message
- * in the interpreter.
- *
- */
-static CffiResult
-CffiProtoParse(CffiLibCtx *libCtxP,
-                Tcl_Obj *fnNameObj,
-                Tcl_Obj *returnTypeObj,
-                Tcl_Obj *paramsObj,
-                void *fnP,
-                CffiProto **protoPP)
-{
-    CffiInterpCtx *ipCtxP = libCtxP->vmCtxP->ipCtxP;
-    Tcl_Interp *ip = ipCtxP->interp;
-    CffiProto *protoP;
-    Tcl_Obj **objs;
-    int nobjs;
-    int i, j;
-
-    CHECK(Tcl_ListObjGetElements(ip, paramsObj, &nobjs, &objs));
-    if (nobjs & 1)
-        return Tclh_ErrorInvalidValue(ip, paramsObj, "Parameter type missing.");
-
-    /*
-     * Parameter list is alternating name, type elements. Thus number of
-     * parameters is nobjs/2
-     */
-    protoP = CffiProtoCkalloc(nobjs / 2);
-    if (CffiTypeAndAttrsParse(ipCtxP,
-                               returnTypeObj,
-                               CFFI_F_TYPE_PARSE_RETURN,
-                               &protoP->returnType.typeAttrs) != TCL_OK) {
-        CffiProtoFree(protoP);
-        return TCL_ERROR;
-    }
-    Tcl_IncrRefCount(fnNameObj);
-    protoP->returnType.nameObj = fnNameObj;
-
-    protoP->nParams = 0; /* Update as we go along  */
-    for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
-        if (CffiTypeAndAttrsParse(ipCtxP,
-                                   objs[i + 1],
-                                   CFFI_F_TYPE_PARSE_PARAM,
-                                   &protoP->params[j].typeAttrs) != TCL_OK) {
-            CffiProtoCleanup(protoP);
-            CffiProtoFree(protoP);
-            return TCL_ERROR;
-        }
-        Tcl_IncrRefCount(objs[i]);
-        protoP->params[j].nameObj = objs[i];
-        protoP->nParams += 1; /* Update incrementally for error cleanup */
-    }
-
-    protoP->fnP     = fnP;
-    protoP->libCtxP = libCtxP;
-    *protoPP        = protoP;
-
-    return TCL_OK;
-}
-
-
 /*
  * Implements the call to a function. The cdata parameter contains the
  * prototype information about the function to call. The objv[] parameter
  * contains the arguments to pass to the function.
  */
 static CffiResult
-CffiFunctionInstanceCmd(ClientData cdata,
-                        Tcl_Interp *ip,
-                        int objc,
-                        Tcl_Obj *const objv[])
+CffiFunctionCall(ClientData cdata,
+                 Tcl_Interp *ip,
+                 int objArgIndex, /* Where in objv[] args start */
+                 int objc,
+                 Tcl_Obj *const objv[])
 {
-    CffiProto *protoP = (CffiProto *)cdata;
-    CffiInterpCtx *ipContextP = protoP->libCtxP->vmCtxP->ipCtxP;
-    DCCallVM *vmP              = protoP->libCtxP->vmCtxP->vmP;
+    CffiFunction *fnP     = (CffiFunction *)cdata;
+    CffiProto *protoP     = fnP->protoP;
+    CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
+    DCCallVM *vmP         = fnP->vmCtxP->vmP;
     Tcl_Obj *const *argObjs;
     Tcl_Obj *resultObj;
     int i;
@@ -281,13 +128,15 @@ CffiFunctionInstanceCmd(ClientData cdata,
     CffiResult ret = TCL_OK;
     Tcl_Obj **varNameObjs;
 
-    CFFI_ASSERT(ip == ipContextP->interp);
+    CFFI_ASSERT(ip == ipCtxP->interp);
+    CFFI_ASSERT(objc >= objArgIndex);
 
-    if ((objc - 1) != protoP->nParams) {
+    if ((objc - objArgIndex) != protoP->nParams) {
         Tcl_Obj *syntaxObj = Tcl_NewListObj(protoP->nParams+2, NULL);
         Tcl_ListObjAppendElement(
             NULL, syntaxObj, Tcl_NewStringObj("Syntax:", -1));
-        Tcl_ListObjAppendElement(NULL, syntaxObj, objv[0]);
+        for (i = 0; i < objArgIndex; ++i)
+            Tcl_ListObjAppendElement(NULL, syntaxObj, objv[i]);
         for (i = 0; i < protoP->nParams; ++i)
             Tcl_ListObjAppendElement(
                 NULL, syntaxObj, protoP->params[i].nameObj);
@@ -295,6 +144,8 @@ CffiFunctionInstanceCmd(ClientData cdata,
         Tcl_DecrRefCount(syntaxObj);
         return TCL_ERROR;
     }
+
+    argObjs = objv + objArgIndex;
 
     /*
      * Prepare the call by resetting any previous arguments and setting the
@@ -317,15 +168,14 @@ CffiFunctionInstanceCmd(ClientData cdata,
      * Note the additional slot allocated for the return value.
      */
     valuesP = (CffiValue *)MemLifoPushFrame(
-        &ipContextP->memlifo, (protoP->nParams + 1) * sizeof(*valuesP));
+        &ipCtxP->memlifo, (protoP->nParams + 1) * sizeof(*valuesP));
     /* Also need storage for variable names for output parameters */
     varNameObjs = (Tcl_Obj **)MemLifoAlloc(
-        &ipContextP->memlifo, protoP->nParams * sizeof(*valuesP));
+        &ipCtxP->memlifo, protoP->nParams * sizeof(*valuesP));
 
     /* Set up parameters. */
-    argObjs = objv + 1;
     for (i = 0; i < protoP->nParams; ++i) {
-        if (CffiArgPrepare(protoP->libCtxP->vmCtxP,
+        if (CffiArgPrepare(fnP->vmCtxP,
                            &protoP->params[i].typeAttrs,
                            argObjs[i],
                            &valuesP[i],
@@ -339,9 +189,10 @@ CffiFunctionInstanceCmd(ClientData cdata,
     }
 
     /* Set up the return value */
-    if (CffiReturnPrepare(protoP->libCtxP->vmCtxP,
-                           &protoP->returnType.typeAttrs,
-                           &valuesP[protoP->nParams]) != TCL_OK) {
+    if (CffiReturnPrepare(fnP->vmCtxP,
+                          &protoP->returnType.typeAttrs,
+                          &valuesP[protoP->nParams])
+        != TCL_OK) {
         int j;
         for (j = 0; j < protoP->nParams; ++j)
             CffiArgCleanup(&protoP->params[j].typeAttrs, &valuesP[j]);
@@ -380,16 +231,15 @@ CffiFunctionInstanceCmd(ClientData cdata,
      * IMPORTANT: do not call any system or C functions until check done
      * to prevent GetLastError/errno etc. being overwritten
      */
-#define CALLFN(objfn_, dcfn_, fld_)                                           \
-    do {                                                                      \
-        CffiValue *valP = &valuesP[protoP->nParams];                         \
-        valP->fld_     = dcfn_(vmP, protoP->fnP);                           \
-        if (protoP->returnType.typeAttrs.flags                                \
-            & CFFI_F_ATTR_REQUIREMENT_MASK)                                  \
-            ret = CffiCheckNumeric(ip, valP, &protoP->returnType.typeAttrs); \
-        if (ret == TCL_OK)                                                    \
-            resultObj = objfn_(valP->fld_);                                 \
-    } while (0);                                                              \
+#define CALLFN(objfn_, dcfn_, fld_)                                            \
+    do {                                                                       \
+        CffiValue *valP = &valuesP[protoP->nParams];                           \
+        valP->fld_      = dcfn_(vmP, fnP->fnAddr);                             \
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
+            ret = CffiCheckNumeric(ip, valP, &protoP->returnType.typeAttrs);   \
+        if (ret == TCL_OK)                                                     \
+            resultObj = objfn_(valP->fld_);                                    \
+    } while (0);                                                               \
     break
 
     /*
@@ -400,7 +250,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
      */
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
-        dcCallVoid(vmP, protoP->fnP);
+        dcCallVoid(vmP, fnP->fnAddr);
         resultObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR: CALLFN(Tcl_NewIntObj, dcCallInt, schar);
@@ -416,7 +266,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
     case CFFI_K_TYPE_FLOAT: CALLFN(Tcl_NewDoubleObj, dcCallFloat, flt);
     case CFFI_K_TYPE_DOUBLE: CALLFN(Tcl_NewDoubleObj, dcCallDouble, dbl);
     case CFFI_K_TYPE_POINTER:
-        pointer = dcCallPointer(vmP, protoP->fnP);
+        pointer = dcCallPointer(vmP, fnP->fnAddr);
         if (CffiPointerToObj(ip, &protoP->returnType.typeAttrs, pointer, &resultObj)
             != TCL_OK)
             ret = TCL_ERROR;
@@ -433,7 +283,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
         /* Currently BYREF not allowed and DC does not support struct byval */
         CFFI_ASSERT(protoP->returnType.flags & CFFI_F_PARAM_BYREF);
         valuesP[protoP->nParams].u.ptr = dcCallPointer(vmP, protoP->fnP);
-        if (CffiBinValueToObj(ipContextP->interp,
+        if (CffiBinValueToObj(ipCtxP->interp,
                                &protoP->returnType,
                                &valuesP[protoP->nParams].u,
                                &resultObj) != TCL_OK)
@@ -445,7 +295,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
         /* Really, should not even come here since should have been caught in
          * prototype parsing */
         (void) Tclh_ErrorInvalidValue(
-            ipContextP->interp, NULL, "Unsupported type for return.");
+            ipCtxP->interp, NULL, "Unsupported type for return.");
         ret = TCL_ERROR;
         break;
     }
@@ -460,7 +310,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
     for (i = 0; i < protoP->nParams; ++i) {
         /* Even on error we keep looping as we have to clean up parameters. */
         if (ret == TCL_OK) {
-            ret = CffiArgPostProcess(ipContextP->interp,
+            ret = CffiArgPostProcess(ipCtxP->interp,
                                      &protoP->params[i].typeAttrs,
                                      &valuesP[i],
                                      varNameObjs[i]);
@@ -470,13 +320,13 @@ CffiFunctionInstanceCmd(ClientData cdata,
 
     if (ret == TCL_OK) {
         Tcl_SetObjResult(ip, resultObj);
-        MemLifoPopFrame(&ipContextP->memlifo);
+        MemLifoPopFrame(&ipCtxP->memlifo);
         return TCL_OK;
     }
 
 pop_and_error:
     /* Jump for error return after popping memlifo with error in interp */
-    MemLifoPopFrame(&ipContextP->memlifo);
+    MemLifoPopFrame(&ipCtxP->memlifo);
     return TCL_ERROR;
 }
 
@@ -491,17 +341,82 @@ pop_and_error:
 static void
 CffiFunctionInstanceDeleter(ClientData cdata)
 {
-    CffiProto *protoP = (CffiProto *)cdata;
-    /* Note protoP->cdlP->vmP and protoP->cdlP->dlP not to be deleted here. */
-    CffiProtoCleanup(protoP);
-    CffiProtoFree(protoP);
+    CffiFunction *fnP = (CffiFunction *)cdata;
+    CffiProtoUnref(fnP->protoP);
+    ckfree(fnP);
 }
 
-/* Function: CffiOneFunction
- * Creates a single command mapped to a function in a DLL.
+static CffiResult
+CffiFunctionInstanceCmd(ClientData cdata,
+                        Tcl_Interp *ip,
+                        int objc,
+                        Tcl_Obj *const objv[])
+{
+    return CffiFunctionCall(cdata, ip, 1, objc, objv);
+}
+
+/* Function: CffiDefineOneFunction
+ * Creates a single command mapped to a function.
  *
  * Parameters:
  *    ctxP - pointer to the context in which function is to be called
+ *    fnAddr - address of function
+ *    cmdNameObj - name to give to command
+ *    returnTypeObj - function return type definition
+ *    paramsObj - list of parameter type definitions
+ *    callMode - a dyncall call mode that overrides one specified
+ *               in the return type definition if anything other
+ *               than DC_CALL_C_DEFAULT
+ *
+ * *paramsObj* is a list of alternating parameter name and
+ * type definitions. The return and parameter type definitions are in the
+ * form expected by CffiTypeAndAttrsParse.
+ *
+ * Returns:
+ * Returns TCL_OK on success and TCL_ERROR on failure with error message
+ * in the interpreter.
+ */
+static CffiResult
+CffiDefineOneFunction(Tcl_Interp *ip,
+                      CffiCallVmCtx *vmCtxP,
+                      void *fnAddr,
+                      Tcl_Obj *cmdNameObj,
+                      Tcl_Obj *returnTypeObj,
+                      Tcl_Obj *paramsObj,
+                      int callMode)
+{
+    Tcl_Obj *fqnObj;
+    CffiProto *protoP = NULL;
+    CffiFunction *fnP = NULL;
+
+    CHECK(CffiPrototypeParse(
+        vmCtxP->ipCtxP, cmdNameObj, returnTypeObj, paramsObj, &protoP));
+    if (callMode != DC_CALL_C_DEFAULT)
+        protoP->returnType.typeAttrs.callMode = callMode;
+
+    fnP = ckalloc(sizeof(*fnP));
+    fnP->fnAddr = fnAddr;
+    fnP->vmCtxP = vmCtxP;
+    CffiProtoRef(protoP);
+    fnP->protoP = protoP;
+    fqnObj = CffiQualifyName(ip, cmdNameObj);
+    Tcl_IncrRefCount(fqnObj);
+
+    Tcl_CreateObjCommand(ip,
+                         Tcl_GetString(fqnObj),
+                         CffiFunctionInstanceCmd,
+                         fnP,
+                         CffiFunctionInstanceDeleter);
+
+    Tcl_DecrRefCount(fqnObj);
+    return TCL_OK;
+}
+
+/* Function: CffiDefineOneFunctionFromLib
+ * Creates a single command mapped to a function in a DLL.
+ *
+ * Parameters:
+ *    ctxP - pointer to the library context
  *    nameObj - pair function name and optional Tcl name
  *    returnTypeObj - function return type definition
  *    paramsObj - list of parameter type definitions
@@ -518,16 +433,15 @@ CffiFunctionInstanceDeleter(ClientData cdata)
  * in the interpreter.
  */
 static CffiResult
-CffiOneFunction(Tcl_Interp *ip,
-                 CffiLibCtx *libCtxP,
-                 Tcl_Obj *nameObj,
-                 Tcl_Obj *returnTypeObj,
-                 Tcl_Obj *paramsObj,
-                 int callMode)
+CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
+                             CffiLibCtx *libCtxP,
+                             Tcl_Obj *nameObj,
+                             Tcl_Obj *returnTypeObj,
+                             Tcl_Obj *paramsObj,
+                             int callMode)
 {
-    CffiProto *protoP = NULL;
     void *fn;
-    Tcl_Obj *fqnObj;
+    Tcl_Obj *cmdNameObj;
     Tcl_Obj **nameObjs;    /* C name and optional Tcl name */
     int nNames;         /* # elements in nameObjs */
 
@@ -539,25 +453,18 @@ CffiOneFunction(Tcl_Interp *ip,
     if (fn == NULL)
         return Tclh_ErrorNotFound(ip, "Symbol", nameObjs[0], NULL);
 
-    CHECK(CffiProtoParse(libCtxP, nameObjs[0], returnTypeObj, paramsObj, fn, &protoP));
-    if (callMode != DC_CALL_C_DEFAULT)
-        protoP->returnType.typeAttrs.callMode = callMode;
-
     if (nNames < 2 || ! strcmp("", Tcl_GetString(nameObjs[1])))
-        fqnObj = CffiQualifyName(ip, nameObjs[0]);
+        cmdNameObj = nameObjs[0];
     else
-        fqnObj = CffiQualifyName(ip, nameObjs[1]);
-    Tcl_IncrRefCount(fqnObj);
+        cmdNameObj = nameObjs[1];
 
-    Tcl_CreateObjCommand(ip,
-                         Tcl_GetString(fqnObj),
-                         CffiFunctionInstanceCmd,
-                         protoP,
-                         CffiFunctionInstanceDeleter);
-
-    Tcl_DecrRefCount(fqnObj);
-    return TCL_OK;
-
+    return CffiDefineOneFunction(ip,
+                                 libCtxP->vmCtxP,
+                                 fn,
+                                 cmdNameObj,
+                                 returnTypeObj,
+                                 paramsObj,
+                                 callMode);
 }
 
 /* Function: CffiDyncallFunctionCmd
@@ -586,7 +493,7 @@ CffiDyncallFunctionCmd(Tcl_Interp *ip,
 {
     CFFI_ASSERT(objc == 5);
 
-    return CffiOneFunction(
+    return CffiDefineOneFunctionFromLib(
         ip, ctxP, objv[2], objv[3], objv[4], DC_CALL_C_DEFAULT);
 }
 
@@ -619,8 +526,15 @@ CffiDyncallStdcallCmd(Tcl_Interp *ip,
 {
     CFFI_ASSERT(objc == 5);
 
-    return CffiOneFunction(
-        ip, ctxP, objv[2], objv[3], objv[4], DC_CALL_C_X86_WIN32_STD);
+    return CffiDefineOneFunctionFromLib(
+        ip, ctxP, objv[2], objv[3], objv[4],
+#if defined(_WIN32) && !defined(_WIN64)
+        DC_CALL_C_X86_WIN32_STD
+#else
+        DC_CALL_C_DEFAULT
+#endif
+        );
+
 }
 
 
@@ -664,7 +578,7 @@ CffiDyncallManyFunctionsCmd(Tcl_Interp *ip,
     }
 
     for (i = 0; i < nobjs; i += 3) {
-        ret = CffiOneFunction(ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
+        ret = CffiDefineOneFunctionFromLib(ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
         /* TBD - if one fails, rest are not defined but prior ones are */
         if (ret != TCL_OK)
             return ret;
@@ -1841,7 +1755,7 @@ CffiAliasDefineCmd(CffiInterpCtx *ipCtxP,
 
     CFFI_ASSERT(objc == 4);
 
-    heP = Tcl_FindHashEntry(&ipCtxP->typeAliases, objv[2]);
+    heP = Tcl_FindHashEntry(&ipCtxP->aliases, objv[2]);
     if (heP)
         return Tclh_ErrorExists(ip, "Type or alias", objv[2], NULL);
     return CffiAliasAdd(ipCtxP, objv[2], objv[3]);
@@ -1858,7 +1772,7 @@ CffiAliasBodyCmd(CffiInterpCtx *ipCtxP,
 
     CFFI_ASSERT(objc == 3);
 
-    heP = Tcl_FindHashEntry(&ipCtxP->typeAliases, objv[2]);
+    heP = Tcl_FindHashEntry(&ipCtxP->aliases, objv[2]);
     if (heP == NULL)
         return Tclh_ErrorNotFound(ip, "Type or alias", objv[2], NULL);
     typeAttrsP = Tcl_GetHashValue(heP);
@@ -1875,7 +1789,7 @@ CffiAliasListCmd(CffiInterpCtx *ipCtxP,
     Tcl_HashEntry *heP;
     Tcl_HashSearch hSearch;
     const char *pattern;
-    Tcl_HashTable *typedefsP = &ipCtxP->typeAliases;
+    Tcl_HashTable *typedefsP = &ipCtxP->aliases;
     Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
 
     pattern = objc > 2 ? Tcl_GetString(objv[2]) : NULL;
@@ -1915,7 +1829,7 @@ CffiAliasDeleteCmd(CffiInterpCtx *ipCtxP,
     Tcl_HashEntry *heP;
     Tcl_HashSearch hSearch;
     const char *pattern;
-    Tcl_HashTable *tableP = &ipCtxP->typeAliases;
+    Tcl_HashTable *tableP = &ipCtxP->aliases;
 
     CFFI_ASSERT(objc == 3);
     heP = Tcl_FindHashEntry(tableP, objv[2]);
@@ -1943,6 +1857,7 @@ CffiAliasDeleteCmd(CffiInterpCtx *ipCtxP,
 
     return TCL_OK;
 }
+
 
 static CffiResult
 CffiAliasObjCmd(ClientData cdata,
@@ -2111,12 +2026,46 @@ CffiPointerObjCmd(ClientData cdata,
     }
 }
 
+static CffiResult
+CffiCallObjCmd(ClientData cdata,
+               Tcl_Interp *ip,
+               int objc,
+               Tcl_Obj *const objv[])
+{
+    Tcl_Obj *protoNameObj;
+    CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
+    CffiProto *protoP;
+    CffiFunction *fnP;
+    CffiResult ret;
+    void *fnAddr;
+
+    CHECK_NARGS(ip, 2, INT_MAX, "FNPTR ?ARG ...?");
+    CHECK(Tclh_PointerObjGetTag(ip, objv[1], &protoNameObj));
+    CHECK(Tclh_PointerUnwrap(ip, objv[1], &fnAddr, NULL));
+    if (protoNameObj == NULL
+        || (protoP = CffiProtoGet(vmCtxP->ipCtxP, protoNameObj)) == NULL) {
+        return Tclh_ErrorNotFound(
+            ip, "Prototype", protoNameObj, "Function prototype not found.");
+    }
+
+    fnP = ckalloc(sizeof(*fnP));
+    fnP->fnAddr = fnAddr;
+    fnP->vmCtxP = vmCtxP;
+    CffiProtoRef(protoP);
+    fnP->protoP = protoP;
+
+    ret = CffiFunctionCall(fnP, ip, 2, objc, objv);
+
+    CffiProtoUnref(protoP);
+    ckfree(fnP);
+    return ret;
+}
 
 static CffiResult
 CffiSandboxObjCmd(ClientData cdata,
-                   Tcl_Interp *ip,
-                   int objc,
-                   Tcl_Obj *const objv[])
+                  Tcl_Interp *ip,
+                  int objc,
+                  Tcl_Obj *const objv[])
 {
     unsigned long long ull;
 
@@ -2148,7 +2097,8 @@ void CffiFinit(ClientData cdata, Tcl_Interp *ip)
     if (vmCtxP->vmP)
         dcFree(vmCtxP->vmP);
     if (vmCtxP->ipCtxP) {
-        CffiAliasesCleanup(&vmCtxP->ipCtxP->typeAliases);
+        CffiAliasesCleanup(&vmCtxP->ipCtxP->aliases);
+        CffiPrototypesCleanup(&vmCtxP->ipCtxP->prototypes);
         MemLifoClose(&vmCtxP->ipCtxP->memlifo);
         ckfree(vmCtxP->ipCtxP);
     }
@@ -2178,7 +2128,8 @@ Cffi_Init(Tcl_Interp *ip)
 
     ipCtxP = ckalloc(sizeof(*ipCtxP));
     ipCtxP->interp = ip;
-    Tcl_InitObjHashTable(&ipCtxP->typeAliases);
+    Tcl_InitObjHashTable(&ipCtxP->aliases);
+    Tcl_InitObjHashTable(&ipCtxP->prototypes);
 
     /* TBD - size 16000 too much? */
     if (MemLifoInit(
@@ -2197,6 +2148,10 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::dyncall::Symbols", CffiSymbolsObjCmd, NULL, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Struct", CffiStructObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::call", CffiCallObjCmd, vmCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::prototype", CffiPrototypeObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::memory", CffiMemoryObjCmd, NULL, NULL);
     Tcl_CreateObjCommand(

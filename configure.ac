@@ -74,6 +74,7 @@ TEA_SETUP_COMPILER
 DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiTypes.c \
+                     generic/tclCffiPrototype.c \
                      generic/memlifo.c \
                      generic/tclCffiTest.c])
 TEA_ADD_HEADERS([])
