@@ -1085,7 +1085,6 @@ namespace eval ${NS}::test {
 
     }
 
-
     # Other return types are not permitted - test here. Note it does not
     # matter that actual C prototype does not match what we define here since
     # the definition should barf anyways.

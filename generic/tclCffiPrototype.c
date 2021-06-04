@@ -211,6 +211,75 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
     return TCL_OK;
 }
 
+static CffiResult
+CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
+                       Tcl_Interp *ip,
+                       int objc,
+                       Tcl_Obj *const objv[])
+{
+    Tcl_HashEntry *heP;
+    Tcl_HashSearch hSearch;
+    const char *pattern;
+    CffiProto *protoP;
+    Tcl_HashTable *tableP;
+
+    tableP = &ipCtxP->prototypes;
+
+    CFFI_ASSERT(objc == 3);
+    heP = Tcl_FindHashEntry(tableP, objv[2]);
+    if (heP) {
+        protoP = Tcl_GetHashValue(heP);
+        CffiProtoUnref(protoP);
+        Tcl_DeleteHashEntry(heP);
+        return TCL_OK;
+    }
+
+    /* Check if glob pattern */
+    pattern = Tcl_GetString(objv[2]);
+    for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
+         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
+        Tcl_Obj *key = Tcl_GetHashKey(tableP, heP);
+        if (Tcl_StringMatch(Tcl_GetString(key), pattern)) {
+            protoP = Tcl_GetHashValue(heP);
+            CffiProtoUnref(protoP);
+            Tcl_DeleteHashEntry(heP);
+        }
+    }
+
+    return TCL_OK;
+}
+
+static CffiResult
+CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
+                     Tcl_Interp *ip,
+                     int objc,
+                     Tcl_Obj *const objv[])
+{
+    Tcl_HashEntry *heP;
+    Tcl_HashSearch hSearch;
+    const char *pattern;
+    Tcl_HashTable *tableP = &ipCtxP->prototypes;
+    Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
+
+    pattern = objc > 2 ? Tcl_GetString(objv[2]) : NULL;
+    for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
+         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
+        /* If a pattern was specified, only return those */
+        if (pattern) {
+            Tcl_Obj *key = Tcl_GetHashKey(tableP, heP);
+            if (! Tcl_StringMatch(Tcl_GetString(key), pattern))
+                continue;
+        }
+
+        Tcl_ListObjAppendElement(ipCtxP->interp,
+                                 resultObj,
+                                 (Tcl_Obj *)Tcl_GetHashKey(tableP, heP));
+    }
+    Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    return TCL_OK;
+}
+
+
 void
 CffiPrototypesCleanup(Tcl_HashTable *protoTableP)
 {
@@ -233,14 +302,14 @@ CffiPrototypeObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     static const Tclh_SubCommand subCommands[] = {
-        {"function", 3, 3, "NAME RETURN PARAMS", CffiPrototypeDefineCmd},
-        {"stdcall", 3, 3, "NAME RETURN PARAMS", CffiPrototypeDefineCmd},
-        #if 0
-        {"body", 1, 1, "ALIAS", CffiAliasBodyCmd},
-        {"delete", 1, 1, "PATTERN", CffiAliasDeleteCmd},
-        {"list", 0, 1, "?PATTERN?", CffiAliasListCmd},
-        {"load", 1, 1, "ALIASSET", CffiAliasLoadCmd},
-        #endif
+        {"function", 3, 3, "NAME RETURNTYPE PARAMDEFS", NULL},
+        {"stdcall", 3, 3, "NAME RETURNTYPE PARAMDEFS", NULL},
+        {"delete", 1, 1, "PATTERN", CffiPrototypeDeleteCmd},
+        {"list", 0, 1, "?PATTERN?", CffiPrototypeListCmd},
+#ifdef NOTYET
+        {"body", 1, 1, "ALIAS", NULL},
+        {"bind", 2, 2, "NAME FNPTR", NULL},
+#endif
         {NULL}
     };
 

@@ -539,6 +539,18 @@ EXTERN int structCheck(struct SimpleStruct *in, signed char c, long long ll, sho
     return in->c == c && in->ll == ll && in->s == s;
 }
 
+struct StructWithFunc {
+    unsigned char c;
+    void *fn;
+};
+EXTERN void *
+getStructWithFunc(unsigned char c, void *in, struct StructWithFunc *out)
+{
+    out->fn = in;
+    out->c  = c;
+    return in;
+}
+
 EXTERN void getEinvalString(char *bufP)
 {
     strcpy(bufP, strerror(EINVAL));

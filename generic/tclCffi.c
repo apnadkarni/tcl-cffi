@@ -131,6 +131,10 @@ CffiFunctionCall(ClientData cdata,
     CFFI_ASSERT(ip == ipCtxP->interp);
     CFFI_ASSERT(objc >= objArgIndex);
 
+    /* TBD - check memory executable permissions */
+    if ((uintptr_t) fnP->fnAddr < 0xffff)
+        return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
+
     if ((objc - objArgIndex) != protoP->nParams) {
         Tcl_Obj *syntaxObj = Tcl_NewListObj(protoP->nParams+2, NULL);
         Tcl_ListObjAppendElement(

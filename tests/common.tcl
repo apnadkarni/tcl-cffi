@@ -64,6 +64,7 @@ namespace eval cffi::test {
         scalarchars {Declarations of type chars, unichars and bytes must be arrays.}
         structbyref {Parameters of type struct must have the byref annotation.}
         arrayreturn {Function return type declaration must not specify an array.}
+        namesyntax {Invalid name syntax.}
     }
 
     cffi::Struct create ::cffi::test::InnerTestStruct {

@@ -20,15 +20,15 @@ namespace eval cffi::test {
 
     test alias-define-error-0 "Invalid alias syntax - starting with numeric" -body {
         cffi::alias define 0alias int
-    } -result "Invalid value \"0alias\". Invalid type alias name syntax." -returnCodes error
+    } -result "Invalid value \"0alias\". $errorMessages(namesyntax)" -returnCodes error
 
     test alias-define-error-1 "Invalid alias syntax - invalid char" -body {
         cffi::alias define al-ias int
-    } -result "Invalid value \"al-ias\". Invalid type alias name syntax." -returnCodes error
+    } -result "Invalid value \"al-ias\". $errorMessages(namesyntax)" -returnCodes error
 
     test alias-define-error-2 "Invalid alias syntax - array" -body {
         cffi::alias define {xx[2]} int
-    } -result "Invalid value \"xx\[2\]\". Invalid type alias name syntax." -returnCodes error
+    } -result "Invalid value \"xx\[2\]\". $errorMessages(namesyntax)" -returnCodes error
 
     test alias-define-error-3 "Invalid alias - built in type" -body {
         cffi::alias define schar int

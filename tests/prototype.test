@@ -1,0 +1,186 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains tests for cffi::prototype and cffi::call pertaining to
+# definition and invocation of functions through pointers.
+
+source [file join [file dirname [info script]] common.tcl]
+
+
+namespace eval ${NS}::test {
+    testsubcmd prototype
+    testnumargs prototype-function "prototype function" "NAME RETURNTYPE PARAMDEFS" ""
+    testnumargs prototype-stdcall "prototype stdcall" "NAME RETURNTYPE PARAMDEFS" ""
+
+    test prototype-function-0 "Basic prototype" -setup {
+        set addr [testDll addressof int_to_int]
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype function itoi int {x int}
+        cffi::call [makeptr $addr itoi] 42
+    } -result 42
+    test prototype-function-1 "Function pointer from struct" -setup {
+        cffi::prototype function itoi int {x int}
+        set addr [testDll addressof int_to_int]
+        cffi::Struct create ::StructWithFunc {c uchar fnptr pointer.itoi}
+        testDll function getStructWithFunc {pointer.itoi unsafe} {c uchar p {pointer unsafe} s {struct.StructWithFunc out}}
+        set fnptr [getStructWithFunc 99 [makeptr $addr] out]
+    } -cleanup {
+        rename ::StructWithFunc ""
+        cffi::prototype delete *
+    } -body {
+        list \
+            [cffi::call $fnptr 42] \
+            [cffi::call [dict get $out fnptr] 43]
+    } -result [list 42 43]
+
+    test prototype-stdcall-0 "Basic prototype - stdcall" -setup {
+        set addr [testDll addressof stdcalltest]
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype stdcall dbldiv double {a double b double}
+        cffi::call [makeptr $addr dbldiv] 1 2
+    } -result 0.5
+    test prototype-stdcall-1 "Function pointer from struct - stdcall" -setup {
+        cffi::prototype stdcall dbldiv double {a double b double}
+        set addr [testDll addressof stdcalltest    ]
+        cffi::Struct create ::StructWithFunc {c uchar fnptr pointer.dbldiv}
+        testDll function getStructWithFunc {pointer.dbldiv unsafe} {c uchar p {pointer unsafe} s {struct.StructWithFunc out}}
+        set fnptr [getStructWithFunc 99 [makeptr $addr] out]
+    } -cleanup {
+        rename ::StructWithFunc ""
+        cffi::prototype delete *
+    } -body {
+        list \
+            [cffi::call $fnptr 1 2] \
+            [cffi::call [dict get $out fnptr] 1 4]
+    } -result [list 0.5 0.25]
+
+    foreach mode {function stdcall} {
+        test prototype-${mode}-error-0 "Invalid prototype syntax - starting with numeric" -body {
+            cffi::prototype ${mode} 0name void {}
+        } -result "Invalid value \"0name\". $errorMessages(namesyntax)" -returnCodes error
+        test prototype-${mode}-error-1 "Invalid prototype syntax - invalid char" -body {
+            cffi::prototype ${mode} proto-name void {}
+        } -result "Invalid value \"proto-name\". $errorMessages(namesyntax)" -returnCodes error
+        test prototype-${mode}-error-2 "Invalid prototype - existing" -setup {
+            cffi::prototype ${mode} PROTOTYPE void {}
+        } -cleanup {
+            cffi::prototype delete *
+        } -body {
+            cffi::prototype ${mode} PROTOTYPE void {}
+        } -result {Prototype "PROTOTYPE" already exists. } -returnCodes error
+
+    }
+
+    # prototype list
+    testnumargs prototype-list "prototype list" "" "?PATTERN?"
+
+    test prototype-list-0 "prototype list empty" -body {
+        cffi::prototype list
+    } -result [list ]
+    test prototype-list-1 "prototype list" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        lsort [cffi::prototype list]
+    } -result [list Function Stdcall]
+    test prototype-list-2 "prototype list exact" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype function F int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        lsort [cffi::prototype list F]
+    } -result [list F ]
+    test prototype-list-3 "prototype list glob" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype function F int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        lsort [cffi::prototype list F* ]
+    } -result [list F Function]
+    test prototype-list-4 "prototype list nomatch" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype function F int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        lsort [cffi::prototype list x* ]
+    } -result [list ]
+
+    # prototype delete
+    testnumargs prototype-delete "prototype delete" "PATTERN" ""
+    test prototype-delete-0 "prototype delete exact" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype function F int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype delete F
+        lsort [cffi::prototype list]
+    } -result [list Function Stdcall]
+    test prototype-delete-1 "prototype delete glob" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype function F int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype delete F*
+        lsort [cffi::prototype list]
+    } -result [list Stdcall]
+    test prototype-delete-2 "prototype delete nomatch" -setup {
+        cffi::prototype delete *
+        cffi::prototype function Function int {x int}
+        cffi::prototype function F int {x int}
+        cffi::prototype stdcall Stdcall int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype delete Fx*
+        lsort [cffi::prototype list]
+    } -result [list F Function Stdcall]
+
+
+    # Call command
+
+    test call-error-0 "Call null pointer" -setup {
+        cffi::prototype function itoi int {x int}
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::call [makeptr 0 itoi] 42
+    } -result "Invalid value. Function pointer not in executable page." -returnCodes error
+
+    test call-error-1 "Call with wrong num args" -setup {
+        set addr [testDll addressof int_to_int]
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype function itoi int {x int}
+        cffi::call [makeptr $addr itoi]
+    } -result "Syntax: cffi::call [makeptr [testDll addressof int_to_int] itoi] x" -returnCodes error
+
+
+}
+
+${NS}::test::testDll destroy
+
+::tcltest::cleanupTests
+namespace delete ${NS}::test
