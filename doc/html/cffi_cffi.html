@@ -531,6 +531,47 @@ package require cffi
 <h5 class='ruff'>Description</h5><p class='ruff'>An empty string is returned if the pointer is not tagged.</p>
 <p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Pointers" title="Pointers" >Pointers</a> for more on pointer tags.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the pointer tag</p>
+<h4 class='ruffproc'><a name='::cffi::prototype delete'>prototype delete</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Deletes prototypes matching a pattern.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>prototype delete</span> <span class='ruff_arg'>pattern</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>Pattern to match.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The pattern matching algorithm is the same as that of Tcl's <code>string match</code> command. It is not an error if the pattern does not match any prototypes.</p>
+<h4 class='ruffproc'><a name='::cffi::prototype function'>prototype function</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Defines a function prototype for calling a function using the default C calling convention.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>prototype function</span> <span class='ruff_arg'>name fntype parameters</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>name</code></td><td class='ruff_defitem'>Name for the prototype. Must begin with an alphabetic character and may contain alphanumerics and underscore.</td></tr>
+<tr><td class='ruff_defitem'><code>fntype</code></td><td class='ruff_defitem'>The type definition for the return value from the function.</td></tr>
+<tr><td class='ruff_defitem'><code>parameters</code></td><td class='ruff_defitem'>List of alternating parameter name and type definitions.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The <code>$fntype</code> and <code>$parameters</code> take the same form and have the same semantics as described for the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="dyncall::Library.function" class='ruff_cmd'>dyncall::Library.function</a> method for defining functions. However, unlike that method, this command does not create a command for invoking a C function. It only defines a prototype that can then be used in conjunction with a C function address to invoke that function.</p>
+<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Function prototypes" title="Function prototypes" >Function prototypes</a> for more details.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="dyncall::Library.function" class='ruff_cmd'>dyncall::Library.function</a></p>
+<h4 class='ruffproc'><a name='::cffi::prototype list'>prototype list</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns a list of prototypes matching the specified pattern.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>prototype list</span> <span class='ruff_arg'>?pattern?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>Pattern to match. Optional, default <code>*</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The pattern matching algorithm is the same as that of Tcl's <code>string match</code> command.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of prototypes matching the specified pattern.</p>
+<h4 class='ruffproc'><a name='::cffi::prototype stdcall'>prototype stdcall</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Defines a function prototype for calling a function using the stdcall calling convention.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>prototype stdcall</span> <span class='ruff_arg'>name fntype parameters</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>name</code></td><td class='ruff_defitem'>Name for the prototype. Must begin with an alphabetic character and may contain alphanumerics and underscore.</td></tr>
+<tr><td class='ruff_defitem'><code>fntype</code></td><td class='ruff_defitem'>The type definition for the return value from the function.</td></tr>
+<tr><td class='ruff_defitem'><code>parameters</code></td><td class='ruff_defitem'>List of alternating parameter name and type definitions.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The <code>$fntype</code> and <code>$parameters</code> take the same form and have the same semantics as described for the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="dyncall::Library.stdcall" class='ruff_cmd'>dyncall::Library.stdcall</a> method for defining functions. However, unlike that method, this command does not create a command for invoking a C function. It only defines a prototype that can then be used in conjunction with a C function address to invoke that function.</p>
+<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Function prototypes" title="Function prototypes" >Function prototypes</a> for more details.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="dyncall::Library.stdcall" class='ruff_cmd'>dyncall::Library.stdcall</a></p>
 <h4 class='ruffproc'><a name='::cffi::type count'>type count</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the count of elements in an array type</p>
@@ -694,6 +735,10 @@ package require cffi
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::pointer list'>pointer list</a><span class='tooltiptext'>Returns a list of registered pointers optionally filtered by a tag.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::pointer safe'>pointer safe</a><span class='tooltiptext'>Registers a pointer as a safe uncounted pointer
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::pointer tag'>pointer tag</a><span class='tooltiptext'>Returns the pointer tag
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::prototype delete'>prototype delete</a><span class='tooltiptext'>Deletes prototypes matching a pattern.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::prototype function'>prototype function</a><span class='tooltiptext'>Defines a function prototype for calling a function using the default C calling convention.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::prototype list'>prototype list</a><span class='tooltiptext'>Returns a list of prototypes matching the specified pattern.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::prototype stdcall'>prototype stdcall</a><span class='tooltiptext'>Defines a function prototype for calling a function using the stdcall calling convention.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::type count'>type count</a><span class='tooltiptext'>Returns the count of elements in an array type
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::type info'>type info</a><span class='tooltiptext'>Returns a dictionary containing various information about a type declaration
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::type size'>type size</a><span class='tooltiptext'>Returns the size of a type in terms of the number of bytes of memory occupied by that type.

@@ -1,0 +1,60 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval ${NS}::prototype {
+    proc function {name fntype parameters} {
+        # Defines a function prototype for calling a function using the default
+        # C calling convention.
+        #  name - Name for the prototype. Must begin with an alphabetic
+        #   character and may contain alphanumerics and underscore.
+        #  fntype - The type definition for the return value from the function
+        #  parameters - List of alternating parameter name and type definitions
+        #
+        # The $fntype and $parameters take the same form and have the same
+        # semantics as described for the [::cffi::dyncall::Library.function] method
+        # for defining functions. However, unlike that method, this command
+        # does not create a command for invoking a C function. It only defines
+        # a prototype that can then be used in conjunction with a C function
+        # address to invoke that function.
+        #
+        # See [Function prototypes] for more details.
+        #
+        # See also:  [::cffi::dyncall::Library.function]
+    }
+    proc stdcall {name fntype parameters} {
+        # Defines a function prototype for calling a function using the stdcall
+        # calling convention.
+        #  name - Name for the prototype. Must begin with an alphabetic
+        #   character and may contain alphanumerics and underscore.
+        #  fntype - The type definition for the return value from the function
+        #  parameters - List of alternating parameter name and type definitions
+        #
+        # The $fntype and $parameters take the same form and have the same
+        # semantics as described for the [::cffi::dyncall::Library.stdcall] method
+        # for defining functions. However, unlike that method, this command
+        # does not create a command for invoking a C function. It only defines
+        # a prototype that can then be used in conjunction with a C function
+        # address to invoke that function.
+        #
+        # See [Function prototypes] for more details.
+        #
+        # See also: [::cffi::dyncall::Library.stdcall]
+    }
+    proc list {{pattern *}} {
+        # Returns a list of prototypes matching the specified pattern.
+        #  pattern - pattern to match
+        # The pattern matching algorithm is the same as that of Tcl's
+        # `string match` command.
+    }
+    proc delete {pattern} {
+        # Deletes prototypes matching a pattern.
+        #  pattern - pattern to match
+        # The pattern matching algorithm is the same as that of Tcl's
+        # `string match` command.
+        # It is not an error if the pattern does not match any prototypes.
+
+    }
+    namespace export *
+    namespace ensemble create
+}
+

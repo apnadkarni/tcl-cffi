@@ -14,6 +14,7 @@ source struct.ruff
 source type.ruff
 source alias.ruff
 source pointer.ruff
+source prototype.ruff
 
 ruff::document [list Concepts $NS ${NS}::dyncall] \
     -output [file join [file dirname [info script]] html $NS.html] \
