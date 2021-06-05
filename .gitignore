@@ -53,6 +53,7 @@ dkms.conf
 
 # PROJECT specific
 generic/NDDocs/**
+generic/NDConfig/**
 win/Release**
 versions.vc
 build*/**

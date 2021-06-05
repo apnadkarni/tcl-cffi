@@ -6,8 +6,6 @@
  */
 
 #include "tclCffiInt.h"
-#include <errno.h>
-#include <sys/types.h>
 
 /* Function: CffiParamCleanup
  * Releases resources associated with a CffiParam

@@ -240,23 +240,24 @@ CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
 CffiResult CffiCallModeParse(Tcl_Interp *ip, Tcl_Obj *modeObj, DCint *modeP);
 
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
-                                              Tcl_Obj *baseTypeObj);
+                                            Tcl_Obj *baseTypeObj);
 CffiResult CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP);
 void CffiTypeCleanup(CffiType *);
 void CffiTypeLayoutInfo(const CffiType *typeP,
-                         int *baseSizeP,
-                         int *sizeP,
-                         int *alignP);
+                        int *baseSizeP,
+                        int *sizeP,
+                        int *alignP);
+void CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP);
 CffiResult CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
-                                   Tcl_Obj *typeAttrObj,
-                                   CffiTypeParseMode parseMode,
-                                   CffiTypeAndAttrs *typeAttrsP);
+                                 Tcl_Obj *typeAttrObj,
+                                 CffiTypeParseMode parseMode,
+                                 CffiTypeAndAttrs *typeAttrsP);
 void CffiTypeAndAttrsCleanup(CffiTypeAndAttrs *typeAttrsP);
 Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
 CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
-                             Tcl_Obj *nameObj,
-                             Tcl_Obj *structObj,
-                             CffiStruct **structPP);
+                           Tcl_Obj *nameObj,
+                           Tcl_Obj *structObj,
+                           CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiArgPrepare(CffiCallVmCtx *vmCtxP,
                           const CffiTypeAndAttrs *paramP,
@@ -285,17 +286,17 @@ CffiResult CffiStructFromObj(Tcl_Interp *ip,
                              Tcl_Obj *structValueObj,
                              void *resultP);
 CffiResult CffiStructToObj(Tcl_Interp *ip,
-                             const CffiStruct *structP,
-                             void *valueP,
-                             Tcl_Obj **valueObjP);
+                           const CffiStruct *structP,
+                           void *valueP,
+                           Tcl_Obj **valueObjP);
 CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 const CffiTypeAndAttrs *typeAttrsP,
                                 void *valueP,
                                 Tcl_Obj **valueObjP);
 CffiResult CffiPointerToObj(Tcl_Interp *ip,
-                              const CffiTypeAndAttrs *typeAttrsP,
-                              void *pointer,
-                              Tcl_Obj **resultObjP);
+                            const CffiTypeAndAttrs *typeAttrsP,
+                            void *pointer,
+                            Tcl_Obj **resultObjP);
 CffiResult CffiPointerFromObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_Obj *pointerObj,
@@ -311,9 +312,9 @@ CffiResult CffiArgPrepareUniString(Tcl_Interp *ip,
                                    int nUnichars,
                                    CffiValue *valueP);
 CffiResult CffiExternalStringToObj(Tcl_Interp *ip,
-                              const CffiTypeAndAttrs *typeAttrsP,
-                              Tcl_DString *dsP,
-                              Tcl_Obj **resultObjP);
+                                   const CffiTypeAndAttrs *typeAttrsP,
+                                   Tcl_DString *dsP,
+                                   Tcl_Obj **resultObjP);
 CffiResult CffiUniStringToObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_DString *dsP,
@@ -335,10 +336,10 @@ CffiResult CffiArgPrepareUniChars(CffiInterpCtx *ipCtxP,
                                   Tcl_Obj *valueObj,
                                   CffiValue *valueP);
 CffiResult CffiArgPrepareBinary(Tcl_Interp *ip,
-                               const CffiTypeAndAttrs *typeAttrsP,
-                               Tcl_Obj *valueObj,
-                               int memory_size,
-                               CffiValue *valueP);
+                                const CffiTypeAndAttrs *typeAttrsP,
+                                Tcl_Obj *valueObj,
+                                int memory_size,
+                                CffiValue *valueP);
 CffiResult
 CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
 CffiResult CffiArgPrepareBytes(CffiInterpCtx *ipCtxP,
@@ -347,8 +348,8 @@ CffiResult CffiArgPrepareBytes(CffiInterpCtx *ipCtxP,
                                CffiValue *valueP);
 void CffiArgCleanup(const CffiTypeAndAttrs *typeAttrsP, CffiValue *valueP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
-                              CffiValue *valueP,
-                              const CffiTypeAndAttrs *typeAttrsP);
+                            CffiValue *valueP,
+                            const CffiTypeAndAttrs *typeAttrsP);
 CffiResult CffiReportRequirementError(Tcl_Interp *ip,
                                       const CffiTypeAndAttrs *typeAttrsP,
                                       Tcl_WideInt value,
@@ -356,15 +357,19 @@ CffiResult CffiReportRequirementError(Tcl_Interp *ip,
                                       Tcl_WideInt sysError,
                                       const char *message);
 Tcl_WideInt CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
-                                 Tcl_WideInt winError);
+                                Tcl_WideInt winError);
 Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);
 
+int CffiAliasGet(CffiInterpCtx *ipCtxP,
+                 Tcl_Obj *aliasNameObj,
+                 CffiTypeAndAttrs *typeAttrP);
 CffiResult
 CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj);
 CffiResult CffiAliasAddStr(CffiInterpCtx *ipCtxP,
-                               const char *nameStr,
-                               const char *typedefStr);
+                           const char *nameStr,
+                           const char *typedefStr);
 int CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP);
+void CffiAliasesCleanup(Tcl_HashTable *typeAliasTableP);
 
 CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                               Tcl_Obj *fnNameObj,
@@ -374,10 +379,21 @@ CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
 void CffiProtoUnref(CffiProto *protoP);
 void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
 CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
+
+CffiResult CffiFunctionCall(ClientData cdata,
+                            Tcl_Interp *ip,
+                            int objArgIndex, /* Where in objv[] args start */
+                            int objc,
+                            Tcl_Obj *const objv[]);
+
+Tcl_ObjCmdProc CffiAliasObjCmd;
+Tcl_ObjCmdProc CffiDyncallLibraryObjCmd;
+Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
+Tcl_ObjCmdProc CffiMemoryObjCmd;
+Tcl_ObjCmdProc CffiPointerObjCmd;
 Tcl_ObjCmdProc CffiPrototypeObjCmd;
-
-
-
+Tcl_ObjCmdProc CffiStructObjCmd;
+Tcl_ObjCmdProc CffiTypeObjCmd;
 
 /* TBD - move these to Tclh headers */
 typedef struct Tclh_SubCommand {

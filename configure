@@ -4894,8 +4894,13 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 
     vars="generic/tclCffi.c \
-                     generic/tclCffiTypes.c \
+                     generic/tclCffiAlias.c \
+                     generic/tclCffiDyncall.c \
+                     generic/tclCffiMemory.c \
+                     generic/tclCffiPointer.c \
                      generic/tclCffiPrototype.c \
+                     generic/tclCffiStruct.c \
+                     generic/tclCffiTypes.c \
                      generic/memlifo.c \
                      generic/tclCffiTest.c"
     for i in $vars; do

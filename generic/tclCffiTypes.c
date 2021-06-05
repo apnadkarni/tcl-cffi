@@ -8,7 +8,6 @@
 #define TCLH_SHORTNAMES
 #include "tclCffiInt.h"
 #include <errno.h>
-#include <sys/types.h>
 
 /*
  * Basic type meta information. The order *MUST* match the order in
@@ -615,7 +614,7 @@ CffiTypeLayoutInfo(const CffiType *typeP,
  * toP - pointer to structure to initialize. Contents are overwritten.
  * fromP - if non-NULL, the structure to use for initialization.
  */
-static void
+void
 CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
 {
     if (fromP) {
@@ -632,36 +631,6 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
         toP->flags       = 0;
         CffiTypeInit(&toP->dataType, NULL);
     }
-}
-
-/* Function: CffiAliasGet
- * Checks for the existence of a type definition and returns its internal form.
- *
- * Parameters:
- *   ipCtxP - Interpreter context
- *   aliasNameObj - typedef name
- *   typeAttrP - pointer to structure to hold parsed information. Note this
- *               structure is *overwritten*, not merged.
- *
- * Returns:
- * If a type definition of the specified name is found, it is stored
- * in *typeAttrP* and the function returns 1. Otherwise, the function
- * returns 0.
- */
-static int
-CffiAliasGet(CffiInterpCtx *ipCtxP,
-             Tcl_Obj *aliasNameObj,
-             CffiTypeAndAttrs *typeAttrP)
-{
-    Tcl_HashEntry *heP;
-    CffiTypeAndAttrs *heValueP;
-
-    heP = Tcl_FindHashEntry(&ipCtxP->aliases, aliasNameObj);
-    if (heP == NULL)
-        return 0;
-    heValueP = Tcl_GetHashValue(heP);
-    CffiTypeAndAttrsInit(typeAttrP, heValueP);
-    return 1;
 }
 
 /* Function: CffiTypeAndAttrsParse
@@ -3400,232 +3369,70 @@ invalid_alias_syntax:
     return Tclh_ErrorInvalidValue(ip, nameObj, "Invalid name syntax.");
 }
 
-/* Function: CffiAliasAdd
- * Adds a new type definition, overwriting any existing ones.
- *
- * The alias must not match a base type name.
- *
- * Parameters:
- * ipCtxP - interpreter context
- * nameObj - typedef to add
- * typedefObj - type definition
- *
- * Returns:
- *
- */
 CffiResult
-CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj)
+CffiTypeObjCmd(ClientData cdata,
+                Tcl_Interp *ip,
+                int objc,
+                Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-    CffiTypeAndAttrs *typeAttrsP;
-    const unsigned char *nameP; /* NOTE *unsigned* char for isalpha etc.*/
-    int new_entry;
-    const CffiBaseTypeInfo *baseTypeInfoP;
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
+    CffiTypeAndAttrs typeAttrs;
+    CffiResult ret;
+    enum cmdIndex { INFO, SIZE, COUNT };
+    int cmdIndex;
+    int size, alignment;
+    int parse_mode;
+    static const Tclh_SubCommand subCommands[] = {
+        {"info", 1, 2, "TYPE ?PARSEMODE?", NULL},
+        {"size", 1, 1, "TYPE", NULL},
+        {"count", 1, 1, "TYPE", NULL},
+        {NULL}
+    };
 
-    nameP = (unsigned char*) Tcl_GetString(nameObj);
+    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
 
-    for (baseTypeInfoP = &cffiBaseTypes[0]; baseTypeInfoP->token;
-         ++baseTypeInfoP) {
-        if (!strcmp(baseTypeInfoP->token, (char *)nameP)) {
-            return Tclh_ErrorExists(
-                ipCtxP->interp, "Type or alias", nameObj, NULL);
+    /* For type info, check if a parse mode is specified */
+    parse_mode = -1;
+    if (cmdIndex == INFO && objc == 4) {
+        const char *s = Tcl_GetString(objv[3]);
+        if (*s == '\0')
+            parse_mode = -1;
+        else if (!strcmp(s, "param"))
+            parse_mode = CFFI_F_TYPE_PARSE_PARAM;
+        else if (!strcmp(s, "return"))
+            parse_mode = CFFI_F_TYPE_PARSE_RETURN;
+        else if (!strcmp(s, "field"))
+            parse_mode = CFFI_F_TYPE_PARSE_FIELD;
+        else
+            return Tclh_ErrorInvalidValue(ip, objv[3], "Invalid parse mode.");
+    }
+    ret = CffiTypeAndAttrsParse(ipCtxP, objv[2], parse_mode, &typeAttrs);
+    if (ret == TCL_ERROR)
+        return ret;
+
+    if (cmdIndex == COUNT) {
+        /* type nelems */
+        Tcl_SetObjResult(ip, Tcl_NewIntObj(typeAttrs.dataType.count));
+    }
+    else {
+        CffiTypeLayoutInfo(&typeAttrs.dataType, NULL, &size, &alignment);
+        if (cmdIndex == SIZE)
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(size));
+        else {
+            /* type info */
+            Tcl_Obj *objs[8];
+            objs[0] = Tcl_NewStringObj("size", 4);
+            objs[1] = Tcl_NewIntObj(size);
+            objs[2] = Tcl_NewStringObj("count", 5);
+            objs[3] = Tcl_NewIntObj(typeAttrs.dataType.count);
+            objs[4] = Tcl_NewStringObj("alignment", 9);
+            objs[5] = Tcl_NewIntObj(alignment);
+            objs[6] = Tcl_NewStringObj("definition", 10);
+            objs[7] = CffiTypeAndAttrsUnparse(&typeAttrs);
+            Tcl_SetObjResult(ip, Tcl_NewListObj(8, objs));
         }
     }
 
-    CHECK(CffiNameSyntaxCheck(ipCtxP->interp, nameObj));
-
-    typeAttrsP = ckalloc(sizeof(*typeAttrsP));
-    if (CffiTypeAndAttrsParse(ipCtxP,
-                               typedefObj,
-                               CFFI_F_TYPE_PARSE_PARAM
-                                   | CFFI_F_TYPE_PARSE_RETURN
-                                   | CFFI_F_TYPE_PARSE_FIELD,
-                               typeAttrsP)
-        != TCL_OK) {
-        ckfree(typeAttrsP);
-        return TCL_ERROR;
-    }
-
-    heP = Tcl_CreateHashEntry(&ipCtxP->aliases, (char *) nameObj, &new_entry);
-    if (! new_entry) {
-        CffiTypeAndAttrs *oldP = Tcl_GetHashValue(heP);
-        CffiTypeAndAttrsCleanup(oldP);
-        ckfree(oldP);
-    }
-    Tcl_SetHashValue(heP, typeAttrsP);
-    return TCL_OK;
-}
-
-/* Like CffiAliasAdd but with char* arguments */
-CffiResult
-CffiAliasAddStr(CffiInterpCtx *ipCtxP, const char *nameStr, const char *typedefStr)
-{
-    CffiResult ret;
-    Tcl_Obj *nameObj;
-    Tcl_Obj *typedefObj;
-    nameObj = Tcl_NewStringObj(nameStr, -1);
-    Tcl_IncrRefCount(nameObj);
-    typedefObj = Tcl_NewStringObj(typedefStr, -1);
-    Tcl_IncrRefCount(typedefObj);
-    ret = CffiAliasAdd(ipCtxP, nameObj, typedefObj);
-    Tcl_DecrRefCount(nameObj);
-    Tcl_DecrRefCount(typedefObj);
+    CffiTypeAndAttrsCleanup(&typeAttrs);
     return ret;
-}
-
-/* Function: CffiAddBuiltinAliases
- * Adds predefined type definitions.
- *
- * Parameters:
- * ipCtxP - interpreter context containing typeAliases
- */
-int
-CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
-{
-    const char *s;
-
-#define SIGNEDTYPEINDEX(type_)                                  \
-    do {                                                        \
-        if (sizeof(type_) == sizeof(signed char))               \
-            typeIndex = CFFI_K_TYPE_SCHAR;                     \
-        else if (sizeof(type_) == sizeof(signed short))         \
-            typeIndex = CFFI_K_TYPE_SHORT;                    \
-        else if (sizeof(type_) == sizeof(signed int))           \
-            typeIndex = CFFI_K_TYPE_INT;                      \
-        else if (sizeof(type_) == sizeof(signed long))          \
-            typeIndex = CFFI_K_TYPE_LONG;                     \
-        else if (sizeof(type_) == sizeof(signed long long))     \
-            typeIndex = CFFI_K_TYPE_LONGLONG;                 \
-        else                                                    \
-            CFFI_ASSERT(0);                                    \
-    } while (0)
-
-#define UNSIGNEDTYPEINDEX(type_)                                \
-    do {                                                        \
-        if (sizeof(type_) == sizeof(unsigned char))             \
-            typeIndex = CFFI_K_TYPE_UCHAR;                     \
-        else if (sizeof(type_) == sizeof(unsigned short))       \
-            typeIndex = CFFI_K_TYPE_USHORT;                    \
-        else if (sizeof(type_) == sizeof(unsigned int))         \
-            typeIndex = CFFI_K_TYPE_UINT;                      \
-        else if (sizeof(type_) == sizeof(unsigned long))        \
-            typeIndex = CFFI_K_TYPE_ULONG;                     \
-        else if (sizeof(type_) == sizeof(unsigned long long))   \
-            typeIndex = CFFI_K_TYPE_ULONGLONG;                 \
-        else                                                    \
-            CFFI_ASSERT(0);                                    \
-    } while (0)
-
-#define ADDTYPEINDEX(newtype_, existingIndex_)                            \
-    do {                                                                  \
-        if (CffiAliasAddStr(                                           \
-                ipCtxP, #newtype_, cffiBaseTypes[existingIndex_].token) \
-            != TCL_OK)                                                    \
-            return TCL_ERROR;                                             \
-    } while (0)
-
-#define ADDINTTYPE(type_)                                                    \
-    do {                                                                     \
-        enum CffiBaseType typeIndex;                                        \
-        type_ val = (type_)-1;                                               \
-        if (val < 0)                                                         \
-            SIGNEDTYPEINDEX(type_);                                          \
-        else                                                                 \
-            UNSIGNEDTYPEINDEX(type_);                                        \
-        ADDTYPEINDEX(type_, typeIndex);                                          \
-    } while (0)
-
-    s = Tcl_GetString(objP);
-
-    if (!strcmp(s, "C")) {
-        ADDINTTYPE(size_t);
-        ADDINTTYPE(int8_t);
-        ADDINTTYPE(uint8_t);
-        ADDINTTYPE(int16_t);
-        ADDINTTYPE(uint16_t);
-        ADDINTTYPE(int32_t);
-        ADDINTTYPE(uint32_t);
-        ADDINTTYPE(int64_t);
-        ADDINTTYPE(uint64_t);
-    }
-#ifdef _WIN32
-    else if (!strcmp(s, "win32")) {
-        ADDINTTYPE(BOOL);
-        ADDINTTYPE(BOOLEAN);
-        ADDINTTYPE(CHAR);
-        ADDINTTYPE(BYTE);
-        ADDINTTYPE(WORD);
-        ADDINTTYPE(DWORD);
-        ADDINTTYPE(DWORD_PTR);
-        ADDINTTYPE(DWORDLONG);
-        ADDINTTYPE(HALF_PTR);
-        ADDINTTYPE(INT);
-        ADDINTTYPE(INT_PTR);
-        ADDINTTYPE(LONG);
-        ADDINTTYPE(LONGLONG);
-        ADDINTTYPE(LONG_PTR);
-        ADDINTTYPE(LPARAM);
-        ADDINTTYPE(LRESULT);
-        ADDINTTYPE(SHORT);
-        ADDINTTYPE(SIZE_T);
-        ADDINTTYPE(SSIZE_T);
-        ADDINTTYPE(UCHAR);
-        ADDINTTYPE(UINT);
-        ADDINTTYPE(UINT_PTR);
-        ADDINTTYPE(ULONG);
-        ADDINTTYPE(ULONGLONG);
-        ADDINTTYPE(ULONG_PTR);
-        ADDINTTYPE(USHORT);
-        ADDINTTYPE(WPARAM);
-
-        if (CffiAliasAddStr(ipCtxP, "LPVOID", "pointer") != TCL_OK)
-            return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, "HANDLE", "pointer.HANDLE") != TCL_OK)
-            return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, "LPSTR", "string") != TCL_OK)
-            return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, "LPWSTR", "unistring") != TCL_OK)
-            return TCL_ERROR;
-    }
-#endif
-    else if (!strcmp(s, "posix")) {
-        /* sys/types.h */
-#ifdef _WIN32
-        /* POSIX defines on Windows */
-        ADDINTTYPE(time_t);
-        ADDINTTYPE(ino_t);
-        ADDINTTYPE(off_t);
-        ADDINTTYPE(dev_t);
-#else
-        ADDINTTYPE(blkcnt_t);
-        ADDINTTYPE(blksize_t);
-        ADDINTTYPE(clock_t);
-#ifdef NOTYET
-        /* MacOS Catalina does not define this. Should we keep it in? */
-        ADDINTTYPE(clockid_t);
-#endif
-        ADDINTTYPE(dev_t);
-        ADDINTTYPE(fsblkcnt_t);
-        ADDINTTYPE(fsfilcnt_t);
-        ADDINTTYPE(gid_t);
-        ADDINTTYPE(id_t);
-        ADDINTTYPE(ino_t);
-        ADDINTTYPE(key_t);
-        ADDINTTYPE(mode_t);
-        ADDINTTYPE(nlink_t);
-        ADDINTTYPE(off_t);
-        ADDINTTYPE(pid_t);
-        ADDINTTYPE(size_t);
-        ADDINTTYPE(ssize_t);
-        ADDINTTYPE(suseconds_t);
-        ADDINTTYPE(time_t);
-        ADDINTTYPE(uid_t);
-#endif
-    }
-    else {
-        return Tclh_ErrorInvalidValue(
-            ipCtxP->interp, objP, "Unknown predefined alias set.");
-    }
-
-    return TCL_OK;
 }
