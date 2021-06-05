@@ -17,7 +17,7 @@ namespace eval ${NS}::prototype {
         # a prototype that can then be used in conjunction with a C function
         # address to invoke that function.
         #
-        # See [Function prototypes] for more details.
+        # See [Prototypes and function pointers] for more details.
         #
         # See also:  [::cffi::dyncall::Library.function]
     }
@@ -36,7 +36,7 @@ namespace eval ${NS}::prototype {
         # a prototype that can then be used in conjunction with a C function
         # address to invoke that function.
         #
-        # See [Function prototypes] for more details.
+        # See [Prototypes and function pointers] for more details.
         #
         # See also: [::cffi::dyncall::Library.stdcall]
     }

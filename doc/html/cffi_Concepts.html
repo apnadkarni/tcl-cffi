@@ -350,7 +350,7 @@ ruff_defitem {
 <p class='ruff'>This section describes the various data types supported by the package and their relation to C types. At runtime, the <a href="cffi_cffi.html#::cffi::type info" title="::cffi::type info" class='ruff_cmd'>::cffi::type info</a>, <a href="cffi_cffi.html#::cffi::type size" title="::cffi::type size" class='ruff_cmd'>::cffi::type size</a> and <a href="cffi_cffi.html#::cffi::type count" title="::cffi::type count" class='ruff_cmd'>::cffi::type count</a> commands may be used to obtain information about a type.</p>
 <h3 class='ruff'><a name='::Concepts-The void type'></a>The void type<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>This corresponds to the C <code>void</code> type and is only permitted as the return type in a function prototype. Note that the C <code>void *</code> type is declared as a <a href="cffi_Concepts.html#::Concepts-Pointers" title="pointer" >pointer</a> type.</p>
+<p class='ruff'>This corresponds to the C <code>void</code> type and is only permitted as the return type of a function. Note that the C <code>void *</code> type is declared as a <a href="cffi_Concepts.html#::Concepts-Pointers" title="pointer" >pointer</a> type.</p>
 <h3 class='ruff'><a name='::Concepts-Numeric types'></a>Numeric types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The following numeric types are supported.</p>
@@ -377,7 +377,7 @@ TYPE[N]
 <p class='ruff'>where <code>N</code> is a positive integer indicating the number of elements in an array of values of type <code>TYPE</code>. At the script level, arrays are represented as Tcl lists.</p>
 <h3 class='ruff'><a name='::Concepts-Pointers'></a>Pointers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>Pointers are declared in function prototypes or <code>struct</code> fields in one of the following forms:</p>
+<p class='ruff'>Pointers are declared in one of the following forms:</p>
 <pre class='ruff'>
 pointer
 pointer.TAG
@@ -385,14 +385,14 @@ pointer.TAG
 <p class='ruff'>The first is the equivalent of a <code>void*</code> C pointer. The second form associates the pointer type with a tag.</p>
 <h4 class='ruff'><a name='::Concepts-Pointer tags'></a>Pointer tags<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>A pointer tag is used to provide for some measure of type safety. Tags are associated with both pointer values and pointer types declared in function prototypes and <code>struct</code> fields. The tag attached to a pointer value must match the tag for the <code>struct</code> field it is assigned to or the function parameter it is passed as. Otherwise an error is raised.</p>
+<p class='ruff'>A pointer tag is used to provide for some measure of type safety. Tags can be associated with pointer values as well as pointer type declarations. The tag attached to a pointer value must match the tag for the <code>struct</code> field it is assigned to or the function parameter it is passed as. Otherwise an error is raised. Tags also providing a typing mechanism for function pointers. This is described in <a href="cffi_Concepts.html#::Concepts-Prototypes and function pointers" title="Prototypes and function pointers" >Prototypes and function pointers</a>.</p>
 <p class='ruff'>Note however that, although similar, pointer tags are orthogonal to the type system. Any tag may be associated with a pointer type or value, irrespective of the underlying C pointer type.</p>
 <p class='ruff'>Tags for pointer types are defined in the corresponding <code>struct</code> or function declarations. Pointer values are associated with the tags of the type through which they are created. For example, the pointer returned by a function declared as</p>
 <pre class='ruff'>
 function get_path pointer.PATH {}
 </pre>
 <p class='ruff'>will be tagged with <code>PATH</code>. It can then only be assigned to a <code>struct</code> field or passed as a parameter if the corresponding pointer type is also tagged as <code>PATH</code>.</p>
-<p class='ruff'>There are two exceptions to the above. A field or parameter declared as <code>pointer</code> (without a tag) or <code>pointer.void</code> reflects a C <code>void *</code> pointer and will accept pointers with any tag.</p>
+<p class='ruff'>If there is no tag specifed for a pointer field or parameter, it will accept pointer values with any tag analogous to a C <code>void *</code> pointer.</p>
 <h4 class='ruff'><a name='::Concepts-Pointer safety'></a>Pointer safety<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Pointer type checking via tags does not protect against errors related to invalid pointers, double frees etc. To provide some level of protection against these types of errors, pointers returned from functions, either as return values or through output parameters are by default registered in an internal table. These are referred to as <em>safe</em> pointers. Any pointer use is then checked for registration and an error raised if it is not found.</p>
@@ -490,7 +490,7 @@ kernel stdcall HeapCreate pointer.HEAP {opts uint initSize SIZE_T maxSize SIZE_T
 <p class='ruff'>Currently defined type aliases can be listed with the <a href="cffi_cffi.html#::cffi::alias list" title="::cffi::alias list" class='ruff_cmd'>::cffi::alias list</a> command and removed with <a href="cffi_cffi.html#::cffi::alias delete" title="::cffi::alias delete" class='ruff_cmd'>::cffi::alias delete</a>.</p>
 <h2 class='ruff'><a name='::Concepts-Functions'></a>Functions<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
-<p class='ruff'>To invoke a function in a DLL or shared library, the library must first be loaded through the creation of a <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a> wrapper object. The prototype for each function of interest must then be defined through any appropriate method of that object such as <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> or <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="::cffi::dyncall::Library.stdcall" class='ruff_cmd'>::cffi::dyncall::Library.stdcall</a>. This also creates a Tcl command which can then be used to invoke the function.</p>
+<p class='ruff'>To invoke a function in a DLL or shared library, the library must first be loaded through the creation of a <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a> object. The <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> and <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="::cffi::dyncall::Library.stdcall" class='ruff_cmd'>::cffi::dyncall::Library.stdcall</a> methods of the object can then be used to create Tcl commands that wrap individual functions implemented in the library.</p>
 <h3 class='ruff'><a name='::Concepts-Calling conventions'></a>Calling conventions<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The 32-bit Windows platform uses two common calling conventions for functions: the default C calling convention and the stdcall calling convention which is used by most system libraries. These differ in terms of parameter and stack management and it is crucial that the correct convention be used when defining the corresponding FFI.</p>
@@ -500,14 +500,15 @@ kernel stdcall HeapCreate pointer.HEAP {opts uint initSize SIZE_T maxSize SIZE_T
 </ul>
 <p class='ruff'>Other than use of the two separate methods for definition, there is no difference in terms of the function prototype used for definition or the method of invocation.</p>
 <p class='ruff'>Note that this difference in calling convention is only applicable to 32-bit Windows. For other platforms, including 64-bit Windows, <code>stdcall</code> behaves in identical fashion to <code>function</code>.</p>
-<h3 class='ruff'><a name='::Concepts-Function prototypes'></a>Function prototypes<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Function wrappers'></a>Function wrappers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>A function prototype in C defines the types of the parameters and return value from the function. A function prototype as expected by the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> and related methods is similar but permits the type declarations to have annotations that control behaviour and conversion between Tcl and C values.</p>
-<p class='ruff'>A function prototype defined with the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> method takes the form</p>
+<p class='ruff'>The function wrapping methods <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> and <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> have the following syntax:</p>
 <pre class='ruff'>
 DLLOBJ function FNNAME RETTYPE PARAMS
+DLLOBJ stdcall FNNAME RETTYPE PARAMS
 </pre>
-<p class='ruff'>where <code>FNNAME</code> is the name of the function (and an optional Tcl alias), <code>RETTYPE</code> is the function return type declaration and <code>PARAMS</code> is a list of alternating parameter names and type declarations.</p>
+<p class='ruff'>where <code>FNNAME</code> is the name of the function (and an optional Tcl alias), <code>RETTYPE</code> is the function return type declaration and <code>PARAMS</code> is a list of alternating parameter names and type declarations. The type declarations may include annotations that control behaviour and conversion between Tcl and C values.</p>
+<p class='ruff'>The C function may then be invoked as <code>FNNAME</code> like any other Tcl command.</p>
 <h3 class='ruff'><a name='::Concepts-Return types'></a>Return types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>A function return declaration is a type or type alias followed by zero or more annotations. The resolved type must not be a struct or an array including implicit array types <code>string</code>, <code>unistring</code>, <code>chars</code>, <code>unichars</code>, <code>binary</code> and <code>bytes</code>. Note pointers to these are permitted.</p>
@@ -554,11 +555,33 @@ DLLOBJ function FNNAME RETTYPE PARAMS
 </table>
 <p class='ruff'>Any of these annotations can be used with the integer types while the <code>errno</code> and <code>lasterror</code> can be used with pointer types as well.</p>
 <p class='ruff'>At most one of the above error detail retrieval annotations may be specified for a type.</p>
+<h3 class='ruff'><a name='::Concepts-Prototypes and function pointers'></a>Prototypes and function pointers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The function wrapping methods <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> and <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> described earlier bind a function type definition consisting of the return type and parameters with the address of a function as specified by its name. For some uses, it is useful to be able to independently specify the function type information independent of the function address. The <a href="cffi_cffi.html#::cffi::prototype function" title="::cffi::prototype function" class='ruff_cmd'>::cffi::prototype function</a> and <a href="cffi_cffi.html#::cffi::prototype stdcall" title="::cffi::prototype stdcall" class='ruff_cmd'>::cffi::prototype stdcall</a> commands are provided for this purpose. They take a very similar form to the corresponding methods:</p>
+<pre class='ruff'>
+cffi::prototype function NAME RETTYPE PARAMS
+cffi::prototype stdcall NAME RETTYPE PARAMS
+</pre>
+<p class='ruff'>where <code>RETTYPE</code> and <code>PARAMS</code> are as described in <a href="cffi_Concepts.html#::Concepts-Function wrappers" title="Function wrappers" >Function wrappers</a>. The commands result in the creation of a function prototype <code>NAME</code> which can be used as tags for pointers to functions. The <a href="cffi_cffi.html#::cffi::call" title="::cffi::call" class='ruff_cmd'>::cffi::call</a> command can then be used to invoke the pointer target.</p>
+<p class='ruff'>For example, consider the following C fragment</p>
+<pre class='ruff'>
+typedef int ADDER(int, int);
+ADDER *function_returning_adder();
+ADDER *fnptr = function_returning_adder();
+fnptr(1,2);
+</pre>
+<p class='ruff'>This would be translated into Tcl as</p>
+<pre class='ruff'>
+cffi::prototype function ADDER int {x int y int}
+DLLOBJ function function_returning_adder pointer.ADDER {}
+set fnptr [function_returning_adder]
+cffi::call $fnptr 1 2
+</pre>
 </div></div><div class='yui-b navbox' style='position: sticky; top: 0;'><h1><a style='padding-top:2px;' href='cffi.html'>Start page</a></h1>
 <h1><a href='cffi_docindex.html' accesskey='i'>Index</a></h1>
 <hr>
 <h1><a style='color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi_Concepts.html'>Concepts</a></h1>
 <h1><a href='cffi_cffi.html'>cffi</a></h1>
 <h1><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
-<hr><h1><a href='#Concepts'>Concepts</a></h1><h2><a href='#::Concepts-Type declarations'>Type declarations</a></h2><h2><a href='#::Concepts-Data types'>Data types</a></h2><h3><a href='#::Concepts-The void type'>The void type</a></h3><h3><a href='#::Concepts-Numeric types'>Numeric types</a></h3><h3><a href='#::Concepts-Arrays'>Arrays</a></h3><h3><a href='#::Concepts-Pointers'>Pointers</a></h3><h4><a href='#::Concepts-Pointer tags'>Pointer tags</a></h4><h4><a href='#::Concepts-Pointer safety'>Pointer safety</a></h4><h4><a href='#::Concepts-Memory operations'>Memory operations</a></h4><h3><a href='#::Concepts-Strings'>Strings</a></h3><h3><a href='#::Concepts-Binary strings'>Binary strings</a></h3><h3><a href='#::Concepts-Structs'>Structs</a></h3><h2><a href='#::Concepts-Type aliases'>Type aliases</a></h2><h2><a href='#::Concepts-Functions'>Functions</a></h2><h3><a href='#::Concepts-Calling conventions'>Calling conventions</a></h3><h3><a href='#::Concepts-Function prototypes'>Function prototypes</a></h3><h3><a href='#::Concepts-Return types'>Return types</a></h3><h4><a href='#::Concepts-Return annotations'>Return annotations</a></h4><h3><a href='#::Concepts-Parameters'>Parameters</a></h3><h4><a href='#::Concepts-Parameter annotations'>Parameter annotations</a></h4><h3><a href='#::Concepts-Error handling'>Error handling</a></h3><h4><a href='#::Concepts-Error annotations'>Error annotations</a></h4></div></div><div id='ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div></div>
+<hr><h1><a href='#Concepts'>Concepts</a></h1><h2><a href='#::Concepts-Type declarations'>Type declarations</a></h2><h2><a href='#::Concepts-Data types'>Data types</a></h2><h3><a href='#::Concepts-The void type'>The void type</a></h3><h3><a href='#::Concepts-Numeric types'>Numeric types</a></h3><h3><a href='#::Concepts-Arrays'>Arrays</a></h3><h3><a href='#::Concepts-Pointers'>Pointers</a></h3><h4><a href='#::Concepts-Pointer tags'>Pointer tags</a></h4><h4><a href='#::Concepts-Pointer safety'>Pointer safety</a></h4><h4><a href='#::Concepts-Memory operations'>Memory operations</a></h4><h3><a href='#::Concepts-Strings'>Strings</a></h3><h3><a href='#::Concepts-Binary strings'>Binary strings</a></h3><h3><a href='#::Concepts-Structs'>Structs</a></h3><h2><a href='#::Concepts-Type aliases'>Type aliases</a></h2><h2><a href='#::Concepts-Functions'>Functions</a></h2><h3><a href='#::Concepts-Calling conventions'>Calling conventions</a></h3><h3><a href='#::Concepts-Function wrappers'>Function wrappers</a></h3><h3><a href='#::Concepts-Return types'>Return types</a></h3><h4><a href='#::Concepts-Return annotations'>Return annotations</a></h4><h3><a href='#::Concepts-Parameters'>Parameters</a></h3><h4><a href='#::Concepts-Parameter annotations'>Parameter annotations</a></h4><h3><a href='#::Concepts-Error handling'>Error handling</a></h3><h4><a href='#::Concepts-Error annotations'>Error annotations</a></h4><h3><a href='#::Concepts-Prototypes and function pointers'>Prototypes and function pointers</a></h3></div></div><div id='ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div></div>
 </div></body></html>

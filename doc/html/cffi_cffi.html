@@ -387,6 +387,16 @@ package require cffi
 <p class='ruff'>The <code>C</code> predefined alias set includes <code>int8_t</code> <code>uint8_t</code> <code>int16_t</code> <code>uint16_t</code> <code>int32_t</code> <code>uint32_t</code> <code>int64_t</code> <code>uint64_t</code> <code>size_t</code></p>
 <p class='ruff'>The <code>win32</code> predefined alias set includes <code>BOOL</code> <code>BOOLEAN</code> <code>BYTE</code> <code>CHAR</code> <code>DWORD</code> <code>DWORDLONG</code> <code>DWORD_PTR</code> <code>HALF_PTR</code> <code>HANDLE</code> <code>INT</code> <code>INT_PTR</code> <code>LONG</code> <code>LONGLONG</code> <code>LONG_PTR</code> <code>LPARAM</code> <code>LPSTR</code> <code>LPVOID</code> <code>LPWSTR</code> <code>LRESULT</code> <code>SHORT</code> <code>SIZE_T</code> <code>SSIZE_T</code> <code>UCHAR</code> <code>UINT</code> <code>UINT_PTR</code> <code>ULONG</code> <code>ULONGLONG</code> <code>ULONG_PTR</code> <code>USHORT</code> <code>WORD</code> <code>WPARAM</code></p>
 <p class='ruff'>The <code>posix</code> alias set is platform dependent. In POSIX compliant environments, it includes <code>blkcnt_t</code> <code>blksize_t</code> <code>clock_t</code> <code>dev_t</code> <code>fsblkcnt_t</code> <code>fsfilcnt_t</code> <code>gid_t</code> <code>id_t</code> <code>ino_t</code> <code>key_t</code> <code>mode_t</code> <code>nlink_t</code> <code>off_t</code> <code>pid_t</code> <code>size_t</code> <code>ssize_t</code> <code>suseconds_t</code> <code>time_t</code> <code>uid_t</code>. On Windows, it only includes <code>dev_t</code> <code>ino_t</code> <code>off_t</code> <code>time_t</code>.</p>
+<h4 class='ruffproc'><a name='::cffi::call'>call</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Invokes a C function through a function pointer.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>call</span> <span class='ruff_arg'>fnptr ?args?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>fnptr</code></td><td class='ruff_defitem'>A pointer value tagged with a <a href="cffi_Concepts.html#::Concepts-Prototypes and function pointers" title="prototype" >prototype</a></td></tr>
+<tr><td class='ruff_defitem'><code>args</code></td><td class='ruff_defitem'>Additional arguments to pass to the C function.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The passed pointer <code>$fnptr</code> tag must corresponding to a function prototype defined through the <a href="cffi_cffi.html#::cffi::prototype function" title="prototype function" class='ruff_cmd'>prototype function</a> or <a href="cffi_cffi.html#::cffi::prototype stdcall" title="prototype stdcall" class='ruff_cmd'>prototype stdcall</a> commands.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the value returned by the invoked C function.</p>
 <h4 class='ruffproc'><a name='::cffi::memory allocate'>memory allocate</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Allocates memory of the specified size</p>
@@ -549,7 +559,7 @@ package require cffi
 <tr><td class='ruff_defitem'><code>parameters</code></td><td class='ruff_defitem'>List of alternating parameter name and type definitions.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The <code>$fntype</code> and <code>$parameters</code> take the same form and have the same semantics as described for the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="dyncall::Library.function" class='ruff_cmd'>dyncall::Library.function</a> method for defining functions. However, unlike that method, this command does not create a command for invoking a C function. It only defines a prototype that can then be used in conjunction with a C function address to invoke that function.</p>
-<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Function prototypes" title="Function prototypes" >Function prototypes</a> for more details.</p>
+<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Prototypes and function pointers" title="Prototypes and function pointers" >Prototypes and function pointers</a> for more details.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="dyncall::Library.function" class='ruff_cmd'>dyncall::Library.function</a></p>
 <h4 class='ruffproc'><a name='::cffi::prototype list'>prototype list</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -570,7 +580,7 @@ package require cffi
 <tr><td class='ruff_defitem'><code>parameters</code></td><td class='ruff_defitem'>List of alternating parameter name and type definitions.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The <code>$fntype</code> and <code>$parameters</code> take the same form and have the same semantics as described for the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="dyncall::Library.stdcall" class='ruff_cmd'>dyncall::Library.stdcall</a> method for defining functions. However, unlike that method, this command does not create a command for invoking a C function. It only defines a prototype that can then be used in conjunction with a C function address to invoke that function.</p>
-<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Function prototypes" title="Function prototypes" >Function prototypes</a> for more details.</p>
+<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Prototypes and function pointers" title="Prototypes and function pointers" >Prototypes and function pointers</a> for more details.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="dyncall::Library.stdcall" class='ruff_cmd'>dyncall::Library.stdcall</a></p>
 <h4 class='ruffproc'><a name='::cffi::type count'>type count</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -721,6 +731,7 @@ package require cffi
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias delete'>alias delete</a><span class='tooltiptext'>Deletes type aliases matching a pattern.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias list'>alias list</a><span class='tooltiptext'>Returns a list of aliases matching the specified pattern.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias load'>alias load</a><span class='tooltiptext'>Loads predefined type aliases.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::call'>call</a><span class='tooltiptext'>Invokes a C function through a function pointer.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory allocate'>memory allocate</a><span class='tooltiptext'>Allocates memory of the specified size
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory free'>memory free</a><span class='tooltiptext'>Frees the memory referenced by the passed pointer
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory frombinary'>memory frombinary</a><span class='tooltiptext'>Allocates memory and copied the passed Tcl binary string into it.

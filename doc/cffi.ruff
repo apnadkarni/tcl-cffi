@@ -14,5 +14,17 @@ namespace eval $NS {
         package require cffi
         ````
     }
+
+    proc call {fnptr args} {
+        # Invokes a C function through a function pointer.
+        #  fnptr - A pointer value tagged with a [prototype][::Concepts::Prototypes and function pointers]
+        #  args - additional arguments to pass to the C function
+        #
+        # The passed pointer $fnptr tag must corresponding to a function
+        # prototype defined through the [prototype function] or
+        # [prototype stdcall] commands.
+        #
+        # Returns the value returned by the invoked C function.
+    }
 }
 

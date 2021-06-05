@@ -36,7 +36,7 @@ namespace eval Concepts {
         ### The void type
 
         This corresponds to the C `void` type and is only permitted as the
-        return type in a function prototype. Note that the C `void *` type
+        return type of a function. Note that the C `void *` type
         is declared as a [pointer][Pointers] type.
 
         ### Numeric types
@@ -68,8 +68,7 @@ namespace eval Concepts {
 
         ### Pointers
 
-        Pointers are declared in function prototypes or `struct` fields
-        in one of the following forms:
+        Pointers are declared in one of the following forms:
 
         ````
         pointer
@@ -81,13 +80,12 @@ namespace eval Concepts {
 
         #### Pointer tags
 
-        A pointer tag is used to provide
-        for some measure of type safety.
-        Tags are associated with
-        both pointer values and pointer types declared in function prototypes
-        and `struct` fields. The tag attached to a pointer value must match
-        the tag for the `struct` field it is assigned to or the function parameter
-        it is passed as. Otherwise an error is raised.
+        A pointer tag is used to provide for some measure of type safety. Tags
+        can be associated with pointer values as well as pointer type
+        declarations. The tag attached to a pointer value must match the tag for
+        the `struct` field it is assigned to or the function parameter it is
+        passed as. Otherwise an error is raised. Tags also providing a typing
+        mechanism for function pointers. This is described in [Prototypes and function pointers].
 
         Note however that, although similar, pointer tags are orthogonal to the
         type system. Any tag may be associated with a pointer type or value,
@@ -104,9 +102,8 @@ namespace eval Concepts {
         field or passed as a parameter if the corresponding pointer type is
         also tagged as `PATH`.
 
-        There are two exceptions to the above. A field or parameter declared
-        as `pointer` (without a tag) or `pointer.void` reflects a C `void *`
-        pointer and will accept pointers with any tag.
+        If there is no tag specifed for a pointer field or parameter, it will
+        accept pointer values with any tag analogous to a C `void *` pointer.
 
         #### Pointer safety
 
@@ -343,11 +340,11 @@ namespace eval Concepts {
         ## Functions
 
         To invoke a function in a DLL or shared library, the library must first
-        be loaded through the creation of a [::cffi::dyncall::Library] wrapper object. The
-        prototype for each function of interest must then be defined through any
-        appropriate method of that object such as [::cffi::dyncall::Library.function] or
-        [::cffi::dyncall::Library.stdcall]. This also creates a Tcl command which can then
-        be used to invoke the function.
+        be loaded through the creation of a [::cffi::dyncall::Library] object.
+        The [::cffi::dyncall::Library.function] and
+        [::cffi::dyncall::Library.stdcall] methods of the object can then be
+        used to create Tcl commands that wrap individual functions implemented
+        in the library.
 
         ### Calling conventions
 
@@ -370,24 +367,24 @@ namespace eval Concepts {
         32-bit Windows. For other platforms, including 64-bit Windows, `stdcall`
         behaves in identical fashion to `function`.
 
-        ### Function prototypes
+        ### Function wrappers
 
-        A function prototype in C defines the types of the parameters and return
-        value from the function. A function prototype as expected by the
-        [::cffi::dyncall::Library.function] and related methods is similar but permits
-        the type declarations to have annotations that control behaviour and
-        conversion between Tcl and C values.
-
-        A function prototype defined with the [::cffi::dyncall::Library.function] method
-        takes the form
+        The function wrapping methods
+        [function][::cffi::dyncall::Library.function] and
+        [stdcall][::cffi::dyncall::Library.stdcall] have the following syntax:
 
         ```
         DLLOBJ function FNNAME RETTYPE PARAMS
+        DLLOBJ stdcall FNNAME RETTYPE PARAMS
         ```
 
         where `FNNAME` is the name of the function (and an optional Tcl alias),
         `RETTYPE` is the function return type declaration and `PARAMS` is
         a list of alternating parameter names and type declarations.
+        The type declarations may include annotations that control behaviour and
+        conversion between Tcl and C values.
+
+        The C function may then be invoked as `FNNAME` like any other Tcl command.
 
         ### Return types
 
@@ -516,6 +513,48 @@ namespace eval Concepts {
 
         At most one of the above error detail retrieval annotations may be
         specified for a type.
+
+        ### Prototypes and function pointers
+
+        The function wrapping methods
+        [function][::cffi::dyncall::Library.function] and
+        [stdcall][::cffi::dyncall::Library.stdcall] described earlier bind a
+        function type definition consisting of the return type and parameters
+        with the address of a function as specified by its name. For some uses,
+        it is useful to be able to independently specify the function type
+        information independent of the function address. The
+        [::cffi::prototype function] and [::cffi::prototype stdcall] commands
+        are provided for this purpose. They take a very similar form to
+        the corresponding methods:
+
+        ```
+        cffi::prototype function NAME RETTYPE PARAMS
+        cffi::prototype stdcall NAME RETTYPE PARAMS
+        ```
+
+        where `RETTYPE` and `PARAMS` are as described in
+        [Function wrappers]. The commands result in the creation of
+        a function prototype `NAME` which can be used as tags for pointers
+        to functions. The [::cffi::call] command can then be used to invoke
+        the pointer target.
+
+        For example, consider the following C fragment
+
+        ```
+        typedef int ADDER(int, int);
+        ADDER *function_returning_adder();
+        ADDER *fnptr = function_returning_adder();
+        fnptr(1,2);
+        ```
+
+        This would be translated into Tcl as
+
+        ```
+        cffi::prototype function ADDER int {x int y int}
+        DLLOBJ function function_returning_adder pointer.ADDER {}
+        set fnptr [function_returning_adder]
+        cffi::call $fnptr 1 2
+        ```
     }
 }
 
