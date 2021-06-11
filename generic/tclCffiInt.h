@@ -301,6 +301,8 @@ CffiResult CffiPointerFromObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_Obj *pointerObj,
                               void **pointerP);
+CffiResult
+CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP);
 CffiResult CffiArgPrepareString(Tcl_Interp *ip,
                                 const CffiTypeAndAttrs *typeAttrsP,
                                 Tcl_Obj *valueObj,

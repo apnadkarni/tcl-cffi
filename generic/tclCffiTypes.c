@@ -2352,16 +2352,8 @@ CffiArgPrepareString(Tcl_Interp *ip,
          * internal UTF8 is not exactly UTF8
          */
         if (typeAttrsP->dataType.u.tagObj) {
-            if (Tcl_GetEncodingFromObj(
-                    ip, typeAttrsP->dataType.u.tagObj, &encoding)
-                != TCL_OK) {
-                /* Should not really happen since check should have happened at
-                 * prototype parsing time */
-                return Tclh_ErrorNotFound(ip,
-                                          "encoding",
-                                          typeAttrsP->dataType.u.tagObj,
-                                          "Encoding not found.");
-            }
+            CHECK(Tcl_GetEncodingFromObj(
+                ip, typeAttrsP->dataType.u.tagObj, &encoding));
         }
         else
             encoding = NULL;
@@ -2621,7 +2613,7 @@ CffiCharsFromObj(
     if (encObj) {
         /* Should not really fail since check should have happened at
          * prototype parsing time */
-        CHECK(Tcl_GetEncodingFromObj(ip, encObj, &encoding));
+        CHECK(CffiGetEncodingFromObj(ip, encObj, &encoding));
     }
     else
         encoding = NULL;

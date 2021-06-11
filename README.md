@@ -15,3 +15,7 @@ https://sourceforge.net/projects/magicsplat/files/cffi
 
 To build the package from the source, see the BUILD.md file in the repository
 or source distribution.
+
+## Changes in v1.0a4
+
+Added the `prototype` and `call` commands.

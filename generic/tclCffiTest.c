@@ -359,6 +359,11 @@ EXTERN void *pointer_errno(void *p) {
     errno = EINVAL;
     return p;
 }
+EXTERN void *pointer_reflect(void *in, void **outP) {
+    *outP = in;
+    return in;
+}
+
 #ifdef _WIN32
 EXTERN void *pointer_lasterror(void *p)
 {

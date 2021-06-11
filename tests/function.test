@@ -373,6 +373,8 @@ namespace eval ${NS}::test {
 
 
     # string.encoding
+    # Note: do not include ascii for jis0208 encoding tests.
+    # See https://core.tcl-lang.org/tcl/tktview/9bad909c6ed4691bcad1886d710a923791a524a2
     set val \u543e
     set encoded 8c
     set bufsize 100000

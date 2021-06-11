@@ -104,6 +104,35 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Function: CffiGetEncodingFromObj
+ * Gets the Tcl_Encoding named by the passed object
+ *
+ * Parameters:
+ * ip - interpreter
+ * encObj - name of encoding
+ * encP - pointer where to store the encoding
+ *
+ * This function is a wrapper around Tcl_GetEncodingFromObj to treat an
+ * empty string same as the default encoding.
+ *
+ * Returns:
+ * *TCL_OK* on success with encoding stored in Tcl_Encoding, otherwise
+ * *TCL_ERROR* with error message in interpreter.
+ */
+CffiResult
+CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP)
+{
+    int len;
+    /*
+     * Use Tcl_GetStringFromObj because Tcl_GetCharLength will shimmer
+     */
+    (void)Tcl_GetStringFromObj(encObj, &len);
+    if (len)
+        CHECK(Tcl_GetEncodingFromObj(ip, encObj, encP));
+    else
+        *encP = NULL; /* Use default */
+    return TCL_OK;
+}
 
 static CffiResult
 CffiCallObjCmd(ClientData cdata,

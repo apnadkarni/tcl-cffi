@@ -17,6 +17,7 @@ namespace eval ${NS}::memory {
         #  pointer - safe pointer to memory to free
         # The memory must have been allocated using [memory allocate],
         # [memory frombinary] or one of the methods of a [Struct] object.
+        # Null pointers are silently ignored.
         #
         # See also: "memory allocate"
     }
@@ -30,6 +31,18 @@ namespace eval ${NS}::memory {
         #
         # Returns a safe pointer to the allocated memory.
     }
+    proc fromstring {value {encoding {}}} {
+        # Allocates memory and stores a Tcl string in it in the specified encoding.
+        #  value - Tcl string value
+        #  encoding - the encoding to use for conversion. If unspecified or
+        #    the empty string, the system encoding is used.
+        #
+        # The returned memory must be eventually freed by calling [memory free].
+        #
+        # See also: "memory tostring" "memory tostring!"
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
     proc tobinary {pointer size} {
         # Returns the content of a memory block as a Tcl binary string.
         #  pointer - safe pointer to memory
@@ -37,7 +50,6 @@ namespace eval ${NS}::memory {
         #
         # See also: "memory tobinary!" "memory frombinary"
         #
-        # Returns the binary string containing bytes from the memory block.
     }
     proc tobinary! {pointer size} {
         # Returns the content of a memory block as a Tcl binary string.
@@ -48,8 +60,31 @@ namespace eval ${NS}::memory {
         # of $pointer and should be used with care.
         #
         # See also: "memory tobinary" "memory frombinary"
+    }
+    proc tostring {pointer {encoding {}}} {
+        # Returns the content of a memory block as a Tcl string.
+        #  pointer - safe pointer to memory
+        #  encoding - the encoding to use for conversion. If unspecified or
+        #    the empty string, the system encoding is used.
         #
-        # Returns the binary string containing bytes from the memory block.
+        # See also: "memory tostring!" "memory fromstring"
+    }
+    proc tostring! {pointer {encoding {}}} {
+        # Returns the content of a memory block as a Tcl string.
+        #  pointer - pointer to memory
+        #  encoding - the encoding to use for conversion. If unspecified or
+        #    the empty string, the system encoding is used.
+        #
+        # Unlike the [memory tostring] method, this does not check the validity
+        # of $pointer and should be used with care.
+        #
+        # See also: "memory tostring!" "memory fromstring"
+    }
+    proc set {pointer bytevalue count} {
+        # Sets the memory locations to a specified value
+        #  pointer - safe pointer to memory
+        #  bytevalue - a value in the range `0`-`255`
+        #  count - number of bytes to be set
     }
     namespace export *
     namespace ensemble create

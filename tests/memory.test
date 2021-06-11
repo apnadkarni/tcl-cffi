@@ -92,6 +92,179 @@ namespace eval cffi::test {
         binary scan [cffi::memory tobinary! $p [string length $bin]] d3 bin2
         set bin2
     } -result {1.0 2.0 3.0}
+    test memory-tobinary-error-0 "tobinary null pointer" -body {
+        cffi::memory tobinary 0^ 1
+    } -result {Pointer 0x0+\^ is not registered.} -returnCodes error -match regexp
+    test memory-tobinary!-error-0 "tobinary! null pointer" -body {
+        cffi::memory tobinary! 0^ 1
+    } -result {Pointer is NULL.} -returnCodes error
+
+    ###
+
+    testnumargs memory-tostring "cffi::memory tostring" "POINTER" "?ENCODING?"
+    testnumargs memory-tostring! "cffi::memory tostring" "POINTER" "?ENCODING?"
+    testnumargs memory-fromstring "cffi::memory fromstring" "STRING" "?ENCODING?"
+    set num -1
+    test memory-string-[incr num] "To/from string - safe, no optional args" -body {
+        set p [cffi::memory fromstring abc]
+        list \
+            [cffi::pointer isvalid $p] \
+            [cffi::memory tostring $p] \
+            [cffi::memory free $p]
+    } -result [list 1 abc {}]
+    test memory-string!-$num "To/from string! - safe, no optional args" -body {
+        set p [cffi::memory fromstring abc]
+        list \
+            [cffi::pointer isvalid $p] \
+            [cffi::memory tostring! $p] \
+            [cffi::memory free $p]
+    } -result [list 1 abc {}]
+    test memory-string-[incr num] "To/from string - unsafe, no optional args" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::pointer dispose $p
+        list \
+            [cffi::pointer isvalid $p] \
+            [catch {cffi::memory tostring $p} result] \
+            [string match {Pointer 0x*^ is not registered.} $result] \
+            [cffi::pointer safe $p] \
+            [cffi::memory free $p]
+    } -result [list 0 1 1 {} {}]
+    test memory-string!-$num "To/from string! - unsafe, no optional args" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::pointer dispose $p
+        list \
+            [cffi::pointer isvalid $p] \
+            [cffi::memory tostring! $p] \
+            [cffi::pointer safe $p] \
+            [cffi::memory free $p]
+    } -result [list 0 abc {} {}]
+    # Encoding tests
+    # Note: do not include ascii for jis0208 encoding tests.
+    # See https://core.tcl-lang.org/tcl/tktview/9bad909c6ed4691bcad1886d710a923791a524a2
+    set repeat 100000
+    foreach {val encoding} \
+        [list \
+             "abc" {} \
+             "" {} \
+             "abc\xe0\xe1\xe2" cp1252 \
+             "\u543e" jis0208 \
+            ] \
+        {
+            test memory-string-[incr num] "To/from string - safe $encoding" -body {
+                set p [cffi::memory fromstring $val $encoding]
+                list \
+                    [cffi::pointer isvalid $p] \
+                    [cffi::memory tostring $p $encoding] \
+                    [cffi::memory free $p]
+            } -result [list 1 $val {}]
+            test memory-string!-$num "To/from string! - unsafe $encoding" -body {
+                set p [cffi::memory fromstring $val $encoding]
+                cffi::pointer dispose $p
+                list \
+                    [cffi::pointer isvalid $p] \
+                    [cffi::memory tostring! $p $encoding] \
+                    [cffi::pointer safe $p] \
+                    [cffi::memory free $p]
+            } -result [list 0 $val {} {}]
+            test memory-string-[incr num] "To/from long string - safe $encoding" -body {
+                set p [cffi::memory fromstring [string repeat $val $repeat] $encoding]
+                list \
+                    [cffi::pointer isvalid $p] \
+                    [cffi::memory tostring $p $encoding] \
+                    [cffi::memory free $p]
+            } -result [list 1 [string repeat $val $repeat] {}]
+            test memory-string-$num "To/from long string! - unsafe $encoding" -body {
+                set p [cffi::memory fromstring [string repeat $val $repeat] $encoding]
+                cffi::pointer dispose $p
+                list \
+                    [cffi::pointer isvalid $p] \
+                    [cffi::memory tostring! $p $encoding] \
+                    [cffi::pointer safe $p] \
+                    [cffi::memory free $p]
+            } -result [list 0 [string repeat $val $repeat] {} {}]
+    }
+    test memory-tostring-error-0 "tostring null pointer" -body {
+        cffi::memory tostring 0^ 1
+    } -result {Pointer 0x0+\^ is not registered.} -returnCodes error -match regexp
+    test memory-tostring!-error-0 "tostring! null pointer" -body {
+        cffi::memory tostring! 0^ 1
+    } -result {Pointer is NULL.} -returnCodes error
+
+    ###
+    # memory set
+    testnumargs memory-set "::cffi::memory set" "POINTER BYTEVALUE COUNT" ""
+    test memory-set-0 {memory set} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory set $p 1 2
+        cffi::memory tobinary $p 2
+    } -result \x01\x01
+    test memory-set-0 {memory set 0 bytes} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory set $p 1 0
+        cffi::memory tobinary $p 2
+    } -result \x00\xff
+    test memory-set-2 {memory set lowest value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory set $p 0 2
+        cffi::memory tobinary $p 2
+    } -result \x00\x00
+    test memory-set-3 {memory set highest value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory set $p 255 2
+        cffi::memory tobinary $p 2
+    } -result \xFF\xFF
+    test memory-set-error-0 {memory set negative bytes} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory set $p 1 -1} result] \
+            $result \
+            [cffi::memory tobinary $p 2]
+    } -result [list 1 {Value -1 not in range. Must be within [0,2147483647].} \x00\xFF]
+    test memory-set-error-1 {memory set > int-max bytes} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory set $p 1 2147483648} result] \
+            $result \
+            [cffi::memory tobinary $p 2]
+    } -result [list 1 {Value 2147483648 not in range. Must be within [0,2147483647].} \x00\xFF]
+    test memory-set-error-2 {memory set negative value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory set $p -1 1} result] \
+            $result \
+            [cffi::memory tobinary $p 2]
+    } -result [list 1 {Value -1 not in range. Must be within [0,255].} \x00\xFF]
+    test memory-set-error-3 {memory set too high value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory set $p 256 1} result] \
+            $result \
+            [cffi::memory tobinary $p 2]
+    } -result [list 1 {Value 256 not in range. Must be within [0,255].} \x00\xFF]
 }
 
 ::tcltest::cleanupTests
