@@ -65,6 +65,8 @@ namespace eval cffi::test {
         structbyref {Parameters of type struct must have the byref annotation.}
         arrayreturn {Function return type declaration must not specify an array.}
         namesyntax {Invalid name syntax.}
+        attrparamdir {One or more annotations are invalid for the parameter direction.}
+        defaultdisallowed {Defaults are not allowed in this declaration context.}
     }
 
     cffi::Struct create ::cffi::test::InnerTestStruct {

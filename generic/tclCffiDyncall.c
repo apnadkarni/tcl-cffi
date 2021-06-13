@@ -223,6 +223,7 @@ CffiFunctionCall(ClientData cdata,
     CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
     DCCallVM *vmP         = fnP->vmCtxP->vmP;
     Tcl_Obj *const *argObjs;
+    int nArgObjs;
     Tcl_Obj *resultObj = NULL;
     int i;
     CffiValue *valuesP;
@@ -231,14 +232,17 @@ CffiFunctionCall(ClientData cdata,
     Tcl_Obj **varNameObjs;
 
     CFFI_ASSERT(ip == ipCtxP->interp);
-    CFFI_ASSERT(objc >= objArgIndex);
 
     /* TBD - check memory executable permissions */
     if ((uintptr_t) fnP->fnAddr < 0xffff)
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
 
-    if ((objc - objArgIndex) != protoP->nParams) {
-        Tcl_Obj *syntaxObj = Tcl_NewListObj(protoP->nParams+2, NULL);
+    CFFI_ASSERT(objc >= objArgIndex);
+    nArgObjs = objc - objArgIndex;
+    if (nArgObjs > protoP->nParams) {
+numargs_error:
+        Tcl_Obj *syntaxObj;
+        syntaxObj = Tcl_NewListObj(protoP->nParams + 2, NULL);
         Tcl_ListObjAppendElement(
             NULL, syntaxObj, Tcl_NewStringObj("Syntax:", -1));
         for (i = 0; i < objArgIndex; ++i)
@@ -249,6 +253,11 @@ CffiFunctionCall(ClientData cdata,
         (void) Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(syntaxObj));
         Tcl_DecrRefCount(syntaxObj);
         return TCL_ERROR;
+    }
+    /* If less args than parameters, check remaining have a default. */
+    for (i = nArgObjs; i < protoP->nParams; ++i) {
+        if (protoP->params[i].typeAttrs.defaultObj == NULL)
+            goto numargs_error;
     }
 
     argObjs = objv + objArgIndex;
@@ -281,9 +290,16 @@ CffiFunctionCall(ClientData cdata,
 
     /* Set up parameters. */
     for (i = 0; i < protoP->nParams; ++i) {
+        Tcl_Obj *valueObj;
+        if (i < nArgObjs)
+            valueObj = argObjs[i];
+        else {
+            valueObj = protoP->params[i].typeAttrs.defaultObj;
+            CFFI_ASSERT(valueObj); /* Since already checked earlier */
+        }
         if (CffiArgPrepare(fnP->vmCtxP,
                            &protoP->params[i].typeAttrs,
-                           argObjs[i],
+                           valueObj,
                            &valuesP[i],
                            &varNameObjs[i])
             != TCL_OK) {

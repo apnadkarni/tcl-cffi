@@ -393,6 +393,7 @@ int Tclh_ObjToLongLong(Tcl_Interp *interp, Tcl_Obj *objP, signed long long *llP)
 int
 Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
 {
+    Tcl_WideInt wide;
     /*
      * Tcl_GetWideIntFromObj has several issues:
      * - it ignores whitespace
@@ -432,16 +433,14 @@ Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
             }
         }
     }
-    else {
-        Tcl_WideInt wide;
-        if (Tcl_GetWideIntFromObj(interp, objP, &wide) != TCL_OK)
-            return TCL_ERROR;
-        if (wide >= 0) {
-            *ullP = (unsigned long long)wide;
-            return TCL_OK;
-        }
-        /* Assume it was originally negative and not a +ve reinterpretation */
+    /* No string rep, get the stored integer value */
+    if (Tcl_GetWideIntFromObj(interp, objP, &wide) != TCL_OK)
+        return TCL_ERROR; /* Not an integer at all */
+    if (wide >= 0) {
+        *ullP = (unsigned long long)wide;
+        return TCL_OK;
     }
+    /* Assume it was originally negative and not a +ve reinterpretation */
     return Tclh_ErrorInvalidValue(
         interp, objP, "Value is not a unsigned long long.");
 }

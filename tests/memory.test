@@ -148,6 +148,7 @@ namespace eval cffi::test {
              "" {} \
              "abc\xe0\xe1\xe2" cp1252 \
              "\u543e" jis0208 \
+             "\u543e" unicode \
             ] \
         {
             test memory-string-[incr num] "To/from string - safe $encoding" -body {
@@ -173,7 +174,7 @@ namespace eval cffi::test {
                     [cffi::memory tostring $p $encoding] \
                     [cffi::memory free $p]
             } -result [list 1 [string repeat $val $repeat] {}]
-            test memory-string-$num "To/from long string! - unsafe $encoding" -body {
+            test memory-string!-$num "To/from long string! - unsafe $encoding" -body {
                 set p [cffi::memory fromstring [string repeat $val $repeat] $encoding]
                 cffi::pointer dispose $p
                 list \
@@ -201,7 +202,7 @@ namespace eval cffi::test {
         cffi::memory set $p 1 2
         cffi::memory tobinary $p 2
     } -result \x01\x01
-    test memory-set-0 {memory set 0 bytes} -setup {
+    test memory-set-1 {memory set 0 bytes} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p

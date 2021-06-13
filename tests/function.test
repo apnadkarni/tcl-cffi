@@ -364,10 +364,10 @@ namespace eval ${NS}::test {
         } -result [list $len $val]
         test function-$type-nullifempty-error-0 "$type inout nullifempty" -body {
             testDll function ${type}_reverse_inout int [list param [list $type inout nullifempty]]
-        } -result "Invalid value \"$type inout nullifempty\". One or more annotations are invalid for inout parameters." -returnCodes error
+        } -result "Invalid value \"$type inout nullifempty\". $errorMessages(attrparamdir)" -returnCodes error
         test function-$type-nullifempty-error-1 "$type out nullifempty" -body {
             testDll function ${type}_out int [list input $type output [list $type out nullifempty]]
-        } -result "Invalid value \"$type out nullifempty\". One or more annotations are invalid for out parameters." -returnCodes error
+        } -result "Invalid value \"$type out nullifempty\". $errorMessages(attrparamdir)" -returnCodes error
 
     }
 
@@ -1135,6 +1135,63 @@ namespace eval ${NS}::test {
         testDll function getTestStruct struct.TestStruct {}
     } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode)" -returnCodes error
 
+
+    ###
+    # Tests for defaults
+    foreach type $intTypes {
+        if {$type in $realTypes} {
+            set result [list 0.0 1.0]
+        } else {
+            set result [list 0 1]
+        }
+        test function-paramdefault-$type-0 "function $type default" -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list x [list $type [list default 1]]]
+            list [$fn 0] [$fn]
+        } -result [list 0 1]
+        test function-paramdefault-error-$type-0 "function $type default - wrong type" -body {
+            testDll function ${type}_to_$type $type [list x [list $type [list default 1]]]
+            ${type}_to_$type notanumber
+        } -result {expected integer but got "notanumber"} -returnCodes error -match glob
+    }
+    foreach type {string string.utf-8 chars[10] chars.utf-8[10] binary bytes[10]} {
+        test function-paramdefault-$type-0 "function $type default" -body {
+            set fn string_to_int
+            testDll function $fn int [list x [list $type [list default 42]]]
+            list [$fn 24] [$fn]
+        } -result [list 24 42]
+    }
+
+    test function-paramdefault-pointer-0 "Function pointer default" -body {
+        set fn pointer_to_pointer
+        testDll function $fn {pointer unsafe} [list p [list pointer unsafe [list default [makeptr 42 TAG]]]]
+        list [$fn [makeptr 24]] [$fn]
+    } -result [list [makeptr 24] [makeptr 42]]
+    test function-paramdefault-struct-0 "Function struct default" -setup {
+        cffi::Struct create ::S {c uchar ll longlong s short}
+    } -body {
+        set ll 0x7fffffffffff
+        set def [list c 1 ll $ll s 2]
+        testDll function structCheck int [list s [list struct.::S byref [list default $def]] c {uchar {default 1}} ll [list longlong [list default $ll]] s {short {default 2}}]
+        structCheck
+    } -result 1
+
+    test function-paramdefault-0 "function multiargs defaults" -body {
+        testDll function threeargs int {a {int {default 0}} b {int {default 10}} c {int {default 100}}}
+        list [threeargs] [threeargs 1] [threeargs 1 2] [threeargs 1 2 3]
+    } -result {110 111 103 6}
+    test function-paramdefault-1 "function multiargs - missing default" -body {
+        testDll function threeargs int {a {int {default 0}} b int c {int {default 100}}}
+        threeargs 1 2 3
+    } -result 6
+    test function-paramdefault-error-0 "function multiargs - missing default error" -body {
+        testDll function threeargs int {a {int {default 0}} b int c {int {default 100}}}
+        threeargs 1
+    } -result {Syntax: threeargs a b c} -returnCodes error
+    test function-paramdefault-error-1 "function multiargs - missing default error last arg" -body {
+        testDll function threeargs int {a {int {default 0}} b {int {default 100}} c int}
+        threeargs 1 2
+    } -result {Syntax: threeargs a b c} -returnCodes error
 }
 
 ${NS}::test::testDll destroy

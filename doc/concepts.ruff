@@ -441,6 +441,13 @@ namespace eval Concepts {
         array, one of the string variants or a struct. Scalars can be forced
         to be passed by reference by annotating the parameter with `byref`.
 
+        An `in` parameter may also be annotated with a default value so
+        that no argument need be provided at the time of the call. The
+        default parameter value is annotated as a list of two elements, the first being
+        the annotation keyword `default` and the second being the value to use.
+        As for Tcl procs, if a default is specified for a parameter,
+        all subsequent parameters must also have a default specified.
+
         In the case of `out` or `inout` parameters, the argument to the function
         must be specified as the name of a variable in the caller's context.
         For `inout` parameters, the variable must exist and contain a valid

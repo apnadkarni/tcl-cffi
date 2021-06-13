@@ -91,7 +91,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
 static struct {
     const char *modeStr;
     DCint mode;
-} cffiCallModes[] = {{"default", DC_CALL_C_DEFAULT}, /* Assumed to be first! */
+} cffiCallModes[] = {{"c", DC_CALL_C_DEFAULT}, /* Assumed to be first! */
                       {"ellipsis", DC_CALL_C_ELLIPSIS},
                       {"ellipsis_varargs", DC_CALL_C_ELLIPSIS_VARARGS},
 #if defined(_WIN32) && !defined(_WIN64)
@@ -678,7 +678,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     enum CffiBaseType baseType;
     int validAttrs;
     int found;
-    const char *message = "Invalid or conflicting modifiers in parameter definition.";
+    static const char *paramAnnotClashMsg =
+        "Invalid or conflicting annotations in type declaration.";
+    static const char *defaultNotAllowedMsg =
+        "Defaults are not allowed in this declaration context.";
+
+    const char *message = paramAnnotClashMsg;
 
     CHECK( Tcl_ListObjGetElements(ip, typeAttrObj, &nobjs, &objs) );
 
@@ -757,8 +762,16 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_BYREF;
             break;
         case DEFAULT:
+            /*
+             * Note no type checking of value here as some checks, such as
+             * dynamic array lengths can only be done at call time.
+             */
             if (typeAttrP->defaultObj)
-                goto conflict;
+                goto conflict; /* Duplicate def */
+            if (!(parseMode & CFFI_F_TYPE_PARSE_PARAM)) {
+                message = defaultNotAllowedMsg;
+                goto invalid_format;
+            }
             Tcl_IncrRefCount(fieldObjs[1]);
             typeAttrP->defaultObj = fieldObjs[1];
             break;
@@ -852,21 +865,19 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             goto invalid_format;
         }
         /* For parameters at least one of IN, OUT, INOUT should be set */
-        if (flags & CFFI_F_ATTR_INOUT) {
-            if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
-                message = "One or more annotations are invalid for inout "
-                          "parameters.";
+        if (flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT)) {
+            if (typeAttrP->defaultObj) {
+                message = defaultNotAllowedMsg;
+                goto invalid_format;
+            }
+            if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
+                || ((flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE))
+                    == (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE))) {
+                message = "One or more annotations are invalid for the "
+                          "parameter direction.";
                 goto invalid_format;
             }
             flags |= CFFI_F_ATTR_BYREF; /* inout default to byref */
-        }
-        else if (flags & CFFI_F_ATTR_OUT) {
-            if (flags & (CFFI_F_ATTR_DISPOSE|CFFI_F_ATTR_NULLIFEMPTY)) {
-                message = "One or more annotations are invalid for out "
-                          "parameters.";
-                goto invalid_format;
-            }
-            flags |= CFFI_F_ATTR_BYREF; /* out default to byref */
         }
         else {
             flags |= CFFI_F_ATTR_IN; /* in, or by default if nothing was said */

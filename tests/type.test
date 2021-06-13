@@ -237,8 +237,16 @@ namespace eval cffi::test {
 
         # Scalar tests - success
         foreach {attr expected} {
-            "" "in"  "in"  "in" "out" "out byref" "inout" "inout byref" "byref" "in byref"
-            "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+            ""      "in"
+            "in"    "in"
+            "out"   "out byref"
+            "inout" "inout byref"
+            "byref" "in byref"
+            "in byref"       "in byref"
+            "byref out"      "out byref"
+            "inout byref"    "inout byref"
+            "{default 1}"    "in {default 1}"
+            "{default 1} in" "in {default 1}"
         } {
             testnumeric "$type $attr" param $expected
         }
@@ -247,6 +255,8 @@ namespace eval cffi::test {
         foreach {attr expected} {
             "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
             "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+            "{default 1}"    "in byref {default 1}"
+            "{default 1} in" "in byref {default 1}"
         } {
             # Single element array
             testnumericarray "$type $attr" 1 param $expected
@@ -260,6 +270,10 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
                 testinvalidattr "$type\[2\] $attra $attrb" param $errorMessages(attrconflict)
             }
+        }
+
+        foreach attra {out inout} {
+            testinvalidattr "$type $attra {default 0}" param $errorMessages(defaultdisallowed)
         }
 
         # Scalar tests - invalid attributes for type
@@ -313,8 +327,9 @@ namespace eval cffi::test {
 
         # Failure tests - invalid attributes for parse mode
         foreach attr $paramAttrs {
-            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
+           testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
+        testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
 
         # Array tests failures
         test type-info-$type-array-return-0 "Return array type" -body {
@@ -348,6 +363,7 @@ namespace eval cffi::test {
         foreach attr $paramAttrs {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
+        testinvalidattr [list $type [list default 0]] field $errorMessages(defaultdisallowed)
 
         # Array tests failures
         foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
@@ -398,7 +414,7 @@ namespace eval cffi::test {
             "in dispose byref" "in byref dispose"
             "inout byref dispose" "inout byref dispose"
             "counted dispose" "in counted dispose"  "in dispose counted"  "in counted dispose"
-
+            "{default 0^}" "in {default 0^}"
         } {
             testpointer "$type $attr" param $expected
         }
@@ -412,9 +428,12 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
             }
         }
-        testinvalidattr "$type dispose out" param "One or more annotations are invalid for out parameters."
+        testinvalidattr "$type dispose out" param $errorMessages(attrparamdir)
         testinvalidattr "$type dispose unsafe" param $errorMessages(attrconflict)
         testinvalidattr "$type counted unsafe" param $errorMessages(attrconflict)
+        foreach attra {out inout} {
+            testinvalidattr "$type $attra {default 0^}" param $errorMessages(defaultdisallowed)
+        }
 
         # Scalar tests - invalid attributes for type
         foreach attr $errorAttrs {
@@ -467,6 +486,7 @@ namespace eval cffi::test {
         foreach attr $paramAttrs {
             testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
+        testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
 
         # Array test failures
         # array invalid count spec failure
@@ -506,6 +526,7 @@ namespace eval cffi::test {
         foreach attr $pointer_valid_error_attrs {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
+        testinvalidattr [list $type [list default 0]] field $errorMessages(defaultdisallowed)
 
         # Array test failures
         testinvalidattr "$type\[2\]" field $errorMessages(unsupportedarraytype)
@@ -545,6 +566,7 @@ namespace eval cffi::test {
                 foreach {attr expected} {
                     "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
                     "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+                    "{default 0}" "in byref {default 0}"
                 } {
                     testchars "$type $attr" 10 $parse_mode $expected
                 }
@@ -608,6 +630,7 @@ namespace eval cffi::test {
                 foreach {attr expected} {
                     "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
                     "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+                    "{default 0}" "in byref {default 0}"
                 } {
                     teststring "$type $attr" param $expected
                 }
@@ -687,6 +710,7 @@ namespace eval cffi::test {
             foreach {attrs expected} {
                 "out" "out byref" "inout" "inout byref" "byref" "in byref"
                 "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+                "in byref {default {}}" "in byref {default {}}"
             } {
                 teststruct "struct.TestStruct $attrs" param $expected
             }
