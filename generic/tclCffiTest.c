@@ -373,7 +373,22 @@ EXTERN void *pointer_lasterror(void *p)
 #endif
 
 FNSTRINGS(string, char)
+EXTERN const char *ascii_return() {
+    return "abc";
+}
+EXTERN const char *utf8_return() {
+    static unsigned char utf8[] = {0xe0, 0xe1, 0xe2, 0};
+    return utf8;
+}
+EXTERN const char *jis0208_return() {
+    static unsigned char jis[] = {'8', 'c', '8', 'c', 0, 0};
+    return jis;
+}
 FNSTRINGS(unistring, Tcl_UniChar)
+EXTERN const Tcl_UniChar *unistring_return() {
+    static Tcl_UniChar unichars[] = {0xe0, 0xe1, 0xe2, 0};
+    return unichars;
+}
 FNSTRINGS(binary, unsigned char)
 
 EXTERN int jis0208_out(int bufsize, char *out)

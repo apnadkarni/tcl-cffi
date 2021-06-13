@@ -271,6 +271,8 @@ CffiResult CffiArgPostProcess(Tcl_Interp *ip,
 CffiResult CffiReturnPrepare(CffiCallVmCtx *vmCtxP,
                              const CffiTypeAndAttrs *typeAttrP,
                              CffiValue *valueP);
+CffiResult CffiReturnCleanup(const CffiTypeAndAttrs *typeAttrsP,
+                             CffiValue *valueP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult CffiStructDescribeCmd(Tcl_Interp *ip,
@@ -313,7 +315,11 @@ CffiResult CffiArgPrepareUniString(Tcl_Interp *ip,
                                    Tcl_Obj *valueObj,
                                    int nUnichars,
                                    CffiValue *valueP);
-CffiResult CffiExternalStringToObj(Tcl_Interp *ip,
+CffiResult CffiExternalCharsToObj(Tcl_Interp *ip,
+                                  const CffiTypeAndAttrs *typeAttrsP,
+                                  const char *srcP,
+                                  Tcl_Obj **resultObjP);
+CffiResult CffiExternalDStringToObj(Tcl_Interp *ip,
                                    const CffiTypeAndAttrs *typeAttrsP,
                                    Tcl_DString *dsP,
                                    Tcl_Obj **resultObjP);

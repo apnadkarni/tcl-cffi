@@ -389,9 +389,15 @@ namespace eval Concepts {
         ### Return types
 
         A function return declaration is a type or type alias followed by zero
-        or more annotations. The resolved type must not be a struct or an
-        array including implicit array types `string`, `unistring`, `chars`,
-        `unichars`, `binary` and `bytes`. Note pointers to these are permitted.
+        or more annotations. The resolved type must not be a struct or an array
+        including `chars`, `unichars`, `binary` and `bytes`. Note pointers to
+        these are permitted.
+
+        In the case of `string` and `unistring` types, the script level return
+        values are constructed from C `char *` and `Tcl_UniChar *` types.
+        Since the underlying pointer is not available, any storage cannot be
+        freed and these types should only be used in cases where that is not
+        needed (for example, when the function returns static strings).
 
         #### Return annotations
 

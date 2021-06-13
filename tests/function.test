@@ -1084,13 +1084,41 @@ namespace eval ${NS}::test {
                 testDll function pointer_to_pointer [list $type unsafe $attr] {p {pointer unsafe}}
             } -result "Invalid value \"$type unsafe $attr\". $errorMessages(attrparsemode)" -returnCodes error
         }
-
     }
+
+    # string, unistring return types
+    foreach type {string string.utf-8 unistring} {
+        test function-return-$type-0 "return $type NULL" -setup {
+            testDll function pointer_to_pointer $type {p {pointer unsafe}}
+        } -body {
+            pointer_to_pointer 0^
+        } -result ""
+    }
+    test function-return-string-1 "return string ascii" -setup {
+        testDll function ascii_return string {}
+    } -body {
+        ascii_return
+    } -result "abc"
+    test function-return-string-2 "return string utf-8" -setup {
+        testDll function utf8_return string.utf-8 {}
+    } -body {
+        utf8_return
+    } -result "\xe0\xe1\xe2"
+    test function-return-string-3 "return string jis0208" -setup {
+        testDll function jis0208_return string.jis0208 {}
+    } -body {
+        jis0208_return
+    } -result "\u543e\u543e"
+    test function-return-unistring-1 "return unistring" -setup {
+        testDll function unistring_return unistring {}
+    } -body {
+        unistring_return
+    } -result "\xe0\xe1\xe2"
 
     # Other return types are not permitted - test here. Note it does not
     # matter that actual C prototype does not match what we define here since
     # the definition should barf anyways.
-    foreach type {string unistring binary} {
+    foreach type {binary} {
         test function-return-$type-0 "Return type $type" -body {
             # Prototype does not match C. Does not have to!
             testDll function ${type}_out $type {}

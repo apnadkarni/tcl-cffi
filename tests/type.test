@@ -603,7 +603,6 @@ namespace eval cffi::test {
     }
 
     foreach type {string string.utf-8 unistring binary} {
-        # Param mode - success
         foreach parse_mode {param return field} {
             if {$parse_mode eq "param"} {
                 foreach {attr expected} {
@@ -618,8 +617,13 @@ namespace eval cffi::test {
                         testinvalidattr "$type $attra $attrb" $parse_mode $errorMessages(attrconflict)
                     }
                 }
+            } elseif {$parse_mode eq "return" && $type ne "binary"} {
+                teststring $type $parse_mode ""
+                foreach attr {in out inout} {
+                    testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
+                }
             } else {
-                # field mode array tests - failure
+                # binary type or struct parse mode
                 testinvalidattr "$type" $parse_mode $errorMessages(typeparsemode)
                 foreach attr {in out inout} {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)

@@ -762,9 +762,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             Tcl_IncrRefCount(fieldObjs[1]);
             typeAttrP->defaultObj = fieldObjs[1];
             break;
-#ifdef OBSOLETE
-        case SAFE: flags &= ~CFFI_F_ATTR_UNSAFE; break;
-#endif
         case COUNTED:
             if (flags & CFFI_F_ATTR_UNSAFE)
                 goto conflict;
@@ -905,14 +902,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         /* Return - parameter-mode flags should not be set */
         CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_MASK) == 0);
         switch (baseType) {
-        case CFFI_K_TYPE_ASTRING:
-        case CFFI_K_TYPE_UNISTRING:
         case CFFI_K_TYPE_STRUCT:
         case CFFI_K_TYPE_BINARY:
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
-            /* Struct/string/bytes return type not allowed even byref */
+            /* return type not allowed even byref */
             message =
                 "The specified type is not valid for the type declaration context.";
             goto invalid_format;
@@ -1434,7 +1429,7 @@ CffiArgPostProcess(Tcl_Interp *ip,
         break;
 
     case CFFI_K_TYPE_ASTRING:
-        ret = CffiExternalStringToObj(
+        ret = CffiExternalDStringToObj(
             ip, typeAttrsP, (Tcl_DString *)valueP, &valueObj);
         break;
 
@@ -1499,8 +1494,6 @@ CffiReturnPrepare(CffiCallVmCtx *vmCtxP,
 {
     /* Function prototype parser should already have disallowed these */
     CFFI_ASSERT(typeAttrP->dataType.baseType != CFFI_K_TYPE_STRUCT
-                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_ASTRING
-                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_UNISTRING
                  && typeAttrP->dataType.baseType != CFFI_K_TYPE_CHAR_ARRAY
                  && typeAttrP->dataType.baseType != CFFI_K_TYPE_UNICHAR_ARRAY
                  && typeAttrP->dataType.baseType != CFFI_K_TYPE_BYTE_ARRAY
@@ -1511,6 +1504,17 @@ CffiReturnPrepare(CffiCallVmCtx *vmCtxP,
     }
     /*
      * Scalars all fit within CffiValue so need for additional storage.
+     */
+    return TCL_OK;
+}
+
+CffiResult
+CffiReturnCleanup(const CffiTypeAndAttrs *typeAttrsP, CffiValue *valueP)
+{
+    /*
+     * No clean up needed for any types.
+     * In particular, string/unistring return types do NOT init the ds field,
+     * as for arguments; they use the pointer field.
      */
     return TCL_OK;
 }
@@ -2493,7 +2497,56 @@ CffiArgPrepareUniString(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiExternalStringToObj
+/* Function: CffiExternalCharPToObj
+ * Wraps an encoded string/chars passed as a char* into a Tcl_Obj
+ *
+ * Parameters:
+ * ip - interpreter
+ * typeAttrsP - descriptor for type and encoding
+ * srcP - points to null terminated encoded string to wrap. NULL is treated
+ *        as an empty string.
+ * resultObjP - location to store pointer to Tcl_Obj wrapping the string
+ *
+ * The string is converted to Tcl's internal form before
+ * storing into the returned Tcl_Obj.
+ *
+ * Returns:
+ * *TCL_OK* on success with wrapped pointer in *resultObjP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+CffiResult
+CffiExternalCharsToObj(Tcl_Interp *ip,
+                       const CffiTypeAndAttrs *typeAttrsP,
+                       const char *srcP,
+                       Tcl_Obj **resultObjP)
+{
+    Tcl_Encoding encoding;
+    Tcl_DString ds;
+
+    if (srcP == NULL) {
+        *resultObjP = Tcl_NewObj();
+        return TCL_OK;
+    }
+
+    if (typeAttrsP && typeAttrsP->dataType.u.tagObj) {
+        CHECK(Tcl_GetEncodingFromObj(
+            ip, typeAttrsP->dataType.u.tagObj, &encoding));
+    }
+    else
+        encoding = NULL;
+
+    Tcl_ExternalToUtfDString(encoding, srcP, -1, &ds);
+    if (encoding)
+        Tcl_FreeEncoding(encoding);
+
+    /* Should optimize this by direct transfer of ds storage - See TclDStringToObj */
+    *resultObjP = Tcl_NewStringObj(Tcl_DStringValue(&ds),
+                                   Tcl_DStringLength(&ds));
+    Tcl_DStringFree(&ds);
+    return TCL_OK;
+}
+
+/* Function: CffiExternalDStringToObj
  * Wraps an encoded string/chars into a Tcl_Obj
  *
  * Parameters:
@@ -2510,17 +2563,13 @@ CffiArgPrepareUniString(Tcl_Interp *ip,
  * on failure with error message in the interpreter.
  */
 CffiResult
-CffiExternalStringToObj(Tcl_Interp *ip,
-                        const CffiTypeAndAttrs *typeAttrsP,
-                        Tcl_DString *dsP,
-                        Tcl_Obj **resultObjP)
+CffiExternalDStringToObj(Tcl_Interp *ip,
+                         const CffiTypeAndAttrs *typeAttrsP,
+                         Tcl_DString *dsP,
+                         Tcl_Obj **resultObjP)
 {
-    char *srcP;
+    const char *srcP;
     int outbuf_size;
-    Tcl_DString dsDecoded;
-    Tcl_Encoding encoding;
-
-    Tcl_DStringInit(&dsDecoded);
 
     srcP = Tcl_DStringValue(dsP);
     outbuf_size = Tcl_DStringLength(dsP); /* ORIGINAL size */
@@ -2528,22 +2577,7 @@ CffiExternalStringToObj(Tcl_Interp *ip,
         TCLH_PANIC("Buffer for output argument overrun.");
     }
 
-    if (typeAttrsP->dataType.u.tagObj) {
-        CHECK(Tcl_GetEncodingFromObj(
-            ip, typeAttrsP->dataType.u.tagObj, &encoding));
-    }
-    else
-        encoding = NULL;
-
-    Tcl_ExternalToUtfDString(encoding, srcP, -1, &dsDecoded);
-    if (encoding)
-        Tcl_FreeEncoding(encoding);
-
-    /* Should optimize this by direct transfer of ds storage - See TclDStringToObj */
-    *resultObjP = Tcl_NewStringObj(Tcl_DStringValue(&dsDecoded),
-                                   Tcl_DStringLength(&dsDecoded));
-    Tcl_DStringFree(&dsDecoded);
-    return TCL_OK;
+    return CffiExternalCharsToObj(ip, typeAttrsP, srcP, resultObjP);
 }
 
 /* Function: CffiUniStringToObj

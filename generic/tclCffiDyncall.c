@@ -223,7 +223,7 @@ CffiFunctionCall(ClientData cdata,
     CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
     DCCallVM *vmP         = fnP->vmCtxP->vmP;
     Tcl_Obj *const *argObjs;
-    Tcl_Obj *resultObj;
+    Tcl_Obj *resultObj = NULL;
     int i;
     CffiValue *valuesP;
     void *pointer;
@@ -377,10 +377,21 @@ CffiFunctionCall(ClientData cdata,
             != TCL_OK)
             ret = TCL_ERROR;
         break;
-
-    case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_ASTRING:
+        pointer = dcCallPointer(vmP, fnP->fnAddr);
+        /* TBD - should we permit error checks for NULL ? */
+        ret = CffiExternalCharsToObj(
+            ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
+        break;
     case CFFI_K_TYPE_UNISTRING:
+        pointer = dcCallPointer(vmP, fnP->fnAddr);
+        /* TBD - should we permit error checks for NULL ? */
+        if (pointer)
+            resultObj = Tcl_NewUnicodeObj((Tcl_UniChar *)pointer, -1);
+        else
+            resultObj = Tcl_NewObj();
+        break;
+    case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -406,12 +417,14 @@ CffiFunctionCall(ClientData cdata,
         break;
     }
 
-    CffiArgCleanup(&protoP->returnType.typeAttrs, &valuesP[protoP->nParams]);
+    CffiReturnCleanup(&protoP->returnType.typeAttrs, &valuesP[protoP->nParams]);
 
     /*
      * Store any output parameters. Output parameters will have the PARAM_OUT
      * flag set.
      * TBD - what if error on function return? Some might be invalid/garbage
+     * For now, the function should then be defined using one of the error
+     * checking directives.
      */
     for (i = 0; i < protoP->nParams; ++i) {
         /* Even on error we keep looping as we have to clean up parameters. */
@@ -425,6 +438,7 @@ CffiFunctionCall(ClientData cdata,
     }
 
     if (ret == TCL_OK) {
+        CFFI_ASSERT(resultObj);
         Tcl_SetObjResult(ip, resultObj);
         MemLifoPopFrame(&ipCtxP->memlifo);
         return TCL_OK;
@@ -432,6 +446,8 @@ CffiFunctionCall(ClientData cdata,
 
 pop_and_error:
     /* Jump for error return after popping memlifo with error in interp */
+    if (resultObj)
+        Tcl_DecrRefCount(resultObj);
     MemLifoPopFrame(&ipCtxP->memlifo);
     return TCL_ERROR;
 }
