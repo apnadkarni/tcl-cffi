@@ -1002,11 +1002,14 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
  * Prepares a argument for a DCCall
  *
  * Parameters:
- * ctxP     - pointer to the interpreter and DcCall context
- * typeP    - the expected type of the value
- * valueObj - the Tcl_Obj containing the value or variable name.
- * valueP - location to store the native value.
- * varNameObjP - location to store the *Tcl_Obj* holding the variable name
+ * callP - function call context
+ * arg_index - the index of the argument
+ * valueObj - the Tcl_Obj containing the value or variable name for out
+ *             parameters
+ *
+ * The function modifies the following:
+ * callP->argsP[arg_index].value - the native value.
+ * callP->argsP[arg_index].varNameObj - will store the variable name
  *            for byref parameters. This will be valueObj[0] for byref
  *            parameters and NULL for byval parameters. The reference
  *            count is unchanged from what is passed in so do NOT call
@@ -1014,7 +1017,7 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
  *
  * In addition to storing the native value at *valueP*, the function also
  * stores it as a dyncall function argument. The function may allocate
- * additional dynamic storage from *ipContextP->memlifo* that is the
+ * additional dynamic storage from the call context that is the
  * caller's responsibility to free.
  *
  * Returns:
@@ -1022,15 +1025,15 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
  * in the interpreter.
  */
 CffiResult
-CffiArgPrepare(CffiCallVmCtx *vmCtxP,
-               const CffiTypeAndAttrs *typeAttrsP,
-               Tcl_Obj *valueObj,
-               CffiValue *valueP,
-               Tcl_Obj **varNameObjP)
+CffiArgPrepare(CffiCall *callCtxP, int arg_index, Tcl_Obj *valueObj)
 {
-    DCCallVM *vmP  = vmCtxP->vmP;
-    CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
+    DCCallVM *vmP  = callCtxP->fnP->vmCtxP->vmP;
+    CffiInterpCtx *ipCtxP = callCtxP->fnP->vmCtxP->ipCtxP;
     Tcl_Interp *ip = ipCtxP->interp;
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callCtxP->fnP->protoP->params[arg_index].typeAttrs;
+    CffiValue *valueP = &callCtxP->argsP[arg_index].value;
+    Tcl_Obj **varNameObjP = &callCtxP->argsP[arg_index].varNameObj;
     enum CffiBaseType baseType;
     CffiResult ret;
     int memory_size;
@@ -1357,26 +1360,25 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
  * Does the post processing of an argument after a call
  *
  * Post processing of the argument consists of checking if the parameter
- * was an *out* or *inout* parameter and storing it the variable passed
- * through *varObjP*. Note no cleanup of argument storage is done.
+ * was an *out* or *inout* parameter and storing it in the output Tcl variable.
+ * Note no cleanup of argument storage is done.
  *
  * Parameters:
- * ip - Interpreter
- * typeP - type descriptor for the binary value
- * valueP - pointer to binary value to wrap
- * varObjP - contains the name of the variable in which to store the
- *    argument value if an output parameters.
+ * callP - the call context
+ * arg_index - index of argument to do post processing
  *
  * Returns:
  * *TCL_OK* on success,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiArgPostProcess(Tcl_Interp *ip,
-                   const CffiTypeAndAttrs *typeAttrsP,
-                   CffiValue *valueP,
-                   Tcl_Obj *varObjP)
+CffiArgPostProcess(CffiCall *callP, int arg_index)
 {
+    Tcl_Interp *ip = callP->fnP->vmCtxP->ipCtxP->interp;
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+    CffiValue *valueP = &callP->argsP[arg_index].value;
+    Tcl_Obj *varObjP  = callP->argsP[arg_index].varNameObj;
     int ret;
     Tcl_Obj *valueObj;
 
@@ -1477,9 +1479,7 @@ CffiArgPostProcess(Tcl_Interp *ip,
  * Prepares storage for DCCall function return value
  *
  * Parameters:
- * ctxP     - pointer to the interpreter and DcCall context
- * typeP    - the expected type of the value
- * valueP - location to store the native value.
+ * callP - call context
  *
  * The function may allocate additional dynamic storage from
  * *ipContextP->memlifo* that is the caller's responsibility to free.
@@ -1489,33 +1489,21 @@ CffiArgPostProcess(Tcl_Interp *ip,
  * in the interpreter.
  */
 CffiResult
-CffiReturnPrepare(CffiCallVmCtx *vmCtxP,
-                  const CffiTypeAndAttrs *typeAttrP,
-                  CffiValue *valueP)
+CffiReturnPrepare(CffiCall *callP)
 {
-    /* Function prototype parser should already have disallowed these */
-    CFFI_ASSERT(typeAttrP->dataType.baseType != CFFI_K_TYPE_STRUCT
-                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_CHAR_ARRAY
-                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_UNICHAR_ARRAY
-                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_BYTE_ARRAY
-                 && typeAttrP->dataType.baseType != CFFI_K_TYPE_BINARY);
-
-    if (typeAttrP->dataType.count) {
-        return ErrorInvalidValue(vmCtxP->ipCtxP->interp, NULL, "Arrays not supported.");
-    }
     /*
-     * Scalars all fit within CffiValue so need for additional storage.
+     * Nothing to do as no allocations needed.
+     *  arrays, struct, chars[], unichars[], bytes and anything that requires
+     * non-scalar storage is either not supported by C or by dyncall.
      */
     return TCL_OK;
 }
 
-CffiResult
-CffiReturnCleanup(const CffiTypeAndAttrs *typeAttrsP, CffiValue *valueP)
+CffiResult CffiReturnCleanup(CffiCall *callP)
 {
     /*
-     * No clean up needed for any types.
-     * In particular, string/unistring return types do NOT init the ds field,
-     * as for arguments; they use the pointer field.
+     * No clean up needed for any types. Any type that needs non-scalar
+     * storage is not allowed for a return type.
      */
     return TCL_OK;
 }
@@ -3066,8 +3054,12 @@ CffiArgPrepareBytes(CffiInterpCtx *ipCtxP,
  * Parameters:
  * valueP - pointer to a value
  */
-void CffiArgCleanup(const CffiTypeAndAttrs *typeAttrsP, CffiValue *valueP)
+void CffiArgCleanup(CffiCall *callP, int arg_index)
 {
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+    CffiValue *valueP = &callP->argsP[arg_index].value;
+
     /*
      * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
      * and CffiArgPrepare. Any changes here should be reflected there too.

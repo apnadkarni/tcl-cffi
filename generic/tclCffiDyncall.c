@@ -226,16 +226,18 @@ CffiFunctionCall(ClientData cdata,
     int nArgObjs;
     Tcl_Obj *resultObj = NULL;
     int i;
-    CffiValue *valuesP;
     void *pointer;
     CffiResult ret = TCL_OK;
-    Tcl_Obj **varNameObjs;
+    CffiCall callCtx;
 
     CFFI_ASSERT(ip == ipCtxP->interp);
 
     /* TBD - check memory executable permissions */
     if ((uintptr_t) fnP->fnAddr < 0xffff)
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
+
+    callCtx.fnP = fnP;
+    callCtx.nArgs = 0;
 
     CFFI_ASSERT(objc >= objArgIndex);
     nArgObjs = objc - objArgIndex;
@@ -282,11 +284,9 @@ numargs_error:
      *
      * Note the additional slot allocated for the return value.
      */
-    valuesP = (CffiValue *)MemLifoPushFrame(
-        &ipCtxP->memlifo, (protoP->nParams + 1) * sizeof(*valuesP));
-    /* Also need storage for variable names for output parameters */
-    varNameObjs = (Tcl_Obj **)MemLifoAlloc(
-        &ipCtxP->memlifo, protoP->nParams * sizeof(*valuesP));
+    callCtx.nArgs = protoP->nParams + 1; /* Include return value slot */
+    callCtx.argsP = (CffiArgument *)MemLifoPushFrame(
+        &ipCtxP->memlifo, callCtx.nArgs * sizeof(*callCtx.argsP));
 
     /* Set up parameters. */
     for (i = 0; i < protoP->nParams; ++i) {
@@ -297,27 +297,23 @@ numargs_error:
             valueObj = protoP->params[i].typeAttrs.defaultObj;
             CFFI_ASSERT(valueObj); /* Since already checked earlier */
         }
-        if (CffiArgPrepare(fnP->vmCtxP,
-                           &protoP->params[i].typeAttrs,
-                           valueObj,
-                           &valuesP[i],
-                           &varNameObjs[i])
-            != TCL_OK) {
+        if (CffiArgPrepare(&callCtx, i, valueObj) != TCL_OK) {
             int j;
             for (j = 0; j < i; ++j)
-                CffiArgCleanup(&protoP->params[j].typeAttrs, &valuesP[j]);
+                CffiArgCleanup(&callCtx, j);
             goto pop_and_error;
         }
     }
 
     /* Set up the return value */
-    if (CffiReturnPrepare(fnP->vmCtxP,
-                          &protoP->returnType.typeAttrs,
-                          &valuesP[protoP->nParams])
-        != TCL_OK) {
+    if (CffiReturnPrepare(&callCtx) != TCL_OK) {
         int j;
+        /*
+         * Note argCtx.nvalues = protoP->nParams+1 and last element is return
+         * and not to be cleaned up
+         */
         for (j = 0; j < protoP->nParams; ++j)
-            CffiArgCleanup(&protoP->params[j].typeAttrs, &valuesP[j]);
+            CffiArgCleanup(&callCtx, j);
         goto pop_and_error;
     }
 
@@ -331,12 +327,13 @@ numargs_error:
             /* Note no error checks because the CffiArgPrepare calls
                above would have already done validation */
             if (nptrs <= 1) {
-                if (valuesP[i].ptr != NULL)
-                    Tclh_PointerUnregister(ip, valuesP[i].ptr, NULL);
+                if (callCtx.argsP[i].value.ptr != NULL)
+                    Tclh_PointerUnregister(
+                        ip, callCtx.argsP[i].value.ptr, NULL);
             }
             else {
                 int j;
-                void **ptrArray = valuesP[i].ptr;
+                void **ptrArray = callCtx.argsP[i].value.ptr;
                 for (j = 0; j < nptrs; ++j) {
                     if (ptrArray[j] != NULL)
                         Tclh_PointerUnregister(ip, ptrArray[j], NULL);
@@ -355,7 +352,7 @@ numargs_error:
      */
 #define CALLFN(objfn_, dcfn_, fld_)                                            \
     do {                                                                       \
-        CffiValue *valP = &valuesP[protoP->nParams];                           \
+        CffiValue *valP = &callCtx.argsP[protoP->nParams].value;                           \
         valP->fld_      = dcfn_(vmP, fnP->fnAddr);                             \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             ret = CffiCheckNumeric(ip, valP, &protoP->returnType.typeAttrs);   \
@@ -433,7 +430,7 @@ numargs_error:
         break;
     }
 
-    CffiReturnCleanup(&protoP->returnType.typeAttrs, &valuesP[protoP->nParams]);
+    CffiReturnCleanup(&callCtx);
 
     /*
      * Store any output parameters. Output parameters will have the PARAM_OUT
@@ -445,12 +442,9 @@ numargs_error:
     for (i = 0; i < protoP->nParams; ++i) {
         /* Even on error we keep looping as we have to clean up parameters. */
         if (ret == TCL_OK) {
-            ret = CffiArgPostProcess(ipCtxP->interp,
-                                     &protoP->params[i].typeAttrs,
-                                     &valuesP[i],
-                                     varNameObjs[i]);
+            ret = CffiArgPostProcess(&callCtx, i);
         }
-        CffiArgCleanup(&protoP->params[i].typeAttrs, &valuesP[i]);
+        CffiArgCleanup(&callCtx, i);
     }
 
     if (ret == TCL_OK) {

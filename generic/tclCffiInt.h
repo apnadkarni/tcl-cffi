@@ -202,7 +202,7 @@ typedef struct CffiLibCtx {
     DLLib *dlP;    /* The dyncall library context */
 } CffiLibCtx;
 
-/* Context for struct functions */
+/* Context for struct command functions */
 typedef struct CffiStructCtx {
     CffiInterpCtx *ipCtxP;
     CffiStruct *structP;
@@ -233,6 +233,20 @@ typedef struct CffiFunction {
     CffiProto *protoP;     /* Prototype for the call */
 } CffiFunction;
 
+/* Used to store argument context when preparing to call a function */
+typedef struct CffiArgument {
+    CffiValue value; /* Native value being constructed. */
+    Tcl_Obj *varNameObj; /* Name of output variable or NULL */
+} CffiArgument;
+
+/* Complete context for a call invocation */
+typedef struct CffiCall {
+    CffiFunction *fnP; /* Function being called */
+    CffiArgument *argsP; /* Argument contexts and one for return value */
+    int nArgs; /* Size of argsP. This is one more than number of function
+                  parameters as it includes the return value slot */
+} CffiCall;
+
 /*
  * Prototypes
  */
@@ -259,20 +273,11 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
-CffiResult CffiArgPrepare(CffiCallVmCtx *vmCtxP,
-                          const CffiTypeAndAttrs *paramP,
-                          Tcl_Obj *valueObj,
-                          CffiValue *valueP,
-                          Tcl_Obj **varNameObjP);
-CffiResult CffiArgPostProcess(Tcl_Interp *ip,
-                              const CffiTypeAndAttrs *typeAttrsP,
-                              CffiValue *valueP,
-                              Tcl_Obj *varObjP);
-CffiResult CffiReturnPrepare(CffiCallVmCtx *vmCtxP,
-                             const CffiTypeAndAttrs *typeAttrP,
-                             CffiValue *valueP);
-CffiResult CffiReturnCleanup(const CffiTypeAndAttrs *typeAttrsP,
-                             CffiValue *valueP);
+CffiResult CffiArgPrepare(CffiCall *callP, int arg_indedx, Tcl_Obj *valueObj);
+CffiResult CffiArgPostProcess(CffiCall *callP, int arg_index);
+void CffiArgCleanup(CffiCall *callP, int arg_index);
+CffiResult CffiReturnPrepare(CffiCall *callP);
+CffiResult CffiReturnCleanup(CffiCall *callP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult CffiStructDescribeCmd(Tcl_Interp *ip,
@@ -354,7 +359,6 @@ CffiResult CffiArgPrepareBytes(CffiInterpCtx *ipCtxP,
                                const CffiTypeAndAttrs *typeAttrsP,
                                Tcl_Obj *valueObj,
                                CffiValue *valueP);
-void CffiArgCleanup(const CffiTypeAndAttrs *typeAttrsP, CffiValue *valueP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
                             CffiValue *valueP,
                             const CffiTypeAndAttrs *typeAttrsP);
