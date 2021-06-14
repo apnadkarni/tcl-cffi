@@ -240,8 +240,8 @@ CffiFunctionCall(ClientData cdata,
     CFFI_ASSERT(objc >= objArgIndex);
     nArgObjs = objc - objArgIndex;
     if (nArgObjs > protoP->nParams) {
-numargs_error:
         Tcl_Obj *syntaxObj;
+numargs_error:
         syntaxObj = Tcl_NewListObj(protoP->nParams + 2, NULL);
         Tcl_ListObjAppendElement(
             NULL, syntaxObj, Tcl_NewStringObj("Syntax:", -1));

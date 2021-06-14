@@ -377,11 +377,11 @@ FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
     return "abc";
 }
-EXTERN const char *utf8_return() {
+EXTERN const unsigned char *utf8_return() {
     static unsigned char utf8[] = {0xe0, 0xe1, 0xe2, 0};
     return utf8;
 }
-EXTERN const char *jis0208_return() {
+EXTERN const unsigned char *jis0208_return() {
     static unsigned char jis[] = {'8', 'c', '8', 'c', 0, 0};
     return jis;
 }
