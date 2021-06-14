@@ -73,7 +73,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
         checks do not apply */
      CFFI_F_ATTR_PARAM_MASK,
      sizeof(double)},
-    {TOKENANDLEN(struct), CFFI_K_TYPE_STRUCT, CFFI_F_ATTR_PARAM_MASK, 0},
+    {TOKENANDLEN(struct), CFFI_K_TYPE_STRUCT, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, 0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
     {TOKENANDLEN(pointer),
      CFFI_K_TYPE_POINTER,
@@ -678,12 +678,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     enum CffiBaseType baseType;
     int validAttrs;
     int found;
-    static const char *paramAnnotClashMsg =
-        "Invalid or conflicting annotations in type declaration.";
+    static const char *paramAnnotClashMsg = "Unknown, repeated or conflicting type annotations specified.";
     static const char *defaultNotAllowedMsg =
         "Defaults are not allowed in this declaration context.";
+    static const char *typeInvalidForContextMsg = "The specified type is not valid for the type declaration context.";
+    const char *message;
 
-    const char *message = paramAnnotClashMsg;
+    message = paramAnnotClashMsg;
 
     CHECK( Tcl_ListObjGetElements(ip, typeAttrObj, &nobjs, &objs) );
 
@@ -727,35 +728,35 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                       fieldObjs[0],
                                       cffiAttrs,
                                       sizeof(cffiAttrs[0]),
-                                      "type attribute",
+                                      "type annotation",
                                       TCL_EXACT,
                                       &attrIndex) !=
                 TCL_OK) {
-            message = "Unrecognized attribute in type declaration.";
+            message = "Unrecognized type annotation.";
             goto invalid_format;
         }
         if (nFields != cffiAttrs[attrIndex].nAttrArgs) {
-            message = "An attribute in the type declaration has the wrong number of fields.";
+            message = "A type annotation has the wrong number of fields.";
             goto invalid_format;
         }
         if ((cffiAttrs[attrIndex].attrFlag & validAttrs) == 0) {
-            message = "An attribute in the type declaration is not valid for the data type.";
+            message = "A type annotation is not valid for the data type.";
             goto invalid_format;
         }
         switch (cffiAttrs[attrIndex].attr) {
         case PARAM_IN:
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_IN;
             break;
         case PARAM_OUT:
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_OUT;
             break;
         case PARAM_INOUT:
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_INOUT;
             break;
         case BYREF:
@@ -767,7 +768,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
              * dynamic array lengths can only be done at call time.
              */
             if (typeAttrP->defaultObj)
-                goto conflict; /* Duplicate def */
+                goto invalid_format; /* Duplicate def */
             if (!(parseMode & CFFI_F_TYPE_PARSE_PARAM)) {
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
@@ -777,52 +778,52 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             break;
         case COUNTED:
             if (flags & CFFI_F_ATTR_UNSAFE)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_COUNTED;
             break;
         case UNSAFE:
             if (flags & (CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_DISPOSE))
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_UNSAFE;
             break;
         case DISPOSE:
             if (flags & CFFI_F_ATTR_UNSAFE)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_DISPOSE;
             break;
         case ZERO:
             if (flags & CFFI_F_ATTR_REQUIREMENT_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_ZERO;
             break;
         case NONZERO:
             if (flags & CFFI_F_ATTR_REQUIREMENT_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_NONZERO;
             break;
         case NONNEGATIVE:
             if (flags & CFFI_F_ATTR_REQUIREMENT_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_NONNEGATIVE;
             break;
         case POSITIVE:
             if (flags & CFFI_F_ATTR_REQUIREMENT_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_POSITIVE;
             break;
         case ERRNO:
             if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_ERRNO;
             break;
         case LASTERROR:
             if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_LASTERROR;
             break;
         case WINERROR:
             if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto conflict;
+                goto invalid_format;
             flags |= CFFI_F_ATTR_WINERROR;
             break;
         case NULLIFEMPTY:
@@ -844,7 +845,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         if (cffiAttrs[i].attrFlag & flags) {
             /* Attribute is present, check if allowed by parse mode */
             if (! (cffiAttrs[i].parseModes & parseMode)) {
-                message = "An attribute in the type declaration is not valid for the declaration context.";
+                message = "A type annotation is not valid for the declaration context.";
                 goto invalid_format;
             }
         }
@@ -854,14 +855,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     if (flags & CFFI_F_ATTR_WINERROR) {
         int requirements_flags = flags & CFFI_F_ATTR_REQUIREMENT_MASK;
         if (requirements_flags && requirements_flags != CFFI_F_ATTR_ZERO)
-            goto conflict;
+            goto invalid_format;
     }
 
     switch (parseMode) {
     case CFFI_F_TYPE_PARSE_PARAM:
         if (baseType == CFFI_K_TYPE_VOID) {
-            message =
-                "The specified type is not valid for the type declaration context.";
+            message = typeInvalidForContextMsg;
             goto invalid_format;
         }
         /* For parameters at least one of IN, OUT, INOUT should be set */
@@ -870,6 +870,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
             }
+            /*
+             * NULLIFEMPTY never allowed for any output. DISPOSE not allowed
+             * for pure OUT.
+             */
             if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
                 || ((flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE))
                     == (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE))) {
@@ -898,8 +902,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     break;
                 case CFFI_K_TYPE_STRUCT:
                     if ((flags & CFFI_F_ATTR_BYREF) == 0) {
-                        message = "Parameters of type struct must have the "
-                                  "byref annotation.";
+                        message = "Passing of structs by value is not "
+                                  "supported. Annotate with \"byref\" to pass by "
+                                  "reference if function expects a pointer.";
                         goto invalid_format;
                     }
                     break;
@@ -919,15 +924,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
             /* return type not allowed even byref */
-            message =
-                "The specified type is not valid for the type declaration context.";
+            message = typeInvalidForContextMsg;
             goto invalid_format;
         break;
         case CFFI_K_TYPE_VOID: /* FALLTHRU */
         default:
             if (typeAttrP->dataType.count > 0) {
-                message = "Function return type declaration must not specify "
-                          "an array.";
+                message = "Function return type must not be an array.";
                 goto invalid_format;
             }
             break;
@@ -942,8 +945,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_UNISTRING:
         case CFFI_K_TYPE_BINARY:
             /* Struct/string/bytes return type not allowed even byref */
-            message = "The specified type is not valid for the type "
-                      "declaration context.";
+            message = typeInvalidForContextMsg;
             goto invalid_format;
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -965,9 +967,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 
     typeAttrP->flags = flags;
     return TCL_OK;
-
-conflict:
-    message = "Type declaration has repeated or conflicting attributes.";
 
 invalid_format:
     /* NOTE: jump source should have incremented ref count if errorObj was
@@ -1091,9 +1090,8 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
         Tcl_Obj **value_and_memsize;
         int n;
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        ret = Tcl_ListObjGetElements(NULL, valueObj, &n, &value_and_memsize);
-        if (ret != TCL_OK)
-            return ret;
+
+        CHECK(Tcl_ListObjGetElements(NULL, valueObj, &n, &value_and_memsize));
         if (n == 0)
             return ErrorInvalidValue(ip,
                                      valueObj,
@@ -1237,13 +1235,23 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
     case CFFI_K_TYPE_DOUBLE: STORENUM(ObjToDouble, dcArgDouble, dbl, double); break;
     case CFFI_K_TYPE_STRUCT:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
+            int dict_size;
+            CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+            CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
+            if (dict_size == 0) {
+                /* Empty dictionary AND NULLIFEMPTY set */
+                valueP->ptr = NULL;
+                dcArgPointer(vmP, valueP->ptr);
+                break;
+            }
+            /* NULLIFEMPTY but dictionary has elements */
+        }
         valueP->ptr = MemLifoAlloc(&ipCtxP->memlifo,
-                                   typeAttrsP->dataType.u.structP->size);
-        if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
-            ret = CffiStructFromObj(
-                ip, typeAttrsP->dataType.u.structP, valueObj, valueP->ptr);
-            if (ret != TCL_OK)
-                return ret;
+                                    typeAttrsP->dataType.u.structP->size);
+        if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
+            CHECK(CffiStructFromObj(
+                ip, typeAttrsP->dataType.u.structP, valueObj, valueP->ptr));
         }
         else {
             /* TBD - should we zero out the memory */
@@ -1257,10 +1265,8 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
             if ((flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) == 0)
                 valueP->ptr = NULL;
             else {
-                ret = CffiPointerFromObj(
-                    ip, typeAttrsP, valueObj, &valueP->ptr);
-                if (ret != TCL_OK)
-                    return ret;
+                CHECK(
+                    CffiPointerFromObj(ip, typeAttrsP, valueObj, &valueP->ptr));
             }
             if (flags & CFFI_F_ATTR_BYREF)
                 dcArgPointer(vmP, &valueP->ptr);
@@ -1274,14 +1280,11 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
                 Tcl_Obj **valueObjList;
                 int i, nvalues;
-                if (Tcl_ListObjGetElements(
-                        ip, valueObj, &nvalues, &valueObjList)
-                    != TCL_OK)
-                    return TCL_ERROR;
+                CHECK(Tcl_ListObjGetElements(
+                    ip, valueObj, &nvalues, &valueObjList));
                 for (i = 0; i < nvalues; ++i) {
-                    ret = CffiPointerFromObj(ip, typeAttrsP, valueObjList[i], &valueArray[i]);
-                    if (ret != TCL_OK)
-                        return ret;
+                    CHECK(CffiPointerFromObj(
+                        ip, typeAttrsP, valueObjList[i], &valueArray[i]));
                 }
             }
             valueP->ptr = valueArray;
@@ -1291,19 +1294,15 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
 
     case CFFI_K_TYPE_CHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        ret = CffiArgPrepareChars(ipCtxP, typeAttrsP, valueObj, valueP);
-        if (ret != TCL_OK)
-            return ret;
+        CHECK(CffiArgPrepareChars(ipCtxP, typeAttrsP, valueObj, valueP));
         dcArgPointer(vmP, valueP->ptr);
         break;
 
     case CFFI_K_TYPE_ASTRING:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         /* Note this also handles case of pure OUT parameter */
-        ret =
-            CffiArgPrepareString(ip, typeAttrsP, valueObj, memory_size, valueP);
-        if (ret != TCL_OK)
-            return ret;
+        CHECK(CffiArgPrepareString(
+            ip, typeAttrsP, valueObj, memory_size, valueP));
         if ((typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
                 == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
             && Tcl_DStringLength(&valueP->ds) == 0) {
@@ -1318,10 +1317,8 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
     case CFFI_K_TYPE_UNISTRING:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         /* Note this also handles case of pure OUT parameter */
-        ret = CffiArgPrepareUniString(
-            ip, typeAttrsP, valueObj, memory_size, valueP);
-        if (ret != TCL_OK)
-            return ret;
+        CHECK(CffiArgPrepareUniString(
+            ip, typeAttrsP, valueObj, memory_size, valueP));
         p = Tcl_DStringValue(&valueP->ds);
         if ((typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
                 == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
@@ -1333,31 +1330,24 @@ CffiArgPrepare(CffiCallVmCtx *vmCtxP,
 
     case CFFI_K_TYPE_UNICHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        ret = CffiArgPrepareUniChars(ipCtxP, typeAttrsP, valueObj, valueP);
-        if (ret != TCL_OK)
-            return ret;
+        CHECK(CffiArgPrepareUniChars(ipCtxP, typeAttrsP, valueObj, valueP));
         dcArgPointer(vmP, valueP->ptr);
         break;
 
     case CFFI_K_TYPE_BINARY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        ret = CffiArgPrepareBinary(ip, typeAttrsP, valueObj, memory_size, valueP);
-        if (ret != TCL_OK)
-            return ret;
+        CHECK(CffiArgPrepareBinary(ip, typeAttrsP, valueObj, memory_size, valueP));
         dcArgPointer(vmP, Tcl_GetByteArrayFromObj(valueP->baObj, NULL));
         break;
 
     case CFFI_K_TYPE_BYTE_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        ret = CffiArgPrepareBytes(ipCtxP, typeAttrsP, valueObj, valueP);
-        if (ret != TCL_OK)
-            return ret;
+        CHECK(CffiArgPrepareBytes(ipCtxP, typeAttrsP, valueObj, valueP));
         dcArgPointer(vmP, valueP->ptr);
         break;
 
     default:
-        return ErrorInvalidValue(
-            ip, NULL, "Unsupported type.");
+        return ErrorInvalidValue( ip, NULL, "Unsupported type.");
     }
     return TCL_OK;
 #undef STOREARG

@@ -334,7 +334,7 @@ namespace eval cffi::test {
         # Array tests failures
         test type-info-$type-array-return-0 "Return array type" -body {
             cffi::type info "$type\[2\]" return
-        } -result "Invalid value \"$type\[2\]\". Function return type declaration must not specify an array." -returnCodes error
+        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
 
         foreach count {[0] [-2] [] [x2] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" return "$errorMessages(arraysize)"
@@ -711,6 +711,7 @@ namespace eval cffi::test {
                 "out" "out byref" "inout" "inout byref" "byref" "in byref"
                 "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
                 "in byref {default {}}" "in byref {default {}}"
+                "in byref nullifempty" "in byref nullifempty"
             } {
                 teststruct "struct.TestStruct $attrs" param $expected
             }
@@ -731,8 +732,11 @@ namespace eval cffi::test {
             }
         }
         # Scalar tests - invalid attributes for type
-        foreach attr [concat $pointerAttrs $errorAttrs nullifempty] {
+        foreach attr [concat $pointerAttrs $errorAttrs] {
             testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
+        }
+        if {$parse_mode ne "param"} {
+            testinvalidattr "struct.TestStruct nullifempty" $parse_mode $errorMessages(attrparsemode)
         }
 
         # array invalid count spec failure

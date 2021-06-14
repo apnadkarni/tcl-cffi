@@ -57,16 +57,16 @@ namespace eval cffi::test {
     array set errorMessages {
         unsupportedarraytype {The specified type is invalid or unsupported for array declarations.}
         typeparsemode {The specified type is not valid for the type declaration context.}
-        attrparsemode {An attribute in the type declaration is not valid for the declaration context.}
-        attrtype {An attribute in the type declaration is not valid for the data type.}
-        attrconflict {Type declaration has repeated or conflicting attributes.}
+        attrparsemode {A type annotation is not valid for the declaration context.}
+        attrtype {A type annotation is not valid for the data type.}
+        attrconflict {Unknown, repeated or conflicting type annotations specified.}
         arraysize {Invalid array size or extra trailing characters.}
         scalarchars {Declarations of type chars, unichars and bytes must be arrays.}
-        structbyref {Parameters of type struct must have the byref annotation.}
-        arrayreturn {Function return type declaration must not specify an array.}
+        arrayreturn {Function return type must not be an array.}
         namesyntax {Invalid name syntax.}
         attrparamdir {One or more annotations are invalid for the parameter direction.}
         defaultdisallowed {Defaults are not allowed in this declaration context.}
+        structbyref {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.}
     }
 
     cffi::Struct create ::cffi::test::InnerTestStruct {
