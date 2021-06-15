@@ -281,15 +281,15 @@ numargs_error:
      * output variables as necessary. CffiArgCleanup is responsible for
      * freeing up any internal resources for each argument. The memlifo
      * memory is freed up when the entire frame is popped at the end.
-     *
-     * Note the additional slot allocated for the return value.
      */
-    callCtx.nArgs = protoP->nParams + 1; /* Include return value slot */
+    callCtx.nArgs = protoP->nParams;
     callCtx.argsP = (CffiArgument *)MemLifoPushFrame(
         &ipCtxP->memlifo, callCtx.nArgs * sizeof(*callCtx.argsP));
+    for (i = 0; i < callCtx.nArgs; ++i)
+        callCtx.argsP[i].flags = 0; /* Mark as uninitialized */
 
     /* Set up parameters. */
-    for (i = 0; i < protoP->nParams; ++i) {
+    for (i = 0; i < callCtx.nArgs; ++i) {
         Tcl_Obj *valueObj;
         if (i < nArgObjs)
             valueObj = argObjs[i];
@@ -308,11 +308,7 @@ numargs_error:
     /* Set up the return value */
     if (CffiReturnPrepare(&callCtx) != TCL_OK) {
         int j;
-        /*
-         * Note argCtx.nvalues = protoP->nParams+1 and last element is return
-         * and not to be cleaned up
-         */
-        for (j = 0; j < protoP->nParams; ++j)
+        for (j = 0; j < callCtx.nArgs; ++j)
             CffiArgCleanup(&callCtx, j);
         goto pop_and_error;
     }
@@ -352,12 +348,14 @@ numargs_error:
      */
 #define CALLFN(objfn_, dcfn_, fld_)                                            \
     do {                                                                       \
-        CffiValue *valP = &callCtx.argsP[protoP->nParams].value;                           \
-        valP->fld_      = dcfn_(vmP, fnP->fnAddr);                             \
+        CffiValue retval;                                                      \
+        retval.fld_ = dcfn_(vmP, fnP->fnAddr);                                 \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
-            ret = CffiCheckNumeric(ip, valP, &protoP->returnType.typeAttrs);   \
+            ret =                                                              \
+                CffiCheckNumeric(ip, &retval, &protoP->returnType.typeAttrs);  \
         if (ret == TCL_OK)                                                     \
-            resultObj = objfn_(valP->fld_);                                    \
+            resultObj = objfn_(retval.fld_);                                   \
+                                                                               \
     } while (0);                                                               \
     break
 
@@ -412,7 +410,7 @@ numargs_error:
 #if 0
         /* Currently BYREF not allowed and DC does not support struct byval */
         CFFI_ASSERT(protoP->returnType.flags & CFFI_F_PARAM_BYREF);
-        valuesP[protoP->nParams].u.ptr = dcCallPointer(vmP, protoP->fnP);
+        callCtx.returnValue.ptr = dcCallPointer(vmP, protoP->fnP);
         if (CffiBinValueToObj(ipCtxP->interp,
                                &protoP->returnType,
                                &valuesP[protoP->nParams].u,

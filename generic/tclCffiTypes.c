@@ -1003,11 +1003,13 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
  *
  * Parameters:
  * callP - function call context
- * arg_index - the index of the argument
+ * arg_index - the index of the argument. The corresponding slot should
+ *            have been initialized so the its flags field is 0.
  * valueObj - the Tcl_Obj containing the value or variable name for out
  *             parameters
  *
  * The function modifies the following:
+ * callP->argsP[arg_index].flags - sets CFFI_F_ARG_INITIALIZED
  * callP->argsP[arg_index].value - the native value.
  * callP->argsP[arg_index].varNameObj - will store the variable name
  *            for byref parameters. This will be valueObj[0] for byref
@@ -1039,6 +1041,9 @@ CffiArgPrepare(CffiCall *callCtxP, int arg_index, Tcl_Obj *valueObj)
     int memory_size;
     int flags;
     char *p;
+
+    /* Expected initialization to virgin state*/
+    CFFI_ASSERT(callCtxP->argsP[arg_index].flags == 0);
 
     /*
      * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
@@ -1352,6 +1357,9 @@ CffiArgPrepare(CffiCall *callCtxP, int arg_index, Tcl_Obj *valueObj)
     default:
         return ErrorInvalidValue( ip, NULL, "Unsupported type.");
     }
+
+    callCtxP->argsP[arg_index].flags |= CFFI_F_ARG_INITIALIZED;
+
     return TCL_OK;
 #undef STOREARG
 }
@@ -3059,6 +3067,9 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
     CffiValue *valueP = &callP->argsP[arg_index].value;
+
+    if ((callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED) == 0)
+        return;
 
     /*
      * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
