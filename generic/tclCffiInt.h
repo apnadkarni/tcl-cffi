@@ -86,14 +86,17 @@ extern const CffiBaseTypeInfo cffiBaseTypes[];
 
 typedef struct CffiType {
     enum CffiBaseType baseType;
-    int               count;    /* 0->scalar
-                                    <0 -> array of unknown size
+    int               xcount;    /* 0->scalar
+                                    <0 -> array of unknown size specified
+                                          through countHolderObj
                                     >0 -> array of count base type elements */
     union {
         Tcl_Obj *tagObj;      /* TCL_F_TYPE_POINTER,ASTRING,CHAR_ARRAY. NOT used
                                  UNISTRING and UNICHAR_ARRAY */
         CffiStruct *structP; /* TCL_F_TYPE_STRUCT */
     } u;
+    Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
+                                that contains the actual count at call time */
 } CffiType;
 
 /*
@@ -237,6 +240,8 @@ typedef struct CffiFunction {
 typedef struct CffiArgument {
     CffiValue value; /* Native value being constructed. */
     Tcl_Obj *varNameObj; /* Name of output variable or NULL */
+    int actualCount; /* For dynamic arrays, stores the actual size.
+                        Always >= 0 (0 being scalar) */
     int flags;
 #define CFFI_F_ARG_INITIALIZED 0x1
 } CffiArgument;
@@ -275,7 +280,7 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
-CffiResult CffiArgPrepare(CffiCall *callP, int arg_indedx, Tcl_Obj *valueObj);
+CffiResult CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj);
 CffiResult CffiArgPostProcess(CffiCall *callP, int arg_index);
 void CffiArgCleanup(CffiCall *callP, int arg_index);
 CffiResult CffiReturnPrepare(CffiCall *callP);
@@ -301,6 +306,7 @@ CffiResult CffiStructToObj(Tcl_Interp *ip,
 CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 const CffiTypeAndAttrs *typeAttrsP,
                                 void *valueP,
+                                int count,
                                 Tcl_Obj **valueObjP);
 CffiResult CffiPointerToObj(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
@@ -340,14 +346,14 @@ CffiResult CffiCharsToObj(Tcl_Interp *ip,
                           const CffiTypeAndAttrs *typeAttrsP,
                           char *srcP,
                           Tcl_Obj **resultObjP);
-CffiResult CffiArgPrepareChars(CffiInterpCtx *ipCtxP,
-                               const CffiTypeAndAttrs *typeAttrsP,
+CffiResult CffiArgPrepareChars(CffiCall *callP,
+                               int arg_index,
                                Tcl_Obj *valueObj,
                                CffiValue *valueP);
 CffiResult
 CffiUniCharsFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
-CffiResult CffiArgPrepareUniChars(CffiInterpCtx *ipCtxP,
-                                  const CffiTypeAndAttrs *typeAttrsP,
+CffiResult CffiArgPrepareUniChars(CffiCall *callP,
+                                  int arg_index,
                                   Tcl_Obj *valueObj,
                                   CffiValue *valueP);
 CffiResult CffiArgPrepareBinary(Tcl_Interp *ip,
@@ -357,8 +363,8 @@ CffiResult CffiArgPrepareBinary(Tcl_Interp *ip,
                                 CffiValue *valueP);
 CffiResult
 CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
-CffiResult CffiArgPrepareBytes(CffiInterpCtx *ipCtxP,
-                               const CffiTypeAndAttrs *typeAttrsP,
+CffiResult CffiArgPrepareBytes(CffiCall *callP,
+                               int arg_index,
                                Tcl_Obj *valueObj,
                                CffiValue *valueP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,

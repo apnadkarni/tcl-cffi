@@ -319,7 +319,9 @@ numargs_error:
         if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
             && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))
             && (typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)) {
-            int nptrs = typeAttrsP->dataType.count;
+            /* TBD - could acutalCount be greater than number of pointers
+             * actually passed in ? */
+            int nptrs = callCtx.argsP[i].actualCount;
             /* Note no error checks because the CffiArgPrepare calls
                above would have already done validation */
             if (nptrs <= 1) {
@@ -359,12 +361,6 @@ numargs_error:
     } while (0);                                                               \
     break
 
-    /*
-     * We are duplicating code here because we could have called
-     * CffiBinOneValueToObj. But that would mean again going through a
-     * switch that we already switched on. Is performance diff worth
-     * duplicating code? TBD
-     */
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
         dcCallVoid(vmP, fnP->fnAddr);
