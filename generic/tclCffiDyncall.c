@@ -206,6 +206,151 @@ CffiDyncallSymbolsObjCmd(ClientData cdata,
     return ret;
 }
 
+/* Function: CffiFunctionSetupArgs
+ * Prepares the call stack needed for a function call.
+ *
+ * Parameters:
+ * callP - call context
+ * nArgObjs - size of argObjs
+ * argObjs - function arguments passed by the script
+ *
+ * As part of setting up the call stack, the function may allocate memory
+ * from the context memlifo. Caller responsible for freeing.
+ *
+ * Returns:
+ * TCL_OK on success with the call stack set up, TCL_ERROR on error with an
+ * error message in the interpreter.
+ */
+static CffiResult
+CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
+{
+    int i;
+    int need_pass2;
+    CffiArgument *argsP;
+    CffiProto *protoP;
+    Tcl_Interp *ip;
+
+    protoP = callP->fnP->protoP;
+    ip     = callP->fnP->vmCtxP->ipCtxP->interp;
+
+    /*
+     * We need temporary storage of unknown size for parameter values.
+     * CffiArgPrepare will use this storage for scalar value types. For
+     * aggregates and variable size, CffiArgPrepare will allocate storage
+     * from the memlifo and store a pointer to it in in the argument slot.
+     * After the call is made, CffiArgPostProcess processes each, stores into
+     * output variables as necessary. CffiArgCleanup is responsible for
+     * freeing up any internal resources for each argument. The memlifo
+     * memory is freed up when the entire frame is popped at the end.
+     */
+    callP->nArgs = protoP->nParams;
+    if (callP->nArgs == 0)
+        return TCL_OK;
+    argsP = (CffiArgument *)MemLifoAlloc(
+        &callP->fnP->vmCtxP->ipCtxP->memlifo, callP->nArgs * sizeof(CffiArgument));
+    callP->argsP = argsP;
+    for (i = 0; i < callP->nArgs; ++i)
+        argsP[i].flags = 0; /* Mark as uninitialized */
+
+    /*
+     * Arguments are set up in two phases - first set up those arguments that
+     * are not dependent on other argument values. Then loop again to set up
+     * the latter. Currently only dynamically sized arrays are dependent on
+     * other arguments.
+     */
+    need_pass2 = 0;
+    for (i = 0; i < callP->nArgs; ++i) {
+        int actualCount;
+        actualCount = protoP->params[i].typeAttrs.dataType.xcount;
+        if (actualCount < 0) {
+            /* Dynamic array. */
+            need_pass2 = 1;
+            continue;
+        }
+        argsP[i].actualCount = actualCount;
+        if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
+            goto cleanup_and_error;
+    }
+
+    if (need_pass2 == 0)
+        return TCL_OK;
+
+    for (i = 0; i < callP->nArgs; ++i) {
+        const char *name;
+        int j;
+        long long actualCount;
+        CffiValue *actualValueP;
+        actualCount = protoP->params[i].typeAttrs.dataType.xcount;
+        if (actualCount >= 0)
+            continue;
+        CFFI_ASSERT((argsP[i].flags & CFFI_F_ARG_INITIALIZED) == 0);
+
+
+        /* Need to find the parameter corresponding to this dynamic count */
+        CFFI_ASSERT(
+            protoP->params[i].typeAttrs.dataType.countHolderObj);
+        name = Tcl_GetString(
+            protoP->params[i].typeAttrs.dataType.countHolderObj);
+
+        /*
+         * Loop through initialized parameters looking for a match. A match
+         * must have been initialized (ie. not dynamic), must be a scalar
+         * and having the referenced name.
+         */
+        for (j = 0; j < callP->nArgs; ++j) {
+            if ((argsP[j].flags & CFFI_F_ARG_INITIALIZED)
+                && argsP[j].actualCount == 0 &&
+                !strcmp(name, Tcl_GetString(protoP->params[j].nameObj)))
+                break;
+        }
+        if (j == callP->nArgs) {
+            (void)Tclh_ErrorNotFound(
+                ip,
+                "Parameter",
+                protoP->params[i].typeAttrs.dataType.countHolderObj,
+                "Could not find referenced count for dynamic array.");
+            goto cleanup_and_error;
+        }
+
+        /* Dynamic element count is at index j. */
+        actualValueP = &argsP[j].value;
+        switch (protoP->params[j].typeAttrs.dataType.baseType) {
+        case CFFI_K_TYPE_SCHAR: actualCount = actualValueP->schar; break;
+        case CFFI_K_TYPE_UCHAR: actualCount = actualValueP->uchar; break;
+        case CFFI_K_TYPE_SHORT: actualCount = actualValueP->sshort; break;
+        case CFFI_K_TYPE_USHORT: actualCount = actualValueP->ushort; break;
+        case CFFI_K_TYPE_INT: actualCount = actualValueP->sint; break;
+        case CFFI_K_TYPE_UINT: actualCount = actualValueP->uint; break;
+        case CFFI_K_TYPE_LONG: actualCount = actualValueP->slong; break;
+        case CFFI_K_TYPE_ULONG: actualCount = actualValueP->ulong; break;
+        case CFFI_K_TYPE_LONGLONG: actualCount = actualValueP->slonglong; break;
+        case CFFI_K_TYPE_ULONGLONG: actualCount = actualValueP->ulonglong; break;
+        default:
+            (void) Tclh_ErrorWrongType(ip, NULL, "Wrong type for dynamic array count value.");
+            goto cleanup_and_error;
+        }
+
+        if (actualCount <= 0 || actualCount > INT_MAX) {
+            (void) Tclh_ErrorRange(ip, argObjs[j], 0, INT_MAX);
+            goto cleanup_and_error;
+        }
+
+        argsP[i].actualCount = (int) actualCount;
+        if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
+            goto cleanup_and_error;
+    }
+
+    return TCL_OK;
+
+    cleanup_and_error:
+        for (i = 0; i < callP->nArgs; ++i) {
+            if (callP->argsP[i].flags & CFFI_F_ARG_INITIALIZED)
+                CffiArgCleanup(callP, i);
+        }
+
+        return TCL_ERROR;
+}
+
 /*
  * Implements the call to a function. The cdata parameter contains the
  * prototype information about the function to call. The objv[] parameter
@@ -222,13 +367,14 @@ CffiFunctionCall(ClientData cdata,
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
     DCCallVM *vmP         = fnP->vmCtxP->vmP;
-    Tcl_Obj *const *argObjs;
+    Tcl_Obj **argObjs;
     int nArgObjs;
     Tcl_Obj *resultObj = NULL;
     int i;
     void *pointer;
     CffiResult ret = TCL_OK;
     CffiCall callCtx;
+    MemLifoMarkHandle mark;
 
     CFFI_ASSERT(ip == ipCtxP->interp);
 
@@ -236,72 +382,72 @@ CffiFunctionCall(ClientData cdata,
     if ((uintptr_t) fnP->fnAddr < 0xffff)
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
 
-    callCtx.fnP = fnP;
-    callCtx.nArgs = 0;
+    mark = MemLifoPushMark(&ipCtxP->memlifo);
 
+    /* nArgObjs is supplied arguments. Remaining have to come from defaults */
     CFFI_ASSERT(objc >= objArgIndex);
     nArgObjs = objc - objArgIndex;
-    if (nArgObjs > protoP->nParams) {
-        Tcl_Obj *syntaxObj;
-numargs_error:
-        syntaxObj = Tcl_NewListObj(protoP->nParams + 2, NULL);
-        Tcl_ListObjAppendElement(
-            NULL, syntaxObj, Tcl_NewStringObj("Syntax:", -1));
-        for (i = 0; i < objArgIndex; ++i)
-            Tcl_ListObjAppendElement(NULL, syntaxObj, objv[i]);
-        for (i = 0; i < protoP->nParams; ++i)
-            Tcl_ListObjAppendElement(
-                NULL, syntaxObj, protoP->params[i].nameObj);
-        (void) Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(syntaxObj));
-        Tcl_DecrRefCount(syntaxObj);
-        return TCL_ERROR;
-    }
-    /* If less args than parameters, check remaining have a default. */
-    for (i = nArgObjs; i < protoP->nParams; ++i) {
-        if (protoP->params[i].typeAttrs.defaultObj == NULL)
-            goto numargs_error;
-    }
+    if (nArgObjs > protoP->nParams)
+        goto numargs_error; /* More args than params */
 
-    argObjs = objv + objArgIndex;
+    callCtx.fnP = fnP;
+    callCtx.nArgs = 0;
+    callCtx.argsP = NULL;
 
     /*
      * Prepare the call by resetting any previous arguments and setting the
-     * call mode for this function
+     * call mode for this function. Do this BEFORE setting up arguments.
      */
 
     dcReset(vmP);
     dcMode(vmP, protoP->returnType.typeAttrs.callMode);
 
-    /*
-     * We need temporary storage of unknown size for parameter values.
-     * CffiArgPrepare will use this storage for scalar value types. For
-     * aggregates and variable size, CffiArgPrepare will allocate storage
-     * from the memlifo and store a pointer to it in in the argument slot.
-     * After the call is made, CffiArgPostProcess processes each, stores into
-     * output variables as necessary. CffiArgCleanup is responsible for
-     * freeing up any internal resources for each argument. The memlifo
-     * memory is freed up when the entire frame is popped at the end.
-     */
-    callCtx.nArgs = protoP->nParams;
-    callCtx.argsP = (CffiArgument *)MemLifoPushFrame(
-        &ipCtxP->memlifo, callCtx.nArgs * sizeof(*callCtx.argsP));
-    for (i = 0; i < callCtx.nArgs; ++i)
-        callCtx.argsP[i].flags = 0; /* Mark as uninitialized */
+    if (protoP->nParams) {
+        /* Allocate space to hold argument values */
+        argObjs = (Tcl_Obj **)MemLifoAlloc(
+            &ipCtxP->memlifo, protoP->nParams * sizeof(Tcl_Obj *));
 
-    /* Set up parameters. */
-    for (i = 0; i < callCtx.nArgs; ++i) {
-        Tcl_Obj *valueObj;
-        if (i < nArgObjs)
-            valueObj = argObjs[i];
-        else {
-            valueObj = protoP->params[i].typeAttrs.defaultObj;
-            CFFI_ASSERT(valueObj); /* Since already checked earlier */
+        /* Fill in argument value from those supplied. */
+        for (i = 0; i < nArgObjs; ++i)
+            argObjs[i] = objv[objArgIndex + i];
+
+        /* Fill remaining from defaults, erroring if no default */
+        while (i < protoP->nParams) {
+            if (protoP->params[i].typeAttrs.defaultObj == NULL)
+                goto numargs_error;
+            argObjs[i] = protoP->params[i].typeAttrs.defaultObj;
+            ++i;
         }
-        if (CffiArgPrepare(&callCtx, i, valueObj) != TCL_OK) {
-            int j;
-            for (j = 0; j < i; ++j)
-                CffiArgCleanup(&callCtx, j);
+        /* Set up the call stack */
+        if (CffiFunctionSetupArgs(&callCtx, protoP->nParams, argObjs) != TCL_OK)
             goto pop_and_error;
+        /* callCtx.argsP will have been set up by above call */
+
+        /* Only dispose of pointers AFTER all above param checks pass */
+        for (i = 0; i < protoP->nParams; ++i) {
+            CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+            if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
+                && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))
+                && (typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)) {
+                /* TBD - could actualCount be greater than number of pointers
+                 * actually passed in ? */
+                int nptrs = callCtx.argsP[i].actualCount;
+                /* Note no error checks because the CffiFunctionSetup calls
+                   above would have already done validation */
+                if (nptrs <= 1) {
+                    if (callCtx.argsP[i].value.ptr != NULL)
+                        Tclh_PointerUnregister(
+                            ip, callCtx.argsP[i].value.ptr, NULL);
+                }
+                else {
+                    int j;
+                    void **ptrArray = callCtx.argsP[i].value.ptr;
+                    for (j = 0; j < nptrs; ++j) {
+                        if (ptrArray[j] != NULL)
+                            Tclh_PointerUnregister(ip, ptrArray[j], NULL);
+                    }
+                }
+            }
         }
     }
 
@@ -310,34 +456,7 @@ numargs_error:
         int j;
         for (j = 0; j < callCtx.nArgs; ++j)
             CffiArgCleanup(&callCtx, j);
-        goto pop_and_error;
-    }
-
-    /* Only dispose of pointers AFTER all above param checks pass */
-    for (i = 0; i < protoP->nParams; ++i) {
-        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
-        if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
-            && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))
-            && (typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)) {
-            /* TBD - could acutalCount be greater than number of pointers
-             * actually passed in ? */
-            int nptrs = callCtx.argsP[i].actualCount;
-            /* Note no error checks because the CffiArgPrepare calls
-               above would have already done validation */
-            if (nptrs <= 1) {
-                if (callCtx.argsP[i].value.ptr != NULL)
-                    Tclh_PointerUnregister(
-                        ip, callCtx.argsP[i].value.ptr, NULL);
-            }
-            else {
-                int j;
-                void **ptrArray = callCtx.argsP[i].value.ptr;
-                for (j = 0; j < nptrs; ++j) {
-                    if (ptrArray[j] != NULL)
-                        Tclh_PointerUnregister(ip, ptrArray[j], NULL);
-                }
-            }
-        }
+        return TCL_ERROR;
     }
 
     /* Currently return values are always by value - enforced in prototype */
@@ -444,7 +563,7 @@ numargs_error:
     if (ret == TCL_OK) {
         CFFI_ASSERT(resultObj);
         Tcl_SetObjResult(ip, resultObj);
-        MemLifoPopFrame(&ipCtxP->memlifo);
+        MemLifoPopMark(mark);
         return TCL_OK;
     }
 
@@ -452,8 +571,18 @@ pop_and_error:
     /* Jump for error return after popping memlifo with error in interp */
     if (resultObj)
         Tcl_DecrRefCount(resultObj);
-    MemLifoPopFrame(&ipCtxP->memlifo);
+    MemLifoPopMark(mark);
     return TCL_ERROR;
+
+numargs_error:
+    resultObj = Tcl_NewListObj(protoP->nParams + 2, NULL);
+    Tcl_ListObjAppendElement(NULL, resultObj, Tcl_NewStringObj("Syntax:", -1));
+    for (i = 0; i < objArgIndex; ++i)
+        Tcl_ListObjAppendElement(NULL, resultObj, objv[i]);
+    for (i = 0; i < protoP->nParams; ++i)
+        Tcl_ListObjAppendElement(NULL, resultObj, protoP->params[i].nameObj);
+    (void)Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(resultObj));
+    goto pop_and_error;
 }
 
 

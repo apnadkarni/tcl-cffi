@@ -1209,7 +1209,11 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                      && baseType != CFFI_K_TYPE_BYTE_ARRAY
                      && baseType != CFFI_K_TYPE_STRUCT));
 
-    argP->actualCount = typeAttrsP->dataType.xcount;
+    /*
+     * Modulo bugs, even dynamic array sizes are supposed to be initialized
+     * before calling this function on an argument.
+     */
+    CFFI_ASSERT(argP->actualCount >= 0);
     if (argP->actualCount < 0) {
         return ErrorInvalidValue(
             ip, NULL, "Variable size array parameters not implemented.");
