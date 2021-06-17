@@ -13,8 +13,9 @@
  * Basic type meta information. The order *MUST* match the order in
  * cffiTypeId.
  */
-#define CFFI_VALID_NUMERIC_ATTRS \
-    (CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_REQUIREMENT_MASK|CFFI_F_ATTR_ERROR_MASK)
+#define CFFI_VALID_NUMERIC_ATTRS                           \
+    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK \
+     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_NOEXCEPT)
 
 #define TOKENANDLEN(t) # t , sizeof(#t) - 1
 
@@ -78,7 +79,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(pointer),
      CFFI_K_TYPE_POINTER,
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NONZERO
-         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO,
+         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_NOEXCEPT,
      sizeof(void *)},
     {TOKENANDLEN(string), CFFI_K_TYPE_ASTRING, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, sizeof(void*)},
     {TOKENANDLEN(unistring), CFFI_K_TYPE_UNISTRING, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, sizeof(void*)},
@@ -162,7 +163,10 @@ enum cffiTypeAttrOpt {
     ERRNO,
     WINERROR,
     DEFAULT,
-    NULLIFEMPTY
+    NULLIFEMPTY,
+    NOEXCEPT,
+    STOREONERROR,
+    STOREALWAYS
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -219,6 +223,21 @@ static CffiAttrs cffiAttrs[] = {
     {"nullifempty",
      NULLIFEMPTY,
      CFFI_F_ATTR_NULLIFEMPTY,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
+    {"noexcept",
+     NOEXCEPT,
+     CFFI_F_ATTR_NOEXCEPT,
+     CFFI_F_TYPE_PARSE_RETURN,
+     1},
+    {"storeonerror",
+     STOREONERROR,
+     CFFI_F_ATTR_STOREONERROR,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
+    {"storealways",
+     STOREALWAYS,
+     CFFI_F_ATTR_STOREALWAYS,
      CFFI_F_TYPE_PARSE_PARAM,
      1},
     {NULL}
@@ -866,6 +885,19 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case NULLIFEMPTY:
             flags |= CFFI_F_ATTR_NULLIFEMPTY;
             break;
+        case NOEXCEPT:
+            flags |= CFFI_F_ATTR_NOEXCEPT;
+            break;
+        case STOREONERROR:
+            if (flags & CFFI_F_ATTR_STOREALWAYS)
+                goto invalid_format;
+            flags |= CFFI_F_ATTR_STOREONERROR;
+            break;
+        case STOREALWAYS:
+            if (flags & CFFI_F_ATTR_STOREONERROR)
+                goto invalid_format;
+            flags |= CFFI_F_ATTR_STOREALWAYS;
+            break;
         }
     }
 
@@ -922,6 +954,11 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         }
         else {
             flags |= CFFI_F_ATTR_IN; /* in, or by default if nothing was said */
+            if (flags & (CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS)) {
+                message = "Annotations \"storeonerror\" and \"storealways\" "
+                          "not allowed for \"in\" parameters.";
+                goto invalid_format;
+            }
 
             if (typeAttrP->dataType.xcount != 0)
                 flags |= CFFI_F_ATTR_BYREF; /* Arrays always by reference */
@@ -968,6 +1005,11 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         default:
             if (typeAttrP->dataType.xcount != 0) {
                 message = "Function return type must not be an array.";
+                goto invalid_format;
+            }
+            if ((flags & CFFI_F_ATTR_NOEXCEPT)
+                && (flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0) {
+                message = "\"noexcept\" requires an error checking annotation.";
                 goto invalid_format;
             }
             break;
@@ -2283,11 +2325,53 @@ CffiNativeValueToObj(Tcl_Interp *ip,
 
 }
 
+/* Function: CffiCheckPointer
+ * Checks if a pointer has any associated error checks.
+ *
+ * Parameters:
+ * ip - interpreter
+ * typeAttrsP - descriptor for type and attributes
+ * pointer - pointer value to wrap
+ *
+ * Returns:
+ * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error. A message
+ * is stored in the interpreter unless the noexcept attribute is set.
+ */
+CffiResult
+CffiCheckPointer(Tcl_Interp *ip,
+                  const CffiTypeAndAttrs *typeAttrsP,
+                  void *pointer)
+{
+    int         flags = typeAttrsP->flags;
+
+    if (((flags & CFFI_F_ATTR_ZERO) && pointer != NULL)
+        || ((flags & CFFI_F_ATTR_NONZERO) && pointer == NULL)) {
+        /* If exceptions are not being reported, do not store error in interp */
+        if ((typeAttrsP->flags & CFFI_F_ATTR_NOEXCEPT) == 0) {
+            Tcl_Obj *valueObj;
+            Tcl_WideInt sysError;
+            const char *message;
+            sysError =
+                CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
+            valueObj = Tclh_PointerWrap(pointer, NULL);
+            message  = pointer == NULL ? "Function returned NULL pointer."
+                                       : "Function returned non-NULL pointer.";
+            Tcl_IncrRefCount(valueObj);
+            CffiReportRequirementError(ip,
+                                       typeAttrsP,
+                                       (Tcl_WideInt)(intptr_t)pointer,
+                                       valueObj,
+                                       sysError,
+                                       message);
+            Tcl_DecrRefCount(valueObj);
+        }
+        return TCL_ERROR;
+    }
+    return TCL_OK;
+}
+
 /* Function: CffiPointerToObj
  * Wraps a pointer into a Tcl_Obj based on type settings.
- *
- * The function also checks any requirements on pointer values and generates
- * an error if not met.
  *
  * Parameters:
  * ip - interpreter
@@ -2307,21 +2391,6 @@ CffiPointerToObj(Tcl_Interp *ip,
 {
     CffiResult ret;
     int         flags = typeAttrsP->flags;
-
-    if (((flags & CFFI_F_ATTR_ZERO) && pointer != NULL)
-        || ((flags & CFFI_F_ATTR_NONZERO) && pointer == NULL)) {
-        Tcl_Obj *valueObj;
-        Tcl_WideInt sysError;
-        const char *message;
-        sysError = CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
-        valueObj = Tclh_PointerWrap(pointer, NULL);
-        message  = pointer == NULL ? "Function returned NULL pointer."
-                                   : "Function returned non-NULL pointer.";
-        Tcl_IncrRefCount(valueObj);
-        CffiReportRequirementError(ip, typeAttrsP, (Tcl_WideInt) (intptr_t) pointer, valueObj, sysError, message);
-        Tcl_DecrRefCount(valueObj);
-        return TCL_ERROR;
-    }
 
     if (pointer == NULL) {
         /* NULL pointers are never tagged with a type - TBD */
@@ -3193,13 +3262,14 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
  * typeAttrsP - type and attributes
  *
  * Returns:
- * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error message in the
- * interpreter.
+ * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error. A message
+ * is stored in the interpreter unless the noexcept attribute is set.
  */
 CffiResult
 CffiCheckNumeric(Tcl_Interp *ip,
-                  CffiValue *valueP,
-                  const CffiTypeAndAttrs *typeAttrsP)
+                  const CffiTypeAndAttrs *typeAttrsP,
+                  CffiValue *valueP
+                  )
 {
     int flags = typeAttrsP->flags;
     int is_signed;
@@ -3235,7 +3305,10 @@ CffiCheckNumeric(Tcl_Interp *ip,
         is_signed = 1;
         break;
     default:
-        return Tclh_ErrorWrongType(ip, NULL, "Invalid type for numeric check.");
+        /* Should not happen. */
+        CFFI_PANIC("CffiCheckNumeric called on non-numeric type");
+        value = 0;/* Keep compiler happy */
+        break;
     }
 
     if (value == 0) {
@@ -3260,16 +3333,19 @@ CffiCheckNumeric(Tcl_Interp *ip,
     return TCL_OK;
 
 failed_requirements:
-    /*
-    * As soon as we know we failed, need to preserve system error. On
-    * Windows, even Tcl_NewWideIntObj() will modify GetLastError()
-    */
-    sysError = CffiGrabSystemError(typeAttrsP, value);
-    valueObj = Tcl_NewWideIntObj(value);
-    Tcl_IncrRefCount(valueObj);
-    CffiReportRequirementError(
-        ip, typeAttrsP, value, valueObj, sysError, message);
-    Tcl_DecrRefCount(valueObj);
+    /* If exceptions are not being reported, do not store error in interp */
+    if ((typeAttrsP->flags & CFFI_F_ATTR_NOEXCEPT) == 0) {
+        /*
+         * As soon as we know we failed, need to preserve system error. On
+         * Windows, even Tcl_NewWideIntObj() will modify GetLastError()
+         */
+        sysError = CffiGrabSystemError(typeAttrsP, value);
+        valueObj = Tcl_NewWideIntObj(value);
+        Tcl_IncrRefCount(valueObj);
+        CffiReportRequirementError(
+            ip, typeAttrsP, value, valueObj, sysError, message);
+        Tcl_DecrRefCount(valueObj);
+    }
     return TCL_ERROR;
 }
 

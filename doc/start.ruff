@@ -188,12 +188,18 @@ set start_page {
     % cffi::dyncall::Library create kernel kernel32.dll
     ::kernel
     % kernel stdcalls {
-        GetCurrentDirectoryA uint {nchars int path {chars[512] out}}
+        GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
         SetCurrentDirectoryA uint {path string}
     }
     ```
 
-    As an aside, note the `stdcalls` method above to define
+    In the above declaration the `path` argument is declared as an array
+    whose size is given by another parameter `nchars` instead of an integer
+    constant. This makes for fewer errors in calling C functions which expect
+    a size and pointer combination of parameters where a larger size than
+    the declared array size may be mistakenly passed.
+
+    As an aside, the `stdcalls` method above to define
     multiple functions in a single call. There is also a corresponding
     `functions` method.
 

@@ -372,9 +372,11 @@ CffiFunctionCall(ClientData cdata,
     Tcl_Obj *resultObj = NULL;
     int i;
     void *pointer;
-    CffiResult ret = TCL_OK;
     CffiCall callCtx;
     MemLifoMarkHandle mark;
+    int exceptionHidden = 0;
+    CffiResult ret = TCL_OK;
+    CffiResult fnRet; /* Success of actual function call */
 
     CFFI_ASSERT(ip == ipCtxP->interp);
 
@@ -473,7 +475,12 @@ CffiFunctionCall(ClientData cdata,
         retval.fld_ = dcfn_(vmP, fnP->fnAddr);                                 \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             ret =                                                              \
-                CffiCheckNumeric(ip, &retval, &protoP->returnType.typeAttrs);  \
+                CffiCheckNumeric(ip, &protoP->returnType.typeAttrs, &retval);  \
+        if (ret != TCL_OK                                                      \
+            && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_NOEXCEPT)) {  \
+            ret             = TCL_OK;                                          \
+            exceptionHidden = 1;                                               \
+        }                                                                      \
         if (ret == TCL_OK)                                                     \
             resultObj = objfn_(retval.fld_);                                   \
                                                                                \
@@ -499,9 +506,16 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_DOUBLE: CALLFN(Tcl_NewDoubleObj, dcCallDouble, dbl);
     case CFFI_K_TYPE_POINTER:
         pointer = dcCallPointer(vmP, fnP->fnAddr);
-        if (CffiPointerToObj(ip, &protoP->returnType.typeAttrs, pointer, &resultObj)
-            != TCL_OK)
-            ret = TCL_ERROR;
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK)
+            ret = CffiCheckPointer(ip, &protoP->returnType.typeAttrs, pointer);
+        if (ret != TCL_OK
+            && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_NOEXCEPT)) {
+            ret             = TCL_OK;
+            exceptionHidden = 1;
+        }
+        if (ret == TCL_OK)
+            ret = CffiPointerToObj(
+                ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
         break;
     case CFFI_K_TYPE_ASTRING:
         pointer = dcCallPointer(vmP, fnP->fnAddr);
@@ -543,19 +557,40 @@ CffiFunctionCall(ClientData cdata,
         break;
     }
 
+
     CffiReturnCleanup(&callCtx);
 
     /*
-     * Store any output parameters. Output parameters will have the PARAM_OUT
-     * flag set.
-     * TBD - what if error on function return? Some might be invalid/garbage
-     * For now, the function should then be defined using one of the error
-     * checking directives.
+     * Store any output parameters. On an error return the called function may
+     * not have initialized the outputs and we would be storing garbage or
+     * worse in case strings etc. This is dealt with using annotations:
+     * - The function return type declaration should have set one of the
+     *   error checking bits that allow us to check for errors. This check
+     *   is implemented above after the function is called.
+     * - If no error is detected, ret will be TCL_OK and all out and inout
+     *   parameters will be stored except those that have storeonerror
+     *   annotation.
+     * - If an error is detected, and the noexcept annotation was not
+     *   present, ret will TCL_ERROR. If the noexcept annotation was present,
+     *   ret will be TCL_OK but exceptionHidden will be true. Both these
+     *   are error cases from function return and in this case only those out
+     *   and inout parameters that have either storeonerror or storealways
+     *   annotations will be stored.
      */
+
+    /* Remember whether the function itself succeeded in case of later errors */
+    fnRet = ret;
     for (i = 0; i < protoP->nParams; ++i) {
         /* Even on error we keep looping as we have to clean up parameters. */
-        if (ret == TCL_OK) {
-            ret = CffiArgPostProcess(&callCtx, i);
+        CffiTypeAndAttrs *typeAttrsP;
+        int noerror = (fnRet == TCL_OK && !exceptionHidden);
+        typeAttrsP = &protoP->params[i].typeAttrs;
+        if ((noerror && !(typeAttrsP->flags & CFFI_F_ATTR_STOREONERROR))
+            || (!noerror && (typeAttrsP->flags & CFFI_F_ATTR_STOREONERROR))
+            || (typeAttrsP->flags & CFFI_F_ATTR_STOREALWAYS)) {
+            /* Only overwrite ret for failures */
+            if (CffiArgPostProcess(&callCtx, i) != TCL_OK)
+                ret = TCL_ERROR;
         }
         CffiArgCleanup(&callCtx, i);
     }

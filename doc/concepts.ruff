@@ -66,6 +66,11 @@ namespace eval Concepts {
         in an array of values of type `TYPE`. At the script level, arrays
         are represented as Tcl lists.
 
+        Additionally, within parameter declarations, `N` may also be the name
+        of a parameter within the same function declarations. In this case,
+        the array is sized dynamically depending on the value of the referenced
+        parameter at the time the call is made.
+
         ### Pointers
 
         Pointers are declared in one of the following forms:
@@ -404,10 +409,11 @@ namespace eval Concepts {
         The following annotations may be follow the type in a return type declaration.
 
         - For integer types, the error checking annotations
-        `zero`, `nonzero`, `nonnegative`, `positive` as well as the error
-        reporting annotations `errno`, `lasterror` and `winerror` may be
-        specified.
+        `zero`, `nonzero`, `nonnegative`, `positive`, the error
+        reporting annotations `errno`, `lasterror` and `winerror` and
+        the error delivery annotation `noexcept` may be specified.
         See [Error handling] for details on these.
+
         - For pointer type, `nonzero`, `errno` and `lasterror` annotations
         may be specified as well as the `unsafe` and `counted`
         annotations (but not `dispose`). See [Pointer safety] for
@@ -423,12 +429,13 @@ namespace eval Concepts {
         #### Parameter annotations
 
         Annotations that are valid for parameters are those
-        related to pointers and those related to argument passing.
+        related to pointers, those related to argument passing and those related
+        to storing output values.
 
         Annotations in the first category are `unsafe`, `counted`
         and `dispose`. See [Pointer safety] for details.
 
-        The remaining deal with how arguments are passed to the C function. C
+        The second set deals with how arguments are passed to the C function. C
         functions are passed arguments either by value or by reference (i.e. as
         a pointer to a value). Moreover, parameters may be used to pass values
         to the function (input parameters), retrieve values (output parameters)
@@ -441,12 +448,12 @@ namespace eval Concepts {
         array, one of the string variants or a struct. Scalars can be forced
         to be passed by reference by annotating the parameter with `byref`.
 
-        An `in` parameter may also be annotated with a default value so
-        that no argument need be provided at the time of the call. The
-        default parameter value is annotated as a list of two elements, the first being
-        the annotation keyword `default` and the second being the value to use.
-        As for Tcl procs, if a default is specified for a parameter,
-        all subsequent parameters must also have a default specified.
+        An `in` parameter may also be annotated with a default value so that no
+        argument need be provided at the time of the call. The default parameter
+        value is annotated as a list of two elements, the first being the
+        annotation keyword `default` and the second being the value to use. As
+        for Tcl procs, if a default is specified for a parameter, all subsequent
+        parameters must also have a default specified.
 
         In the case of `out` or `inout` parameters, the argument to the function
         must be specified as the name of a variable in the caller's context.
@@ -465,6 +472,10 @@ namespace eval Concepts {
         and the second is the number of bytes of storage to allocate in the case
         of `string` and `binary`, and number of Tcl_UniChar characters in the
         case of `unistring`.
+
+        There are some subtleties with respect to error handling that are
+        relevant to output parameters and must be accounted for in declarations.
+        See [Errors and output parameters].
 
         One additional annotation, `nullifempty`, is available only for `in`
         parameters of type `string`, `unistring` and `struct`. If present, a
@@ -507,9 +518,11 @@ namespace eval Concepts {
 
         At most one of the above annotations can be attached to a return type.
         The function value is then checked whether the corresponding
-        condition is met. If not, an error exception is raised.
+        condition is met. Failure to do so is treated as an error condition.
 
-        However, in the above situation the error message generated is very
+        An error condition results in an exception being generated unless the
+        `noexcept` annotation is specified (see below).
+        However, the default error message generated is
         generic and does not provide detail about why the error occured. The
         following error retrieval annotations specify how detail about the error
         is to be obtained.
@@ -523,11 +536,43 @@ namespace eval Concepts {
         `FormatMessage`. This annotation can only be used with the `zero` error
         checking annotation.
 
-        Any of these annotations can be used with the integer types while the
+        Any of these annotations can be applied to integer types while the
         `errno` and `lasterror` can be used with pointer types as well.
 
-        At most one of the above error detail retrieval annotations may be
-        specified for a type.
+        Exceptions generated through the error checking annotations can be
+        suppressed if desired by specifying the `noexcept` annotation on the
+        function return type declaration. In this case the function return value
+        is returned as is and the error retrieval options like `errno` are
+        ignored. Note that the use of `noexcept` is **not** the same as not
+        specifying any error checking annotations because the function return
+        is still treated as an error condition in terms of the output variables
+        as described below.
+
+        #### Errors and output parameters
+
+        An important consideration in the presence of errors is how the called
+        function deals with output (including input-output) parameters. There
+        are three possibilities:
+
+        - The function only writes to the output parameter on success
+        - The function always writes to the output parameter
+        - The function only writes to the output parameter on error, for example
+        an error code.
+
+        The distinction is particularly crucial for non-scalar output. Output
+        parameters that have not been written to may result in corruption or crashes
+        if the memory is accessed for conversion to Tcl script level values.
+
+        By default, script level output variables are only written to when the
+        error checks pass (including the case where none are specified). This is
+        the first case above. If the `storealways` annotation is specified for
+        a parameter, it is stored irrespective of whether an error check failed
+        or not. This is the second case. Finally, the `storeonerror`
+        annotation targets the third case. The output parameter is stored only
+        if an error check fails.
+
+        Note that an error checking annotation must be present for any of these
+        to have an effect.
 
         ### Prototypes and function pointers
 

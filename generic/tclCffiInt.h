@@ -30,6 +30,8 @@ typedef int CffiResult; /* TCL_OK etc. */
 # define CFFI_INLINE static inline
 #endif
 
+#define CFFI_PANIC TCLH_PANIC
+
 /*
  * Base types - IMPORTANT!!! order must match cffiBaseTypes array
  */
@@ -110,29 +112,36 @@ typedef struct CffiTypeAndAttrs {
 #define CFFI_F_ATTR_IN    0x0001 /* In parameter */
 #define CFFI_F_ATTR_OUT   0x0002 /* Out parameter */
 #define CFFI_F_ATTR_INOUT 0x0004 /* Out parameter */
-#define CFFI_F_ATTR_BYREF       0x0008 /* Parameter is a reference */
-#define CFFI_F_ATTR_PARAM_MASK                                                \
-    (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT \
-     | CFFI_F_ATTR_BYREF)
+#define CFFI_F_ATTR_BYREF 0x0008 /* Parameter is a reference */
+
 #define CFFI_F_ATTR_DISPOSE     0x0010 /* Unregister the pointer */
 #define CFFI_F_ATTR_COUNTED     0x0020 /* Counted safe pointer */
 #define CFFI_F_ATTR_UNSAFE      0x0040 /* Pointers need not be checked */
-#define CFFI_F_ATTR_SAFETY_MASK                                               \
-    (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_COUNTED)
+
 #define CFFI_F_ATTR_ZERO        0x0100 /* Must be zero/null */
 #define CFFI_F_ATTR_NONZERO     0x0200 /* Must be nonzero/nonnull */
 #define CFFI_F_ATTR_NONNEGATIVE 0x0400 /* Must be >= 0 */
 #define CFFI_F_ATTR_POSITIVE    0x0800 /* Must be >= 0 */
-#define CFFI_F_ATTR_REQUIREMENT_MASK                                    \
-    (CFFI_F_ATTR_ZERO | CFFI_F_ATTR_NONZERO | CFFI_F_ATTR_NONNEGATIVE \
-     | CFFI_F_ATTR_POSITIVE)
 #define CFFI_F_ATTR_LASTERROR 0x10000 /* Windows GetLastError for error message */
 #define CFFI_F_ATTR_ERRNO     0x20000 /* Error in errno */
 #define CFFI_F_ATTR_WINERROR  0x40000 /* Windows error code */
-#define CFFI_F_ATTR_ERROR_MASK                                                \
-    (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR)
-#define CFFI_F_ATTR_NULLIFEMPTY 0x100000
+
+#define CFFI_F_ATTR_NULLIFEMPTY 0x100000 /* Empty value -> null pointer */
+#define CFFI_F_ATTR_NOEXCEPT    0x200000 /* No exception on error */
+#define CFFI_F_ATTR_STOREONERROR 0x400000 /* Store only on error */
+#define CFFI_F_ATTR_STOREALWAYS  0x800000 /* Store on success and error */
 } CffiTypeAndAttrs;
+
+#define CFFI_F_ATTR_PARAM_MASK                                                \
+    (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT | CFFI_F_ATTR_BYREF \
+     | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS)
+#define CFFI_F_ATTR_SAFETY_MASK \
+    (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_COUNTED)
+#define CFFI_F_ATTR_REQUIREMENT_MASK                                  \
+    (CFFI_F_ATTR_ZERO | CFFI_F_ATTR_NONZERO | CFFI_F_ATTR_NONNEGATIVE \
+     | CFFI_F_ATTR_POSITIVE)
+#define CFFI_F_ATTR_ERROR_MASK \
+    (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR)
 
 /*
  * Union of value types supported by dyncall
@@ -308,6 +317,9 @@ CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 void *valueP,
                                 int count,
                                 Tcl_Obj **valueObjP);
+CffiResult CffiCheckPointer(Tcl_Interp *ip,
+                            const CffiTypeAndAttrs *typeAttrsP,
+                            void *pointer);
 CffiResult CffiPointerToObj(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer,
@@ -368,8 +380,8 @@ CffiResult CffiArgPrepareBytes(CffiCall *callP,
                                Tcl_Obj *valueObj,
                                CffiValue *valueP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
-                            CffiValue *valueP,
-                            const CffiTypeAndAttrs *typeAttrsP);
+                            const CffiTypeAndAttrs *typeAttrsP,
+                            CffiValue *valueP);
 CffiResult CffiReportRequirementError(Tcl_Interp *ip,
                                       const CffiTypeAndAttrs *typeAttrsP,
                                       Tcl_WideInt value,

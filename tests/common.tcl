@@ -46,6 +46,7 @@ namespace eval cffi::test {
 
     variable paramAttrs {in out inout byref}
     variable pointerAttrs {unsafe dispose counted}
+    variable requirementAttrs {zero nonzero nonnegative positive}
     variable errorAttrs {zero nonzero nonnegative positive errno}
     if {$::tcl_platform(platform) eq "windows"} {
         lappend errorAttrs winerror lasterror
@@ -67,6 +68,7 @@ namespace eval cffi::test {
         attrparamdir {One or more annotations are invalid for the parameter direction.}
         defaultdisallowed {Defaults are not allowed in this declaration context.}
         structbyref {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.}
+        store {Annotations "storeonerror" and "storealways" not allowed for "in" parameters.}
     }
 
     cffi::Struct create ::cffi::test::InnerTestStruct {

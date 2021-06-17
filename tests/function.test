@@ -845,7 +845,7 @@ namespace eval ${NS}::test {
     } -body {
         pointer_to_pointer {}
     } -result [makeptr 0]
-    test function-struct-in-1 "Param struct in - null if empty, override" -setup {
+    test function-struct-in-2 "Param struct in - null if empty, override" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function pointer_to_pointer {pointer unsafe} {s {struct.::S byref in nullifempty}}
     } -body {
@@ -1334,6 +1334,62 @@ namespace eval ${NS}::test {
             ${type}_array_in $nvals {0 a 1}
         } -result {expected * but got "a"} -returnCodes error -match glob
     }
+
+
+    ###
+    # Test error handling with noexcept and output parameters
+    # noexcept - with error, without error
+    # noexcept storeonerror - with error, without error
+    # noexcept storealways - with error, without error
+    # except - storeonerror
+    # except - storealways
+    # also test inout
+    proc testexcepts {label comment retannot paramannot expected args} {
+        test $label $comment -setup {
+            unset -nocomplain outvar
+        } -body {
+            testDll function string_out [list int {*}$retannot] [list inparam string outparam [list chars\[10\] {*}$paramannot]]
+            list \
+                [catch {string_out abc outvar} result] \
+                $result \
+                [expr {[info exists outvar] ? $outvar : 0}]
+        } -result $expected
+    }
+    proc testptrexcepts {label comment ptr retannot paramannot expected args} {
+        test $label $comment -setup {
+            unset -nocomplain outvar
+        } -body {
+            testDll function pointer_reflect [list pointer unsafe nonzero {*}$retannot] [list inparam {pointer unsafe} outparam [list pointer unsafe {*}$paramannot]]
+            list \
+                [catch {pointer_reflect $ptr outvar} result] \
+                $result \
+                [expr {[info exists outvar] ? $outvar : 0}]
+        } -result $expected
+    }
+
+
+    testexcepts function-noexcept-0 "noexcept, no errors" {nonzero noexcept} out [list 0 3 abc]
+    testexcepts function-noexcept-1 "except, errors" {zero} out [list 1 {Invalid value "3". Function returned non-zero value.} 0]
+    testexcepts function-noexcept-2 "noexcept, errors" {noexcept zero} out [list 0 3 0]
+    testptrexcepts function-noexcept-3 "noexcept, no errors" [makeptr 1] {noexcept} out [list 0 [makeptr 1] [makeptr 1]]
+    testptrexcepts function-noexcept-4 "except, errors" [makeptr 0] {} out [list 1 "Invalid value \"[makeptr 0]\". Function returned NULL pointer." 0]
+    testptrexcepts function-noexcept-5 "noexcept, errors" [makeptr 0] {noexcept} out [list 0 [makeptr 0] 0]
+
+    testexcepts function-storealways-0 "storealways except, no errors" {nonzero} {out storealways} [list 0 3 abc]
+    testexcepts function-storealways-1 "storealways except, errors" {zero} {out storealways} [list 1 {Invalid value "3". Function returned non-zero value.} abc]
+    testexcepts function-storealways-2 "storealways, noexcept, no errors" {nonzero noexcept} {out storealways} [list 0 3 abc]
+    testexcepts function-storealways-3 "storealways noexcept, errors" {noexcept zero} {out storealways} [list 0 3 abc]
+
+    testexcepts function-storeonerror-0 "storeonerror except, no errors" {nonzero} {out storeonerror} [list 0 3 0]
+    testexcepts function-storeonerror-1 "storeonerror except, errors" {zero} {out storeonerror} [list 1 {Invalid value "3". Function returned non-zero value.} abc]
+    testexcepts function-storeonerror-2 "storeonerror, noexcept, no errors" {nonzero noexcept} {out storeonerror} [list 0 3 0]
+    testexcepts function-storeonerror-3 "storeonerror noexcept, errors" {noexcept zero} {out storeonerror} [list 0 3 abc]
+
+    testptrexcepts function-storealways-4 "storealways except, no errors" [makeptr 1] {} {out storealways} [list 0 [makeptr 1] [makeptr 1]]
+    testptrexcepts function-storealways-5 "storealways except, errors" [makeptr 0] {} {out storealways} [list 1 "Invalid value \"[makeptr 0]\". Function returned NULL pointer." [makeptr 0]]
+    testptrexcepts function-storealways-6 "storealways, noexcept, no errors" [makeptr 1] {noexcept} {out storealways} [list 0 [makeptr 1] [makeptr 1]]
+    testptrexcepts function-storealways-7 "storealways noexcept, errors" [makeptr 0] {noexcept} {out storealways} [list 0 [makeptr  0] [makeptr 0]]
+
 }
 
 ${NS}::test::testDll destroy
