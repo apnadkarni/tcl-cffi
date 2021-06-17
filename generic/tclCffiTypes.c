@@ -2894,7 +2894,6 @@ CffiArgPrepareChars(CffiCall *callP,
                     CffiValue *valueP)
 {
     CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
-    Tcl_Interp *ip        = ipCtxP->interp;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
@@ -2980,7 +2979,6 @@ CffiArgPrepareUniChars(CffiCall *callP,
                        CffiValue *valueP)
 {
     CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
-    Tcl_Interp *ip        = ipCtxP->interp;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
@@ -3127,7 +3125,6 @@ CffiArgPrepareBytes(CffiCall *callP,
                        CffiValue *valueP)
 {
     CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
-    Tcl_Interp *ip        = ipCtxP->interp;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
