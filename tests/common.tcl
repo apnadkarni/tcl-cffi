@@ -119,6 +119,15 @@ proc cffi::test::makeptr {p {tag {}}} {
     return [format "0x%.${width}lx" $p]^$tag
 }
 
+# step better be > 0
+proc seq {start count {step 1}} {
+    set seq {}
+    for {set i 0} {$i < $count} {incr i} {
+        lappend seq $start
+        incr start $step
+    }
+    return $seq
+}
 
 # Verify two dicts are equal
 proc cffi::test::dict_equal {l1 l2} {

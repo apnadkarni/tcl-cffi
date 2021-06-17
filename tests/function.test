@@ -1234,6 +1234,106 @@ namespace eval ${NS}::test {
         testDll function threeargs int {a {int {default 0}} b {int {default 100}} c int}
         threeargs 1 2
     } -result {Syntax: threeargs a b c} -returnCodes error
+
+
+    ###
+    # Array tests
+    foreach type $numericTypes {
+        # This matches output of *_array_out function
+        foreach count {1 10 10000} {
+            set vals [seq 0 $count]; # This matches what *_array_out functions return
+            if {$type in $realTypes} {
+                set vals [lmap val $vals {expr {double($val)}}]
+            }
+            set nvals [llength $vals]
+            # Skip types that will overflow
+            if {$count <= 10 || $type ni {schar uchar short ushort float}} {
+                test function-array-$type-$count-in-0 "Array input parameters" -body {
+                    testDll function ${type}_array_in $type [list n int arr $type\[$nvals\]]
+                    ${type}_array_in $nvals $vals
+                } -result [::tcl::mathop::+ {*}$vals]
+                test function-array-$type-$count-in-1 "Array input parameters - count greater than arg length" -body {
+                    set buflen [expr {$nvals + 1000}]
+                    testDll function ${type}_array_in $type [list n int arr $type\[$buflen\]]
+                    # Extra slots should have been zeroed
+                    ${type}_array_in $buflen $vals
+                } -result [::tcl::mathop::+ {*}$vals]
+                test function-array-$type-$count-in-4 "Array input parameters - dynamic array" -body {
+                    testDll function ${type}_array_in $type [list n int arr $type\[n\]]
+                    ${type}_array_in $nvals $vals
+                } -result [::tcl::mathop::+ {*}$vals]
+
+                test function-array-$type-$count-out-0 "Array out parameters" -body {
+                    testDll function ${type}_array_out void [list n int arr [list $type\[$nvals\] out]]
+                    ${type}_array_out $nvals out
+                    set out
+                } -result $vals
+                test function-array-$type-$count-out-1 "Array out parameters - dynamic array" -body {
+                    testDll function ${type}_array_out void [list n int arr [list $type\[n\] out]]
+                    ${type}_array_out $nvals out
+                    set out
+                } -result $vals
+
+                test function-array-$type-$count-inout-0 "Array inout parameters" -body {
+                    testDll function ${type}_array_inout void [list n int arr [list $type\[$nvals\] inout]]
+                    set out $vals
+                    ${type}_array_inout $nvals out
+                    set out
+                } -result [lmap v $vals {expr {$v+1}}]
+                test function-array-$type-$count-inout-1 "Array inout parameters - dynamic array" -body {
+                    testDll function ${type}_array_inout void [list n int arr [list $type\[n\] inout]]
+                    set out $vals
+                    ${type}_array_inout $nvals out
+                    set out
+                } -result [lmap v $vals {expr {$v+1}}]
+            }
+        }
+
+        # errors
+        foreach direc {in out inout} {
+            test function-array-$type-$direc-error-0 "Array negative index - $direc" -body {
+                testDll function ${type}_array_$direc $type [list n int arr $type\[0\]]
+            } -result "Invalid value \"$type\[0\]\". Invalid array size or extra trailing characters." -returnCodes error
+            test function-array-$type-$direc-error-1 "Array negative index - $direc" -body {
+                testDll function ${type}_array_$direc $type [list n int arr $type\[-1\]]
+            } -result "Invalid value \"$type\[-1\]\". Invalid array size or extra trailing characters." -returnCodes error
+        }
+        test function-array-$type-in-error-2 "Array undefined name index" -body {
+            testDll function ${type}_array_in $type [list n int arr $type\[m\]]
+            ${type}_array_in $nvals $vals
+        } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        test function-array-$type-in-error-3 "Array index name wrong type" -body {
+            testDll function ${type}_array_in $type [list n string arr $type\[n\]]
+            ${type}_array_in $nvals $vals
+        } -result {Value has the wrong type. Wrong type for dynamic array count value.} -returnCodes error
+        test function-array-$type-in-error-4 "Array index name is array" -body {
+            testDll function ${type}_array_in $type [list n int\[3\] arr $type\[n\]]
+            ${type}_array_in $nvals $vals
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        # "in" not in this loop because function prototype is different
+        foreach direc {out inout} {
+            test function-array-$type-$direc-error-2 "Array undefined name index - $direc" -body {
+                testDll function ${type}_array_$direc $type [list n int arr [list $type\[m\] $direc]]
+                ${type}_array_$direc $nvals vals
+            } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+            test function-array-$type-$direc-error-3 "Array index name wrong type - $direc" -body {
+                testDll function ${type}_array_$direc $type [list n string arr [list $type\[n\] $direc]]
+                ${type}_array_$direc $nvals vals
+            } -result {Value has the wrong type. Wrong type for dynamic array count value.} -returnCodes error
+            test function-array-$type-$direc-error-4 "Array index name is array - $direc" -body {
+                testDll function ${type}_array_$direc $type [list n int\[3\] arr [list $type\[n\] $direc]]
+                ${type}_array_$direc $nvals vals
+            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        }
+        test function-array-$type-in-typeerror-0 "Array element wrong type - in" -body {
+            testDll function ${type}_array_in $type [list n int arr $type\[$nvals\]]
+            ${type}_array_in $nvals {0 a 1}
+        } -result {expected * but got "a"} -returnCodes error -match glob
+        test function-array-$type-inout-typerrror-0 "Array element wrong type - inout" -body {
+            testDll function ${type}_array_inout $type [list n int arr [list $type\[$nvals\] inout]]
+            ${type}_array_in $nvals {0 a 1}
+        } -result {expected * but got "a"} -returnCodes error -match glob
+    }
 }
 
 ${NS}::test::testDll destroy

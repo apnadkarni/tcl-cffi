@@ -308,7 +308,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
                 ip,
                 "Parameter",
                 protoP->params[i].typeAttrs.dataType.countHolderObj,
-                "Could not find referenced count for dynamic array.");
+                "Could not find referenced count for dynamic array, possibly wrong type or not scalar.");
             goto cleanup_and_error;
         }
 

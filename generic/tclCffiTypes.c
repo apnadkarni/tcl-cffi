@@ -1215,6 +1215,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      */
     CFFI_ASSERT(argP->actualCount >= 0);
     if (argP->actualCount < 0) {
+        /* Should not happen. Just a failsafe. */
         return ErrorInvalidValue(
             ip, NULL, "Variable size array parameters not implemented.");
     }
@@ -1238,7 +1239,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 #define STORENUM(objfn_, dcfn_, fld_, type_)                                 \
     do {                                                                     \
         CFFI_ASSERT(argP->actualCount >= 0);                                 \
-        if (argP->actualCount <= 1) {                                        \
+        if (argP->actualCount == 0) {                                        \
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {              \
                 ret = objfn_(ip, valueObj, &valueP->fld_);                   \
                 if (ret != TCL_OK)                                           \
