@@ -673,7 +673,6 @@ namespace eval cffi::test {
         cffi::type info {chars.xxx[10]} field
     } -result {unknown encoding "xxx"} -returnCodes error
 
-
     ###
     # strings
     proc teststring {typedecl parse_mode expected_typeattrs} {
@@ -686,55 +685,68 @@ namespace eval cffi::test {
         } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
     }
 
-    foreach type {string string.utf-8 unistring binary} {
+    foreach type {string string.utf-8 unistring} {
+        ## param mode
+        # in parameters valid for all types
+        foreach {attr expected} {
+            "" "in byref"
+            "in"  "in byref"
+            "byref" "in byref"
+            "in byref" "in byref"
+            "{default 0}" "in byref {default 0}"
+            "out" "out byref"
+            "out byref" "out byref"
+            "nullifempty" "in byref nullifempty"
+            "in nullifempty" "in byref nullifempty"
+        } {
+            teststring "$type $attr" param $expected
+        }
+
+        # out valid but not inout
+        foreach {attr expected} {
+            "out" "out byref"
+            "byref out" "out byref"
+            "out storeonerror" "out byref storeonerror"
+            "out storealways" "out byref storealways"
+        } {
+            teststring "$type $attr" param $expected
+        }
+        testinvalidattr "$type inout" param $errorMessages(attrtype)
+        
+        # Failure tests - invalid attribute combinations
+        foreach attra {in out} {
+            foreach attrb {in out} {
+                testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
+            }
+        }
+
+        ## return mode
+        teststring $type return ""
+        foreach attr {in out nullifempty} {
+           testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
+        }
+        testinvalidattr "$type inout" return $errorMessages(attrtype)
+
+        ## field mode
+        testinvalidattr "$type" field $errorMessages(typeparsemode)
+        foreach attr {in out nullifempty} {
+            testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
+        }
+        testinvalidattr "$type inout" field $errorMessages(attrtype)
+
+        # Scalar tests - invalid attributes for type
+        foreach attr [concat $pointerAttrs $errorAttrs] {
+            testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
+        }
+
+        ## For all parse modes
         foreach parse_mode {param return field} {
-            if {$parse_mode eq "param"} {
-                foreach {attr expected} {
-                    "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
-                    "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
-                    "{default 0}" "in byref {default 0}"
-                    "out storeonerror" "out byref storeonerror"
-                    "out storealways" "out byref storealways"
-                } {
-                    teststring "$type $attr" param $expected
-                }
-                # Failure tests - invalid attribute combinations
-                foreach attra {in out inout} {
-                    foreach attrb {in out inout} {
-                        testinvalidattr "$type $attra $attrb" $parse_mode $errorMessages(attrconflict)
-                    }
-                }
-            } elseif {$parse_mode eq "return" && $type ne "binary"} {
-                teststring $type $parse_mode ""
-                foreach attr {in out inout} {
-                    testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
-                }
-            } else {
-                # binary type or struct parse mode
-                testinvalidattr "$type" $parse_mode $errorMessages(typeparsemode)
-                foreach attr {in out inout} {
-                    testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
-                }
-            }
-
-            if {$parse_mode eq "param" && $type ne "binary"} {
-                teststring "$type nullifempty" $parse_mode "in byref nullifempty"
-            } else {
-                if {$type ne "binary"} {
-                    testinvalidattr "$type nullifempty" $parse_mode $errorMessages(attrparsemode)
-                } else {
-                    testinvalidattr "$type nullifempty" $parse_mode $errorMessages(attrtype)
-                }
-            }
-
-            # Array tests - success
-            # none - currently arrays not supported
-
-
             # Scalar tests - invalid attributes for type
             foreach attr [concat $pointerAttrs $errorAttrs] {
                 testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
             }
+            # Array tests - success
+            # none - currently arrays not supported
 
             # Scalar tests - attributes invalid for param parse mode
             # none - no attrs are invalid only for param mode
@@ -753,6 +765,31 @@ namespace eval cffi::test {
     test type-info-string-encoding-error-field-0 "Unknown encoding for string - field parse mode" -body {
         cffi::type info {string.xxx} field
     } -result {unknown encoding "xxx"} -returnCodes error
+
+    ###
+    # binary
+
+    ## binary - param mode
+    foreach {attr expected} {
+        "" "in byref"
+        "in"  "in byref"
+        "byref" "in byref"
+        "in byref" "in byref"
+        "{default 0}" "in byref {default 0}"
+    } {
+        teststring "binary $attr" param $expected
+    }
+    # out and inout params not allowed for binary
+    foreach attr {inout out nullifempty} {
+        testinvalidattr "binary $attr" param $errorMessages(attrtype)
+    }
+    # Failure tests - invalid attribute combinations
+    testinvalidattr "binary in in" param $errorMessages(attrconflict)
+
+    ## binary - field or return mode
+    foreach parse_mode {field return} {
+        testinvalidattr binary $parse_mode $errorMessages(typeparsemode)
+    }
 
     ###
     # struct

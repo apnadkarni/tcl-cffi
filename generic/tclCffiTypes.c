@@ -74,19 +74,42 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
         checks do not apply */
      CFFI_F_ATTR_PARAM_MASK,
      sizeof(double)},
-    {TOKENANDLEN(struct), CFFI_K_TYPE_STRUCT, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, 0},
+    {TOKENANDLEN(struct),
+     CFFI_K_TYPE_STRUCT,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY,
+     0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
     {TOKENANDLEN(pointer),
      CFFI_K_TYPE_POINTER,
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NONZERO
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_NOEXCEPT,
      sizeof(void *)},
-    {TOKENANDLEN(string), CFFI_K_TYPE_ASTRING, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, sizeof(void*)},
-    {TOKENANDLEN(unistring), CFFI_K_TYPE_UNISTRING, CFFI_F_ATTR_PARAM_MASK|CFFI_F_ATTR_NULLIFEMPTY, sizeof(void*)},
-    {TOKENANDLEN(binary), CFFI_K_TYPE_BINARY, CFFI_F_ATTR_PARAM_MASK, sizeof(unsigned char *)},
-    {TOKENANDLEN(chars), CFFI_K_TYPE_CHAR_ARRAY, CFFI_F_ATTR_PARAM_MASK, sizeof(char)},
-    {TOKENANDLEN(unichars), CFFI_K_TYPE_UNICHAR_ARRAY, CFFI_F_ATTR_PARAM_MASK, sizeof(Tcl_UniChar)},
-    {TOKENANDLEN(bytes), CFFI_K_TYPE_BYTE_ARRAY, CFFI_F_ATTR_PARAM_MASK, sizeof(unsigned char)},
+    /* Note string and unistring cannot be INOUT parameters */
+    {TOKENANDLEN(string),
+     CFFI_K_TYPE_ASTRING,
+     (CFFI_F_ATTR_PARAM_MASK & ~CFFI_F_ATTR_INOUT) | CFFI_F_ATTR_NULLIFEMPTY,
+     sizeof(void *)},
+    {TOKENANDLEN(unistring),
+     CFFI_K_TYPE_UNISTRING,
+     (CFFI_F_ATTR_PARAM_MASK & ~CFFI_F_ATTR_INOUT) | CFFI_F_ATTR_NULLIFEMPTY,
+     sizeof(void *)},
+    /* Note binary cannot be OUT or INOUT parameters */
+    {TOKENANDLEN(binary),
+     CFFI_K_TYPE_BINARY,
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF,
+     sizeof(unsigned char *)},
+    {TOKENANDLEN(chars),
+     CFFI_K_TYPE_CHAR_ARRAY,
+     CFFI_F_ATTR_PARAM_MASK,
+     sizeof(char)},
+    {TOKENANDLEN(unichars),
+     CFFI_K_TYPE_UNICHAR_ARRAY,
+     CFFI_F_ATTR_PARAM_MASK,
+     sizeof(Tcl_UniChar)},
+    {TOKENANDLEN(bytes),
+     CFFI_K_TYPE_BYTE_ARRAY,
+     CFFI_F_ATTR_PARAM_MASK,
+     sizeof(unsigned char)},
     {NULL}};
 
 static struct {
@@ -771,9 +794,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         int       attrIndex;
         int       nFields;
 
-        if (Tcl_ListObjGetElements(ip, objs[i], &nFields, &fieldObjs) !=
-                TCL_OK ||
-            nFields                                                   == 0)  {
+        if (Tcl_ListObjGetElements(ip, objs[i], &nFields, &fieldObjs) != TCL_OK
+            || nFields == 0) {
             goto invalid_format;
         }
         if (parseMode & CFFI_F_TYPE_PARSE_RETURN) {
@@ -786,8 +808,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                       sizeof(cffiAttrs[0]),
                                       "type annotation",
                                       TCL_EXACT,
-                                      &attrIndex) !=
-                TCL_OK) {
+                                      &attrIndex)
+            != TCL_OK) {
             message = "Unrecognized type annotation.";
             goto invalid_format;
         }

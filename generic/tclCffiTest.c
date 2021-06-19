@@ -81,8 +81,14 @@
             inout[len - i - 1] = ch;                 \
         }                                            \
         return len;                                  \
+    }                                                \
+    EXTERN int token_##_len(type_ *in)               \
+    {                                                \
+        int len = 0;                                 \
+        while (*in++)                                  \
+            ++len;                                   \
+        return len;                                  \
     }
-
 
 typedef struct InnerTestStruct {
     char c[15];

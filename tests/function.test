@@ -200,10 +200,12 @@ namespace eval ${NS}::test {
         }
     }
 
+    # NOTE: these also test "in" parameter types for pointer, chars, bytes, binary
     foreach to_type $intTypes {
         testDll function pointer_to_$to_type $to_type [list param {pointer unsafe}]
         testDll function [list string_to_$to_type chars_to_$to_type] $to_type [list param {chars[20]}]
         testDll function [list string_to_$to_type bytes_to_$to_type] $to_type [list param {bytes[20]}]
+        testDll function [list string_to_$to_type binary_to_$to_type] $to_type [list param binary]
 
         test pointer_to_${to_type}-0 "$to_type (pointer = 0)" -body {
             pointer_to_${to_type} 0^
@@ -215,6 +217,10 @@ namespace eval ${NS}::test {
 
         test bytes_to_${to_type}-0 "$to_type (bytes = 123)" -body {
             bytes_to_${to_type} 123\0
+        } -result 123
+
+        test binary_to_${to_type}-0 "$to_type (bytes = 123)" -body {
+            binary_to_${to_type} 123\0
         } -result 123
     }
 
@@ -285,11 +291,22 @@ namespace eval ${NS}::test {
     }
 
     ## Parameter tests - string, unistring
+    # String is tested earlier for input parameters. Add a test for unistring
     foreach {type val} [list string abc unistring "\xe0\xe1\xe2"] {
         set len [string length $val]
         set repeat 100000
         set largelen [expr {[string length $val] * $repeat}]
         set largeval [string repeat $val $repeat]
+
+        set fn ${type}_len
+        testDll function $fn int [list input $type]
+        test function-$type-in-0 "$type in" -body {
+            $fn $val
+        } -result $len
+        test function-$type-in-1 "$type in large" -body {
+            $fn $largeval
+        } -result $largelen
+
         set fn ${type}_out
         testDll function $fn int [list input $type output [list $type out]]
         test function-$type-out-0 "$type out" -body {
@@ -317,23 +334,9 @@ namespace eval ${NS}::test {
         } -result "Invalid value \"result\". Arguments for out and inout parameters of type string and bytes should be of the form \"varname size\"." -returnCodes error
 
         set fn ${type}_reverse_inout
-        testDll function $fn int [list param [list $type inout]]
-        test function-$type-inout-0 "$type inout" -body {
-            set result $val
-            list [$fn [list result [expr {$len+1}]]] $result
-        } -result [list $len [string reverse $val]]
-        test function-$type-inout-1 "$type inout empty string" -body {
-            set result ""
-            list [$fn [list result 4]] $result
-        } -result {0 {}}
-        test function-$type-inout-2 "$type inout" -body {
-            set result $largeval
-            list [$fn [list result [expr {$largelen+1}]]] $result
-        } -result [list $largelen [string reverse $largeval]]
         test function-$type-inout-error-0 "$type inout" -body {
-            set result "abc"
-            $fn [list result 2]
-        } -result "Invalid value.*length is greater than specified maximum buffer size." -returnCodes error -match glob
+            testDll function $fn int [list param [list $type inout]]
+        } -result "Invalid value \"$type inout\". A type annotation is not valid for the data type." -returnCodes error
 
         foreach attr $pointerAttrs {
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
@@ -362,9 +365,6 @@ namespace eval ${NS}::test {
         test function-$type-nullifempty-1 "$type in nullifempty" -body {
             list [$fn $val [list result [expr {$len+1}]]] $result
         } -result [list $len $val]
-        test function-$type-nullifempty-error-0 "$type inout nullifempty" -body {
-            testDll function ${type}_reverse_inout int [list param [list $type inout nullifempty]]
-        } -result "Invalid value \"$type inout nullifempty\". $errorMessages(attrparamdir)" -returnCodes error
         test function-$type-nullifempty-error-1 "$type out nullifempty" -body {
             testDll function ${type}_out int [list input $type output [list $type out nullifempty]]
         } -result "Invalid value \"$type out nullifempty\". $errorMessages(attrparamdir)" -returnCodes error
@@ -398,14 +398,6 @@ namespace eval ${NS}::test {
         jis0208_out $bufsize [list out $bufsize]
         list [string length $out] $out
     } -result [list [expr {$bufsize/2-1}] [string repeat $val [expr {$bufsize/2 - 1}]]]
-
-    testDll function jis0208_inout void [list param [list string.jis0208 inout]]
-    test function-string-encoded-inout-0 "encoded inout" -body {
-        set param [string repeat $val 2]
-        jis0208_inout [list param 20]
-        set param
-    } -result [string repeat $val 4]
-
 
     ## Parameter tests - chars, unichars
     foreach {type val} [list chars abc chars.utf-8 abc unichars "\xe0\xe1\xe2"] {
@@ -566,22 +558,12 @@ namespace eval ${NS}::test {
     } -result "Invalid value. Byte array length is greater than specified maximum buffer size." -returnCodes error
 
     ## Parameter tests - binary
-    testDll function bytes_out void [list n int input binary output [list binary out]]
-    test function-binary-out-0 "binary out" -body {
-        bytes_out $len $val [list out $len]
-        set out
-    } -result $val
-    test function-binary-out-1 "binary out large" -body {
-        bytes_out $largelen $largeval [list out $largelen]
-        set out
-    } -result $largeval
-
-    testDll function bytes_inout void [list n int output [list binary inout]]
-    test function-binary-inout-0 "binary inout" -body {
-        set out $val
-        bytes_inout $len [list out $len]
-        set out
-    } -result [string reverse $val]
+    test function-binary-out-error-0 "binary out" -body {
+        testDll function bytes_out void [list n int input binary output [list binary out]]
+    } -result {Invalid value "binary out". A type annotation is not valid for the data type.} -returnCodes error
+    test function-binary-inout-error-0 "binary inout" -body {
+        testDll function bytes_inout void [list n int output [list binary inout]]
+    } -result {Invalid value "binary inout". A type annotation is not valid for the data type.} -returnCodes error
 
     ## Parameter tests - pointers
     test function-pointer-in-0 "pointer in" -setup {

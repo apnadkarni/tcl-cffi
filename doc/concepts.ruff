@@ -209,9 +209,8 @@ namespace eval Concepts {
 
         `pointer` - As discussed in the previous section, this is a pointer
         to raw memory. To access the underlying string, the memory referenced by
-        the pointer has to be read into a Tcl binary string with
-        [::cffi::memory tobinary] and then decoded with the Tcl
-        `encoding convertfrom` command.
+        the pointer has to be converted into a Tcl string value with the
+        [::cffi::memory tostring] command.
 
         `string.ENCODING` - Values declared using this type are still
         pointers at the C level but are
@@ -228,7 +227,11 @@ namespace eval Concepts {
         the C level. The type must always appear as an array, for example,
         `chars.utf-8[10]` and not as a scalar `chars.utf-8`. In this as well,
         conversion to and from Tcl strings is implicit using the specified
-        encoding, which again defaults to the system encoding.
+        encoding, which again defaults to the system encoding. Following
+        standard C rules, arrays are passed by reference as function arguments
+        and thus an declaration of `chars[10]` would also be passed into
+        a function as a `char*`. Within a `struct` definition on the other
+        hand, it would be stored as an array.
 
         `unichars` - The value is an array of `Tcl_UniChar` characters
         and follows the same rules as `chars` except that the encoding is
@@ -236,8 +239,33 @@ namespace eval Concepts {
 
         The choice of using `pointer`, `string` (and `unistring`), or `chars`
         (and `unichars`) depends on the C declaration and context as well as
-        convenience. The `string` and `chars` types are both more convenient and
-        safer to use.
+        convenience.
+
+        - Function parameters of type `char*` that are purely
+        input are best declared as `string` or `unistring`.
+
+        - Function parameters that are actually output buffers in which the
+        called function stores the output string value are best declared as
+        `chars[]`. Generally these have an associated parameter which indicates
+        the buffer size. In such cases the output string parameter can be
+        declared as (for example) `chars[nchars]` where `nchars` is the name of
+        the parameter containing the buffer size.
+
+        - Since output parameters are always passed by reference,
+        declaring a output function parameter as `string out` translates to
+        the C type `char**` and **not** `char*`. The called function is
+        expected to place a pointer to the string and not the string itself
+        at the passed location. At the script level, the string is stored but
+        there is no access to underlying pointer so `string out` should only
+        be used when the returned pointer is not needed for other purposes
+        like freeing memory. Otherwise, a `pointer out` declaration should
+        be used with explicit pointer management.
+
+        - For similar reasons, return values from functions should be typed
+        as `string` only if the underlying pointer is not needed. Otherwise
+        the `pointer` type should be used. Note that `chars` cannot be used
+        for function return values as C does not permit arrays to be returned
+        by value.
 
         ### Binary strings
 
@@ -480,7 +508,7 @@ namespace eval Concepts {
         One additional annotation, `nullifempty`, is available only for `in`
         parameters of type `string`, `unistring` and `struct`. If present, a
         NULL pointer is passed into the C function if the passed argument is an
-        empty string in the case of `string or `unistring` and an empty
+        empty string in the case of `string` or `unistring` and an empty
         dictionary in the case of `struct`. This facility is useful for API's
         where NULL pointers signify default options.
 

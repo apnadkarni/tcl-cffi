@@ -220,23 +220,6 @@ set start_page {
     D:/src/tcl-cffi/win/Release_AMD64_VC1916 
     ````
 
-    Note that `string` can be used as a type for output parameters as well.
-    For example, `GetCurrentDirectoryA` could have been declared as
-
-    ```
-    % kernel stdcall GetCurrentDirectoryA uint {nchars int path {string out}}
-    ```
-
-    However, now the output buffer space has to be specified at the call site
-    along with the output variable which is less convenient.
-
-    ```
-    % GetCurrentDirectoryA 512 [list buffer 512]
-    40
-    % set buffer
-    D:\src\tcl-cffi\win\Release_AMD64_VC1916
-    ```
-
     In the above examples, the strings in all cases are encoded in the system
     encoding before being passed to the C function. Similarly, the output
     buffers returned by the C function are assumed to be in system encoding
