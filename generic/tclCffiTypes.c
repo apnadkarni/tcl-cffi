@@ -2273,7 +2273,7 @@ CffiArgPrepareChars(CffiCall *callP,
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
     CFFI_ASSERT(argP->actualCount > 0);
 
-    valueP->ptr =
+    valueP->u.ptr =
         MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
 
     /* If input, we need to encode appropriately */
@@ -2281,7 +2281,7 @@ CffiArgPrepareChars(CffiCall *callP,
         return CffiCharsFromObj(ipCtxP->interp,
                                 typeAttrsP->dataType.u.tagObj,
                                 valueObj,
-                                valueP->ptr,
+                                valueP->u.ptr,
                                 argP->actualCount);
     else {
         /*
@@ -2289,10 +2289,10 @@ CffiArgPrepareChars(CffiCall *callP,
          * argument unmodified on error which would result in our
          * processing garbage in CffiArgPostProcess, set null terminator.
          */
-        *(char *)valueP->ptr = '\0';
+        *(char *)valueP->u.ptr = '\0';
         /* In case encoding employs double nulls */
         if (argP->actualCount > 1)
-            *(1 + (char *)valueP->ptr) = '\0';
+            *(1 + (char *)valueP->u.ptr) = '\0';
         return TCL_OK;
     }
 }
@@ -2355,13 +2355,13 @@ CffiArgPrepareUniChars(CffiCall *callP,
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
-    valueP->ptr =
+    valueP->u.ptr =
         MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount * sizeof(Tcl_UniChar));
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNICHAR_ARRAY);
 
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
         return CffiUniCharsFromObj(
-            ipCtxP->interp, valueObj, valueP->ptr, argP->actualCount);
+            ipCtxP->interp, valueObj, valueP->u.ptr, argP->actualCount);
     }
     else {
         /*
@@ -2369,7 +2369,7 @@ CffiArgPrepareUniChars(CffiCall *callP,
          * argument unmodified on error which would result in our
          * processing garbage in CffiArgPostProcess, set null terminator.
          */
-        *(Tcl_UniChar *)valueP->ptr = 0;
+        *(Tcl_UniChar *)valueP->u.ptr = 0;
         return TCL_OK;
     }
 }
@@ -2488,7 +2488,6 @@ CffiArgPrepareInBinary(Tcl_Interp *ip,
                      CffiValue *valueP)
 {
     Tcl_Obj *objP;
-    int flags = typeAttrsP->flags;
 
     CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
     /*
@@ -2561,13 +2560,13 @@ CffiArgPrepareBytes(CffiCall *callP,
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
-    valueP->ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
+    valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_BYTE_ARRAY);
 
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
         /* NOTE: because of shimmering possibility, we need to copy */
         return CffiBytesFromObj(
-            ipCtxP->interp, valueObj, valueP->ptr, argP->actualCount);
+            ipCtxP->interp, valueObj, valueP->u.ptr, argP->actualCount);
     }
     else
         return TCL_OK;
@@ -2810,21 +2809,21 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         CFFI_ASSERT(argP->actualCount >= 0);                                 \
         if (argP->actualCount == 0) {                                        \
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {              \
-                ret = objfn_(ip, valueObj, &valueP->fld_);                   \
+                ret = objfn_(ip, valueObj, &valueP->u.fld_);                   \
                 if (ret != TCL_OK)                                           \
                     return ret;                                              \
             }                                                                \
             if (flags & CFFI_F_ATTR_BYREF)                                   \
-                dcArgPointer(vmP, (DCpointer)&valueP->fld_);                 \
+                dcArgPointer(vmP, (DCpointer)&valueP->u.fld_);                 \
             else                                                             \
-                dcfn_(vmP, valueP->fld_);                                    \
+                dcfn_(vmP, valueP->u.fld_);                                    \
         }                                                                    \
         else {                                                               \
             /* Array - has to be byref */                                    \
             type_ *valueArray;                                               \
             CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                           \
             valueArray = MemLifoAlloc(                                       \
-                &ipCtxP->memlifo, argP->actualCount * sizeof(valueP->fld_)); \
+                &ipCtxP->memlifo, argP->actualCount * sizeof(valueP->u.fld_)); \
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {              \
                 Tcl_Obj **valueObjList;                                      \
                 int i, nvalues;                                              \
@@ -2846,7 +2845,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 for (i = nvalues; i < argP->actualCount; ++i)                \
                     valueArray[i] = 0;                                       \
             }                                                                \
-            valueP->ptr = valueArray;                                        \
+            valueP->u.ptr = valueArray;                                        \
             dcArgPointer(vmP, (DCpointer)valueArray);                        \
         }                                                                    \
     } while (0)
@@ -2873,22 +2872,22 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
             if (dict_size == 0) {
                 /* Empty dictionary AND NULLIFEMPTY set */
-                valueP->ptr = NULL;
-                dcArgPointer(vmP, valueP->ptr);
+                valueP->u.ptr = NULL;
+                dcArgPointer(vmP, valueP->u.ptr);
                 break;
             }
             /* NULLIFEMPTY but dictionary has elements */
         }
-        valueP->ptr = MemLifoAlloc(&ipCtxP->memlifo,
+        valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo,
                                     typeAttrsP->dataType.u.structP->size);
         if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
             CHECK(CffiStructFromObj(
-                ip, typeAttrsP->dataType.u.structP, valueObj, valueP->ptr));
+                ip, typeAttrsP->dataType.u.structP, valueObj, valueP->u.ptr));
         }
         else {
             /* TBD - should we zero out the memory */
         }
-        dcArgPointer(vmP, valueP->ptr);
+        dcArgPointer(vmP, valueP->u.ptr);
         break;
 
     case CFFI_K_TYPE_POINTER:
@@ -2896,15 +2895,15 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         CFFI_ASSERT(argP->actualCount >= 0);
         if (argP->actualCount <= 1) {
             if (flags & CFFI_F_ATTR_OUT)
-                valueP->ptr = NULL;
+                valueP->u.ptr = NULL;
             else {
                 CHECK(
-                    CffiPointerFromObj(ip, typeAttrsP, valueObj, &valueP->ptr));
+                    CffiPointerFromObj(ip, typeAttrsP, valueObj, &valueP->u.ptr));
             }
             if (flags & CFFI_F_ATTR_BYREF)
-                dcArgPointer(vmP, &valueP->ptr);
+                dcArgPointer(vmP, &valueP->u.ptr);
             else
-                dcArgPointer(vmP, valueP->ptr);
+                dcArgPointer(vmP, valueP->u.ptr);
         } else {
             void **valueArray;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
@@ -2920,15 +2919,15 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                         ip, typeAttrsP, valueObjList[i], &valueArray[i]));
                 }
             }
-            valueP->ptr = valueArray;
-            dcArgPointer(vmP, valueP->ptr);
+            valueP->u.ptr = valueArray;
+            dcArgPointer(vmP, valueP->u.ptr);
         }
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         CHECK(CffiArgPrepareChars(callP, arg_index, valueObj, valueP));
-        dcArgPointer(vmP, valueP->ptr);
+        dcArgPointer(vmP, valueP->u.ptr);
         break;
 
     case CFFI_K_TYPE_ASTRING:
@@ -2941,8 +2940,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
          */
         if (flags & CFFI_F_ATTR_OUT) {
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-            valueP->ptr = NULL;
-            dcArgPointer(vmP, &valueP->ptr);
+            valueP->u.ptr = NULL;
+            dcArgPointer(vmP, &valueP->u.ptr);
         }
         else {
             CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
@@ -2950,14 +2949,14 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
                     == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
                 && Tcl_DStringLength(&valueP->ancillary.ds) == 0) {
-                valueP->ptr = NULL; /* Null if empty */
+                valueP->u.ptr = NULL; /* Null if empty */
             }
             else
-                valueP->ptr = Tcl_DStringValue(&valueP->ancillary.ds);
+                valueP->u.ptr = Tcl_DStringValue(&valueP->ancillary.ds);
             if (flags & CFFI_F_ATTR_BYREF)
-                dcArgPointer(vmP, &valueP->ptr);
+                dcArgPointer(vmP, &valueP->u.ptr);
             else
-                dcArgPointer(vmP, valueP->ptr);
+                dcArgPointer(vmP, valueP->u.ptr);
         }
         break;
 
@@ -2971,8 +2970,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
          */
         if (flags & CFFI_F_ATTR_OUT) {
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-            valueP->ptr = NULL;
-            dcArgPointer(vmP, &valueP->ptr);
+            valueP->u.ptr = NULL;
+            dcArgPointer(vmP, &valueP->u.ptr);
         }
         else {
             CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
@@ -2984,7 +2983,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 && p[0] == 0 && p[1] == 0) {
                 p = NULL; /* Null if empty */
             }
-            valueP->ptr = p;
+            valueP->u.ptr = p;
             dcArgPointer(vmP, p);
         }
         break;
@@ -2992,7 +2991,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_UNICHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         CHECK(CffiArgPrepareUniChars(callP, arg_index, valueObj, valueP));
-        dcArgPointer(vmP, valueP->ptr);
+        dcArgPointer(vmP, valueP->u.ptr);
         break;
 
     case CFFI_K_TYPE_BINARY:
@@ -3005,7 +3004,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_BYTE_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         CHECK(CffiArgPrepareBytes(callP, arg_index, valueObj, valueP));
-        dcArgPointer(vmP, valueP->ptr);
+        dcArgPointer(vmP, valueP->u.ptr);
         break;
 
     default:
@@ -3055,7 +3054,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
      * There are three categories:
      *  - scalar values are directly stored in *valueP
      *  - structs and arrays of scalars are stored in at the location
-     *    pointed to by valueP->ptr
+     *    pointed to by valueP->u.ptr
      *  - strings/unistring/binary are stored in *valueP but not as
      *    native C values.
      */
@@ -3072,20 +3071,20 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     case CFFI_K_TYPE_ULONGLONG:
     case CFFI_K_TYPE_FLOAT:
     case CFFI_K_TYPE_DOUBLE:
-        /* Scalars stored at valueP, arrays of scalars at valueP->ptr */
+        /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
         if (argP->actualCount == 0)
             ret = CffiNativeValueToObj(
                 ip, typeAttrsP, valueP, argP->actualCount, &valueObj);
         else
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP->ptr, argP->actualCount, &valueObj);
+                ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->ptr, argP->actualCount, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
         break;
 
     case CFFI_K_TYPE_POINTER:
@@ -3099,7 +3098,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         /* Arrays not supported for struct currently */
         CFFI_ASSERT(argP->actualCount == 0);
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->ptr, argP->actualCount, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
         break;
 
     case CFFI_K_TYPE_ASTRING:
@@ -3202,22 +3201,22 @@ CffiCheckNumeric(Tcl_Interp *ip,
     /* TBD - float and double */
     is_signed = 0;
     switch (typeAttrsP->dataType.baseType) {
-    case CFFI_K_TYPE_SCHAR: value = valueP->schar; is_signed = 1; break;
-    case CFFI_K_TYPE_UCHAR: value = valueP->uchar; break;
-    case CFFI_K_TYPE_SHORT: value = valueP->sshort; is_signed = 1; break;
-    case CFFI_K_TYPE_USHORT: value = valueP->ushort; break;
-    case CFFI_K_TYPE_INT: value = valueP->sint; is_signed = 1; break;
-    case CFFI_K_TYPE_UINT: value = valueP->uint; break;
-    case CFFI_K_TYPE_LONG: value = valueP->slong; is_signed = 1; break;
-    case CFFI_K_TYPE_ULONG: value = valueP->ulong; break;
-    case CFFI_K_TYPE_LONGLONG: value = valueP->slonglong; is_signed = 1; break;
-    case CFFI_K_TYPE_ULONGLONG: value = valueP->ulonglong; break;
+    case CFFI_K_TYPE_SCHAR: value = valueP->u.schar; is_signed = 1; break;
+    case CFFI_K_TYPE_UCHAR: value = valueP->u.uchar; break;
+    case CFFI_K_TYPE_SHORT: value = valueP->u.sshort; is_signed = 1; break;
+    case CFFI_K_TYPE_USHORT: value = valueP->u.ushort; break;
+    case CFFI_K_TYPE_INT: value = valueP->u.sint; is_signed = 1; break;
+    case CFFI_K_TYPE_UINT: value = valueP->u.uint; break;
+    case CFFI_K_TYPE_LONG: value = valueP->u.slong; is_signed = 1; break;
+    case CFFI_K_TYPE_ULONG: value = valueP->u.ulong; break;
+    case CFFI_K_TYPE_LONGLONG: value = valueP->u.slonglong; is_signed = 1; break;
+    case CFFI_K_TYPE_ULONGLONG: value = valueP->u.ulonglong; break;
     case CFFI_K_TYPE_FLOAT:
-        value     = (Tcl_WideInt)valueP->flt;
+        value     = (Tcl_WideInt)valueP->u.flt;
         is_signed = 1;
         break;
     case CFFI_K_TYPE_DOUBLE:
-        value     = (Tcl_WideInt)valueP->dbl;
+        value     = (Tcl_WideInt)valueP->u.dbl;
         is_signed = 1;
         break;
     default:

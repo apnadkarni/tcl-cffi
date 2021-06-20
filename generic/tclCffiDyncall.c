@@ -315,16 +315,16 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         /* Dynamic element count is at index j. */
         actualValueP = &argsP[j].value;
         switch (protoP->params[j].typeAttrs.dataType.baseType) {
-        case CFFI_K_TYPE_SCHAR: actualCount = actualValueP->schar; break;
-        case CFFI_K_TYPE_UCHAR: actualCount = actualValueP->uchar; break;
-        case CFFI_K_TYPE_SHORT: actualCount = actualValueP->sshort; break;
-        case CFFI_K_TYPE_USHORT: actualCount = actualValueP->ushort; break;
-        case CFFI_K_TYPE_INT: actualCount = actualValueP->sint; break;
-        case CFFI_K_TYPE_UINT: actualCount = actualValueP->uint; break;
-        case CFFI_K_TYPE_LONG: actualCount = actualValueP->slong; break;
-        case CFFI_K_TYPE_ULONG: actualCount = actualValueP->ulong; break;
-        case CFFI_K_TYPE_LONGLONG: actualCount = actualValueP->slonglong; break;
-        case CFFI_K_TYPE_ULONGLONG: actualCount = actualValueP->ulonglong; break;
+        case CFFI_K_TYPE_SCHAR: actualCount = actualValueP->u.schar; break;
+        case CFFI_K_TYPE_UCHAR: actualCount = actualValueP->u.uchar; break;
+        case CFFI_K_TYPE_SHORT: actualCount = actualValueP->u.sshort; break;
+        case CFFI_K_TYPE_USHORT: actualCount = actualValueP->u.ushort; break;
+        case CFFI_K_TYPE_INT: actualCount = actualValueP->u.sint; break;
+        case CFFI_K_TYPE_UINT: actualCount = actualValueP->u.uint; break;
+        case CFFI_K_TYPE_LONG: actualCount = actualValueP->u.slong; break;
+        case CFFI_K_TYPE_ULONG: actualCount = actualValueP->u.ulong; break;
+        case CFFI_K_TYPE_LONGLONG: actualCount = actualValueP->u.slonglong; break;
+        case CFFI_K_TYPE_ULONGLONG: actualCount = actualValueP->u.ulonglong; break;
         default:
             (void) Tclh_ErrorWrongType(ip, NULL, "Wrong type for dynamic array count value.");
             goto cleanup_and_error;
@@ -437,13 +437,13 @@ CffiFunctionCall(ClientData cdata,
                 /* Note no error checks because the CffiFunctionSetup calls
                    above would have already done validation */
                 if (nptrs <= 1) {
-                    if (callCtx.argsP[i].value.ptr != NULL)
+                    if (callCtx.argsP[i].value.u.ptr != NULL)
                         Tclh_PointerUnregister(
-                            ip, callCtx.argsP[i].value.ptr, NULL);
+                            ip, callCtx.argsP[i].value.u.ptr, NULL);
                 }
                 else {
                     int j;
-                    void **ptrArray = callCtx.argsP[i].value.ptr;
+                    void **ptrArray = callCtx.argsP[i].value.u.ptr;
                     for (j = 0; j < nptrs; ++j) {
                         if (ptrArray[j] != NULL)
                             Tclh_PointerUnregister(ip, ptrArray[j], NULL);
@@ -472,7 +472,7 @@ CffiFunctionCall(ClientData cdata,
 #define CALLFN(objfn_, dcfn_, fld_)                                            \
     do {                                                                       \
         CffiValue retval;                                                      \
-        retval.fld_ = dcfn_(vmP, fnP->fnAddr);                                 \
+        retval.u.fld_ = dcfn_(vmP, fnP->fnAddr);                                 \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             ret =                                                              \
                 CffiCheckNumeric(ip, &protoP->returnType.typeAttrs, &retval);  \
@@ -482,7 +482,7 @@ CffiFunctionCall(ClientData cdata,
             exceptionHidden = 1;                                               \
         }                                                                      \
         if (ret == TCL_OK)                                                     \
-            resultObj = objfn_(retval.fld_);                                   \
+            resultObj = objfn_(retval.u.fld_);                                   \
                                                                                \
     } while (0);                                                               \
     break

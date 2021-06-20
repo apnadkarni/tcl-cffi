@@ -147,7 +147,7 @@ typedef struct CffiTypeAndAttrs {
  * Union of value types supported by dyncall
  */
 typedef struct CffiValue {
-    union data {
+    union {
     signed char schar;
     unsigned char uchar;
     signed short sshort;
@@ -161,7 +161,7 @@ typedef struct CffiValue {
     float flt;
     double dbl;
     void *ptr;
-    };
+    } u;
     union {
         /* TBD - Tcl_DString has 200 bytes static storage. Memory wasteful? */
         /* Maybe make it a pointer onto memlifo? */
