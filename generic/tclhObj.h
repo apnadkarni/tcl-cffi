@@ -15,6 +15,24 @@
  * indirection through the stubs table.
  */
 
+/* Function: Tclh_ObjClearPtr
+ * Releases a pointer to a *Tcl_Obj* and clears it.
+ *
+ * Parameters:
+ * objPP - pointer to the pointer to a *Tcl_Obj*
+ *
+ * Decrements the reference count on the Tcl_Obj possibly freeing
+ * it. The pointer itself is set to NULL.
+ *
+ * The pointer *objPP (but not objPP) may be NULL.
+ */
+TCLH_INLINE void Tclh_ObjClearPtr(Tcl_Obj **objPP) {
+    if (*objPP) {
+        Tcl_DecrRefCount(*objPP);
+        *objPP = NULL;
+    }
+}
+
 /* Function: Tclh_ObjToRangedInt
  * Unwraps a Tcl_Obj into a Tcl_WideInt if it is within a specified range.
  *

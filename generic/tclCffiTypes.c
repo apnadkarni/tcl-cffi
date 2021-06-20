@@ -618,18 +618,13 @@ invalid_array_size:
  */
 void CffiTypeCleanup (CffiType *typeP)
 {
-    if (typeP->countHolderObj) {
-        Tcl_DecrRefCount(typeP->countHolderObj);
-        typeP->countHolderObj = NULL;
-    }
+    Tclh_ObjClearPtr(&typeP->countHolderObj);
+
     switch (typeP->baseType) {
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_CHAR_ARRAY:
-        if (typeP->u.tagObj) {
-            Tcl_DecrRefCount(typeP->u.tagObj);
-            typeP->u.tagObj = NULL;
-        }
+        Tclh_ObjClearPtr(&typeP->u.tagObj);
         break;
     case CFFI_K_TYPE_STRUCT:
         if (typeP->u.structP) {
@@ -1112,10 +1107,7 @@ invalid_format:
  */
 void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
 {
-    if (typeAttrsP->defaultObj) {
-        Tcl_DecrRefCount(typeAttrsP->defaultObj);
-        typeAttrsP->defaultObj = NULL;
-    }
+    Tclh_ObjClearPtr(&typeAttrsP->defaultObj);
     CffiTypeCleanup(&typeAttrsP->dataType);
 }
 
@@ -2609,7 +2601,7 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
         Tcl_DStringFree(&valueP->ancillary.ds);
         break;
     case CFFI_K_TYPE_BINARY:
-        Tcl_DecrRefCount(valueP->ancillary.baObj);
+        Tclh_ObjClearPtr(&valueP->ancillary.baObj);
         break;
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:

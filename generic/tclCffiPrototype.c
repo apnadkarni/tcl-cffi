@@ -16,8 +16,7 @@
 static void CffiParamCleanup(CffiParam *paramP)
 {
     CffiTypeAndAttrsCleanup(&paramP->typeAttrs);
-    if (paramP->nameObj)
-        Tcl_DecrRefCount(paramP->nameObj);
+    Tclh_ObjClearPtr(&paramP->nameObj);
 }
 
 static CffiProto *CffiProtoAllocate(int nparams)
