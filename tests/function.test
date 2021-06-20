@@ -291,7 +291,7 @@ namespace eval ${NS}::test {
     }
 
     ## Parameter tests - string, unistring
-    # String is tested earlier for input parameters. Add a test for unistring
+    # String is tested earlier for input parameters.
     foreach {type val} [list string abc unistring "\xe0\xe1\xe2"] {
         set len [string length $val]
         set repeat 100000
@@ -308,30 +308,9 @@ namespace eval ${NS}::test {
         } -result $largelen
 
         set fn ${type}_out
-        testDll function $fn int [list input $type output [list $type out]]
-        test function-$type-out-0 "$type out" -body {
-            list [$fn $val [list result [expr {$len+1}]]] $result
-        } -result [list $len $val]
-        test function-$type-out-1 "$type out empty string" -body {
-            list [$fn "" [list result 1]] $result
-        } -result {0 {}}
-        test function-$type-out-2 "$type out large value" -body {
-            list [$fn $largeval [list result [expr {$largelen+1}]]] $result
-        } -result [list $largelen $largeval]
-        test function-$type-out-3 "$type out - uninitialized output" -setup {
-            testDll function pointer_noop void [list s [list $type out]]
-        } -body {
-            # This test attempts to check that the library guards against the called
-            # function not initializing the output buffer, for example in case of
-            # errors. This is not fool proof as there is no way to control existing
-            # output buffer contents before calling function (inout is not the same case)
-            # We expect the output buffer to be init'ed to leading \0
-            pointer_noop [list output 4]
-            set output
-        } -result ""
-        test function-$type-out-error-0 "$type out error unspecified buffer size" -body {
-            $fn abc result
-        } -result "Invalid value \"result\". Arguments for out and inout parameters of type string and bytes should be of the form \"varname size\"." -returnCodes error
+        test function-$type-out-error-0 "$type out" -body {
+            testDll function $fn int [list inparam $type outparam [list $type out]]
+        } -result "Invalid value \"$type out\". A type annotation is not valid for the data type." -returnCodes error
 
         set fn ${type}_reverse_inout
         test function-$type-inout-error-0 "$type inout" -body {
@@ -360,15 +339,11 @@ namespace eval ${NS}::test {
         } -body {
             pointer_to_pointer ""
         } -result [makeptr 0]
-        set fn ${type}_out
-        testDll function $fn int [list input [list $type in nullifempty] output [list $type out]]
-        test function-$type-nullifempty-1 "$type in nullifempty" -body {
-            list [$fn $val [list result [expr {$len+1}]]] $result
-        } -result [list $len $val]
-        test function-$type-nullifempty-error-1 "$type out nullifempty" -body {
-            testDll function ${type}_out int [list input $type output [list $type out nullifempty]]
-        } -result "Invalid value \"$type out nullifempty\". $errorMessages(attrparamdir)" -returnCodes error
-
+        test function-$type-nullifempty-1 "$type in nullifempty non-empty" -setup {
+            testDll function ${type}_len int [list param [list $type nullifempty]]
+        } -body {
+            ${type}_len abc
+        } -result 3
     }
 
 
@@ -389,15 +364,6 @@ namespace eval ${NS}::test {
         testDll function jis0208_in int [list x string.nosuchencoding]
     } -result {unknown encoding "nosuchencoding"} -returnCodes error
 
-    testDll function jis0208_out void [list bufsize int buf [list string.jis0208 out]]
-    test function-string-encoded-out-0 "encoded out" -body {
-        jis0208_out 4 [list out 10]
-        set out
-    } -result $val
-    test function-string-encoded-out-1 "encoded out large" -body {
-        jis0208_out $bufsize [list out $bufsize]
-        list [string length $out] $out
-    } -result [list [expr {$bufsize/2-1}] [string repeat $val [expr {$bufsize/2 - 1}]]]
 
     ## Parameter tests - chars, unichars
     foreach {type val} [list chars abc chars.utf-8 abc unichars "\xe0\xe1\xe2"] {

@@ -247,25 +247,19 @@ namespace eval Concepts {
         - Function parameters that are actually output buffers in which the
         called function stores the output string value are best declared as
         `chars[]`. Generally these have an associated parameter which indicates
-        the buffer size. In such cases the output string parameter can be
+        the buffer size. In such cases the output parameter can be
         declared as (for example) `chars[nchars]` where `nchars` is the name of
-        the parameter containing the buffer size.
+        the parameter containing the buffer size. The `string` and `unistring`
+        types cannot be used for `out` or `inout` parameters as there is
+        no associated buffer size.
 
-        - Since output parameters are always passed by reference,
-        declaring a output function parameter as `string out` translates to
-        the C type `char**` and **not** `char*`. The called function is
-        expected to place a pointer to the string and not the string itself
-        at the passed location. At the script level, the string is stored but
-        there is no access to underlying pointer so `string out` should only
-        be used when the returned pointer is not needed for other purposes
-        like freeing memory. Otherwise, a `pointer out` declaration should
-        be used with explicit pointer management.
-
-        - For similar reasons, return values from functions should be typed
-        as `string` only if the underlying pointer is not needed. Otherwise
-        the `pointer` type should be used. Note that `chars` cannot be used
-        for function return values as C does not permit arrays to be returned
-        by value.
+        - Function return values cannot be declared as `chars` or `unichars`
+        as C itself does not support array return values. Generally, functions
+        typed as returning `char *` need to be declaring as returning
+        `pointer` as the pointers have to be explcitly managed. Only in the
+        specific cases where the returned pointer is static or does not need
+        to be disposed of for some other reason, the return value can be
+        typed as `string` or `unistring`.
 
         ### Binary strings
 
@@ -277,6 +271,8 @@ namespace eval Concepts {
         between Tcl values and C values with the `Tcl_GetByteArrayFromObj` and
         `Tcl_NewByteArrayFromObj` functions.
 
+        The `binary` value can only be used as an input parameter to a function.
+        It is not permitted in any other declaration context.
 
         ### Structs
 

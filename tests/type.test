@@ -689,61 +689,48 @@ namespace eval cffi::test {
         ## param mode
         # in parameters valid for all types
         foreach {attr expected} {
-            "" "in byref"
-            "in"  "in byref"
-            "byref" "in byref"
-            "in byref" "in byref"
-            "{default 0}" "in byref {default 0}"
-            "out" "out byref"
-            "out byref" "out byref"
-            "nullifempty" "in byref nullifempty"
-            "in nullifempty" "in byref nullifempty"
+            "" "in"
+            "in"  "in"
+            "{default 0}" "in {default 0}"
+            "nullifempty" "in nullifempty"
+            "in nullifempty" "in nullifempty"
         } {
             teststring "$type $attr" param $expected
         }
 
-        # out valid but not inout
-        foreach {attr expected} {
-            "out" "out byref"
-            "byref out" "out byref"
-            "out storeonerror" "out byref storeonerror"
-            "out storealways" "out byref storealways"
-        } {
-            teststring "$type $attr" param $expected
+        foreach attr {out inout byref {in byref} {out byref} {inout byref}} {
+            testinvalidattr "$type $attr" param $errorMessages(attrtype)
         }
-        testinvalidattr "$type inout" param $errorMessages(attrtype)
         
         # Failure tests - invalid attribute combinations
-        foreach attra {in out} {
-            foreach attrb {in out} {
-                testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
-            }
+        foreach attrb {inout out} {
+            testinvalidattr "$type $attra $attrb" param $errorMessages(attrtype)
         }
 
         ## return mode
-        teststring $type return ""
-        foreach attr {in out nullifempty} {
+        teststring "$type" return ""
+        foreach attr {in nullifempty} {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
-        testinvalidattr "$type inout" return $errorMessages(attrtype)
+        foreach attr {out inout} {
+            testinvalidattr "$type $attr" return $errorMessages(attrtype)
+        }
 
         ## field mode
         testinvalidattr "$type" field $errorMessages(typeparsemode)
-        foreach attr {in out nullifempty} {
+        foreach attr {in nullifempty} {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
-        testinvalidattr "$type inout" field $errorMessages(attrtype)
-
-        # Scalar tests - invalid attributes for type
-        foreach attr [concat $pointerAttrs $errorAttrs] {
-            testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
+        foreach attr {out inout} {
+            testinvalidattr "$type $attr" field $errorMessages(attrtype)
         }
+
 
         ## For all parse modes
         foreach parse_mode {param return field} {
             # Scalar tests - invalid attributes for type
             foreach attr [concat $pointerAttrs $errorAttrs] {
-                testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
+                testinvalidattr "$type $attr $parse_mode" $parse_mode $errorMessages(attrtype)
             }
             # Array tests - success
             # none - currently arrays not supported
@@ -771,18 +758,18 @@ namespace eval cffi::test {
 
     ## binary - param mode
     foreach {attr expected} {
-        "" "in byref"
-        "in"  "in byref"
-        "byref" "in byref"
-        "in byref" "in byref"
-        "{default 0}" "in byref {default 0}"
+        "" "in"
+        "in"  "in"
+        "{default 0}" "in {default 0}"
     } {
         teststring "binary $attr" param $expected
     }
     # out and inout params not allowed for binary
-    foreach attr {inout out nullifempty} {
+    foreach attr {out inout byref {in byref} {out byref} {inout byref} {nullifempty} {in nullifempty}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
+    
+
     # Failure tests - invalid attribute combinations
     testinvalidattr "binary in in" param $errorMessages(attrconflict)
 

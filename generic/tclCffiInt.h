@@ -146,7 +146,8 @@ typedef struct CffiTypeAndAttrs {
 /*
  * Union of value types supported by dyncall
  */
-typedef union CffiValue {
+typedef struct CffiValue {
+    union data {
     signed char schar;
     unsigned char uchar;
     signed short sshort;
@@ -160,10 +161,14 @@ typedef union CffiValue {
     float flt;
     double dbl;
     void *ptr;
-    /* TBD - Tcl_DString has 200 bytes static storage. Memory wasteful? */
-    Tcl_DString ds;  /* CFFI_K_TYPE_ASTRING */
-    Tcl_Obj *baObj;  /* CFFI_K_TYPE_BINARY */
-    Tcl_Obj *uniObj; /* CFFI_K_TYPE_UNISTRING */
+    };
+    union {
+        /* TBD - Tcl_DString has 200 bytes static storage. Memory wasteful? */
+        /* Maybe make it a pointer onto memlifo? */
+        Tcl_DString ds;  /* CFFI_K_TYPE_ASTRING */
+        Tcl_Obj *baObj;  /* CFFI_K_TYPE_BINARY */
+        Tcl_Obj *uniObj; /* CFFI_K_TYPE_UNISTRING */
+    } ancillary ; /* Ancillary data needed for some types */
 } CffiValue;
 
 /*
@@ -330,16 +335,6 @@ CffiResult CffiPointerFromObj(Tcl_Interp *ip,
                               void **pointerP);
 CffiResult
 CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP);
-CffiResult CffiArgPrepareString(Tcl_Interp *ip,
-                                const CffiTypeAndAttrs *typeAttrsP,
-                                Tcl_Obj *valueObj,
-                                int memory_size,
-                                CffiValue *valueP);
-CffiResult CffiArgPrepareUniString(Tcl_Interp *ip,
-                                   const CffiTypeAndAttrs *typeAttrsP,
-                                   Tcl_Obj *valueObj,
-                                   int nUnichars,
-                                   CffiValue *valueP);
 CffiResult CffiExternalCharsToObj(Tcl_Interp *ip,
                                   const CffiTypeAndAttrs *typeAttrsP,
                                   const char *srcP,
@@ -348,37 +343,6 @@ CffiResult CffiExternalDStringToObj(Tcl_Interp *ip,
                                    const CffiTypeAndAttrs *typeAttrsP,
                                    Tcl_DString *dsP,
                                    Tcl_Obj **resultObjP);
-CffiResult CffiUniStringToObj(Tcl_Interp *ip,
-                              const CffiTypeAndAttrs *typeAttrsP,
-                              Tcl_DString *dsP,
-                              Tcl_Obj **resultObjP);
-CffiResult CffiCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize);
-CffiResult CffiCharsToObj(Tcl_Interp *ip,
-                          const CffiTypeAndAttrs *typeAttrsP,
-                          char *srcP,
-                          Tcl_Obj **resultObjP);
-CffiResult CffiArgPrepareChars(CffiCall *callP,
-                               int arg_index,
-                               Tcl_Obj *valueObj,
-                               CffiValue *valueP);
-CffiResult
-CffiUniCharsFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
-CffiResult CffiArgPrepareUniChars(CffiCall *callP,
-                                  int arg_index,
-                                  Tcl_Obj *valueObj,
-                                  CffiValue *valueP);
-CffiResult CffiArgPrepareBinary(Tcl_Interp *ip,
-                                const CffiTypeAndAttrs *typeAttrsP,
-                                Tcl_Obj *valueObj,
-                                int memory_size,
-                                CffiValue *valueP);
-CffiResult
-CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
-CffiResult CffiArgPrepareBytes(CffiCall *callP,
-                               int arg_index,
-                               Tcl_Obj *valueObj,
-                               CffiValue *valueP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             CffiValue *valueP);

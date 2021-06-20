@@ -85,7 +85,7 @@
     EXTERN int token_##_len(type_ *in)               \
     {                                                \
         int len = 0;                                 \
-        while (*in++)                                  \
+        while (*in++)                                \
             ++len;                                   \
         return len;                                  \
     }
