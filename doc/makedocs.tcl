@@ -22,6 +22,5 @@ ruff::document [list Concepts $NS ${NS}::dyncall] \
     -preamble $start_page \
     -pagesplit namespace \
     -autopunctuate true \
-    -navigation sticky \
     -hidenamespace $NS \
     -title "CFFI Reference"
