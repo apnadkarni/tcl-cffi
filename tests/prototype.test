@@ -12,6 +12,18 @@ namespace eval ${NS}::test {
     testnumargs prototype-function "prototype function" "NAME RETURNTYPE PARAMDEFS" ""
     testnumargs prototype-stdcall "prototype stdcall" "NAME RETURNTYPE PARAMDEFS" ""
 
+    proc getstdcalladdr {} {
+        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+            # VC++ has _, mingw does not
+            set fn _stdcalltest@16
+            if {[catch {testDll addressof _stdcalltest@16} addr]} {
+                set addr [testDll addressof stdcalltest@16]
+            }
+        } else {
+            set addr [testDll addressof stdcalltest]
+        }
+        return $addr
+    }
     test prototype-function-0 "Basic prototype" -setup {
         set addr [testDll addressof int_to_int]
     } -cleanup {
@@ -36,7 +48,7 @@ namespace eval ${NS}::test {
     } -result [list 42 43]
 
     test prototype-stdcall-0 "Basic prototype - stdcall" -setup {
-        set addr [testDll addressof stdcalltest]
+        set addr [getstdcalladdr]
     } -cleanup {
         cffi::prototype delete *
     } -body {
@@ -45,7 +57,7 @@ namespace eval ${NS}::test {
     } -result 0.5
     test prototype-stdcall-1 "Function pointer from struct - stdcall" -setup {
         cffi::prototype stdcall dbldiv double {a double b double}
-        set addr [testDll addressof stdcalltest    ]
+        set addr [getstdcalladdr]
         cffi::Struct create ::StructWithFunc {c uchar fnptr pointer.dbldiv}
         testDll function getStructWithFunc {pointer.dbldiv unsafe} {c uchar p {pointer unsafe} s {struct.StructWithFunc out}}
         set fnptr [getStructWithFunc 99 [makeptr $addr] out]

@@ -786,7 +786,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     if (found)
         baseType = typeAttrP->dataType.baseType;
     else {
-        /* Get base type */
+        CffiTypeAndAttrsInit(typeAttrP, NULL);
         CHECK(CffiTypeParse(ip, objs[0], &typeAttrP->dataType));
         baseType = typeAttrP->dataType.baseType;
         typeAttrP->defaultObj = NULL;
