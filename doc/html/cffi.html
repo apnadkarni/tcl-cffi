@@ -421,11 +421,12 @@ left 0 top 0 right 1920 bottom 1080
 % cffi::dyncall::Library create kernel kernel32.dll
 ::kernel
 % kernel stdcalls {
-    GetCurrentDirectoryA uint {nchars int path {chars[512] out}}
+    GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
     SetCurrentDirectoryA uint {path string}
 }
 </pre>
-<p class='ruff'>As an aside, note the <code>stdcalls</code> method above to define multiple functions in a single call. There is also a corresponding <code>functions</code> method.</p>
+<p class='ruff'>In the above declaration the <code>path</code> argument is declared as an array whose size is given by another parameter <code>nchars</code> instead of an integer constant. This makes for fewer errors in calling C functions which expect a size and pointer combination of parameters where a larger size than the declared array size may be mistakenly passed.</p>
+<p class='ruff'>As an aside, the <code>stdcalls</code> method above to define multiple functions in a single call. There is also a corresponding <code>functions</code> method.</p>
 <p class='ruff'>The above functions can then be simply invoked.</p>
 <pre class='ruff'>
 % GetCurrentDirectoryA 512 buffer
@@ -440,17 +441,6 @@ D:/Temp
 1
 % pwd
 D:/src/tcl-cffi/win/Release_AMD64_VC1916 
-</pre>
-<p class='ruff'>Note that <code>string</code> can be used as a type for output parameters as well. For example, <code>GetCurrentDirectoryA</code> could have been declared as</p>
-<pre class='ruff'>
-% kernel stdcall GetCurrentDirectoryA uint {nchars int path {string out}}
-</pre>
-<p class='ruff'>However, now the output buffer space has to be specified at the call site along with the output variable which is less convenient.</p>
-<pre class='ruff'>
-% GetCurrentDirectoryA 512 [list buffer 512]
-40
-% set buffer
-D:\src\tcl-cffi\win\Release_AMD64_VC1916
 </pre>
 <p class='ruff'>In the above examples, the strings in all cases are encoded in the system encoding before being passed to the C function. Similarly, the output buffers returned by the C function are assumed to be in system encoding and translated into Tcl's internal form accordingly. Both <code>string</code> and <code>chars</code> can be tagged with an encoding name. For example, if the functions were defined using <code>string.jis0208</code> or <code>chars[512].jis0208</code>, the JIS0208 encoding would be used to transform the strings in both directions.</p>
 <p class='ruff'>The package has other related types that server a similar purpose.</p>

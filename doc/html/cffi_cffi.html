@@ -415,7 +415,7 @@ package require cffi
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>Safe pointer to memory to free.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The memory must have been allocated using <a href="cffi_cffi.html#::cffi::memory allocate" title="memory allocate" class='ruff_cmd'>memory allocate</a>, <a href="cffi_cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a> or one of the methods of a <a href="cffi_cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a> object.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The memory must have been allocated using <a href="cffi_cffi.html#::cffi::memory allocate" title="memory allocate" class='ruff_cmd'>memory allocate</a>, <a href="cffi_cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a> or one of the methods of a <a href="cffi_cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a> object. Null pointers are silently ignored.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory allocate" title="memory allocate" class='ruff_cmd'>memory allocate</a></p>
 <h4 class='ruffproc'><a name='::cffi::memory frombinary'>memory frombinary</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -428,27 +428,68 @@ package require cffi
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi_cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory tobinary" title="memory tobinary" class='ruff_cmd'>memory tobinary</a>, <a href="cffi_cffi.html#::cffi::memory tobinary!" title="memory tobinary!" class='ruff_cmd'>memory tobinary!</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory fromstring'>memory fromstring</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Allocates memory and stores a Tcl string in it in the specified encoding.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory fromstring</span> <span class='ruff_arg'>value ?encoding?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>value</code></td><td class='ruff_defitem'>Tcl string value.</td></tr>
+<tr><td class='ruff_defitem'><code>encoding</code></td><td class='ruff_defitem'>The encoding to use for conversion. If unspecified or the empty string, the system encoding is used. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi_cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory tostring" title="memory tostring" class='ruff_cmd'>memory tostring</a>, <a href="cffi_cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory set'>memory set</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Sets the memory locations to a specified value</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory set</span> <span class='ruff_arg'>pointer bytevalue count</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>Safe pointer to memory.</td></tr>
+<tr><td class='ruff_defitem'><code>bytevalue</code></td><td class='ruff_defitem'>A value in the range <code>0</code>-<code>255</code></td></tr>
+<tr><td class='ruff_defitem'><code>count</code></td><td class='ruff_defitem'>Number of bytes to be set.</td></tr>
+</table>
 <h4 class='ruffproc'><a name='::cffi::memory tobinary'>memory tobinary</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Returns the content of a memory block as a Tcl binary string. Returns the binary string containing bytes from the memory block.</p>
+<p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>memory tobinary</span> <span class='ruff_arg'>pointer size</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>Safe pointer to memory.</td></tr>
 <tr><td class='ruff_defitem'><code>size</code></td><td class='ruff_defitem'>Number of bytes to copy from the memory block.</td></tr>
 </table>
-<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl binary string. Returns the binary string containing bytes from the memory block.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory tobinary!" title="memory tobinary!" class='ruff_cmd'>memory tobinary!</a>, <a href="cffi_cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a></p>
 <h4 class='ruffproc'><a name='::cffi::memory tobinary!'>memory tobinary!</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Returns the content of a memory block as a Tcl binary string. Returns the binary string containing bytes from the memory block.</p>
+<p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>memory tobinary!</span> <span class='ruff_arg'>pointer size</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>Pointer to memory.</td></tr>
 <tr><td class='ruff_defitem'><code>size</code></td><td class='ruff_defitem'>Number of bytes to copy from the memory block.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>Unlike the <a href="cffi_cffi.html#::cffi::memory tobinary" title="memory tobinary" class='ruff_cmd'>memory tobinary</a> method, this does not check the validity of <code>$pointer</code> and should be used with care.</p>
-<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl binary string. Returns the binary string containing bytes from the memory block.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory tobinary" title="memory tobinary" class='ruff_cmd'>memory tobinary</a>, <a href="cffi_cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory tostring'>memory tostring</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring</span> <span class='ruff_arg'>pointer ?encoding?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>Safe pointer to memory.</td></tr>
+<tr><td class='ruff_defitem'><code>encoding</code></td><td class='ruff_defitem'>The encoding to use for conversion. If unspecified or the empty string, the system encoding is used. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a>, <a href="cffi_cffi.html#::cffi::memory fromstring" title="memory fromstring" class='ruff_cmd'>memory fromstring</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory tostring!'>memory tostring!</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>Pointer to memory.</td></tr>
+<tr><td class='ruff_defitem'><code>encoding</code></td><td class='ruff_defitem'>The encoding to use for conversion. If unspecified or the empty string, the system encoding is used. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>Unlike the <a href="cffi_cffi.html#::cffi::memory tostring" title="memory tostring" class='ruff_cmd'>memory tostring</a> method, this does not check the validity of <code>$pointer</code> and should be used with care.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi_cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a>, <a href="cffi_cffi.html#::cffi::memory fromstring" title="memory fromstring" class='ruff_cmd'>memory fromstring</a></p>
 <h4 class='ruffproc'><a name='::cffi::pointer address'>pointer address</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the address component of the pointer.</p>
@@ -735,8 +776,12 @@ package require cffi
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory allocate'>memory allocate</a><span class='tooltiptext'>Allocates memory of the specified size
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory free'>memory free</a><span class='tooltiptext'>Frees the memory referenced by the passed pointer
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory frombinary'>memory frombinary</a><span class='tooltiptext'>Allocates memory and copied the passed Tcl binary string into it.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory tobinary'>memory tobinary</a><span class='tooltiptext'>Returns the content of a memory block as a Tcl binary string. Returns the binary string containing bytes from the memory block.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory tobinary!'>memory tobinary!</a><span class='tooltiptext'>Returns the content of a memory block as a Tcl binary string. Returns the binary string containing bytes from the memory block.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory fromstring'>memory fromstring</a><span class='tooltiptext'>Allocates memory and stores a Tcl string in it in the specified encoding.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory set'>memory set</a><span class='tooltiptext'>Sets the memory locations to a specified value
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory tobinary'>memory tobinary</a><span class='tooltiptext'>Returns the content of a memory block as a Tcl binary string.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory tobinary!'>memory tobinary!</a><span class='tooltiptext'>Returns the content of a memory block as a Tcl binary string.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory tostring'>memory tostring</a><span class='tooltiptext'>Returns the content of a memory block as a Tcl string.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory tostring!'>memory tostring!</a><span class='tooltiptext'>Returns the content of a memory block as a Tcl string.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::pointer address'>pointer address</a><span class='tooltiptext'>Returns the address component of the pointer.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::pointer check'>pointer check</a><span class='tooltiptext'>Validates a pointer and raise an exception if invalid.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::pointer counted'>pointer counted</a><span class='tooltiptext'>Registers a pointer as a counted pointer
