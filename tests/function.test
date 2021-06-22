@@ -780,6 +780,16 @@ namespace eval ${NS}::test {
         checkTestStruct $s
     } -result [list ]
 
+    test function-struct-out-crash-bug#39 "Param struct out" -setup {
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+        proc crash {} {
+            getTestStruct s
+            checkTestStruct $s
+        }
+    } -body {
+        crash
+    } -result [list ]
+
     test function-struct-in-0 "Param struct in" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
@@ -1337,6 +1347,7 @@ namespace eval ${NS}::test {
     testptrexcepts function-storealways-5 "storealways except, errors" [makeptr 0] {} {out storealways} [list 1 "Invalid value \"[makeptr 0]\". Function returned NULL pointer." [makeptr 0]]
     testptrexcepts function-storealways-6 "storealways, noexcept, no errors" [makeptr 1] {noexcept} {out storealways} [list 0 [makeptr 1] [makeptr 1]]
     testptrexcepts function-storealways-7 "storealways noexcept, errors" [makeptr 0] {noexcept} {out storealways} [list 0 [makeptr  0] [makeptr 0]]
+
 
 }
 

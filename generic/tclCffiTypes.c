@@ -2654,7 +2654,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
     CffiResult ret;
-    int memorySize;
     int flags;
     char *p;
 
@@ -2710,50 +2709,20 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * types. It is not permitted for other types.
      */
     *varNameObjP = NULL;
-    memorySize = 0;
     if (flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) {
-        Tcl_Obj **value_and_memsize;
-        int n;
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
 
-        CHECK(Tcl_ListObjGetElements(NULL, valueObj, &n, &value_and_memsize));
-        if (n == 0)
-            return ErrorInvalidValue(ip,
-                                     valueObj,
-                                     "A variable name must be specified for "
-                                     "out and inout parameters");
-        if (baseType != CFFI_K_TYPE_ASTRING
-            && baseType != CFFI_K_TYPE_UNISTRING
-            && baseType != CFFI_K_TYPE_BINARY) {
-            if (n != 1)
-                return ErrorInvalidValue(
-                    ip,
-                    valueObj,
-                    "Arguments for out and inout parameters of type other than "
-                    "string, unistring and binary should only be specified as "
-                    "a variable name.");
-        }
-        else {
-            /* string, unistring or binary */
-            if (n != 2 ||
-                Tclh_ObjToInt(ip, value_and_memsize[1], &memorySize) != TCL_OK
-                || memorySize <= 0) {
-                return ErrorInvalidValue(
-                    ip,
-                    valueObj,
-                    "Arguments for out and inout "
-                    "parameters of type string and bytes should "
-                    "be of the form \"varname size\".");
-            }
-        }
-        valueObj = Tcl_ObjGetVar2(ip, value_and_memsize[0], NULL, TCL_LEAVE_ERR_MSG);
+        CFFI_ASSERT(baseType != CFFI_K_TYPE_ASTRING
+                    && baseType != CFFI_K_TYPE_UNISTRING
+                    && baseType != CFFI_K_TYPE_BINARY);
+        *varNameObjP = valueObj;
+        valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
         if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
             return ErrorInvalidValue(
                 ip,
-                value_and_memsize[0],
+                *varNameObjP,
                 "Variable specified as inout argument does not exist.");
         }
-        *varNameObjP = value_and_memsize[0];
         /* TBD - check if existing variable is an array and error out? */
     }
 
@@ -2762,12 +2731,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * not a fixed size type. Note chars/unichars/bytes are fixed size since
      * their array size is required to be specified.
      */
-    CFFI_ASSERT((flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT))
-                     == 0
-                 || memorySize > 0
-                 || (baseType != CFFI_K_TYPE_ASTRING
-                     && baseType != CFFI_K_TYPE_UNISTRING
-                     && baseType != CFFI_K_TYPE_BINARY));
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
