@@ -85,6 +85,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
 {
     Tcl_Interp *ip = ipCtxP->interp;
     CffiProto *protoP;
+    CffiResult ret;
     Tcl_Obj **objs;
     int nobjs;
     int i, j;
@@ -93,40 +94,44 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     if (nobjs & 1)
         return Tclh_ErrorInvalidValue(ip, paramsObj, "Parameter type missing.");
 
+    /* Protect the list elements in case paramsObj gets shimmered */
+    Tclh_ObjArrayIncrRefs(nobjs, objs);
+
     /*
      * Parameter list is alternating name, type elements. Thus number of
      * parameters is nobjs/2
      */
     protoP = CffiProtoAllocate(nobjs / 2);
-    if (CffiTypeAndAttrsParse(ipCtxP,
+    ret = CffiTypeAndAttrsParse(ipCtxP,
                               returnTypeObj,
                               CFFI_F_TYPE_PARSE_RETURN,
-                              &protoP->returnType.typeAttrs)
-        != TCL_OK) {
-        CffiProtoUnref(protoP);
-        return TCL_ERROR;
-    }
-    Tcl_IncrRefCount(fnNameObj);
-    protoP->returnType.nameObj = fnNameObj;
+                                &protoP->returnType.typeAttrs);
+    if (ret == TCL_OK) {
+        Tcl_IncrRefCount(fnNameObj);
+        protoP->returnType.nameObj = fnNameObj;
 
-    protoP->nParams = 0; /* Update as we go along  */
-    for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
-        if (CffiTypeAndAttrsParse(ipCtxP,
-                                  objs[i + 1],
-                                  CFFI_F_TYPE_PARSE_PARAM,
-                                  &protoP->params[j].typeAttrs)
-            != TCL_OK) {
-            CffiProtoUnref(protoP);
-            return TCL_ERROR;
+        protoP->nParams = 0; /* Update as we go along  */
+        for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
+            ret = CffiTypeAndAttrsParse(ipCtxP,
+                                        objs[i + 1],
+                                        CFFI_F_TYPE_PARSE_PARAM,
+                                        &protoP->params[j].typeAttrs);
+            if (ret != TCL_OK)
+                break;
+
+            Tcl_IncrRefCount(objs[i]);
+            protoP->params[j].nameObj = objs[i];
+            protoP->nParams += 1; /* Update incrementally for error cleanup */
         }
-        Tcl_IncrRefCount(objs[i]);
-        protoP->params[j].nameObj = objs[i];
-        protoP->nParams += 1; /* Update incrementally for error cleanup */
+
     }
+    if (ret == TCL_OK)
+        *protoPP = protoP;
+    else
+        CffiProtoUnref(protoP);
 
-    *protoPP       = protoP;
-
-    return TCL_OK;
+    Tclh_ObjArrayDecrRefs(nobjs, objs);
+    return ret;
 }
 
 /* Function: CffiProtoGet

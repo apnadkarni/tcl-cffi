@@ -779,6 +779,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         return Tclh_ErrorInvalidValue(ip, typeAttrObj, "Empty type declaration.");
     }
 
+    /* Protect list elements from shimmering away. */
+    Tclh_ObjArrayIncrRefs(nobjs, objs);
+
     /* First check for a type definition before base types */
     found = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
     if (found)
@@ -1076,16 +1079,18 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     typeAttrP->flags = flags;
+
+    Tclh_ObjArrayDecrRefs(nobjs, objs);
     return TCL_OK;
 
 invalid_format:
-    /* NOTE: jump source should have incremented ref count if errorObj was
-     * passed directly or indirectly from caller (ok if errorObj is NULL) */
     (void)Tclh_ErrorInvalidValue(
         ip,
         typeAttrObj,
         message);
     CffiTypeAndAttrsCleanup(typeAttrP);
+
+    Tclh_ObjArrayDecrRefs(nobjs, objs);
     return TCL_ERROR;
 }
 
@@ -1162,13 +1167,14 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
                  CffiStruct **structPP)
 {
     Tcl_Obj **objs;
-    int          nobjs;
-    int          nfields;
+    int nobjs;
+    int nfields;
     int i, j;
     int offset;
     int struct_alignment;
     CffiStruct *structP;
     Tcl_Interp *ip = ipCtxP->interp;
+    CffiResult ret;
 
     if (Tcl_GetCharLength(nameObj) == 0) {
         return Tclh_ErrorInvalidValue(
@@ -1182,28 +1188,32 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
             ip, structObj, "Empty struct or missing type definition for field.");
     nfields = nobjs / 2; /* objs[] is alternating name, type list */
 
+    /* Protect against shimmering of owning list */
+    Tclh_ObjArrayIncrRefs(nobjs, objs);
+
     structP          = CffiStructCkalloc(nfields);
     structP->nFields = 0; /* Update as we go along */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         int k;
-        if (CffiTypeAndAttrsParse(ipCtxP,
+        ret = CffiTypeAndAttrsParse(ipCtxP,
                                   objs[i + 1],
                                   CFFI_F_TYPE_PARSE_FIELD,
-                                  &structP->fields[j].field)
-            != TCL_OK) {
+                                    &structP->fields[j].field);
+        if (ret != TCL_OK) {
             CffiStructUnref(structP);
-            return TCL_ERROR;
+            goto vamoose;
         }
         /* Check for dup field names */
         for (k = 0; k < j; ++k) {
             if (!strcmp(Tcl_GetString(objs[i]),
                         Tcl_GetString(structP->fields[k].nameObj))) {
                 CffiStructUnref(structP);
-                return Tclh_ErrorExists(
+                ret = Tclh_ErrorExists(
                     ip,
                     "Field",
                     objs[i],
                     "Field names in a struct must be unique.");
+                goto vamoose;
             }
         }
         Tcl_IncrRefCount(objs[i]);
@@ -1226,8 +1236,9 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
 
         if (field_size <= 0) {
             /* Dynamic size field. Should have been caught in earlier pass */
-            return Tclh_ErrorGeneric(
+            ret = Tclh_ErrorGeneric(
                 ip, NULL, "Internal error: struct field is not fixed size.");
+            goto vamoose;
         }
         if (field_alignment > struct_alignment)
             struct_alignment = field_alignment;
@@ -1245,7 +1256,11 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     structP->alignment = struct_alignment;
     structP->size      = (offset + struct_alignment - 1) & ~(struct_alignment - 1);
     *structPP          = structP;
-    return TCL_OK;
+    ret = TCL_OK;
+
+vamoose:
+    Tclh_ObjArrayDecrRefs(nobjs, objs);
+    return ret;
 }
 
 /* Function: CffiStructResolve

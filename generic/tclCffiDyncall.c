@@ -810,6 +810,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
     Tcl_Obj *cmdNameObj;
     Tcl_Obj **nameObjs;    /* C name and optional Tcl name */
     int nNames;         /* # elements in nameObjs */
+    int ret;
 
     CHECK(Tcl_ListObjGetElements(ip, nameObj, &nNames, &nameObjs));
     if (nNames == 0 || nNames > 2)
@@ -824,13 +825,16 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
     else
         cmdNameObj = nameObjs[1];
 
-    return CffiDefineOneFunction(ip,
+    Tcl_IncrRefCount(cmdNameObj);/* Lists may shimmer internal rep any time */
+    ret = CffiDefineOneFunction(ip,
                                  libCtxP->vmCtxP,
                                  fn,
                                  cmdNameObj,
                                  returnTypeObj,
                                  paramsObj,
                                  callMode);
+    Tcl_DecrRefCount(cmdNameObj);
+    return ret;
 }
 
 /* Function: CffiDyncallFunctionCmd
@@ -934,22 +938,30 @@ CffiDyncallManyFunctionsCmd(Tcl_Interp *ip,
     int nobjs;
     int i;
     int ret;
+    Tcl_Obj *fnListObj;
 
     CFFI_ASSERT(objc == 3);
 
-    CHECK(Tcl_ListObjGetElements(ip, objv[2], &nobjs, &objs));
-    if (nobjs % 3) {
-        return Tclh_ErrorInvalidValue(
-            ip, objv[2], "Incomplete function definition list.");
-    }
+    /* Dup the list so the internal rep does not shimmer away */
+    fnListObj = Tcl_DuplicateObj(objv[2]);
 
-    for (i = 0; i < nobjs; i += 3) {
-        ret = CffiDefineOneFunctionFromLib(ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
-        /* TBD - if one fails, rest are not defined but prior ones are */
-        if (ret != TCL_OK)
-            return ret;
+    ret = Tcl_ListObjGetElements(ip, fnListObj, &nobjs, &objs);
+    if (ret == TCL_OK) {
+        if (nobjs % 3) {
+            ret = Tclh_ErrorInvalidValue(
+                ip, fnListObj, "Incomplete function definition list.");
+        }
+        else {
+            for (i = 0; i < nobjs; i += 3) {
+                ret = CffiDefineOneFunctionFromLib(ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
+                /* TBD - if one fails, rest are not defined but prior ones are */
+                if (ret != TCL_OK)
+                    break;
+            }
+        }
     }
-    return TCL_OK;
+    Tcl_DecrRefCount(fnListObj);
+    return ret;
 }
 
 /* Function: CffiDyncallFunctionsCmd
