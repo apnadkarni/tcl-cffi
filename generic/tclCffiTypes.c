@@ -353,7 +353,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
 {
     if (fromP) {
         toP->baseType = fromP->baseType;
-        toP->xcount = fromP->xcount;
+        toP->count = fromP->count;
         toP->countHolderObj = fromP->countHolderObj;
         if (toP->countHolderObj)
             Tcl_IncrRefCount(toP->countHolderObj);
@@ -422,7 +422,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     CFFI_ASSERT((sizeof(cffiBaseTypes)/sizeof(cffiBaseTypes[0]) - 1) == CFFI_K_NUM_TYPES);
 
     CffiTypeInit(typeP, NULL);
-    CFFI_ASSERT(typeP->xcount == 0); /* Code below assumes these values on init */
+    CFFI_ASSERT(typeP->count == 0); /* Code below assumes these values on init */
     CFFI_ASSERT(typeP->countHolderObj == NULL);
     CFFI_ASSERT(typeP->u.tagObj == NULL);
     CFFI_ASSERT(typeP->u.structP == NULL);
@@ -532,7 +532,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         break;
     }
 
-    CFFI_ASSERT(typeP->xcount == 0);/* Should already be default init-ed */
+    CFFI_ASSERT(typeP->count == 0);/* Should already be default init-ed */
     if (lbStr) {
         /* An array element count is specified, either as int or a symbol */
         char ch;
@@ -545,7 +545,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             /* Count specified as an integer */
             if (count <= 0 || rightbracket != ']')
                 goto invalid_array_size;
-            typeP->xcount = count;
+            typeP->count = count;
         }
         else {
             /* Count specified as the name of some other thing */
@@ -556,7 +556,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             p = strchr(countStr, ']');
             if (p == NULL || p[1] != '\0' || p == countStr)
                 goto invalid_array_size;
-            typeP->xcount = -1;
+            typeP->count = -1;
             typeP->countHolderObj =
                 Tcl_NewStringObj(countStr, (int) (p - countStr));
             Tcl_IncrRefCount(typeP->countHolderObj);
@@ -574,7 +574,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_STRUCT:
-        if (typeP->xcount != 0) {
+        if (typeP->count != 0) {
             message = "The specified type is invalid or unsupported for array "
                       "declarations.";
             goto invalid_type;
@@ -583,7 +583,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
-        if (typeP->xcount == 0) {
+        if (typeP->count == 0) {
             message = "Declarations of type chars, unichars and bytes must be arrays.";
             goto invalid_type;
         }
@@ -687,12 +687,12 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     if (alignP)
         *alignP = alignment;
     if (sizeP) {
-        if (typeP->xcount == 0)
+        if (typeP->count == 0)
             *sizeP = baseSize;
-        else if (typeP->xcount < 0)
+        else if (typeP->count < 0)
             *sizeP = -1; /* Variable size array */
         else
-            *sizeP = typeP->xcount * baseSize;
+            *sizeP = typeP->count * baseSize;
     }
 }
 
@@ -992,7 +992,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
 
-            if (typeAttrP->dataType.xcount != 0)
+            if (typeAttrP->dataType.count != 0)
                 flags |= CFFI_F_ATTR_BYREF; /* Arrays always by reference */
             else {
                 /* Certain types always by reference */
@@ -1032,7 +1032,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         break;
         case CFFI_K_TYPE_VOID: /* FALLTHRU */
         default:
-            if (typeAttrP->dataType.xcount != 0) {
+            if (typeAttrP->dataType.count != 0) {
                 message = "Function return type must not be an array.";
                 goto invalid_format;
             }
@@ -1058,14 +1058,14 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
-            if (typeAttrP->dataType.xcount <= 0) {
+            if (typeAttrP->dataType.count <= 0) {
                 message = "Fields of type chars, unichars or bytes must be fixed size "
                           "arrays.";
                 goto invalid_format;
             }
             break;
         default:
-            if (typeAttrP->dataType.xcount < 0) {
+            if (typeAttrP->dataType.count < 0) {
                 message = "Fields cannot be arrays of variable size.";
                 goto invalid_format;
             }
@@ -1330,9 +1330,9 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                     ".%s",
                     Tcl_GetString(fieldP->field.dataType.u.tagObj));
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
-            if (fieldP->field.dataType.xcount)
+            if (fieldP->field.dataType.count)
                 Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->field.dataType.xcount);
+                    objP, "[%d]", fieldP->field.dataType.count);
             break;
         case CFFI_K_TYPE_STRUCT:
             Tcl_AppendPrintfToObj(
@@ -1341,9 +1341,9 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                 cffiBaseTypes[baseType].token,
                 Tcl_GetString(fieldP->field.dataType.u.structP->name),
                 Tcl_GetString(fieldP->nameObj));
-            if (fieldP->field.dataType.xcount)
+            if (fieldP->field.dataType.count)
                 Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->field.dataType.xcount);
+                    objP, "[%d]", fieldP->field.dataType.count);
             break;
 
         default:
@@ -1351,9 +1351,9 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                                   "\n  %s %s",
                                   cffiBaseTypes[baseType].token,
                                   Tcl_GetString(fieldP->nameObj));
-            if (fieldP->field.dataType.xcount)
+            if (fieldP->field.dataType.count)
                 Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->field.dataType.xcount);
+                    objP, "[%d]", fieldP->field.dataType.count);
             break;
         }
         Tcl_AppendPrintfToObj(
@@ -1482,7 +1482,7 @@ CffiStructFromObj(Tcl_Interp *ip,
     for (i = 0; i < structP->nFields; ++i) {
         Tcl_Obj *valueObj;
         const CffiField *fieldP = &structP->fields[i];
-        int count               = fieldP->field.dataType.xcount;
+        int count               = fieldP->field.dataType.count;
 
         CFFI_ASSERT(count >= 0);/* No dynamic size arrays in structs */
 
@@ -1616,11 +1616,11 @@ CffiResult CffiStructToObj(Tcl_Interp        *ip,
         const CffiField *fieldP  = &structP->fields[i];
         Tcl_Obj          *fieldObj;
         /* fields within structs cannot be dynamic size */
-        CFFI_ASSERT(fieldP->field.dataType.xcount >= 0);
+        CFFI_ASSERT(fieldP->field.dataType.count >= 0);
         ret = CffiNativeValueToObj(ip,
                                    &fieldP->field,
                                    fieldP->offset + (char *)valueP,
-                                   fieldP->field.dataType.xcount,
+                                   fieldP->field.dataType.count,
                                    &fieldObj);
         if (ret != TCL_OK)
             goto error_return;
@@ -2667,7 +2667,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     flags = typeAttrsP->flags;
     baseType = typeAttrsP->dataType.baseType;
-    if (typeAttrsP->dataType.xcount != 0) {
+    if (typeAttrsP->dataType.count != 0) {
         switch (baseType) {
         case CFFI_K_TYPE_POINTER:
         case CFFI_K_TYPE_ASTRING:
@@ -2734,7 +2734,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
-                 || (typeAttrsP->dataType.xcount == 0
+                 || (typeAttrsP->dataType.count == 0
                      && baseType != CFFI_K_TYPE_CHAR_ARRAY
                      && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
                      && baseType != CFFI_K_TYPE_BYTE_ARRAY
@@ -2767,50 +2767,50 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * conversion functions from cffiBaseTypes as it is more efficient
      * (compile time function binding)
      */
-#define STORENUM(objfn_, dcfn_, fld_, type_)                                 \
-    do {                                                                     \
-        CFFI_ASSERT(argP->actualCount >= 0);                                 \
-        if (argP->actualCount == 0) {                                        \
-            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {              \
+#define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
+    do {                                                                       \
+        CFFI_ASSERT(argP->actualCount >= 0);                                   \
+        if (argP->actualCount == 0) {                                          \
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
                 ret = objfn_(ip, valueObj, &valueP->u.fld_);                   \
-                if (ret != TCL_OK)                                           \
-                    return ret;                                              \
-            }                                                                \
-            if (flags & CFFI_F_ATTR_BYREF)                                   \
+                if (ret != TCL_OK)                                             \
+                    return ret;                                                \
+            }                                                                  \
+            if (flags & CFFI_F_ATTR_BYREF)                                     \
                 dcArgPointer(vmP, (DCpointer)&valueP->u.fld_);                 \
-            else                                                             \
+            else                                                               \
                 dcfn_(vmP, valueP->u.fld_);                                    \
-        }                                                                    \
-        else {                                                               \
-            /* Array - has to be byref */                                    \
-            type_ *valueArray;                                               \
-            CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                           \
-            valueArray = MemLifoAlloc(                                       \
+        }                                                                      \
+        else {                                                                 \
+            /* Array - has to be byref */                                      \
+            type_ *valueArray;                                                 \
+            CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                             \
+            valueArray = MemLifoAlloc(                                         \
                 &ipCtxP->memlifo, argP->actualCount * sizeof(valueP->u.fld_)); \
-            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {              \
-                Tcl_Obj **valueObjList;                                      \
-                int i, nvalues;                                              \
-                if (Tcl_ListObjGetElements(                                  \
-                        ip, valueObj, &nvalues, &valueObjList)               \
-                    != TCL_OK)                                               \
-                    return TCL_ERROR;                                        \
-                /* Note - if caller has specified too few values, it's ok    \
-                 * because perhaps the actual count is specified in another  \
-                 * parameter. If too many, only up to array size */          \
-                if (nvalues > argP->actualCount)                             \
-                    nvalues = argP->actualCount;                             \
-                for (i = 0; i < nvalues; ++i) {                              \
-                    ret = objfn_(ip, valueObjList[i], &valueArray[i]);       \
-                    if (ret != TCL_OK)                                       \
-                        return ret;                                          \
-                }                                                            \
-                /* Fill additional elements with 0 */                        \
-                for (i = nvalues; i < argP->actualCount; ++i)                \
-                    valueArray[i] = 0;                                       \
-            }                                                                \
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
+                Tcl_Obj **valueObjList;                                        \
+                int i, nvalues;                                                \
+                if (Tcl_ListObjGetElements(                                    \
+                        ip, valueObj, &nvalues, &valueObjList)                 \
+                    != TCL_OK)                                                 \
+                    return TCL_ERROR;                                          \
+                /* Note - if caller has specified too few values, it's ok      \
+                 * because perhaps the actual count is specified in another    \
+                 * parameter. If too many, only up to array size */            \
+                if (nvalues > argP->actualCount)                               \
+                    nvalues = argP->actualCount;                               \
+                for (i = 0; i < nvalues; ++i) {                                \
+                    ret = objfn_(ip, valueObjList[i], &valueArray[i]);         \
+                    if (ret != TCL_OK)                                         \
+                        return ret;                                            \
+                }                                                              \
+                /* Fill additional elements with 0 */                          \
+                for (i = nvalues; i < argP->actualCount; ++i)                  \
+                    valueArray[i] = 0;                                         \
+            }                                                                  \
             valueP->u.ptr = valueArray;                                        \
-            dcArgPointer(vmP, (DCpointer)valueArray);                        \
-        }                                                                    \
+            dcArgPointer(vmP, (DCpointer)valueArray);                          \
+        }                                                                      \
     } while (0)
 
     switch (baseType) {
@@ -2856,7 +2856,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_POINTER:
         /* TBD - can we just use STORENUM here ? */
         CFFI_ASSERT(argP->actualCount >= 0);
-        if (argP->actualCount <= 1) {
+        if (argP->actualCount == 0) {
             if (flags & CFFI_F_ATTR_OUT)
                 valueP->u.ptr = NULL;
             else {
@@ -2947,7 +2947,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 p = NULL; /* Null if empty */
             }
             valueP->u.ptr = p;
-            dcArgPointer(vmP, p);
+            if (flags & CFFI_F_ATTR_BYREF)
+                dcArgPointer(vmP, &valueP->u.ptr);
+            else
+                dcArgPointer(vmP, valueP->u.ptr);
         }
         break;
 
@@ -2961,7 +2964,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
         CFFI_ASSERT(!(flags & CFFI_F_ATTR_BYREF));
         CHECK(CffiArgPrepareInBinary(ip, typeAttrsP, valueObj, valueP));
-        dcArgPointer(vmP, Tcl_GetByteArrayFromObj(valueP->ancillary.baObj, NULL));
+        valueP->u.ptr = Tcl_GetByteArrayFromObj(valueP->ancillary.baObj, NULL);
+        dcArgPointer(vmP, valueP->u.ptr);
         break;
 
     case CFFI_K_TYPE_BYTE_ARRAY:
@@ -2977,7 +2981,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     callP->argsP[arg_index].flags |= CFFI_F_ARG_INITIALIZED;
 
     return TCL_OK;
-#undef STOREARG
+#undef STORENUM
 }
 
 /* Function: CffiArgPostProcess
@@ -3303,7 +3307,7 @@ CffiTypeUnparse(const CffiType *typeP)
 {
     Tcl_Obj *typeObj;
     Tcl_Obj *suffix = NULL;
-    int count = typeP->xcount;
+    int count = typeP->count;
 
 
     typeObj = Tcl_NewStringObj(cffiBaseTypes[typeP->baseType].token, -1);
@@ -3487,8 +3491,8 @@ CffiTypeObjCmd(ClientData cdata,
 
     if (cmdIndex == COUNT) {
         /* type count */
-        if (typeAttrs.dataType.xcount >= 0 || typeAttrs.dataType.countHolderObj == NULL)
-            Tcl_SetObjResult(ip, Tcl_NewIntObj(typeAttrs.dataType.xcount));
+        if (typeAttrs.dataType.count >= 0 || typeAttrs.dataType.countHolderObj == NULL)
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(typeAttrs.dataType.count));
         else
             Tcl_SetObjResult(ip, typeAttrs.dataType.countHolderObj);
     }
@@ -3502,9 +3506,9 @@ CffiTypeObjCmd(ClientData cdata,
             objs[0] = Tcl_NewStringObj("size", 4);
             objs[1] = Tcl_NewIntObj(size);
             objs[2] = Tcl_NewStringObj("count", 5);
-            if (typeAttrs.dataType.xcount >= 0
+            if (typeAttrs.dataType.count >= 0
                 || typeAttrs.dataType.countHolderObj == NULL)
-                objs[3] = Tcl_NewIntObj(typeAttrs.dataType.xcount);
+                objs[3] = Tcl_NewIntObj(typeAttrs.dataType.count);
             else
                 objs[3] = typeAttrs.dataType.countHolderObj;
             objs[4] = Tcl_NewStringObj("alignment", 9);

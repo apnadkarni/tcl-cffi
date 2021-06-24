@@ -38,26 +38,58 @@
         return *inoutP + 1;                                      \
     }
 
-#define FNNUMERICARRAY(token_, type_)                       \
-    EXTERN type_ token_##_array_in(int n, const type_ *arr) \
-    {                                                       \
-        type_ sum;                                          \
-        int i;                                              \
-        for (i = 0, sum = 0; i < n; ++i)                    \
-            sum += arr[i];                                  \
-        return sum;                                         \
-    }                                                       \
-    EXTERN void token_##_array_out(int n, type_ *arr)       \
-    {                                                       \
-        int i;                                              \
-        for (i = 0; i < n; ++i)                             \
-            arr[i] = (type_)i;                              \
-    }                                                       \
-    EXTERN void token_##_array_inout(int n, type_ *arr)     \
-    {                                                       \
-        int i;                                              \
-        for (i = 0; i < n; ++i)                             \
-            arr[i] = arr[i] + 1;                            \
+#define FNNUMERICARRAY(token_, type_)                                 \
+    EXTERN void token_##_array_count_copy(                            \
+        const type_ *arr_in, int n_in, type_ *arr_out, int n_out)   \
+    {                                                                 \
+        int i, n;                                                     \
+        n = n_out;                                                    \
+        if (n > n_in)                                                 \
+            n = n_in;                                                 \
+        for (i = 0; i < n; ++i)                                       \
+            arr_out[i] = arr_in[i];                                   \
+        while (i < n_out)                                             \
+            arr_out[i++] = 0;                                           \
+    }                                                                 \
+    EXTERN void token_##_count_array_copy(                            \
+        int n_out, type_ *arr_out, int n_in, const type_ *arr_in) \
+    {                                                                 \
+        int i, n;                                                     \
+        n = n_out;                                                    \
+        if (n > n_in)                                                 \
+            n = n_in;                                                 \
+        for (i = 0; i < n; ++i)                                       \
+            arr_out[i] = arr_in[i];                                   \
+        while (i < n_out)                                             \
+            arr_out[i++] = 0;                                           \
+    }                                                                 \
+    EXTERN type_ token_##_array_count_in(const type_ *arr, int n)     \
+    {                                                                 \
+        type_ sum;                                                    \
+        int i;                                                        \
+        for (i = 0, sum = 0; i < n; ++i)                              \
+            sum += arr[i];                                            \
+        return sum;                                                   \
+    }                                                                 \
+    EXTERN type_ token_##_array_in(int n, const type_ *arr)           \
+    {                                                                 \
+        type_ sum;                                                    \
+        int i;                                                        \
+        for (i = 0, sum = 0; i < n; ++i)                              \
+            sum += arr[i];                                            \
+        return sum;                                                   \
+    }                                                                 \
+    EXTERN void token_##_array_out(int n, type_ *arr)                 \
+    {                                                                 \
+        int i;                                                        \
+        for (i = 0; i < n; ++i)                                       \
+            arr[i] = (type_)i;                                        \
+    }                                                                 \
+    EXTERN void token_##_array_inout(int n, type_ *arr)               \
+    {                                                                 \
+        int i;                                                        \
+        for (i = 0; i < n; ++i)                                       \
+            arr[i] = arr[i] + 1;                                      \
     }
 
 #define FNSTRINGS(token_, type_)                     \

@@ -206,6 +206,68 @@ CffiDyncallSymbolsObjCmd(ClientData cdata,
     return ret;
 }
 
+/* Function: CffiFunctionLoadArg
+ * Loads a value into the dyncall argument context
+ *
+ * Parameters:
+ *
+ * vmP - dyncall vm context
+ * argP - argument value to load
+ * typeAttrsP - argument type descriptor
+ */
+void CffiLoadArg(DCCallVM *vmP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
+{
+    CFFI_ASSERT(argP->flags & CFFI_F_ARG_INITIALIZED);
+
+#define STORESCALAR(dcfn_, fld_)                                      \
+    do {                                                           \
+        if (argP->actualCount == 0) {                              \
+            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)             \
+                dcArgPointer(vmP, (DCpointer)&argP->value.u.fld_); \
+            else                                                   \
+                dcfn_(vmP, argP->value.u.fld_);                    \
+        }                                                          \
+        else {                                                     \
+            CFFI_ASSERT(typeAttrsP->flags &CFFI_F_ATTR_BYREF);     \
+            dcArgPointer(vmP, (DCpointer)argP->value.u.ptr);       \
+        }                                                          \
+    } while (0)
+    switch (typeAttrsP->dataType.baseType) {
+    case CFFI_K_TYPE_SCHAR: STORESCALAR(dcArgChar, schar); break;
+    case CFFI_K_TYPE_UCHAR: STORESCALAR(dcArgChar, uchar); break;
+    case CFFI_K_TYPE_SHORT: STORESCALAR(dcArgShort, sshort); break;
+    case CFFI_K_TYPE_USHORT: STORESCALAR(dcArgShort, ushort); break;
+    case CFFI_K_TYPE_INT: STORESCALAR(dcArgInt, sint); break;
+    case CFFI_K_TYPE_UINT: STORESCALAR(dcArgInt, uint); break;
+    case CFFI_K_TYPE_LONG: STORESCALAR(dcArgLong, slong); break;
+    case CFFI_K_TYPE_ULONG: STORESCALAR(dcArgLong, ulong); break;
+    case CFFI_K_TYPE_LONGLONG: STORESCALAR(dcArgLongLong, slonglong); break;
+    case CFFI_K_TYPE_ULONGLONG: STORESCALAR(dcArgLongLong, ulonglong); break;
+    case CFFI_K_TYPE_FLOAT: STORESCALAR(dcArgFloat, flt); break;
+    case CFFI_K_TYPE_DOUBLE: STORESCALAR(dcArgDouble, dbl); break;
+    case CFFI_K_TYPE_POINTER: STORESCALAR(dcArgDouble, dbl); break;
+    case CFFI_K_TYPE_STRUCT: /* FALLTHRU */
+    case CFFI_K_TYPE_CHAR_ARRAY: /* FALLTHRU */
+    case CFFI_K_TYPE_BYTE_ARRAY: /* FALLTHRU */
+    case CFFI_K_TYPE_UNICHAR_ARRAY:
+        dcArgPointer(vmP, argP->value.u.ptr);
+        break;
+    case CFFI_K_TYPE_ASTRING:/* FALLTHRU */
+    case CFFI_K_TYPE_UNISTRING: /* FALLTHRU */
+    case CFFI_K_TYPE_BINARY:
+        if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)
+            dcArgPointer(vmP, &argP->value.u.ptr);
+        else
+            dcArgPointer(vmP, argP->value.u.ptr);
+        break;
+    default:
+        CFFI_PANIC("CffiLoadArg: unknown typei %d",
+                   typeAttrsP->dataType.baseType);
+        break;
+    }
+#undef STORESCALAR
+}
+
 /* Function: CffiFunctionSetupArgs
  * Prepares the call stack needed for a function call.
  *
@@ -229,6 +291,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     CffiArgument *argsP;
     CffiProto *protoP;
     Tcl_Interp *ip;
+    DCCallVM *vmP;
 
     protoP = callP->fnP->protoP;
     ip     = callP->fnP->vmCtxP->ipCtxP->interp;
@@ -261,7 +324,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     need_pass2 = 0;
     for (i = 0; i < callP->nArgs; ++i) {
         int actualCount;
-        actualCount = protoP->params[i].typeAttrs.dataType.xcount;
+        actualCount = protoP->params[i].typeAttrs.dataType.count;
         if (actualCount < 0) {
             /* Dynamic array. */
             need_pass2 = 1;
@@ -275,14 +338,28 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     if (need_pass2 == 0)
         return TCL_OK;
 
+    /*
+     * Blast it. We need a second pass since some arguments were unresolved.
+     * Need to reset the dyncall arg stack since some arguments may have
+     * already been loaded.
+     */
+    vmP = callP->fnP->vmCtxP->vmP;
+    dcReset(vmP);
+    dcMode(vmP, protoP->returnType.typeAttrs.callMode);
+
     for (i = 0; i < callP->nArgs; ++i) {
         const char *name;
         int j;
         long long actualCount;
         CffiValue *actualValueP;
-        actualCount = protoP->params[i].typeAttrs.dataType.xcount;
-        if (actualCount >= 0)
+        actualCount = protoP->params[i].typeAttrs.dataType.count;
+        if (actualCount >= 0) {
+            /* This arg already been parsed successfully. Just load it. */
+            CFFI_ASSERT(argsP[i].flags & CFFI_F_ARG_INITIALIZED);
+            CffiLoadArg(
+                vmP, &argsP[i], &protoP->params[i].typeAttrs);
             continue;
+        }
         CFFI_ASSERT((argsP[i].flags & CFFI_F_ARG_INITIALIZED) == 0);
 
 

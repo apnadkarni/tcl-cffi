@@ -88,7 +88,7 @@ extern const CffiBaseTypeInfo cffiBaseTypes[];
 
 typedef struct CffiType {
     enum CffiBaseType baseType;
-    int               xcount;    /* 0->scalar
+    int               count;    /* 0->scalar
                                     <0 -> array of unknown size specified
                                           through countHolderObj
                                     >0 -> array of count base type elements */

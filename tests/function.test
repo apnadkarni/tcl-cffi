@@ -489,6 +489,16 @@ namespace eval ${NS}::test {
     set len [string length $val]
     set largeval [string repeat $val $repeat]
     set largelen [string length $largeval]
+    test function-bytes-in-0 "bytes in dynamic count (count, array)" -setup {
+        testDll function uchar_array_in uchar {n int buf bytes[n]}
+    } -body {
+        uchar_array_in $len $val
+    } -result 6
+    test function-bytes-in-1 "bytes in dynamic count (array, count)" -setup {
+        testDll function uchar_array_count_in uchar {buf bytes[n] n int}
+    } -body {
+        uchar_array_count_in $val $len
+    } -result 6
     test function-bytes-out-0 "bytes out" -setup {
         testDll function bytes_out void [list n int input bytes\[$len\] output [list bytes\[$len\] out]]
     } -body {
@@ -1220,6 +1230,10 @@ namespace eval ${NS}::test {
                     testDll function ${type}_array_in $type [list n int arr $type\[n\]]
                     ${type}_array_in $nvals $vals
                 } -result [::tcl::mathop::+ {*}$vals]
+                test function-array-$type-$count-in-5 "Array input parameters - dynamic array, array first" -body {
+                    testDll function ${type}_array_count_in $type [list arr $type\[n\] n int]
+                    ${type}_array_in $nvals $vals
+                } -result [::tcl::mathop::+ {*}$vals]
 
                 test function-array-$type-$count-out-0 "Array out parameters" -body {
                     testDll function ${type}_array_out void [list n int arr [list $type\[$nvals\] out]]
@@ -1246,6 +1260,50 @@ namespace eval ${NS}::test {
                 } -result [lmap v $vals {expr {$v+1}}]
             }
         }
+
+        # Tests added for bug#41. Some may duplicate existing tests above
+        test function-array-count-$type-0 {Copy array when count param is AFTER array pointer} -setup {
+            set fn ${type}_array_count_copy
+            testDll function $fn void [list inparam $type\[n_in\] n_in int outparam [list $type\[n_out\] out] n_out int]
+        } -body {
+            $fn {1 2 3} 3 outarr 2
+            set outarr
+        } -result [expr {$type in $realTypes ? {1.0 2.0} : {1 2}}]
+        test function-count-array-$type-0 {Copy array when count param is BEFORE array pointer} -setup {
+            set fn ${type}_count_array_copy
+            testDll function $fn void [list n_out int outparam [list $type\[n_out\] out] n_in int inparam $type\[n_in\]]
+        } -body {
+            $fn 3 outarr 2 {1 2}
+            set outarr
+        } -result [expr {$type in $realTypes ? {1.0 2.0 0.0} : {1 2 0}}]
+        test function-array-count-$type-error-0 {Copy array when count param is AFTER array pointer} -setup {
+            set fn ${type}_array_count_copy
+            testDll function $fn void [list inparam $type\[n_in\] n_in int outparam [list $type\[n_out\] out] n_out int]
+        } -body {
+            $fn {1 2 3} 3 outarr -1
+            set outarr
+        } -result {Value -1 not in range. Must be within [0,2147483647].} -returnCodes error
+        test function-array-count-$type-error-1 {Copy array when count param is AFTER array pointer} -setup {
+            set fn ${type}_array_count_copy
+            testDll function $fn void [list inparam $type\[n_in\] n_in int outparam [list $type\[n_out\] out] n_out int]
+        } -body {
+            $fn {1 2 3} 0 outarr 2
+            set outarr
+        } -result {Value 0 not in range. Must be within [0,2147483647].} -returnCodes error
+        test function-count-array-$type-error-0 {Copy array when count param is BEFORE array pointer} -setup {
+            set fn ${type}_count_array_copy
+            testDll function $fn void [list n_out int outparam [list $type\[n_out\] out] n_in int inparam $type\[n_in\]]
+        } -body {
+            $fn -1 outarr 2 {1 2}
+            set outarr
+        } -result {Value -1 not in range. Must be within [0,2147483647].} -returnCodes error
+        test function-count-array-$type-error-1 {Copy array when count param is BEFORE array pointer} -setup {
+            set fn ${type}_count_array_copy
+            testDll function $fn void [list n_out int outparam [list $type\[n_out\] out] n_in int inparam $type\[n_in\]]
+        } -body {
+            $fn 2 outarr 0 {1 2}
+            set outarr
+        } -result {Value 0 not in range. Must be within [0,2147483647].} -returnCodes error
 
         # errors
         foreach direc {in out inout} {
