@@ -107,7 +107,6 @@ typedef struct CffiType {
 typedef struct CffiTypeAndAttrs {
     Tcl_Obj *defaultObj;        /* Default for parameter, if there is one */
     CffiType dataType;         /* Data type */
-    DCint callMode;             /* Only valid for return types */
     int flags;
 #define CFFI_F_ATTR_IN    0x0001 /* In parameter */
 #define CFFI_F_ATTR_OUT   0x0002 /* Out parameter */
@@ -189,6 +188,7 @@ struct CffiStruct {
     unsigned int alignment;     /* Alignment required for struct */
     int nFields;                /* Cardinality of fields[] */
     CffiField fields[1];       /* Actual size given by nFields */
+    /* !!!DO NOT ADD FIELDS HERE!!! */
 };
 CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
     structP->nRefs += 1;
@@ -235,9 +235,11 @@ typedef struct CffiParam {
 typedef struct CffiProto {
     int nRefs;             /* Reference count */
     int nParams;           /* Number of params, sizeof params array */
+    DCint callMode;        /* cdecl, stdcall etc. */
     CffiParam returnType;  /* Name and return type of function */
     CffiParam params[1];   /* Real size depends on nparams which
                                may even be 0!*/
+    /* !!!DO NOT ADD FIELDS HERE!!! */
 } CffiProto;
 CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
     protoP->nRefs += 1;

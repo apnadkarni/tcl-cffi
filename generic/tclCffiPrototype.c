@@ -194,8 +194,7 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
         return Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
 
     CHECK(CffiPrototypeParse(ipCtxP, nameObj, objv[3], objv[4], &protoP));
-    if (callMode != DC_CALL_C_DEFAULT)
-        protoP->returnType.typeAttrs.callMode = callMode;
+    protoP->callMode = callMode;
 
     heP = Tcl_CreateHashEntry(&ipCtxP->prototypes, (char *) nameObj, &new_entry);
     if (! new_entry) {
