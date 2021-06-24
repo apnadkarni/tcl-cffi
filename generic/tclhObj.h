@@ -265,7 +265,34 @@ int Tclh_ObjToDouble(Tcl_Interp *interp, Tcl_Obj *obj, double *ptr);
  */
 Tcl_Obj *Tclh_ObjFromAddress (void *address);
 
+/* Function: Tclh_ObjArrayIncrRefs
+ * Increments reference counts of all elements of a *Tcl_Obj** array
+ *
+ * Parameters:
+ * objc - Number of elements in objv
+ * objv - array of Tcl_Obj pointers
+ */
+TCLH_INLINE void Tclh_ObjArrayIncrRefs(int objc, Tcl_Obj * const *objv) {
+    int i;
+    for (i = 0; i < objc; ++i)
+        Tcl_IncrRefCount(objv[i]);
+}
+
+/* Function: Tclh_ObjArrayDecrRefs
+ * Decrements reference counts of all elements of a *Tcl_Obj** array
+ *
+ * Parameters:
+ * objc - Number of elements in objv
+ * objv - array of Tcl_Obj pointers
+ */
+TCLH_INLINE void Tclh_ObjArrayDecrRefs(int objc, Tcl_Obj * const *objv) {
+    int i;
+    for (i = 0; i < objc; ++i)
+        Tcl_DecrRefCount(objv[i]);
+}
+
 #ifdef TCLH_SHORTNAMES
+#define ObjClearPrt Tclh_ObjClearPtr
 #define ObjToRangedInt Tclh_ObjToRangedInt
 #define ObjToChar Tclh_ObjToChar
 #define ObjToUChar Tclh_ObjToUChar
@@ -281,6 +308,8 @@ Tcl_Obj *Tclh_ObjFromAddress (void *address);
 #define ObjToULongLong Tclh_ObjToULongLong
 #define ObjToFloat Tclh_ObjToFloat
 #define ObjToDouble Tclh_ObjToDouble
+#define ObjArrayIncrRef Tclh_ObjArrayIncrRef
+#define ObjArrayDecrRef Tclh_ObjArrayDecrRef
 #endif
 
 /*
