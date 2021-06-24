@@ -188,6 +188,7 @@ struct CffiStruct {
     unsigned int alignment;     /* Alignment required for struct */
     int nFields;                /* Cardinality of fields[] */
     CffiField fields[1];       /* Actual size given by nFields */
+    /* !!!DO NOT ADD FIELDS HERE!!! */
 };
 CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
     structP->nRefs += 1;
@@ -234,10 +235,11 @@ typedef struct CffiParam {
 typedef struct CffiProto {
     int nRefs;             /* Reference count */
     int nParams;           /* Number of params, sizeof params array */
+    DCint callMode;        /* cdecl, stdcall etc. */
     CffiParam returnType;  /* Name and return type of function */
     CffiParam params[1];   /* Real size depends on nparams which
                                may even be 0!*/
-    DCint callMode;        /* cdecl, stdcall etc. */
+    /* !!!DO NOT ADD FIELDS HERE!!! */
 } CffiProto;
 CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
     protoP->nRefs += 1;
