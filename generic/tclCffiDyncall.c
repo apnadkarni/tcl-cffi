@@ -345,7 +345,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
      */
     vmP = callP->fnP->vmCtxP->vmP;
     dcReset(vmP);
-    dcMode(vmP, protoP->returnType.typeAttrs.callMode);
+    dcMode(vmP, protoP->callMode);
 
     for (i = 0; i < callP->nArgs; ++i) {
         const char *name;
@@ -479,7 +479,7 @@ CffiFunctionCall(ClientData cdata,
      */
 
     dcReset(vmP);
-    dcMode(vmP, protoP->returnType.typeAttrs.callMode);
+    dcMode(vmP, protoP->callMode);
 
     if (protoP->nParams) {
         /* Allocate space to hold argument values */
@@ -758,8 +758,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
 
     CHECK(CffiPrototypeParse(
         vmCtxP->ipCtxP, cmdNameObj, returnTypeObj, paramsObj, &protoP));
-    if (callMode != DC_CALL_C_DEFAULT)
-        protoP->returnType.typeAttrs.callMode = callMode;
+    protoP->callMode = callMode;
 
     fnP = ckalloc(sizeof(*fnP));
     fnP->fnAddr = fnAddr;

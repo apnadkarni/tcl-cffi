@@ -710,13 +710,11 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
         if (fromP->defaultObj)
             Tcl_IncrRefCount(fromP->defaultObj);
         toP->defaultObj  = fromP->defaultObj;
-        toP->callMode = fromP->callMode;
         toP->flags       = fromP->flags;
         CffiTypeInit(&toP->dataType, &fromP->dataType);
     }
     else {
         toP->defaultObj  = NULL;
-        toP->callMode = DC_CALL_C_DEFAULT;
         toP->flags       = 0;
         CffiTypeInit(&toP->dataType, NULL);
     }
@@ -807,10 +805,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         if (Tcl_ListObjGetElements(ip, objs[i], &nFields, &fieldObjs) != TCL_OK
             || nFields == 0) {
             goto invalid_format;
-        }
-        if (parseMode & CFFI_F_TYPE_PARSE_RETURN) {
-            if (CffiCallModeParse(NULL, fieldObjs[0], &typeAttrP->callMode) == TCL_OK)
-                continue;
         }
         if (Tcl_GetIndexFromObjStruct(NULL,
                                       fieldObjs[0],
@@ -3354,29 +3348,12 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
 {
     Tcl_Obj *resultObj;
     CffiAttrs *attrsP;
-    DCint callMode;
     int flags;
-    int i;
 
     resultObj = Tcl_NewListObj(0, NULL);
 
     Tcl_ListObjAppendElement(
         NULL, resultObj, CffiTypeUnparse(&typeAttrsP->dataType));
-
-    /* Only include calling mode if not default */
-    callMode = typeAttrsP->callMode;
-    if (callMode != DC_CALL_C_DEFAULT) {
-        for (i = 0; i < sizeof(cffiCallModes) / sizeof(cffiCallModes[0]);
-             ++i) {
-            if (callMode == cffiCallModes[i].mode) {
-                Tcl_ListObjAppendElement(
-                    NULL,
-                    resultObj,
-                    Tcl_NewStringObj(cffiCallModes[i].modeStr, -1));
-                break;
-            }
-        }
-    }
 
     flags = typeAttrsP->flags;
     for (attrsP = &cffiAttrs[0]; attrsP->attrName != NULL; ++attrsP) {
