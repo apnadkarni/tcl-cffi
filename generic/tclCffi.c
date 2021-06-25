@@ -104,6 +104,81 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Function: Tclh_ObjHashEnumerateEntries
+ * Returns a list of keys of a hash table that uses *Tcl_Obj* keys.
+ *
+ * Parameters:
+ * htP - hash table
+ * patObj - pattern to match or NULL (all keys)
+ *
+ * Returns:
+ * Returns a new *Tcl_Obj* with reference count 0 containing matching keys.
+ */
+Tcl_Obj *
+Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj)
+{
+    Tcl_HashEntry *heP;
+    Tcl_HashSearch hSearch;
+    const char *pattern;
+    Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
+
+    pattern = patObj ? Tcl_GetString(patObj) : NULL;
+    for (heP = Tcl_FirstHashEntry(htP, &hSearch);
+         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
+        /* If a pattern was specified, only return those */
+        if (pattern) {
+            Tcl_Obj *key = Tcl_GetHashKey(htP, heP);
+            if (! Tcl_StringMatch(Tcl_GetString(key), pattern))
+                continue;
+        }
+
+        Tcl_ListObjAppendElement(NULL,
+                                 resultObj,
+                                 (Tcl_Obj *)Tcl_GetHashKey(htP, heP));
+    }
+    return resultObj;
+}
+
+/* Function: Tclh_ObjHashDeleteEntries
+ * Deletes entries with keys matching the specified pattern in a *Tcl_Obj*
+ * hash table.
+ *
+ * Parameters:
+ * htP - hash table
+ * patObj - key or pattern to match. Must not be *NULL*.
+ * deleteFn - passed the hash entry for clean up purposes
+ *
+ * Assumes the hash table keys cannot contain glob metacharacters.
+ */
+void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
+                               Tcl_Obj *patObj,
+                               void (*deleteFn)(Tcl_HashEntry *))
+{
+    Tcl_HashEntry *heP;
+    Tcl_HashSearch hSearch;
+    const char *pattern;
+
+    CFFI_ASSERT(pathObj);
+
+    heP = Tcl_FindHashEntry(htP, patObj);
+    if (heP) {
+        (*deleteFn)(heP);
+        Tcl_DeleteHashEntry(heP);
+        return;
+    }
+
+    /* Check if glob pattern */
+    pattern = Tcl_GetString(patObj);
+    for (heP = Tcl_FirstHashEntry(htP, &hSearch);
+         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
+        Tcl_Obj *key = Tcl_GetHashKey(htP, heP);
+        if (Tcl_StringMatch(Tcl_GetString(key), pattern)) {
+            (*deleteFn)(heP);
+            Tcl_DeleteHashEntry(heP);
+        }
+    }
+}
+
 /* Function: CffiGetEncodingFromObj
  * Gets the Tcl_Encoding named by the passed object
  *
@@ -202,13 +277,15 @@ CffiSandboxObjCmd(ClientData cdata,
 void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 {
     CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
+    CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
     if (vmCtxP->vmP)
         dcFree(vmCtxP->vmP);
-    if (vmCtxP->ipCtxP) {
-        CffiAliasesCleanup(&vmCtxP->ipCtxP->aliases);
-        CffiPrototypesCleanup(&vmCtxP->ipCtxP->prototypes);
-        MemLifoClose(&vmCtxP->ipCtxP->memlifo);
-        ckfree(vmCtxP->ipCtxP);
+    if (ipCtxP) {
+        CffiAliasesCleanup(&ipCtxP->aliases);
+        CffiPrototypesCleanup(&ipCtxP->prototypes);
+        CffiEnumsCleanup(&ipCtxP->enums);
+        MemLifoClose(&ipCtxP->memlifo);
+        ckfree(ipCtxP);
     }
     ckfree(vmCtxP);
 }
@@ -238,6 +315,7 @@ Cffi_Init(Tcl_Interp *ip)
     ipCtxP->interp = ip;
     Tcl_InitObjHashTable(&ipCtxP->aliases);
     Tcl_InitObjHashTable(&ipCtxP->prototypes);
+    Tcl_InitObjHashTable(&ipCtxP->enums);
 
     /* TBD - size 16000 too much? */
     if (MemLifoInit(
@@ -264,6 +342,8 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::memory", CffiMemoryObjCmd, NULL, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::type", CffiTypeObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::enum", CffiEnumObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::alias", CffiAliasObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(

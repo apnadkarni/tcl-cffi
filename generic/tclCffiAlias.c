@@ -148,27 +148,9 @@ CffiAliasListCmd(CffiInterpCtx *ipCtxP,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    const char *pattern;
-    Tcl_HashTable *typedefsP = &ipCtxP->aliases;
-    Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
-
-    pattern = objc > 2 ? Tcl_GetString(objv[2]) : NULL;
-    for (heP = Tcl_FirstHashEntry(typedefsP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        /* If a pattern was specified, only return those */
-        if (pattern) {
-            Tcl_Obj *key = Tcl_GetHashKey(typedefsP, heP);
-            if (! Tcl_StringMatch(Tcl_GetString(key), pattern))
-                continue;
-        }
-
-        Tcl_ListObjAppendElement(ipCtxP->interp,
-                                 resultObj,
-                                 (Tcl_Obj *)Tcl_GetHashKey(typedefsP, heP));
-    }
-    Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    Tcl_SetObjResult(ipCtxP->interp,
+                     Tclh_ObjHashEnumerateEntries(&ipCtxP->aliases,
+                                                  objc > 2 ? objv[2] : NULL));
     return TCL_OK;
 }
 
@@ -182,41 +164,23 @@ CffiAliasLoadCmd(CffiInterpCtx *ipCtxP,
     return CffiAddBuiltinAliases(ipCtxP, objv[2]);
 }
 
+static void CffiAliasEntryDelete(Tcl_HashEntry *heP)
+{
+    CffiTypeAndAttrs *typeAttrsP;
+    typeAttrsP = Tcl_GetHashValue(heP);
+    CffiTypeAndAttrsCleanup(typeAttrsP);
+    ckfree(typeAttrsP);
+}
+
 static CffiResult
 CffiAliasDeleteCmd(CffiInterpCtx *ipCtxP,
                     Tcl_Interp *ip,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    const char *pattern;
-    Tcl_HashTable *tableP = &ipCtxP->aliases;
-
     CFFI_ASSERT(objc == 3);
-    heP = Tcl_FindHashEntry(tableP, objv[2]);
-    if (heP) {
-        CffiTypeAndAttrs *typeAttrsP;
-        typeAttrsP = Tcl_GetHashValue(heP);
-        CffiTypeAndAttrsCleanup(typeAttrsP);
-        ckfree(typeAttrsP);
-        Tcl_DeleteHashEntry(heP);
-        return TCL_OK;
-    }
-
-    /* Check if glob pattern */
-    pattern = Tcl_GetString(objv[2]);
-    for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        Tcl_Obj *key = Tcl_GetHashKey(tableP, heP);
-        if (Tcl_StringMatch(Tcl_GetString(key), pattern)) {
-            CffiTypeAndAttrs *typeAndAttrsP = Tcl_GetHashValue(heP);
-            CffiTypeAndAttrsCleanup(typeAndAttrsP);
-            ckfree(typeAndAttrsP);
-            Tcl_DeleteHashEntry(heP);
-        }
-    }
-
+    Tclh_ObjHashDeleteEntries(
+        &ipCtxP->aliases, objv[2], CffiAliasEntryDelete);
     return TCL_OK;
 }
 

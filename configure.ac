@@ -75,6 +75,7 @@ DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiAlias.c \
                      generic/tclCffiDyncall.c \
+                     generic/tclCffiEnum.c \
                      generic/tclCffiMemory.c \
                      generic/tclCffiPointer.c \
                      generic/tclCffiPrototype.c \

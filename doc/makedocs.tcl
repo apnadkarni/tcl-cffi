@@ -13,6 +13,7 @@ source memory.ruff
 source struct.ruff
 source type.ruff
 source alias.ruff
+source enum.ruff
 source pointer.ruff
 source prototype.ruff
 

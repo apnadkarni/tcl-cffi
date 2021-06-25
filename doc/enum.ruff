@@ -1,0 +1,32 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval ${NS}::alias {
+    proc define {enumname numdefs} {
+        # Defines a new enumeration.
+        #  enumname - name of the enumeration
+        #  enumdefs - dictionary of enumeration symbol names to their values.
+        # Parameter declarations can reference the enumeration to indicate
+        # that the corresponding symbol names are acceptible as arguments
+        # and will be replaced by the corresponding value in the function call.
+    }
+    proc delete {pattern} {
+        # Deletes enumerations.
+        #  pattern - A glob-style pattern
+        # The command deletes all enumerations whose name matches the specified
+        # pattern.
+    }
+    proc entries {enumname} {
+        # Returns a dictionary containing the definitions in an enumerations.
+        #  enumname - name of the enumeration whose elements are to be returned.
+    }
+    proc list {pattern} {
+        # Lists enumerations.
+        #  pattern - A glob-style pattern
+        # The command returns names of all enumerations with names matching
+        # the specified pattern.
+    }
+
+    namespace export *
+    namespace ensemble create
+}

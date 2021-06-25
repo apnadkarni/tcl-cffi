@@ -1,0 +1,96 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# Tests for the cffi::type command
+
+source [file join [file dirname [info script]] common.tcl]
+
+namespace eval cffi::test {
+    testsubcmd ::cffi::enum
+    testnumargs enum-define "cffi::enum define" "ENUM ENUMDEFS" ""
+    testnumargs enum-delete "cffi::enum delete" "PATTERN" ""
+    testnumargs enum-list "cffi::enum list" "" "?PATTERN?"
+    testnumargs enum-entries "cffi::enum entries" "ENUM" ""
+
+    # Only very basic tests. Actual verification is in function.test
+
+    test enum-0 "Define empty enum" -setup {
+        cffi::enum delete *
+    } -body {
+        cffi::enum define E {}
+        cffi::enum entries E
+    } -result {}
+    test enum-1 "Define enum" -setup {
+        cffi::enum delete *
+    } -body {
+        cffi::enum define E {a 1 b 2}
+        cffi::enum entries E
+    } -result {a 1 b 2}
+    test enum-2 "enum list" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+    } -body {
+        lsort [cffi::enum list]
+    } -result {E E2 X}
+    test enum-3 "enum list exact" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+    } -body {
+        lsort [cffi::enum list E]
+    } -result {E}
+    test enum-4 "enum list glob" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+    } -body {
+        lsort [cffi::enum list E*]
+    } -result {E E2}
+    test enum-5 "enum list empty" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+    } -body {
+        lsort [cffi::enum list Z*]
+    } -result {}
+    test enum-6 "enum delete" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+    } -body {
+        cffi::enum delete E
+        lsort [cffi::enum list]
+    } -result {E2 X}
+    test enum-7 "enum delete glob" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+    } -body {
+        cffi::enum delete E*
+        cffi::enum list
+    } -result {X}
+    test enum-8 "enum delete none" -setup {
+        cffi::enum delete *
+        cffi::enum define E {a 1 b 2}
+        cffi::enum define E2 {x 1 y 2}
+        cffi::enum define X {}
+        cffi::enum list
+    } -body {
+        cffi::enum delete Z
+        lsort [cffi::enum list]
+    } -result {E E2 X}
+
+    test enum-error-0 "Invalid enum" -body {
+        cffi::enum define X {a 1 b}
+    } -result {missing value to go with key} -returnCodes error
+}
+
+::tcltest::cleanupTests
+namespace delete cffi::test

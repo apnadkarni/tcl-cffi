@@ -366,6 +366,34 @@ namespace eval Concepts {
         [::cffi::alias list] command and removed with
         [::cffi::alias delete].
 
+        ## Enumerations
+
+        Enumerations allow the use of symbolic constants in place of numeric
+        values passed as arguments to functions. Their primary purpose is
+        similar to preprocessor `#define` constants and `enum` types in C.
+        They are defined and otherwise managed through the `cffi::enum`
+        command ensemble. The fragment below provides an example.
+
+        ````
+        cffi::enum define CMARK_OPTS {DEFAULT 0 NORMALIZE 256 VALIDATE 512 SMART 1024 }
+        cffiLib function cmark_render_html pointer {
+            root pointer.cmark_node
+            opts {int {enum CMARK_OPTS}}
+        }
+        set htmlptr [cmark_render_html $root NORMALIZE]
+        ````
+
+        When combined with the `bitmask` annotation, bitmasks can be
+        symbolically represented as a list.
+
+        ````
+        cffiLib function cmark_render_html pointer {
+            root pointer.cmark_node
+            opts {int bitmask {enum CMARK_OPTS}}
+        }
+        set htmlptr [cmark_render_html $root {SMART NORMALIZE}]
+        ````
+
         ## Functions
 
         To invoke a function in a DLL or shared library, the library must first
@@ -501,12 +529,27 @@ namespace eval Concepts {
         relevant to output parameters and must be accounted for in declarations.
         See [Errors and output parameters].
 
-        One additional annotation, `nullifempty`, is available only for `in`
-        parameters of type `string`, `unistring` and `struct`. If present, a
-        NULL pointer is passed into the C function if the passed argument is an
-        empty string in the case of `string` or `unistring` and an empty
-        dictionary in the case of `struct`. This facility is useful for API's
-        where NULL pointers signify default options.
+        A few additional annotations are available for parameters, mainly as a
+        convenience.
+
+        The annotation `nullifempty` is available only
+        for `in` parameters of type `string`, `unistring` and `struct`. If
+        present, a NULL pointer is passed into the C function if the passed
+        argument is an empty string in the case of `string` or `unistring` and
+        an empty dictionary in the case of `struct`. This facility is useful for
+        API's where NULL pointers signify default options.
+
+        The annotation `enum` is available for integer types. It has an
+        associated argument that specifies an [Enum][Enumerations]. When the
+        function is called, any enum value names from that enumeration are
+        accepted and the corresponding integer value is used as the argument to
+        the C function.
+
+        The `bitmask` annotation is also limited to integer types. If specified,
+        an argument may be a list of integers. This are all OR-ed together and
+        the result passed to the C function. If the `enum` annotation was also
+        specified, each element of the list may be an integer or a enum value
+        name.
 
         ### Error handling
 

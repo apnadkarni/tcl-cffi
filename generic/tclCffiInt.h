@@ -93,8 +93,12 @@ typedef struct CffiType {
                                           through countHolderObj
                                     >0 -> array of count base type elements */
     union {
-        Tcl_Obj *tagObj;      /* TCL_F_TYPE_POINTER,ASTRING,CHAR_ARRAY. NOT used
-                                 UNISTRING and UNICHAR_ARRAY */
+        /* tagObj -
+         * POINTER - pointer tag (may be NULL)
+         * ASTRING, CHAR_ARRAY - encoding (may be NULL)
+         * Numerical types - Enum name (may be NULL)
+         */
+        Tcl_Obj *tagObj;
         CffiStruct *structP; /* TCL_F_TYPE_STRUCT */
     } u;
     Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
@@ -129,16 +133,23 @@ typedef struct CffiTypeAndAttrs {
 #define CFFI_F_ATTR_NOEXCEPT    0x200000 /* No exception on error */
 #define CFFI_F_ATTR_STOREONERROR 0x400000 /* Store only on error */
 #define CFFI_F_ATTR_STOREALWAYS  0x800000 /* Store on success and error */
+
+#define CFFI_F_ATTR_ENUM        0x1000000 /* Use enum names */
+#define CFFI_F_ATTR_BITMASK     0x2000000 /* Treat as a bitmask */
 } CffiTypeAndAttrs;
 
+/* Attributes allowed on a parameter declaration */
 #define CFFI_F_ATTR_PARAM_MASK                                                \
     (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT | CFFI_F_ATTR_BYREF \
      | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS)
+/* Attributes related to pointer safety */
 #define CFFI_F_ATTR_SAFETY_MASK \
     (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_COUNTED)
+/* Error checking attributes */
 #define CFFI_F_ATTR_REQUIREMENT_MASK                                  \
     (CFFI_F_ATTR_ZERO | CFFI_F_ATTR_NONZERO | CFFI_F_ATTR_NONNEGATIVE \
      | CFFI_F_ATTR_POSITIVE)
+/* Error retrieval attributes */
 #define CFFI_F_ATTR_ERROR_MASK \
     (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR)
 
@@ -202,8 +213,9 @@ typedef struct CffiInterpCtx {
                                Note this does not need to be protected against
                                deletion as contexts are unregistered before
                                interp deletion */
-    Tcl_HashTable aliases; /* typedef name -> CffiTypeAndAttrs */
-    Tcl_HashTable prototypes; /* typedef name -> CffiTypeAndAttrs */
+    Tcl_HashTable aliases;  /* typedef name -> CffiTypeAndAttrs */
+    Tcl_HashTable prototypes; /* prototype name -> CffiProto */
+    Tcl_HashTable enums;      /* Enum -> (name->value table) */
     MemLifo memlifo;        /* Software stack */
 } CffiInterpCtx;
 
@@ -378,6 +390,16 @@ void CffiProtoUnref(CffiProto *protoP);
 void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
 CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
 
+void CffiEnumsCleanup(Tcl_HashTable *enumsTableP);
+CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
+                        Tcl_Obj *enumObj,
+                        Tcl_Obj *nameObj,
+                        Tcl_Obj **valueObjP);
+CffiResult CffiEnumBitmask(CffiInterpCtx *ipCtxP,
+                           Tcl_Obj *enumObj,
+                           Tcl_Obj *valueListObj,
+                           Tcl_WideInt *maskP);
+
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,
                             int objArgIndex, /* Where in objv[] args start */
@@ -385,6 +407,7 @@ CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Obj *const objv[]);
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
+Tcl_ObjCmdProc CffiEnumObjCmd;
 Tcl_ObjCmdProc CffiDyncallLibraryObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;
@@ -412,5 +435,9 @@ CffiResult Tclh_SubCommandLookup(Tcl_Interp *ip,
                                  int objc,
                                  Tcl_Obj *const objv[],
                                  int *indexP);
+Tcl_Obj *Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj);
+void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
+                               Tcl_Obj *patObj,
+                               void (*deleteFn)(Tcl_HashEntry *));
 
 #endif /* CFFIINT_H */

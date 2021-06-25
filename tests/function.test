@@ -232,9 +232,10 @@ namespace eval ${NS}::test {
     foreach type $numericTypes {
         set val [expr {$type in {float double} ? "1.0" : "1"}]
 
-        set fn ${type}_to_${type}
-        testDll function $fn $type [list param [list $type in]]
-        test function-paramin-$type-0 "$type in params" -body {
+        test function-paramin-$type-0 "$type in params" -setup {
+            set fn ${type}_to_${type}
+            testDll function $fn $type [list param [list $type in]]
+        } -body {
             $fn $val
         } -result $val
 
@@ -265,9 +266,10 @@ namespace eval ${NS}::test {
             list [$fn $val arr] $arr
         } -result [list [expr {2+$val}] [expr {1+$val}]]
 
-        set fn ${type}_inout
-        testDll function $fn $type [list inoutparam [list $type inout]]
-        test function-paraminout-$type-0 "$type inout params" -body {
+        test function-paraminout-$type-0 "$type inout params" -setup {
+            set fn ${type}_inout
+            testDll function $fn $type [list inoutparam [list $type inout]]
+        } -body {
             set param $val
             list [$fn param] $param
         } -result [list [expr {2+$val}] [expr {1+$val}]]
@@ -1406,7 +1408,89 @@ namespace eval ${NS}::test {
     testptrexcepts function-storealways-6 "storealways, noexcept, no errors" [makeptr 1] {noexcept} {out storealways} [list 0 [makeptr 1] [makeptr 1]]
     testptrexcepts function-storealways-7 "storealways noexcept, errors" [makeptr 0] {noexcept} {out storealways} [list 0 [makeptr  0] [makeptr 0]]
 
+    ###
+    # enum tests
 
+    foreach type $intTypes {
+        test function-enum-$type-0 "function enum $type" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x 1 a 42}
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type {enum E}]]
+            list [$fn 24] [$fn a]
+        } -result [list 24 42]
+        test function-enum-$type-1 "function enum $type byref" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x 1 a 42}
+            set fn ${type}_byref
+            testDll function $fn $type [list inparam [list $type {enum E} byref]]
+        } -body {
+            $fn a
+        } -result 44
+        test function-enum-$type-2 "function enum $type inout" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x 1 a 42}
+            set fn ${type}_inout
+            testDll function $fn $type [list inoutparam [list $type {enum E} inout]]
+        } -body {
+            set param x
+            list [$fn param] $param
+        } -result {3 2}
+        test function-enum-$type-error-0 "function enum $type - missing enum" -setup {
+            cffi::enum delete *
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type {enum E}]]
+            $fn a
+        } -result {Enum "E" not found or inaccessible. } -returnCodes error
+        test function-enum-$type-error-1 "function enum $type - missing enum entry" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x 1 a 42}
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type {enum E}]]
+            $fn z
+        } -result {Enum value "z" not found or inaccessible. } -returnCodes error
+        test function-enum-$type-error-2 "function enum $type - wrong type" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x X a 42}
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type {enum E}]]
+            $fn x
+        } -result {expected integer but got "X"} -returnCodes error
+    }
+
+    ###
+    # bitmask
+    foreach type $intTypes {
+        test function-bitmask-$type-0 "function bitmask $type" -setup {
+            cffi::enum delete *
+            cffi::enum define E {a 1 b 2}
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type bitmask {enum E}]]
+            $fn [list a 4 b]
+        } -result 7
+        test function-bitmask-$type-1 "function bitmask $type byref" -setup {
+            cffi::enum delete *
+            cffi::enum define E {a 1 b 2}
+            set fn ${type}_byref
+            testDll function $fn $type [list inparam [list $type bitmask {enum E} byref]]
+        } -body {
+            $fn {b 4 a}
+        } -result 9
+        test function-bitmask-$type-2 "function bitmask $type inout" -setup {
+            cffi::enum delete *
+            cffi::enum define E {a 1 b 2}
+            set fn ${type}_inout
+            testDll function $fn $type [list inoutparam [list $type {enum E} bitmask inout]]
+        } -body {
+            set param {4 b a}
+            list [$fn param] $param
+        } -result {9 8}
+    }
 }
 
 ${NS}::test::testDll destroy

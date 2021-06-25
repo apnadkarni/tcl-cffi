@@ -46,6 +46,7 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffi.obj \
 	$(TMP_DIR)\tclCffiAlias.obj \
 	$(TMP_DIR)\tclCffiDyncall.obj \
+	$(TMP_DIR)\tclCffiEnum.obj \
 	$(TMP_DIR)\tclCffiMemory.obj \
 	$(TMP_DIR)\tclCffiPointer.obj \
 	$(TMP_DIR)\tclCffiPrototype.obj \
