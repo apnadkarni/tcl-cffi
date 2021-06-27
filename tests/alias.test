@@ -41,7 +41,7 @@ namespace eval cffi::test {
         cffi::alias delete *
     } -body {
         cffi::alias define X short
-    } -result "Type or alias \"X\" already exists. " -returnCodes error
+    } -result "Alias \"X\" already exists. Alias exists with a different definition." -returnCodes error
 
     test alias-define-error-5 "Invalid alias - nonexisting" -body {
         cffi::alias define X Y
@@ -76,6 +76,14 @@ namespace eval cffi::test {
     testalias alias-define-merge-0 "merger nonzero" "size 4 count 0 alignment 4 definition {int nonzero errno}" {
         cffi::alias define merger {int errno}
     }
+
+    test alias-define-duplicate-0 "alias define duplicate with same definition" -setup {
+        cffi::alias delete *
+        cffi::alias define A "int in storeonerror"
+    } -body {
+        cffi::alias define A "int storeonerror in"
+        cffi::alias body A
+    } -result {int in storeonerror}
 
     ###
     # alias body

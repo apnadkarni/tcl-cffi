@@ -67,7 +67,6 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj)
             ipCtxP->interp, "Type or alias", nameObj, NULL);
     }
 
-
     typeAttrsP = ckalloc(sizeof(*typeAttrsP));
     if (CffiTypeAndAttrsParse(ipCtxP,
                               typedefObj,
@@ -83,8 +82,36 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj)
     heP = Tcl_CreateHashEntry(&ipCtxP->aliases, (char *) nameObj, &new_entry);
     if (! new_entry) {
         CffiTypeAndAttrs *oldP = Tcl_GetHashValue(heP);
+#if 1
+        /* Only permit if definition is the same */
+        Tcl_Obj *oldObj;
+        Tcl_Obj *newObj;
+        int different;
+        /* TBD - may be write a typeAttrs comparison function */
+        oldObj = CffiTypeAndAttrsUnparse(oldP);
+        newObj = CffiTypeAndAttrsUnparse(typeAttrsP);
+        different = strcmp(Tcl_GetString(oldObj), Tcl_GetString(newObj));
+        /* No matter what we do not need new allocations */
+        Tcl_DecrRefCount(oldObj);
+        Tcl_DecrRefCount(newObj);
+        CffiTypeAndAttrsCleanup(typeAttrsP);
+        ckfree(typeAttrsP);
+        if (different) {
+            /* Mismatched existing alias */
+            return Tclh_ErrorExists(ipCtxP->interp,
+                                    "Alias",
+                                    nameObj,
+                                    "Alias exists with a different definition.");
+        }
+        else {
+            /* Existing alias is the same */
+            return TCL_OK;
+        }
+#else
+        /* Free the old def */
         CffiTypeAndAttrsCleanup(oldP);
         ckfree(oldP);
+#endif
     }
     Tcl_SetHashValue(heP, typeAttrsP);
     return TCL_OK;
@@ -113,13 +140,7 @@ CffiAliasDefineCmd(CffiInterpCtx *ipCtxP,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-
     CFFI_ASSERT(objc == 4);
-
-    heP = Tcl_FindHashEntry(&ipCtxP->aliases, objv[2]);
-    if (heP)
-        return Tclh_ErrorExists(ip, "Type or alias", objv[2], NULL);
     return CffiAliasAdd(ipCtxP, objv[2], objv[3]);
 }
 
@@ -212,39 +233,39 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             CFFI_ASSERT(0);                                    \
     } while (0)
 
-#define UNSIGNEDTYPEINDEX(type_)                                \
-    do {                                                        \
-        if (sizeof(type_) == sizeof(unsigned char))             \
-            typeIndex = CFFI_K_TYPE_UCHAR;                     \
-        else if (sizeof(type_) == sizeof(unsigned short))       \
-            typeIndex = CFFI_K_TYPE_USHORT;                    \
-        else if (sizeof(type_) == sizeof(unsigned int))         \
-            typeIndex = CFFI_K_TYPE_UINT;                      \
-        else if (sizeof(type_) == sizeof(unsigned long))        \
-            typeIndex = CFFI_K_TYPE_ULONG;                     \
-        else if (sizeof(type_) == sizeof(unsigned long long))   \
-            typeIndex = CFFI_K_TYPE_ULONGLONG;                 \
-        else                                                    \
-            CFFI_ASSERT(0);                                    \
+#define UNSIGNEDTYPEINDEX(type_)                              \
+    do {                                                      \
+        if (sizeof(type_) == sizeof(unsigned char))           \
+            typeIndex = CFFI_K_TYPE_UCHAR;                    \
+        else if (sizeof(type_) == sizeof(unsigned short))     \
+            typeIndex = CFFI_K_TYPE_USHORT;                   \
+        else if (sizeof(type_) == sizeof(unsigned int))       \
+            typeIndex = CFFI_K_TYPE_UINT;                     \
+        else if (sizeof(type_) == sizeof(unsigned long))      \
+            typeIndex = CFFI_K_TYPE_ULONG;                    \
+        else if (sizeof(type_) == sizeof(unsigned long long)) \
+            typeIndex = CFFI_K_TYPE_ULONGLONG;                \
+        else                                                  \
+            CFFI_ASSERT(0);                                   \
     } while (0)
 
-#define ADDTYPEINDEX(newtype_, existingIndex_)                            \
-    do {                                                                  \
-        if (CffiAliasAddStr(                                           \
+#define ADDTYPEINDEX(newtype_, existingIndex_)                          \
+    do {                                                                \
+        if (CffiAliasAddStr(                                            \
                 ipCtxP, #newtype_, cffiBaseTypes[existingIndex_].token) \
-            != TCL_OK)                                                    \
-            return TCL_ERROR;                                             \
+            != TCL_OK)                                                  \
+            return TCL_ERROR;                                           \
     } while (0)
 
-#define ADDINTTYPE(type_)                                                    \
-    do {                                                                     \
-        enum CffiBaseType typeIndex;                                        \
-        type_ val = (type_)-1;                                               \
-        if (val < 0)                                                         \
-            SIGNEDTYPEINDEX(type_);                                          \
-        else                                                                 \
-            UNSIGNEDTYPEINDEX(type_);                                        \
-        ADDTYPEINDEX(type_, typeIndex);                                          \
+#define ADDINTTYPE(type_)               \
+    do {                                \
+        enum CffiBaseType typeIndex;    \
+        type_ val = (type_)-1;          \
+        if (val < 0)                    \
+            SIGNEDTYPEINDEX(type_);     \
+        else                            \
+            UNSIGNEDTYPEINDEX(type_);   \
+        ADDTYPEINDEX(type_, typeIndex); \
     } while (0)
 
     s = Tcl_GetString(objP);

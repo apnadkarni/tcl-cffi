@@ -10,7 +10,7 @@ namespace eval ${NS}::alias {
         #
         # Creates a new alias.
         # An error will be raised if a the alias name matches a built-in
-        # type or an existing alias.
+        # type or an existing alias if the definitions are different.
         # The definition may itself be based on an existing alias. In this
         # case the existing alias is immediately resolved and expanded
         # as part of the definition so further changes to it are not reflected
