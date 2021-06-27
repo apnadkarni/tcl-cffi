@@ -888,6 +888,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             typeAttrP->dataType.u.tagObj = fieldObjs[1];
             break;
         case BITMASK:
+            if (typeAttrP->dataType.count != 0) {
+                message = "One or more annotations not valid for arrays.";
+                goto invalid_format;
+            }
             flags |= CFFI_F_ATTR_BITMASK;
             break;
         }
@@ -932,17 +936,30 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
             /*
-             * NULLIFEMPTY never allowed for any output. DISPOSE not allowed
-             * for pure OUT.
+             * NULLIFEMPTY never allowed for any output. DISPOSE, BITMASK,
+             * ENUM not allowed for pure OUT.
              */
             if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
-                || ((flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE))
-                    == (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE))) {
+                || ((flags & CFFI_F_ATTR_OUT)
+                    && (flags
+                        & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_ENUM
+                           | CFFI_F_ATTR_BITMASK)))) {
                 message = "One or more annotations are invalid for the "
                           "parameter direction.";
                 goto invalid_format;
             }
-            flags |= CFFI_F_ATTR_BYREF; /* inout default to byref */
+            #if 0
+            if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
+                || ((flags
+                     & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_ENUM
+                        | CFFI_F_ATTR_BITMASK))
+                    != (flags & CFFI_F_ATTR_OUT))) {
+                message = "One or more annotations are invalid for the "
+                          "parameter direction.";
+                goto invalid_format;
+            }
+#endif
+            flags |= CFFI_F_ATTR_BYREF; /* out, inout default to byref */
         }
         else {
             flags |= CFFI_F_ATTR_IN; /* in, or by default if nothing was said */
@@ -2728,65 +2745,74 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * (compile time function binding)
      */
 
-    /* May the programming gods forgive me for this macro */
-#define STORENUM(objfn_, dcfn_, fld_, type_)                            \
-    do {                                                                \
-        int lookup_enum = flags & CFFI_F_ATTR_ENUM;                     \
-        CFFI_ASSERT(argP->actualCount >= 0);                            \
-        if (argP->actualCount == 0) {                                   \
-            if (flags & CFFI_F_ATTR_BITMASK) {                          \
-                Tcl_WideInt wide;                                       \
-                CHECK(CffiEnumBitmask(ipCtxP, lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL, valueObj, &wide)); \
-                valueP->u.fld_ = (type_) wide;                          \
-            }                                                           \
-            else {                                                      \
-                if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {     \
-                    /* We do not want errors if enum specified */       \
-                    ret = objfn_(lookup_enum ? NULL : ip, valueObj, &valueP->u.fld_); \
-                    if (ret != TCL_OK) {                                \
-                        Tcl_Obj *enumValueObj;                          \
-                        if (!lookup_enum)                               \
-                            return ret;                                 \
-                        CHECK(CffiEnumFind(ipCtxP, typeAttrsP->dataType.u.tagObj, valueObj, &enumValueObj)); \
-                        CHECK(objfn_(ip, enumValueObj, &valueP->u.fld_)); \
-                    }                                                   \
-                }                                                       \
-            }                                                           \
-            if (flags & CFFI_F_ATTR_BYREF)                              \
-                dcArgPointer(vmP, (DCpointer)&valueP->u.fld_);          \
-            else                                                        \
-                dcfn_(vmP, valueP->u.fld_);                             \
-        }                                                               \
-        else {                                                          \
-            /* Array - has to be byref */                               \
-            type_ *valueArray;                                          \
-            CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                      \
-            valueArray = MemLifoAlloc(                                  \
+    /* May the programming gods forgive me for these macro */
+#define OBJTONUM(objfn_, obj_, valP_)                                         \
+    do {                                                                      \
+        /* We do not want errors if enum specified */                         \
+        ret = objfn_(lookup_enum ? NULL : ip, obj_, valP_);                   \
+        if (ret != TCL_OK) {                                                  \
+            Tcl_Obj *enumValueObj;                                            \
+            if (!lookup_enum)                                                 \
+                return ret;                                                   \
+            CHECK(CffiEnumFind(                                               \
+                ipCtxP, typeAttrsP->dataType.u.tagObj, obj_, &enumValueObj)); \
+            CHECK(objfn_(ip, enumValueObj, valP_));                           \
+        }                                                                     \
+    } while (0)
+
+#define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
+    do {                                                                       \
+        int lookup_enum = flags & CFFI_F_ATTR_ENUM;                            \
+        CFFI_ASSERT(argP->actualCount >= 0);                                   \
+        if (argP->actualCount == 0) {                                          \
+            if (flags & CFFI_F_ATTR_BITMASK) {                                 \
+                Tcl_WideInt wide;                                              \
+                CHECK(CffiEnumBitmask(                                         \
+                    ipCtxP,                                                    \
+                    lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,        \
+                    valueObj,                                                  \
+                    &wide));                                                   \
+                valueP->u.fld_ = (type_)wide;                                  \
+            }                                                                  \
+            else {                                                             \
+                if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {            \
+                    /* We do not want errors if enum specified */              \
+                    OBJTONUM(objfn_, valueObj, &valueP->u.fld_);               \
+                }                                                              \
+            }                                                                  \
+            if (flags & CFFI_F_ATTR_BYREF)                                     \
+                dcArgPointer(vmP, (DCpointer)&valueP->u.fld_);                 \
+            else                                                               \
+                dcfn_(vmP, valueP->u.fld_);                                    \
+        }                                                                      \
+        else {                                                                 \
+            /* Array - has to be byref */                                      \
+            type_ *valueArray;                                                 \
+            CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                             \
+            valueArray = MemLifoAlloc(                                         \
                 &ipCtxP->memlifo, argP->actualCount * sizeof(valueP->u.fld_)); \
-            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {         \
-                Tcl_Obj **valueObjList;                                 \
-                int i, nvalues;                                         \
-                if (Tcl_ListObjGetElements(                             \
-                        ip, valueObj, &nvalues, &valueObjList)          \
-                    != TCL_OK)                                          \
-                    return TCL_ERROR;                                   \
-                /* Note - if caller has specified too few values, it's ok \
-                 * because perhaps the actual count is specified in another \
-                 * parameter. If too many, only up to array size */     \
-                if (nvalues > argP->actualCount)                        \
-                    nvalues = argP->actualCount;                        \
-                for (i = 0; i < nvalues; ++i) {                         \
-                    ret = objfn_(ip, valueObjList[i], &valueArray[i]);  \
-                    if (ret != TCL_OK)                                  \
-                        return ret;                                     \
-                }                                                       \
-                /* Fill additional elements with 0 */                   \
-                for (i = nvalues; i < argP->actualCount; ++i)           \
-                    valueArray[i] = 0;                                  \
-            }                                                           \
-            valueP->u.ptr = valueArray;                                 \
-            dcArgPointer(vmP, (DCpointer)valueArray);                   \
-        }                                                               \
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
+                Tcl_Obj **valueObjList;                                        \
+                int i, nvalues;                                                \
+                if (Tcl_ListObjGetElements(                                    \
+                        ip, valueObj, &nvalues, &valueObjList)                 \
+                    != TCL_OK)                                                 \
+                    return TCL_ERROR;                                          \
+                /* Note - if caller has specified too few values, it's ok */   \
+                /* because perhaps the actual count is specified in another */ \
+                /* parameter. If too many, only up to array size */            \
+                if (nvalues > argP->actualCount)                               \
+                    nvalues = argP->actualCount;                               \
+                for (i = 0; i < nvalues; ++i) {                                \
+                    OBJTONUM(objfn_, valueObjList[i], &valueArray[i]);         \
+                }                                                              \
+                /* Fill additional elements with 0 */                          \
+                for (i = nvalues; i < argP->actualCount; ++i)                  \
+                    valueArray[i] = 0;                                         \
+            }                                                                  \
+            valueP->u.ptr = valueArray;                                        \
+            dcArgPointer(vmP, (DCpointer)valueArray);                          \
+        }                                                                      \
     } while (0)
 
     switch (baseType) {
@@ -2958,6 +2984,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     return TCL_OK;
 #undef STORENUM
+#undef OBJTONUM
 }
 
 /* Function: CffiArgPostProcess
@@ -3342,10 +3369,18 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
         /* -1 -> Not a real attribute */
         if (attrsP->attrFlag != -1) {
             if (attrsP->attrFlag & flags) {
-                Tcl_ListObjAppendElement(
-                    NULL,
-                    resultObj,
-                    Tcl_NewStringObj(attrsP->attrName, -1));
+                if (attrsP->attrFlag == CFFI_F_ATTR_ENUM) {
+                    Tcl_Obj *objs[2];
+                    objs[0] = Tcl_NewStringObj(attrsP->attrName, -1);
+                    objs[1] = typeAttrsP->dataType.u.tagObj;
+                    Tcl_ListObjAppendElement(
+                        NULL, resultObj, Tcl_NewListObj(2, objs));
+                }
+                else
+                    Tcl_ListObjAppendElement(
+                        NULL,
+                        resultObj,
+                        Tcl_NewStringObj(attrsP->attrName, -1));
             }
         }
     }

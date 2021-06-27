@@ -1437,6 +1437,23 @@ namespace eval ${NS}::test {
             set param x
             list [$fn param] $param
         } -result {3 2}
+        test function-enum-$type-3 "function enum $type array in" -setup {
+            cffi::enum delete *
+            cffi::enum define E {a 1 b 2}
+        } -body {
+            testDll function ${type}_array_in $type [list n int arr "$type\[3\] {enum E}"]
+            ${type}_array_in 3 {a b 3}
+        } -result 6
+        test function-enum-$type-4 "function enum $type array inout" -setup {
+            cffi::enum delete *
+            cffi::enum define E {a 1 b 2}
+        } -body {
+            testDll function ${type}_array_inout void [list n int arr [list $type\[3\] {enum E} inout]]
+            set out {a 3 b}
+            ${type}_array_inout 3 out
+            set out
+        } -result {2 4 3}
+
         test function-enum-$type-error-0 "function enum $type - missing enum" -setup {
             cffi::enum delete *
         } -body {
