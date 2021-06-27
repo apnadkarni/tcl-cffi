@@ -7,10 +7,11 @@ source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     testsubcmd ::cffi::enum
-    testnumargs enum-define "cffi::enum define" "ENUM ENUMDEFS" ""
+    testnumargs enum-define "cffi::enum define" "ENUM MEMBERS" ""
     testnumargs enum-delete "cffi::enum delete" "PATTERN" ""
     testnumargs enum-list "cffi::enum list" "" "?PATTERN?"
-    testnumargs enum-entries "cffi::enum entries" "ENUM" ""
+    testnumargs enum-members "cffi::enum members" "ENUM" ""
+    testnumargs enum-sequence "cffi::enum sequence" "ENUM MEMBERNAMES" "?START?"
 
     # Only very basic tests. Actual verification is in function.test
 
@@ -18,13 +19,13 @@ namespace eval cffi::test {
         cffi::enum delete *
     } -body {
         cffi::enum define E {}
-        cffi::enum entries E
+        cffi::enum members E
     } -result {}
     test enum-1 "Define enum" -setup {
         cffi::enum delete *
     } -body {
         cffi::enum define E {a 1 b 2}
-        cffi::enum entries E
+        cffi::enum members E
     } -result {a 1 b 2}
     test enum-2 "enum list" -setup {
         cffi::enum delete *
@@ -86,6 +87,24 @@ namespace eval cffi::test {
         cffi::enum delete Z
         lsort [cffi::enum list]
     } -result {E E2 X}
+    test enum-9 "Define empty sequence" -setup {
+        cffi::enum delete *
+    } -body {
+        cffi::enum sequence E {}
+        cffi::enum members E
+    } -result {}
+    test enum-10 "Define sequence" -setup {
+        cffi::enum delete *
+    } -body {
+        cffi::enum sequence E {a b}
+        cffi::enum members E
+    } -result {a 0 b 1}
+    test enum-11 "Define sequence start" -setup {
+        cffi::enum delete *
+    } -body {
+        cffi::enum sequence E {a b} 42
+        cffi::enum members E
+    } -result {a 42 b 43}
 
     test enum-error-0 "Invalid enum" -body {
         cffi::enum define X {a 1 b}
