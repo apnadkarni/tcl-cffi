@@ -1358,10 +1358,6 @@ namespace eval ${NS}::test {
     ###
     # Function failure tests with onerror:
     
-    # onerror storealways - with error, without error
-    # except - storeonerror
-    # except - storealways
-    # also test inout
     proc onerror_ignore {args} {
         upvar 1 handler_output v
         incr v
@@ -1413,12 +1409,12 @@ namespace eval ${NS}::test {
     testexcepts function-onerror-ignore-1 "Fail with onerror onerror_ignore" \
         [list zero {onerror onerror_ignore}] \
         out \
-        [list 0 "onerror_ignore: 44" 0 100]
+        [list 0 "onerror_ignore: 44 {inparam 42} {}" 0 100]
     testptrexcepts function-onerror-ignore-2 "Pointer fail with onerror handler" \
         [makeptr 0] \
-        {{onerror {return -level 0}}} \
+        {{onerror {list}}} \
         out \
-        [list 0 "0x0000000000000000^" 0]
+        [list 0 {0x0000000000000000^ {inparam 0x0000000000000000^} {}} 0]
     testexcepts function-onerror-raise-0 "Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         out \
@@ -1426,7 +1422,7 @@ namespace eval ${NS}::test {
     testexcepts function-onerror-raise-1 "Fail with onerror onerror_raise" \
         [list zero {onerror {onerror_raise prefixarg}}] \
         out \
-        [list 1 {prefixarg: 44} 0 100]
+        [list 1 {prefixarg: 44 {inparam 42} {}} 0 100]
     testptrexcepts function-onerror-raise-2 "Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror error}} \
@@ -1452,12 +1448,12 @@ namespace eval ${NS}::test {
     testexcepts function-storealways-onerror-ignore-1 "Storealways - Fail with onerror onerror_ignore" \
         [list zero {onerror onerror_ignore}] \
         [list out storealways] \
-        [list 0 "onerror_ignore: 44" 43 100]
+        [list 0 "onerror_ignore: 44 {inparam 42} {outparam 43}" 43 100]
     testptrexcepts function-storealways-onerror-ignore-2 "Storealways - Pointer fail with onerror handler" \
         [makeptr 0] \
-        {{onerror {return -level 0}}} \
+        {{onerror {list prefix}}} \
         [list out storealways] \
-        [list 0 [makeptr 0] [makeptr 0]]
+        [list 0 {prefix 0x0000000000000000^ {inparam 0x0000000000000000^} {outparam 0x0000000000000000^}} 0x0000000000000000^]
     testexcepts function-storealways-onerror-raise-0 "Storealways - Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         [list out storealways] \
@@ -1465,7 +1461,7 @@ namespace eval ${NS}::test {
     testexcepts function-storealways-onerror-raise-1 "Storealways - Fail with onerror onerror_raise" \
         [list zero {onerror {onerror_raise prefixarg}}] \
         [list out storealways] \
-        [list 1 {prefixarg: 44} 43 100]
+        [list 1 {prefixarg: 44 {inparam 42} {outparam 43}} 43 100]
     testptrexcepts function-storealways-onerror-raise-2 "Storealways - Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror error}} \
@@ -1492,12 +1488,12 @@ namespace eval ${NS}::test {
     testexcepts function-storeonerror-onerror-ignore-1 "Storeonerror - Fail with onerror onerror_ignore" \
         [list zero {onerror onerror_ignore}] \
         [list out storeonerror] \
-        [list 0 "onerror_ignore: 44" 43 100]
+        [list 0 "onerror_ignore: 44 {inparam 42} {outparam 43}" 43 100]
     testptrexcepts function-storeonerror-onerror-ignore-2 "Storeonerror - Pointer fail with onerror handler" \
         [makeptr 0] \
-        {{onerror {return -level 0}}} \
+        {{onerror {list}}} \
         [list out storeonerror] \
-        [list 0 [makeptr 0] [makeptr 0]]
+        [list 0 [list [makeptr 0] [list inparam [makeptr 0]] [list outparam [makeptr 0]]] [makeptr 0]]
     testexcepts function-storeonerror-onerror-raise-0 "Storeonerror - Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         [list out storeonerror] \
@@ -1505,7 +1501,7 @@ namespace eval ${NS}::test {
     testexcepts function-storeonerror-onerror-raise-1 "Storeonerror - Fail with onerror onerror_raise" \
         [list zero {onerror {onerror_raise prefixarg}}] \
         [list out storeonerror] \
-        [list 1 {prefixarg: 44} 43 100]
+        {1 {prefixarg: 44 {inparam 42} {outparam 43}} 43 100}
     testptrexcepts function-storeonerror-onerror-raise-2 "Storeonerror - Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror error}} \

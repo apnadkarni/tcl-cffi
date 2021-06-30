@@ -280,8 +280,7 @@ typedef struct CffiArgument {
 typedef struct CffiCall {
     CffiFunction *fnP;     /* Function being called */
     CffiArgument *argsP;   /* Argument contexts */
-    int nArgs; /* Size of argsP. This is one more than number of function
-                  parameters as it includes the return value slot */
+    int nArgs; /* Size of argsP. */
 } CffiCall;
 
 /*

@@ -303,6 +303,10 @@ set start_page {
     is cross-platform and commonly applicable to both the C runtime as well
     as system calls on Unix.
 
+    For cases where the error is library-specific and not derived from the system,
+    the `onerror` annotation can be used to customize the handling of error
+    conditions.
+
     ### Pointers and memory
 
     Pointers are ubiquitous in C. They give C much of its power while also being

@@ -458,13 +458,13 @@ namespace eval Concepts {
 
         #### Return annotations
 
-        The following annotations may be follow the type in a return type declaration.
+        The following annotations may be follow the type in a return type
+        declaration.
 
         - For integer types, the error checking annotations
         `zero`, `nonzero`, `nonnegative`, `positive`, the error
-        reporting annotations `errno`, `lasterror` and `winerror` and
-        the error delivery annotation `noexcept` may be specified.
-        See [Error handling] for details on these.
+        reporting annotations `errno`, `lasterror`, `winerror` and
+        `onerror` may be specified. See [Error handling] for details on these.
 
         - For pointer type, `nonzero`, `errno` and `lasterror` annotations
         may be specified as well as the `unsafe` and `counted`
@@ -588,7 +588,7 @@ namespace eval Concepts {
         condition is met. Failure to do so is treated as an error condition.
 
         An error condition results in an exception being generated unless the
-        `noexcept` annotation is specified (see below).
+        `onerror` annotation is specified (see below).
         However, the default error message generated is
         generic and does not provide detail about why the error occured. The
         following error retrieval annotations specify how detail about the error
@@ -606,14 +606,33 @@ namespace eval Concepts {
         Any of these annotations can be applied to integer types while the
         `errno` and `lasterror` can be used with pointer types as well.
 
-        Exceptions generated through the error checking annotations can be
-        suppressed if desired by specifying the `noexcept` annotation on the
-        function return type declaration. In this case the function return value
-        is returned as is and the error retrieval options like `errno` are
-        ignored. Note that the use of `noexcept` is **not** the same as not
-        specifying any error checking annotations because the function return
-        is still treated as an error condition in terms of the output variables
-        as described below.
+        In addition, the `onerror` annotation provides a means for customizing
+        error handling when the error is from a library and not a system error.
+        The annotation takes an additional argument which is a command prefix to
+        be invoked when an error checking annotation is triggered.
+        When this command prefix is invoked, three additional arguments are
+        appended to it:
+
+        - the function return value that failed the error condition check
+        - a dictionary mapping all  `in` and `inout` parameter names to
+        the values passed in to the called function
+        - a dictionary mapping all `inout` and `out` parameter names to
+        the values returned on output by the function. These only include
+        output parameters marked as `storealways` or `storeonerror`.
+
+        The result of the handler execution is returned as the
+        function call result and may be a normal result or a raised exception.
+        The handler may use `upvar` for access to the calling script's context
+        including any input or output arguments to the original function call.
+
+        This `onerror` facility may be used to ignore errors,
+        provide default values as well as raise exceptions with more detailed
+        library-specific information.
+
+        **NOTE:** Note that the use of a `onerror` handler that returns normally
+        is **not** the same as not specifying any error checking annotations
+        because the function return is still treated as an error condition in
+        terms of the output variables as described below.
 
         #### Errors and output parameters
 
@@ -627,8 +646,9 @@ namespace eval Concepts {
         an error code.
 
         The distinction is particularly crucial for non-scalar output. Output
-        parameters that have not been written to may result in corruption or crashes
-        if the memory is accessed for conversion to Tcl script level values.
+        parameters that have not been written to may result in corruption or
+        crashes if the memory is accessed for conversion to Tcl script level
+        values.
 
         By default, script level output variables are only written to when the
         error checks pass (including the case where none are specified). This is

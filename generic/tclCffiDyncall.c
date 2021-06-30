@@ -492,9 +492,14 @@ CffiDefaultErrorHandler(Tcl_Interp *ip,
  *
  * Parameters:
  * ipCtxP - interp context
- * typeAttrsP - type descriptor containing the `onerror` annotation
+ * protoP - declaration of function that returned error
+ * argObjs - arguments for the function (protoP->nParams size)
+ * argsP - array of native values corresponding to argObjs
  * valueObj - the value triggering the error. Caller should be holding a
  *     reference count if it wants to access after the function returns.
+ *
+ * The `onerror` handler is passed three arguments, `valueObj`, a dictionary
+ * of inputs into the function and a dictionary of outputs from the function.
  *
  * Returns:
  * *TCL_OK* with result to be returned in interp or *TCL_ERROR* with error
@@ -502,36 +507,74 @@ CffiDefaultErrorHandler(Tcl_Interp *ip,
  */
 static CffiResult
 CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
-                       const CffiTypeAndAttrs *typeAttrsP,
+                       CffiProto *protoP,
+                       Tcl_Obj **argObjs,
+                       CffiArgument *argsP,
                        Tcl_Obj *valueObj)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj **onErrorObjs;
-    int nOnErrorObjs;
     Tcl_Obj **evalObjs;
-    int i;
+    Tcl_Obj *inputArgsObj;
+    Tcl_Obj *outputArgsObj;
     CffiResult ret;
+    int nOnErrorObjs;
+    int nEvalObjs;
+    int i;
 
-    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_ONERROR);
-    CFFI_ASSERT(typeAttrsP->parseModeSpecificObj);
+    CFFI_ASSERT(protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ONERROR);
+    CFFI_ASSERT(protoP->returnType.typeAttrs.parseModeSpecificObj);
     CHECK(Tcl_ListObjGetElements(
-        ip, typeAttrsP->parseModeSpecificObj, &nOnErrorObjs, &onErrorObjs));
+        ip, protoP->returnType.typeAttrs.parseModeSpecificObj, &nOnErrorObjs, &onErrorObjs));
 
+    nEvalObjs = nOnErrorObjs + 3; /* value, input dict, output dict */
     evalObjs =
-        MemLifoAlloc(&ipCtxP->memlifo, (nOnErrorObjs + 1) * sizeof(Tcl_Obj *));
+        MemLifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
+
+    /*
+     * Construct the dictionary of arguments that were input to the function.
+     * Built as a list for efficiency as the handler may or may not access it.
+     */
+    inputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
+    outputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
+    for (i = 0; i < protoP->nParams; ++i) {
+        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        int flags                    = typeAttrsP->flags;
+        if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+            Tcl_ListObjAppendElement(
+                NULL, inputArgsObj, protoP->params[i].nameObj);
+            Tcl_ListObjAppendElement(NULL, inputArgsObj, argObjs[i]);
+        }
+        /* Only append outputs if stored on error */
+        if ((flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT))
+            && (flags & (CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS))
+            && argsP[i].varNameObj != NULL) {
+            Tcl_Obj *outValObj = Tcl_ObjGetVar2(ip, argsP[i].varNameObj, NULL, 0);
+            if (outValObj) {
+                Tcl_ListObjAppendElement(
+                    NULL, outputArgsObj, protoP->params[i].nameObj);
+                Tcl_ListObjAppendElement(NULL, outputArgsObj, outValObj);
+            }
+        }
+    }
 
     /* Must protect before call as Eval may or may not release objects */
     for (i = 0; i < nOnErrorObjs; ++i) {
         evalObjs[i] = onErrorObjs[i];
+        /* Increment ref count in case underlying list shimmers away */
         Tcl_IncrRefCount(evalObjs[i]);
     }
-    evalObjs[i] = valueObj;
     Tcl_IncrRefCount(valueObj);
+    evalObjs[nOnErrorObjs] = valueObj;
+    Tcl_IncrRefCount(inputArgsObj);
+    evalObjs[nOnErrorObjs + 1] = inputArgsObj;
+    Tcl_IncrRefCount(outputArgsObj);
+    evalObjs[nOnErrorObjs + 2] = outputArgsObj;
 
-    ret = Tcl_EvalObjv(ip, nOnErrorObjs+1, evalObjs, 0);
+    ret = Tcl_EvalObjv(ip, nEvalObjs, evalObjs, 0);
 
     /* Undo the protection */
-    for (i = 0; i <= nOnErrorObjs; ++i) {
+    for (i = 0; i < nEvalObjs; ++i) {
         Tcl_DecrRefCount(evalObjs[i]);
     }
 
@@ -555,14 +598,13 @@ CffiFunctionCall(ClientData cdata,
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
     DCCallVM *vmP         = fnP->vmCtxP->vmP;
-    Tcl_Obj **argObjs;
+    Tcl_Obj **argObjs = NULL;
     int nArgObjs;
     Tcl_Obj *resultObj = NULL;
     int i;
     void *pointer;
     CffiCall callCtx;
     MemLifoMarkHandle mark;
-    int exceptionHidden = 0;
     CffiResult ret = TCL_OK;
     CffiResult fnCheckRet = TCL_OK; /* Whether function return check passed */
     Tcl_WideInt sysError;  /* Error retrieved from system */
@@ -574,6 +616,8 @@ CffiFunctionCall(ClientData cdata,
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
 
     mark = MemLifoPushMark(&ipCtxP->memlifo);
+
+    /* IMPORTANT - mark has to be popped even on errors before returning */
 
     /* nArgObjs is supplied arguments. Remaining have to come from defaults */
     CFFI_ASSERT(objc >= objArgIndex);
@@ -647,7 +691,7 @@ CffiFunctionCall(ClientData cdata,
         int j;
         for (j = 0; j < callCtx.nArgs; ++j)
             CffiArgCleanup(&callCtx, j);
-        return TCL_ERROR;
+        goto pop_and_error;
     }
 
     /* Currently return values are always by value - enforced in prototype */
@@ -736,7 +780,6 @@ CffiFunctionCall(ClientData cdata,
         break;
     }
 
-    CffiReturnCleanup(&callCtx);
 
     /*
      * At this point, the state of the call is reflected by the
@@ -796,9 +839,6 @@ CffiFunctionCall(ClientData cdata,
     }
     /* Parameters stored away. Note ret might have changed to error */
 
-    for (i = 0; i < protoP->nParams; ++i)
-        CffiArgCleanup(&callCtx, i);
-
     if (ret == TCL_OK) {
         CFFI_ASSERT(resultObj != NULL);
         if (fnCheckRet == TCL_OK) {
@@ -810,7 +850,7 @@ CffiFunctionCall(ClientData cdata,
                 && protoP->returnType.typeAttrs.parseModeSpecificObj) {
                 Tcl_IncrRefCount(resultObj);
                 ret = CffiCustomErrorHandler(
-                    ipCtxP, &protoP->returnType.typeAttrs, resultObj);
+                    ipCtxP, protoP, argObjs, callCtx.argsP, resultObj);
                 Tclh_ObjClearPtr(&resultObj);
             }
             else {
@@ -819,11 +859,16 @@ CffiFunctionCall(ClientData cdata,
         }
     }
 
+    CffiReturnCleanup(&callCtx);
+    for (i = 0; i < protoP->nParams; ++i)
+        CffiArgCleanup(&callCtx, i);
+
 pop_and_go:
     MemLifoPopMark(mark);
     return ret;
 
 numargs_error:
+    /* Do NOT jump here if args are still to be cleaned up */
     resultObj = Tcl_NewListObj(protoP->nParams + 2, NULL);
     Tcl_ListObjAppendElement(NULL, resultObj, Tcl_NewStringObj("Syntax:", -1));
     for (i = 0; i < objArgIndex; ++i)
@@ -833,6 +878,7 @@ numargs_error:
     Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(resultObj));
     /* Fall thru below */
 pop_and_error:
+    /* Do NOT jump here if args are still to be cleaned up */
     /* Jump for error return after popping memlifo with error in interp */
     if (resultObj)
         Tcl_DecrRefCount(resultObj);
