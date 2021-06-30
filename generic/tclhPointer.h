@@ -544,9 +544,9 @@ DupPointerType(Tcl_Obj *srcP, Tcl_Obj *dstP)
     tag = PointerTypeGet(srcP);
     if (tag)
         Tcl_IncrRefCount(tag);
+    PointerTypeSet(dstP, tag);
 }
 
-/* Not updated for switch from string tags to ClientData */
 static int
 SetPointerFromAny(Tcl_Interp *interp, Tcl_Obj *objP)
 {
