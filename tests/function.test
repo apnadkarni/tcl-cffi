@@ -889,14 +889,15 @@ namespace eval ${NS}::test {
     }
     # Error cases
     foreach type $intTypes {
-        foreach {attr val message} {
-            zero 1 {Function returned non-zero value.}
-            zero -1 {Function returned non-zero value.}
-            nonzero 0 {Function returned zero.}
-            nonnegative -1 {Function returned negative value.}
-            positive 0 {Function returned zero.}
-            positive -1 {Function returned negative value.}
+        foreach {attr val} {
+            zero 1 
+            zero -1 
+            nonzero 0
+            nonnegative -1
+            positive 0
+            positive -1
         } {
+            set message "Function returned an error value."
             set testnum -1
             set fn ${type}_to_$type
             testDll function $fn [list $type $attr] [list param $type]
@@ -1017,7 +1018,7 @@ namespace eval ${NS}::test {
         test function-return-$type-nonzero-null-0 "return type $type nonzero - null" -body {
             testDll function pointer_to_pointer [list $type nonzero] {p {pointer unsafe}}
             pointer_to_pointer 0^
-        } -result "Invalid value *. Function returned NULL pointer." -returnCodes error -match glob
+        } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-nonzero-errno-0 "return type $type nonzero - errno" -body {
             testDll function pointer_errno [list $type nonzero errno] {p {pointer unsafe}}
             list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
@@ -1036,7 +1037,7 @@ namespace eval ${NS}::test {
         test function-return-$type-counted-nonzero-null-0 "return type $type counted nonzero - null" -body {
             testDll function pointer_to_pointer [list $type counted nonzero] {p {pointer unsafe}}
             pointer_to_pointer 0^
-        } -result "Invalid value *. Function returned NULL pointer." -returnCodes error -match glob
+        } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-counted-nonzero-errno-0 "return type $type counted-nonzero - errno" -body {
             testDll function pointer_errno [list $type nonzero counted errno] {p {pointer unsafe}}
             list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
@@ -1055,7 +1056,7 @@ namespace eval ${NS}::test {
         test function-return-$type-unsafe-nonzero-null-0 "return type $type unsafe nonzero - null" -body {
             testDll function pointer_to_pointer [list $type unsafe nonzero] {p {pointer unsafe}}
             pointer_to_pointer 0^
-        } -result "Invalid value *. Function returned NULL pointer." -returnCodes error -match glob
+        } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-unsafe-nonzero-errno-0 "return type $type unsafe-nonzero - errno" -body {
             testDll function pointer_errno [list $type nonzero unsafe errno] {p {pointer unsafe}}
             list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
@@ -1430,26 +1431,86 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror error}} \
         out \
-        [list 1 "NULL pointer" 0]
-    
-    testptrexcepts function-noexcept-3 "noexcept, no errors" [makeptr 1] {noexcept} out [list 0 [makeptr 1] [makeptr 1]]
-    testptrexcepts function-noexcept-4 "except, errors" [makeptr 0] {} out [list 1 "Invalid value \"[makeptr 0]\". Function returned NULL pointer." 0]
-    testptrexcepts function-noexcept-5 "noexcept, errors" [makeptr 0] {noexcept} out [list 0 [makeptr 0] 0]
+        [list 1 [makeptr 0] 0]
 
-    testexcepts function-storealways-0 "storealways except, no errors" {nonzero} {out storealways} [list 0 3 abc]
-    testexcepts function-storealways-1 "storealways except, errors" {zero} {out storealways} [list 1 {Invalid value "3". Function returned non-zero value.} abc]
-    testexcepts function-storealways-2 "storealways, noexcept, no errors" {nonzero noexcept} {out storealways} [list 0 3 abc]
-    testexcepts function-storealways-3 "storealways noexcept, errors" {noexcept zero} {out storealways} [list 0 3 abc]
+    ###
+    # storealways
 
-    testexcepts function-storeonerror-0 "storeonerror except, no errors" {nonzero} {out storeonerror} [list 0 3 0]
-    testexcepts function-storeonerror-1 "storeonerror except, errors" {zero} {out storeonerror} [list 1 {Invalid value "3". Function returned non-zero value.} abc]
-    testexcepts function-storeonerror-2 "storeonerror, noexcept, no errors" {nonzero noexcept} {out storeonerror} [list 0 3 0]
-    testexcepts function-storeonerror-3 "storeonerror noexcept, errors" {noexcept zero} {out storeonerror} [list 0 3 abc]
+    testexcepts function-storealways-fail-0 "Storealways - Fail without onerror handler" \
+        [list zero] \
+        [list out storealways] \
+        [list 1 {Invalid value "44". Function returned an error value.} 43 99]
+    testptrexcepts function-storealways-fail-1 "Storealways - Pointer fail without onerror handler" \
+        [makeptr 0] \
+        {} \
+        [list out storealways] \
+        [list 1 {Invalid value "0x0000000000000000^". Function returned an error value.} [makeptr 0]]
+    testexcepts function-storealways-onerror-ignore-0 "Storealways - Success with onerror onerror_ignore" \
+        [list nonzero {onerror onerror_ignore}] \
+        [list out storealways] \
+        [list 0 44 43 99]
+    testexcepts function-storealways-onerror-ignore-1 "Storealways - Fail with onerror onerror_ignore" \
+        [list zero {onerror onerror_ignore}] \
+        [list out storealways] \
+        [list 0 "onerror_ignore: 44" 43 100]
+    testptrexcepts function-storealways-onerror-ignore-2 "Storealways - Pointer fail with onerror handler" \
+        [makeptr 0] \
+        {{onerror {return -level 0}}} \
+        [list out storealways] \
+        [list 0 [makeptr 0] [makeptr 0]]
+    testexcepts function-storealways-onerror-raise-0 "Storealways - Success with onerror onerror_raise" \
+        [list nonzero {onerror onerror_raise}] \
+        [list out storealways] \
+        [list 0 44 43 99]
+    testexcepts function-storealways-onerror-raise-1 "Storealways - Fail with onerror onerror_raise" \
+        [list zero {onerror {onerror_raise prefixarg}}] \
+        [list out storealways] \
+        [list 1 {prefixarg: 44} 43 100]
+    testptrexcepts function-storealways-onerror-raise-2 "Storealways - Pointer fail with onerror handler" \
+        [makeptr 0] \
+        {{onerror error}} \
+        [list out storealways] \
+        [list 1 [makeptr 0] [makeptr 0]]
 
-    testptrexcepts function-storealways-4 "storealways except, no errors" [makeptr 1] {} {out storealways} [list 0 [makeptr 1] [makeptr 1]]
-    testptrexcepts function-storealways-5 "storealways except, errors" [makeptr 0] {} {out storealways} [list 1 "Invalid value \"[makeptr 0]\". Function returned NULL pointer." [makeptr 0]]
-    testptrexcepts function-storealways-6 "storealways, noexcept, no errors" [makeptr 1] {noexcept} {out storealways} [list 0 [makeptr 1] [makeptr 1]]
-    testptrexcepts function-storealways-7 "storealways noexcept, errors" [makeptr 0] {noexcept} {out storealways} [list 0 [makeptr  0] [makeptr 0]]
+
+    ###
+    # storeonerror
+
+    testexcepts function-storeonerror-fail-0 "Storeonerror - Fail without onerror handler" \
+        [list zero] \
+        [list out storeonerror] \
+        [list 1 {Invalid value "44". Function returned an error value.} 43 99]
+    testptrexcepts function-storeonerror-fail-1 "Storeonerror - Pointer fail without onerror handler" \
+        [makeptr 0] \
+        {} \
+        [list out storeonerror] \
+        [list 1 {Invalid value "0x0000000000000000^". Function returned an error value.} [makeptr 0]]
+    testexcepts function-storeonerror-onerror-ignore-0 "Storeonerror - Success with onerror onerror_ignore" \
+        [list nonzero {onerror onerror_ignore}] \
+        [list out storeonerror] \
+        [list 0 44 0 99]
+    testexcepts function-storeonerror-onerror-ignore-1 "Storeonerror - Fail with onerror onerror_ignore" \
+        [list zero {onerror onerror_ignore}] \
+        [list out storeonerror] \
+        [list 0 "onerror_ignore: 44" 43 100]
+    testptrexcepts function-storeonerror-onerror-ignore-2 "Storeonerror - Pointer fail with onerror handler" \
+        [makeptr 0] \
+        {{onerror {return -level 0}}} \
+        [list out storeonerror] \
+        [list 0 [makeptr 0] [makeptr 0]]
+    testexcepts function-storeonerror-onerror-raise-0 "Storeonerror - Success with onerror onerror_raise" \
+        [list nonzero {onerror onerror_raise}] \
+        [list out storeonerror] \
+        [list 0 44 0 99]
+    testexcepts function-storeonerror-onerror-raise-1 "Storeonerror - Fail with onerror onerror_raise" \
+        [list zero {onerror {onerror_raise prefixarg}}] \
+        [list out storeonerror] \
+        [list 1 {prefixarg: 44} 43 100]
+    testptrexcepts function-storeonerror-onerror-raise-2 "Storeonerror - Pointer fail with onerror handler" \
+        [makeptr 0] \
+        {{onerror error}} \
+        [list out storeonerror] \
+        [list 1 [makeptr 0] [makeptr 0]]
 
     ###
     # enum tests

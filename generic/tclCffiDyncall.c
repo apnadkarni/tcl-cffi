@@ -662,11 +662,11 @@ CffiFunctionCall(ClientData cdata,
     do {                                                                       \
         CffiValue retval;                                                      \
         retval.u.fld_ = dcfn_(vmP, fnP->fnAddr);                               \
-        resultObj     = objfn_(retval.u.fld_);                                 \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
-                                                                               \
+        resultObj = objfn_(                                                    \
+            retval.u.fld_); /* AFTER above Check to not lose GetLastError */   \
     } while (0);                                                               \
     break
 
@@ -692,6 +692,7 @@ CffiFunctionCall(ClientData cdata,
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK)
             fnCheckRet = CffiCheckPointer(
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
+        /* AFTER abover check so as to not lose GetLastError */
         ret = CffiPointerToObj(
             ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
         break;
