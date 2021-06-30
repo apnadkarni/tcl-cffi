@@ -28,10 +28,9 @@ static CffiResult CffiUniStringToObj(Tcl_Interp *ip,
  * Basic type meta information. The order *MUST* match the order in
  * cffiTypeId.
  */
-#define CFFI_VALID_INTEGER_ATTRS                                        \
-    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK              \
-     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_NOEXCEPT | CFFI_F_ATTR_ENUM \
-     | CFFI_F_ATTR_BITMASK)
+#define CFFI_VALID_INTEGER_ATTRS                           \
+    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK \
+     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK)
 
 #define TOKENANDLEN(t) # t , sizeof(#t) - 1
 
@@ -95,10 +94,11 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY,
      0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
+    /*  */
     {TOKENANDLEN(pointer),
      CFFI_K_TYPE_POINTER,
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NONZERO
-         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_NOEXCEPT,
+         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
     /* Note string and unistring cannot be INOUT parameters */
     {TOKENANDLEN(string),
@@ -200,11 +200,11 @@ enum cffiTypeAttrOpt {
     WINERROR,
     DEFAULT,
     NULLIFEMPTY,
-    NOEXCEPT,
     STOREONERROR,
     STOREALWAYS,
     ENUM,
-    BITMASK
+    BITMASK,
+    ONERROR
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -246,11 +246,11 @@ static CffiAttrs cffiAttrs[] = {
 #endif
     {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM, 2},
     {"nullifempty", NULLIFEMPTY, CFFI_F_ATTR_NULLIFEMPTY, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"noexcept", NOEXCEPT, CFFI_F_ATTR_NOEXCEPT, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"storeonerror", STOREONERROR, CFFI_F_ATTR_STOREONERROR, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"storealways", STOREALWAYS, CFFI_F_ATTR_STOREALWAYS, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"enum", ENUM, CFFI_F_ATTR_ENUM, CFFI_F_TYPE_PARSE_PARAM, 2},
     {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_PARAM, 1},
+    {"onerror", ONERROR, CFFI_F_ATTR_ONERROR, CFFI_F_TYPE_PARSE_RETURN, 2},
     {NULL}};
 
 
@@ -663,14 +663,14 @@ void
 CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
 {
     if (fromP) {
-        if (fromP->defaultObj)
-            Tcl_IncrRefCount(fromP->defaultObj);
-        toP->defaultObj  = fromP->defaultObj;
+        if (fromP->parseModeSpecificObj)
+            Tcl_IncrRefCount(fromP->parseModeSpecificObj);
+        toP->parseModeSpecificObj  = fromP->parseModeSpecificObj;
         toP->flags       = fromP->flags;
         CffiTypeInit(&toP->dataType, &fromP->dataType);
     }
     else {
-        toP->defaultObj  = NULL;
+        toP->parseModeSpecificObj  = NULL;
         toP->flags       = 0;
         CffiTypeInit(&toP->dataType, NULL);
     }
@@ -681,19 +681,7 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
  *
  * A definition is a list of the form
  *   TYPE ?attr ...?
- * where *TYPE* is a type definition as parsed by <CffiTypeParse>,
- * and *ATTR* is one of the following:
- *
- * byref - indicates parameter passed by reference
- * byval - indicates parameter passed by value
- * in - indicates an input parameter
- * out - indicates and output parameter
- * inout - parameter is used for both input and output
- * safe - indicates pointer values must be checked
- * unsafe - indicates pointer values are not checked
- * dispose - indicates that the pointer should be unregistered
- * nonnull - indicates that the pointer must not be NULL
- * default DEFAULT - specifies a default value
+ * where *TYPE* is a type definition as parsed by <CffiTypeParse>.
  *
  * Parameters:
  *   ip - Interpreter
@@ -743,7 +731,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         CffiTypeAndAttrsInit(typeAttrP, NULL);
         CHECK(CffiTypeParse(ip, objs[0], &typeAttrP->dataType));
         baseType = typeAttrP->dataType.baseType;
-        typeAttrP->defaultObj = NULL;
+        typeAttrP->parseModeSpecificObj = NULL;
         typeAttrP->flags      = 0;
     }
 
@@ -805,14 +793,16 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
              * Note no type checking of value here as some checks, such as
              * dynamic array lengths can only be done at call time.
              */
-            if (typeAttrP->defaultObj)
+            if (typeAttrP->parseModeSpecificObj)
                 goto invalid_format; /* Duplicate def */
+            /* Need next check because DEFAULT is not an attribute and
+               thus not part of the table based check below this switch */
             if (!(parseMode & CFFI_F_TYPE_PARSE_PARAM)) {
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
             }
             Tcl_IncrRefCount(fieldObjs[1]);
-            typeAttrP->defaultObj = fieldObjs[1];
+            typeAttrP->parseModeSpecificObj = fieldObjs[1];
             break;
         case COUNTED:
             if (flags & CFFI_F_ATTR_UNSAFE)
@@ -867,9 +857,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case NULLIFEMPTY:
             flags |= CFFI_F_ATTR_NULLIFEMPTY;
             break;
-        case NOEXCEPT:
-            flags |= CFFI_F_ATTR_NOEXCEPT;
-            break;
         case STOREONERROR:
             if (flags & CFFI_F_ATTR_STOREALWAYS)
                 goto invalid_format;
@@ -893,6 +880,15 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
             flags |= CFFI_F_ATTR_BITMASK;
+            break;
+        case ONERROR:
+            if (typeAttrP->parseModeSpecificObj)
+                goto invalid_format; /* Something already using the slot? */
+            if (flags & CFFI_F_ATTR_ERROR_MASK)
+                goto invalid_format;
+            flags |= CFFI_F_ATTR_ONERROR;
+            Tcl_IncrRefCount(fieldObjs[1]);
+            typeAttrP->parseModeSpecificObj = fieldObjs[1];
             break;
         }
     }
@@ -931,7 +927,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         }
         /* For parameters at least one of IN, OUT, INOUT should be set */
         if (flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT)) {
-            if (typeAttrP->defaultObj) {
+            if (typeAttrP->parseModeSpecificObj) {
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
             }
@@ -1013,9 +1009,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 message = "Function return type must not be an array.";
                 goto invalid_format;
             }
-            if ((flags & CFFI_F_ATTR_NOEXCEPT)
+            if ((flags & CFFI_F_ATTR_ONERROR)
                 && (flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0) {
-                message = "\"noexcept\" requires an error checking annotation.";
+                message = "\"onerror\" requires an error checking annotation.";
                 goto invalid_format;
             }
             break;
@@ -1084,7 +1080,7 @@ invalid_format:
  */
 void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
 {
-    Tclh_ObjClearPtr(&typeAttrsP->defaultObj);
+    Tclh_ObjClearPtr(&typeAttrsP->parseModeSpecificObj);
     CffiTypeCleanup(&typeAttrsP->dataType);
 }
 
@@ -1798,6 +1794,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
  * ip - interpreter
  * typeAttrsP - descriptor for type and attributes
  * pointer - pointer value to wrap
+ * sysErrorP - location to store system error
  *
  * Returns:
  * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error. A message
@@ -1806,31 +1803,16 @@ CffiNativeValueToObj(Tcl_Interp *ip,
 CffiResult
 CffiCheckPointer(Tcl_Interp *ip,
                   const CffiTypeAndAttrs *typeAttrsP,
-                  void *pointer)
+                  void *pointer,
+                  Tcl_WideInt *sysErrorP)
+
 {
     int         flags = typeAttrsP->flags;
 
     if (((flags & CFFI_F_ATTR_ZERO) && pointer != NULL)
         || ((flags & CFFI_F_ATTR_NONZERO) && pointer == NULL)) {
-        /* If exceptions are not being reported, do not store error in interp */
-        if ((typeAttrsP->flags & CFFI_F_ATTR_NOEXCEPT) == 0) {
-            Tcl_Obj *valueObj;
-            Tcl_WideInt sysError;
-            const char *message;
-            sysError =
-                CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
-            valueObj = Tclh_PointerWrap(pointer, NULL);
-            message  = pointer == NULL ? "Function returned NULL pointer."
-                                       : "Function returned non-NULL pointer.";
-            Tcl_IncrRefCount(valueObj);
-            CffiReportRequirementError(ip,
-                                       typeAttrsP,
-                                       (Tcl_WideInt)(intptr_t)pointer,
-                                       valueObj,
-                                       sysError,
-                                       message);
-            Tcl_DecrRefCount(valueObj);
-        }
+        *sysErrorP =
+            CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
         return TCL_ERROR;
     }
     return TCL_OK;
@@ -3143,8 +3125,10 @@ CffiResult CffiReturnCleanup(CffiCall *callP)
  *
  * Parameters:
  * ip - interpreter
- * valueP - value to be checked. Must contain an numeric type
  * typeAttrsP - type and attributes
+ * valueP - value to be checked. Must contain an numeric type
+ * sysErrorP - location to store system error based on type annotations.
+ *          Only set if error detected.
  *
  * Returns:
  * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error. A message
@@ -3153,20 +3137,22 @@ CffiResult CffiReturnCleanup(CffiCall *callP)
 CffiResult
 CffiCheckNumeric(Tcl_Interp *ip,
                   const CffiTypeAndAttrs *typeAttrsP,
-                  CffiValue *valueP
+                  CffiValue *valueP,
+                  Tcl_WideInt *sysErrorP
                   )
 {
     int flags = typeAttrsP->flags;
     int is_signed;
     Tcl_WideInt value;
-    const char *message;
-    Tcl_Obj    *valueObj;
-    Tcl_WideInt sysError;
 
     if ((flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0)
         return TCL_OK; /* No checks requested */
 
     /* TBD - needs to be checked for correctness for 64-bit signed/unsigned */
+
+    /* IMPORTANT - do NOT make any function calls until system errors are
+     * retrieved at the bottom.
+      */
 
     /* TBD - float and double */
     is_signed = 0;
@@ -3198,19 +3184,16 @@ CffiCheckNumeric(Tcl_Interp *ip,
 
     if (value == 0) {
         if (flags & (CFFI_F_ATTR_NONZERO|CFFI_F_ATTR_POSITIVE)) {
-            message = "Function returned zero.";
             goto failed_requirements;
         }
     }
     else if (flags & CFFI_F_ATTR_ZERO) {
-        message = "Function returned non-zero value.";
         goto failed_requirements;
     }
     else {
         /* Non-0 value. */
         if ((flags & (CFFI_F_ATTR_NONNEGATIVE | CFFI_F_ATTR_POSITIVE))
             && is_signed && value < 0) {
-            message = "Function returned negative value.";
             goto failed_requirements;
         }
     }
@@ -3219,21 +3202,11 @@ CffiCheckNumeric(Tcl_Interp *ip,
 
 failed_requirements:
     /* If exceptions are not being reported, do not store error in interp */
-    if ((typeAttrsP->flags & CFFI_F_ATTR_NOEXCEPT) == 0) {
-        /*
-         * As soon as we know we failed, need to preserve system error. On
-         * Windows, even Tcl_NewWideIntObj() will modify GetLastError()
-         */
-        sysError = CffiGrabSystemError(typeAttrsP, value);
-        valueObj = Tcl_NewWideIntObj(value);
-        Tcl_IncrRefCount(valueObj);
-        CffiReportRequirementError(
-            ip, typeAttrsP, value, valueObj, sysError, message);
-        Tcl_DecrRefCount(valueObj);
-    }
+    *sysErrorP = CffiGrabSystemError(typeAttrsP, value);
     return TCL_ERROR;
 }
 
+#ifdef OBSOLETE
 /* Function: CffiReportRequirementError
  * Stores an error message in the interpreter based on the error reporting
  * mechanism for the type
@@ -3294,6 +3267,7 @@ CffiReportRequirementError(Tcl_Interp *ip,
     Tclh_ErrorInvalidValue(ip, valueObj, message);
     return TCL_ERROR;
 }
+#endif
 
 /* Function: CffiTypeUnparse
  * Returns the script level definition of the internal form of a
@@ -3376,6 +3350,13 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
                     Tcl_ListObjAppendElement(
                         NULL, resultObj, Tcl_NewListObj(2, objs));
                 }
+                else if (attrsP->attrFlag == CFFI_F_ATTR_ONERROR) {
+                    Tcl_Obj *objs[2];
+                    objs[0] = Tcl_NewStringObj(attrsP->attrName, -1);
+                    objs[1] = typeAttrsP->parseModeSpecificObj;
+                    Tcl_ListObjAppendElement(
+                        NULL, resultObj, Tcl_NewListObj(2, objs));
+                }
                 else
                     Tcl_ListObjAppendElement(
                         NULL,
@@ -3385,10 +3366,10 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
         }
     }
 
-    if (typeAttrsP->defaultObj) {
+    if (typeAttrsP->parseModeSpecificObj && !(flags & CFFI_F_ATTR_ONERROR)) {
         Tcl_Obj *objs[2];
         objs[0] = Tcl_NewStringObj("default", 7);
-        objs[1] = typeAttrsP->defaultObj; /* No need for IncrRef - adding to list */
+        objs[1] = typeAttrsP->parseModeSpecificObj; /* No need for IncrRef - adding to list */
         Tcl_ListObjAppendElement(NULL, resultObj, Tcl_NewListObj(2, objs));
     }
 

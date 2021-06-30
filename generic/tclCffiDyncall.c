@@ -428,6 +428,117 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         return TCL_ERROR;
 }
 
+
+/* Function: CffiDefaultErrorHandler
+ * Stores an error message in the interpreter based on the error reporting
+ * mechanism for the type
+ *
+ * Parameters:
+ * ip - interpreter
+ * typeAttrsP - type descriptor
+ * valueObj - the value, as an *Tcl_Obj* that failed requirements (may be NULL)
+ * sysError - system error (from errno, GetLastError() etc.)
+ *
+ * Returns:
+ * Always returns *TCL_ERROR*
+ */
+static CffiResult
+CffiDefaultErrorHandler(Tcl_Interp *ip,
+                        const CffiTypeAndAttrs *typeAttrsP,
+                        Tcl_Obj *valueObj,
+                        Tcl_WideInt sysError)
+{
+    int flags = typeAttrsP->flags;
+
+#ifdef _WIN32
+    if (flags & (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_WINERROR)) {
+        return Tclh_ErrorWindowsError(ip, (unsigned int) sysError, NULL);
+    }
+#endif
+
+    if (flags & CFFI_F_ATTR_ERRNO) {
+        char buf[256];
+        char *bufP;
+        buf[0] = 0;             /* Safety check against misconfig */
+#ifdef _WIN32
+        strerror_s(buf, sizeof(buf) / sizeof(buf[0]), (int) sysError);
+        bufP = buf;
+#else
+        /*
+         * This is tricky. See manpage for gcc/linux for the strerror_r
+         * to be selected. BUT Apple for example does not follow the same
+         * feature test macro conventions.
+         */
+#if _GNU_SOURCE || (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE < 200112L)
+        bufP = strerror_r((int) sysError, buf, sizeof(buf) / sizeof(buf[0]));
+        /* Returned bufP may or may not be buf! */
+#else
+        /* XSI/POSIX standard version */
+        strerror_r((int) sysError, buf, sizeof(buf) / sizeof(buf[0]));
+        bufP = buf;
+#endif
+#endif
+        Tcl_SetResult(ip, bufP, TCL_VOLATILE);
+        return TCL_ERROR;
+    }
+
+    /* Generic error */
+    Tclh_ErrorInvalidValue(ip, valueObj, "Function returned an error value.");
+    return TCL_ERROR;
+}
+
+/* Function: CffiCustomErrorHandler
+ * Calls the handler specified by the `onerror` annotation.
+ *
+ * Parameters:
+ * ipCtxP - interp context
+ * typeAttrsP - type descriptor containing the `onerror` annotation
+ * valueObj - the value triggering the error. Caller should be holding a
+ *     reference count if it wants to access after the function returns.
+ *
+ * Returns:
+ * *TCL_OK* with result to be returned in interp or *TCL_ERROR* with error
+ * message in interpreter.
+ */
+static CffiResult
+CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
+                       const CffiTypeAndAttrs *typeAttrsP,
+                       Tcl_Obj *valueObj)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Obj **onErrorObjs;
+    int nOnErrorObjs;
+    Tcl_Obj **evalObjs;
+    int i;
+    CffiResult ret;
+
+    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_ONERROR);
+    CFFI_ASSERT(typeAttrsP->parseModeSpecificObj);
+    CHECK(Tcl_ListObjGetElements(
+        ip, typeAttrsP->parseModeSpecificObj, &nOnErrorObjs, &onErrorObjs));
+
+    evalObjs =
+        MemLifoAlloc(&ipCtxP->memlifo, (nOnErrorObjs + 1) * sizeof(Tcl_Obj *));
+
+    /* Must protect before call as Eval may or may not release objects */
+    for (i = 0; i < nOnErrorObjs; ++i) {
+        evalObjs[i] = onErrorObjs[i];
+        Tcl_IncrRefCount(evalObjs[i]);
+    }
+    evalObjs[i] = valueObj;
+    Tcl_IncrRefCount(valueObj);
+
+    ret = Tcl_EvalObjv(ip, nOnErrorObjs+1, evalObjs, 0);
+
+    /* Undo the protection */
+    for (i = 0; i <= nOnErrorObjs; ++i) {
+        Tcl_DecrRefCount(evalObjs[i]);
+    }
+
+    return ret;
+}
+
+
 /*
  * Implements the call to a function. The cdata parameter contains the
  * prototype information about the function to call. The objv[] parameter
@@ -453,7 +564,8 @@ CffiFunctionCall(ClientData cdata,
     MemLifoMarkHandle mark;
     int exceptionHidden = 0;
     CffiResult ret = TCL_OK;
-    CffiResult fnRet; /* Success of actual function call */
+    CffiResult fnCheckRet = TCL_OK; /* Whether function return check passed */
+    Tcl_WideInt sysError;  /* Error retrieved from system */
 
     CFFI_ASSERT(ip == ipCtxP->interp);
 
@@ -492,9 +604,9 @@ CffiFunctionCall(ClientData cdata,
 
         /* Fill remaining from defaults, erroring if no default */
         while (i < protoP->nParams) {
-            if (protoP->params[i].typeAttrs.defaultObj == NULL)
+            if (protoP->params[i].typeAttrs.parseModeSpecificObj == NULL)
                 goto numargs_error;
-            argObjs[i] = protoP->params[i].typeAttrs.defaultObj;
+            argObjs[i] = protoP->params[i].typeAttrs.parseModeSpecificObj;
             ++i;
         }
         /* Set up the call stack */
@@ -549,17 +661,11 @@ CffiFunctionCall(ClientData cdata,
 #define CALLFN(objfn_, dcfn_, fld_)                                            \
     do {                                                                       \
         CffiValue retval;                                                      \
-        retval.u.fld_ = dcfn_(vmP, fnP->fnAddr);                                 \
+        retval.u.fld_ = dcfn_(vmP, fnP->fnAddr);                               \
+        resultObj     = objfn_(retval.u.fld_);                                 \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
-            ret =                                                              \
-                CffiCheckNumeric(ip, &protoP->returnType.typeAttrs, &retval);  \
-        if (ret != TCL_OK                                                      \
-            && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_NOEXCEPT)) {  \
-            ret             = TCL_OK;                                          \
-            exceptionHidden = 1;                                               \
-        }                                                                      \
-        if (ret == TCL_OK)                                                     \
-            resultObj = objfn_(retval.u.fld_);                                   \
+            fnCheckRet = CffiCheckNumeric(                                     \
+                ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
                                                                                \
     } while (0);                                                               \
     break
@@ -584,15 +690,10 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_POINTER:
         pointer = dcCallPointer(vmP, fnP->fnAddr);
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK)
-            ret = CffiCheckPointer(ip, &protoP->returnType.typeAttrs, pointer);
-        if (ret != TCL_OK
-            && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_NOEXCEPT)) {
-            ret             = TCL_OK;
-            exceptionHidden = 1;
-        }
-        if (ret == TCL_OK)
-            ret = CffiPointerToObj(
-                ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
+            fnCheckRet = CffiCheckPointer(
+                ip, &protoP->returnType.typeAttrs, pointer, &sysError);
+        ret = CffiPointerToObj(
+            ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
         break;
     case CFFI_K_TYPE_ASTRING:
         pointer = dcCallPointer(vmP, fnP->fnAddr);
@@ -634,57 +735,92 @@ CffiFunctionCall(ClientData cdata,
         break;
     }
 
-
     CffiReturnCleanup(&callCtx);
 
     /*
-     * Store any output parameters. On an error return the called function may
-     * not have initialized the outputs and we would be storing garbage or
-     * worse in case strings etc. This is dealt with using annotations:
-     * - The function return type declaration should have set one of the
-     *   error checking bits that allow us to check for errors. This check
-     *   is implemented above after the function is called.
-     * - If no error is detected, ret will be TCL_OK and all out and inout
-     *   parameters will be stored except those that have storeonerror
-     *   annotation.
-     * - If an error is detected, and the noexcept annotation was not
-     *   present, ret will TCL_ERROR. If the noexcept annotation was present,
-     *   ret will be TCL_OK but exceptionHidden will be true. Both these
-     *   are error cases from function return and in this case only those out
-     *   and inout parameters that have either storeonerror or storealways
-     *   annotations will be stored.
+     * At this point, the state of the call is reflected by the
+     * following variables:
+     * ret - TCL_OK/TCL_ERROR -> error invoking function or processing its
+     *   return value, e.g. string could not be encoded into Tcl's
+     *   internal form
+     * fnCheckRet - TCL_OK/TCL_ERROR -> return value check annotations
+     *   or failed
+     * resultObj - if ret is TCL_OK, holds wrapped value irrespective of
+     *   value of fnCheckRet. Reference count should be 0.
+     */
+    CFFI_ASSERT(resultObj != NULL || ret != TCL_OK);
+    CFFI_ASSERT(resultObj == NULL || ret == TCL_OK);
+
+    /*
+     * Based on the above state, the following actions need to be taken
+     * depending on the value of (ret, fnCheckRet)
+     *
+     * (TCL_OK, TCL_OK) - store out and inout parameters that unmarked or
+     * marked as storealways and return resultObj as the command result.
+     *
+     * (TCL_OK, TCL_ERROR) - no errors at the Tcl level, but the function
+     * return value conditions not met indicating an error. Only store output
+     * parameters marked with storealways or storeonerror. If a handler is
+     * defined (including predefined ones), call it and return its result.
+     * Otherwise, raise an generic error with TCL_ERROR.
+     *
+     * (TCL_ERROR, TCL_OK) - function was called successfully, but error
+     * wrapping the result (e.g. pointer was already registered).
+     * Raise an error without storing any output parameters. TBD - revisit
+     *
+     * (TCL_ERROR, TCL_ERROR) - function return value failed conditions
+     * and the result could not be wrapped. Raise an error without storing
+     * any parameters. TBD - revisit
      */
 
-    /* Remember whether the function itself succeeded in case of later errors */
-    fnRet = ret;
-    for (i = 0; i < protoP->nParams; ++i) {
-        /* Even on error we keep looping as we have to clean up parameters. */
-        CffiTypeAndAttrs *typeAttrsP;
-        int noerror = (fnRet == TCL_OK && !exceptionHidden);
-        typeAttrsP = &protoP->params[i].typeAttrs;
-        if ((noerror && !(typeAttrsP->flags & CFFI_F_ATTR_STOREONERROR))
-            || (!noerror && (typeAttrsP->flags & CFFI_F_ATTR_STOREONERROR))
-            || (typeAttrsP->flags & CFFI_F_ATTR_STOREALWAYS)) {
-            /* Only overwrite ret for failures */
-            if (CffiArgPostProcess(&callCtx, i) != TCL_OK)
-                ret = TCL_ERROR;
+    if (ret == TCL_OK) {
+        /*
+         * Store parameters based on function return conditions.
+         * Errors storing parameters are ignored (what else to do?)
+         */
+        for (i = 0; i < protoP->nParams; ++i) {
+            int flags = protoP->params[i].typeAttrs.flags;
+            if ((flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT))) {
+                if ((fnCheckRet == TCL_OK
+                     && !(flags & CFFI_F_ATTR_STOREONERROR))
+                    || (fnCheckRet != TCL_OK
+                        && (flags & CFFI_F_ATTR_STOREONERROR))
+                    || (flags & CFFI_F_ATTR_STOREALWAYS)) {
+                    /* Parameter needs to be stored */
+                    if (CffiArgPostProcess(&callCtx, i) != TCL_OK)
+                        ret = TCL_ERROR;
+                }
+            }
         }
-        CffiArgCleanup(&callCtx, i);
     }
+    /* Parameters stored away. Note ret might have changed to error */
+
+    for (i = 0; i < protoP->nParams; ++i)
+        CffiArgCleanup(&callCtx, i);
 
     if (ret == TCL_OK) {
-        CFFI_ASSERT(resultObj);
-        Tcl_SetObjResult(ip, resultObj);
-        MemLifoPopMark(mark);
-        return TCL_OK;
+        CFFI_ASSERT(resultObj != NULL);
+        if (fnCheckRet == TCL_OK) {
+            Tcl_SetObjResult(ip, resultObj);
+        }
+        else {
+            /* Call error handler if specified, otherwise default handler */
+            if ((protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ONERROR)
+                && protoP->returnType.typeAttrs.parseModeSpecificObj) {
+                Tcl_IncrRefCount(resultObj);
+                ret = CffiCustomErrorHandler(
+                    ipCtxP, &protoP->returnType.typeAttrs, resultObj);
+                Tclh_ObjClearPtr(&resultObj);
+            }
+            else {
+                ret = CffiDefaultErrorHandler(ip, &protoP->returnType.typeAttrs, resultObj, sysError);
+            }
+        }
     }
 
-pop_and_error:
-    /* Jump for error return after popping memlifo with error in interp */
-    if (resultObj)
-        Tcl_DecrRefCount(resultObj);
+pop_and_go:
     MemLifoPopMark(mark);
-    return TCL_ERROR;
+    return ret;
 
 numargs_error:
     resultObj = Tcl_NewListObj(protoP->nParams + 2, NULL);
@@ -693,8 +829,15 @@ numargs_error:
         Tcl_ListObjAppendElement(NULL, resultObj, objv[i]);
     for (i = 0; i < protoP->nParams; ++i)
         Tcl_ListObjAppendElement(NULL, resultObj, protoP->params[i].nameObj);
-    (void)Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(resultObj));
-    goto pop_and_error;
+    Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(resultObj));
+    /* Fall thru below */
+pop_and_error:
+    /* Jump for error return after popping memlifo with error in interp */
+    if (resultObj)
+        Tcl_DecrRefCount(resultObj);
+    ret = TCL_ERROR;
+    goto pop_and_go;
+
 }
 
 

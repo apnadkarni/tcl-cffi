@@ -109,7 +109,8 @@ typedef struct CffiType {
  * Function parameter descriptor
  */
 typedef struct CffiTypeAndAttrs {
-    Tcl_Obj *defaultObj;        /* Default for parameter, if there is one */
+    Tcl_Obj *parseModeSpecificObj; /* Parameter parse - Default for parameter,
+                                      Return parse - error handler */
     CffiType dataType;         /* Data type */
     int flags;
 #define CFFI_F_ATTR_IN    0x0001 /* In parameter */
@@ -128,14 +129,14 @@ typedef struct CffiTypeAndAttrs {
 #define CFFI_F_ATTR_LASTERROR 0x10000 /* Windows GetLastError for error message */
 #define CFFI_F_ATTR_ERRNO     0x20000 /* Error in errno */
 #define CFFI_F_ATTR_WINERROR  0x40000 /* Windows error code */
+#define CFFI_F_ATTR_ONERROR   0x80000 /* Error handler */
 
-#define CFFI_F_ATTR_NULLIFEMPTY 0x100000 /* Empty value -> null pointer */
-#define CFFI_F_ATTR_NOEXCEPT    0x200000 /* No exception on error */
-#define CFFI_F_ATTR_STOREONERROR 0x400000 /* Store only on error */
-#define CFFI_F_ATTR_STOREALWAYS  0x800000 /* Store on success and error */
+#define CFFI_F_ATTR_STOREONERROR 0x100000 /* Store only on error */
+#define CFFI_F_ATTR_STOREALWAYS  0x200000 /* Store on success and error */
 
 #define CFFI_F_ATTR_ENUM        0x1000000 /* Use enum names */
 #define CFFI_F_ATTR_BITMASK     0x2000000 /* Treat as a bitmask */
+#define CFFI_F_ATTR_NULLIFEMPTY 0x4000000 /* Empty value -> null pointer */
 } CffiTypeAndAttrs;
 
 /* Attributes allowed on a parameter declaration */
@@ -150,8 +151,9 @@ typedef struct CffiTypeAndAttrs {
     (CFFI_F_ATTR_ZERO | CFFI_F_ATTR_NONZERO | CFFI_F_ATTR_NONNEGATIVE \
      | CFFI_F_ATTR_POSITIVE)
 /* Error retrieval attributes */
-#define CFFI_F_ATTR_ERROR_MASK \
-    (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR)
+#define CFFI_F_ATTR_ERROR_MASK                                        \
+    (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR \
+     | CFFI_F_ATTR_ONERROR)
 
 /*
  * Union of value types supported by dyncall
@@ -338,7 +340,7 @@ CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 Tcl_Obj **valueObjP);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
-                            void *pointer);
+                            void *pointer, Tcl_WideInt *sysErrorP);
 CffiResult CffiPointerToObj(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer,
@@ -359,13 +361,15 @@ CffiResult CffiExternalDStringToObj(Tcl_Interp *ip,
                                    Tcl_Obj **resultObjP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
-                            CffiValue *valueP);
+                            CffiValue *valueP, Tcl_WideInt *sysErrorP);
+#ifdef OBSOLETE
 CffiResult CffiReportRequirementError(Tcl_Interp *ip,
                                       const CffiTypeAndAttrs *typeAttrsP,
                                       Tcl_WideInt value,
                                       Tcl_Obj *valueObj,
                                       Tcl_WideInt sysError,
                                       const char *message);
+#endif
 Tcl_WideInt CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
                                 Tcl_WideInt winError);
 Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);

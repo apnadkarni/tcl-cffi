@@ -1355,22 +1355,33 @@ namespace eval ${NS}::test {
 
 
     ###
-    # Test error handling with noexcept and output parameters
-    # noexcept - with error, without error
-    # noexcept storeonerror - with error, without error
-    # noexcept storealways - with error, without error
+    # Function failure tests with onerror:
+    
+    # onerror storealways - with error, without error
     # except - storeonerror
     # except - storealways
     # also test inout
+    proc onerror_ignore {args} {
+        upvar 1 handler_output v
+        incr v
+        return "onerror_ignore: $args"
+    }
+    proc onerror_raise {errormessage args} {
+        upvar 1 handler_output v
+        incr v
+        error "$errormessage: $args"
+    }
     proc testexcepts {label comment retannot paramannot expected args} {
         test $label $comment -setup {
             unset -nocomplain outvar
+            set handler_output 99
         } -body {
-            testDll function string_out [list int {*}$retannot] [list inparam string outparam [list chars\[10\] {*}$paramannot]]
+            testDll function int_out [list int {*}$retannot] [list inparam int outparam [list int {*}$paramannot]]
             list \
-                [catch {string_out abc outvar} result] \
+                [catch {int_out 42 outvar} result] \
                 $result \
-                [expr {[info exists outvar] ? $outvar : 0}]
+                [expr {[info exists outvar] ? $outvar : 0}] \
+                $handler_output
         } -result $expected
     }
     proc testptrexcepts {label comment ptr retannot paramannot expected args} {
@@ -1385,10 +1396,42 @@ namespace eval ${NS}::test {
         } -result $expected
     }
 
-
-    testexcepts function-noexcept-0 "noexcept, no errors" {nonzero noexcept} out [list 0 3 abc]
-    testexcepts function-noexcept-1 "except, errors" {zero} out [list 1 {Invalid value "3". Function returned non-zero value.} 0]
-    testexcepts function-noexcept-2 "noexcept, errors" {noexcept zero} out [list 0 3 0]
+    testexcepts function-fail-0 "Fail without onerror handler" \
+        [list zero] \
+        out \
+        [list 1 {Invalid value "44". Function returned an error value.} 0 99]
+    testptrexcepts function-fail-1 "Pointer fail without onerror handler" \
+        [makeptr 0] \
+        {} \
+        out \
+        [list 1 {Invalid value "0x0000000000000000^". Function returned an error value.} 0]
+    testexcepts function-onerror-ignore-0 "Success with onerror onerror_ignore" \
+        [list nonzero {onerror onerror_ignore}] \
+        out \
+        [list 0 44 43 99]
+    testexcepts function-onerror-ignore-1 "Fail with onerror onerror_ignore" \
+        [list zero {onerror onerror_ignore}] \
+        out \
+        [list 0 "onerror_ignore: 44" 0 100]
+    testptrexcepts function-onerror-ignore-2 "Pointer fail with onerror handler" \
+        [makeptr 0] \
+        {{onerror {return -level 0}}} \
+        out \
+        [list 0 "0x0000000000000000^" 0]
+    testexcepts function-onerror-raise-0 "Success with onerror onerror_raise" \
+        [list nonzero {onerror onerror_raise}] \
+        out \
+        [list 0 44 43 99]
+    testexcepts function-onerror-raise-1 "Fail with onerror onerror_raise" \
+        [list zero {onerror {onerror_raise prefixarg}}] \
+        out \
+        [list 1 {prefixarg: 44} 0 100]
+    testptrexcepts function-onerror-raise-2 "Pointer fail with onerror handler" \
+        [makeptr 0] \
+        {{onerror error}} \
+        out \
+        [list 1 "NULL pointer" 0]
+    
     testptrexcepts function-noexcept-3 "noexcept, no errors" [makeptr 1] {noexcept} out [list 0 [makeptr 1] [makeptr 1]]
     testptrexcepts function-noexcept-4 "except, errors" [makeptr 0] {} out [list 1 "Invalid value \"[makeptr 0]\". Function returned NULL pointer." 0]
     testptrexcepts function-noexcept-5 "noexcept, errors" [makeptr 0] {noexcept} out [list 0 [makeptr 0] 0]

@@ -284,6 +284,7 @@ namespace eval cffi::test {
                 testinvalidattr "$type $attr {enum E}" param $errorMessages(attrtype)
                 testinvalidattr "$type $attr bitmask" param $errorMessages(attrtype)
             }
+            testinvalidattr "$type $attr enum" param {A type annotation has the wrong number of fields.}
         }
 
         foreach {attr expected} {
@@ -349,7 +350,7 @@ namespace eval cffi::test {
             testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
         }
         # Scalar tests - attributes invalid for param parse mode
-        foreach attr [list {*}$errorAttrs noexcept] {
+        foreach attr [list {*}$errorAttrs {{onerror foo}}] {
             if {$type in $intTypes} {
                 testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
                 testinvalidattr "$type\[2\] $attr" param $errorMessages(attrparsemode)
@@ -372,7 +373,7 @@ namespace eval cffi::test {
         }
         if {$type in $intTypes} {
             foreach attr $requirementAttrs {
-                testnumeric "$type $attr noexcept" return "$attr noexcept"
+                testnumeric "$type $attr {onerror foo}" return "$attr {onerror foo}"
             }
         }
 
@@ -385,13 +386,21 @@ namespace eval cffi::test {
                 # Repeated attribute - note different combos are all valid
                 testinvalidattr "$type $attr $attr" return $errorMessages(attrconflict)
             }
+            foreach attr [list {*}$errorHandlerAttrs] {
+                foreach attr2 [list {*}$errorHandlerAttrs {{onerror foo}}] {
+                    if {$attr ne $attr2} {
+                        testinvalidattr "$type $attr $attr2" return $errorMessages(attrconflict)
+                    }
+                }
+            }
         }
         if {$type in $intTypes} {
-            testinvalidattr "$type noexcept" return {"noexcept" requires an error checking annotation.}
+            testinvalidattr "$type {onerror foo}" return {"onerror" requires an error checking annotation.}
+            testinvalidattr "$type onerror" return {A type annotation has the wrong number of fields.}
             testinvalidattr "$type bitmask" return $errorMessages(attrparsemode)
             testinvalidattr "$type {enum E}" return $errorMessages(attrparsemode)
         } else {
-            testinvalidattr "$type noexcept" return $errorMessages(attrtype)
+            testinvalidattr "$type {onerror foo}" return $errorMessages(attrtype)
             testinvalidattr "$type bitmask" return $errorMessages(attrtype)
             testinvalidattr "$type {enum E}" return $errorMessages(attrtype)
         }
@@ -435,11 +444,11 @@ namespace eval cffi::test {
             testinvalidattr "$type $attr" field $errorMessages(attrtype)
         }
         if {$type ni $intTypes} {
-            foreach attr [list {*}$errorAttrs noexcept bitmask {enum E}] {
+            foreach attr [list {*}$errorAttrs {onerror foo} bitmask {enum E}] {
                 testinvalidattr [list $type $attr] field $errorMessages(attrtype)
             }
         } else {
-            foreach attr {noexcept bitmask {enum E}} {
+            foreach attr {{onerror foo} bitmask {enum E}} {
                 testinvalidattr [list $type $attr] field $errorMessages(attrparsemode)
             }
         }
@@ -532,7 +541,7 @@ namespace eval cffi::test {
         }
 
         # Scalar tests - attributes invalid for param parse mode
-        foreach attr [list {*}$pointer_valid_error_attrs noexcept] {
+        foreach attr [list {*}$pointer_valid_error_attrs {{onerror foo}}] {
             testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
         }
 
@@ -555,7 +564,7 @@ namespace eval cffi::test {
         foreach attr $pointer_valid_error_attrs {
             testpointer "$type $attr" return $attr
         }
-        testpointer "$type nonzero noexcept" return "nonzero noexcept"
+        testpointer "$type nonzero {onerror foo}" return "nonzero {onerror foo}"
 
         # Array tests - success
         # none - pointer arrays not currently supported
@@ -575,7 +584,7 @@ namespace eval cffi::test {
             testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
-        testinvalidattr "$type noexcept" return {"noexcept" requires an error checking annotation.}
+        testinvalidattr "$type {onerror foo}" return {"onerror" requires an error checking annotation.}
 
         # Array test failures
         # array invalid count spec failure
@@ -608,13 +617,11 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attribute for parse mode
-        foreach attr [list {*}$paramAttrs dispose noexcept storeonerror storealways] {
-            testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
-        }
-        foreach attr $pointer_valid_error_attrs {
+        foreach attr [list {*}$paramAttrs {*}$pointer_valid_error_attrs dispose storeonerror storealways] {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] field $errorMessages(defaultdisallowed)
+        testinvalidattr [list $type [list onerror foo]] field $errorMessages(attrparsemode)
 
         # Array test failures
         testinvalidattr "$type\[2\]" field $errorMessages(unsupportedarraytype)

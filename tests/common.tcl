@@ -47,10 +47,12 @@ namespace eval cffi::test {
     variable paramAttrs {in out inout byref}
     variable pointerAttrs {unsafe dispose counted}
     variable requirementAttrs {zero nonzero nonnegative positive}
-    variable errorAttrs {zero nonzero nonnegative positive errno}
+    variable errorHandlerAttrs {errno}
     if {$::tcl_platform(platform) eq "windows"} {
         lappend errorAttrs winerror lasterror
+        lappend errorHandlerAttrs winerror lasterror
     }
+    variable errorAttrs [concat $requirementAttrs $errorHandlerAttrs]
     variable typeAttrs [concat $paramAttrs $pointerAttrs $errorAttrs]
 
     # Error messages
