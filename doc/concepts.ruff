@@ -471,6 +471,10 @@ namespace eval Concepts {
         annotations (but not `dispose`). See [Pointer safety] for
         the meaning of these annotations.
 
+        - For `string` and `unistring` types, the `nonzero`, `errno` and
+        `lasterror` annotations may be specified. See [Error handling] for
+        details on these.
+
         ### Parameters
 
         The `PARAMS` argument in a function prototype is a list of alternating
@@ -581,7 +585,10 @@ namespace eval Concepts {
         `positive` - The value must be greater than 0.
 
         These annotations may only be used with integer types except `nonzero`
-        which can also be used for pointer types.
+        which can also be used for `pointer`, `string` and `unistring` types.
+        In the case of the latter two, returned `char *` values that are `NULL`
+        pointers are transformed to empty strings by default. The use of
+        the `nonzero` annotation will force an exception to be generated instead.
 
         At most one of the above annotations can be attached to a return type.
         The function value is then checked whether the corresponding

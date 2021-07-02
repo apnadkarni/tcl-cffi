@@ -2,17 +2,16 @@
 # All rights reserved.
 # See LICENSE file for details.
 
+# libzip::init {D:\src\vcpkg\installed\x64-windows\bin}
+
 package require cffi
 
 namespace eval libzip {
     variable libzip
 
     proc InitTypes {} {
-        cffi::Struct create zip_error {
-            zip_err int
-            sys_err int
-            str {pointer unsafe}
-        }
+        cffi::alias load C
+        cffi::alias load posix
 
         cffi::enum define ZipFlags {
             ZIP_FL_ENC_GUESS   0
@@ -30,6 +29,11 @@ namespace eval libzip {
             ZIP_FL_ENC_CP437   4096
             ZIP_FL_OVERWRITE   8192
         }
+        cffi::enum define ZipEncodingFlags {
+            ZIP_FL_ENC_GUESS   0
+            ZIP_FL_ENC_UTF_8   2048
+            ZIP_FL_ENC_CP437   4096
+        }
         cffi::enum define ZipOpenFlags {
             ZIP_CREATE     1
             ZIP_EXCL       2
@@ -37,18 +41,50 @@ namespace eval libzip {
             ZIP_TRUNCATE   8
             ZIP_RDONLY     16
         }
+        cffi::enum define ZipStatFlags {
+            ZIP_STAT_NAME 0x0001
+            ZIP_STAT_INDEX 0x0002
+            ZIP_STAT_SIZE 0x0004
+            ZIP_STAT_COMP_SIZE 0x0008
+            ZIP_STAT_MTIME 0x0010
+            ZIP_STAT_CRC 0x0020
+            ZIP_STAT_COMP_METHOD 0x0040
+            ZIP_STAT_ENCRYPTION_METHOD 0x0080
+            ZIP_STAT_FLAGS 0x0100
+        }
 
-        cffi::alias load C
+        cffi::Struct create zip_error_t {
+            zip_err int
+            sys_err int
+            str     {pointer unsafe}
+        }
+        cffi::Struct create zip_stat_t {
+            valid        uint64_t
+            name         {pointer unsafe}
+            index        uint64_t
+            size         uint64_t
+            comp_size    uint64_t
+            mtime        time_t
+            crc          uint32_t
+            comp_method  uint16_t
+            encryption_method  uint16_t
+            flags        uint32_t
+        }
+
         cffi::alias define PZIP_T        pointer.zip_t
         cffi::alias define PZIP_SOURCE_T pointer.zip_source_t
         cffi::alias define PZIP_FILE_T   pointer.zip_file_t
-        cffi::alias define ZIP_ERROR_REF {struct.zip_error byref}
-        cffi::alias define ZIP_FLAGS_T   uint32_t
+        cffi::alias define ZIP_ERROR_REF {struct.zip_error_t byref}
+        cffi::alias define ZIP_FLAGS_T   {uint32_t {enum ZipFlags} bitmask {default 0}}
         cffi::alias define PZIP_FILE_ATTRIBUTES_T pointer.zip_file_attributes_t
+        cffi::alias define ZIP_ENCODING  {
+            uint32_t {enum ZipEncodingFlags} {default ZIP_FL_ENC_GUESS}
+        }
 
         # LIBZIPSTATUS - integer error return that is 0 on success. Error
         # detail is to be retrieved with zip_get_error.
         cffi::alias define LIBZIPSTATUS {int zero {onerror ArchiveErrorHandler}}
+
 
     }
 
@@ -69,7 +105,7 @@ namespace eval libzip {
 
     proc ArchiveErrorHandler {fn_result inparams outparams} {
         set perr [zip_get_error [dict get $inparams pzip]]
-        set zerr [zip_error fromnative $perr]
+        set zerr [zip_error_t fromnative $perr]
         # This is a static pointer, no freeing to be done. Just unregister
         cffi::pointer dispose $perr
         ThrowLibzipError $zerr
@@ -92,25 +128,40 @@ namespace eval libzip {
 
     variable Functions
     array set Functions {
+        zip_libzip_version { string {} }
+
+        # {Error handling functions}
         zip_error_init_with_code { void   {zerr {ZIP_ERROR_REF out} zcode int} }
         zip_error_strerror       { string {zerr ZIP_ERROR_REF} }
         zip_error_code_zip       { int    {zerr ZIP_ERROR_REF} }
         zip_error_code_system    { int    {zerr ZIP_ERROR_REF} }
         zip_error_clear          { void   {pzip PZIP_T}}
-        zip_get_error            { {pointer.libzip::zip_error} {pzip PZIP_T} }
         zip_strerror             { string {pzip PZIP_T} }
         zip_file_strerror        { string {pfile PZIP_FILE_T} }
+        zip_get_error            { {pointer.libzip::zip_error_t} {pzip PZIP_T} }
 
+        # {Open/close archive}
         zip_open {
             {PZIP_T nonzero {onerror ::libzip::ArchiveOpenHandler}}
             {path string flags {int {enum ZipOpenFlags}} zcode {int out storeonerror}}
         }
-        zip_close  { LIBZIPSTATUS  {pzip {PZIP_T dispose}} }
+        zip_close   { LIBZIPSTATUS {pzip {PZIP_T dispose}} }
+        zip_discard { void         {pzip {PZIP_T dispose}} }
 
+        # {Directory related functions}
         zip_dir_add {
             {int64_t nonnegative {onerror libzip::ArchiveErrorHandler}}
-            {pzip PZIP_T name string flags {ZIP_FLAGS_T {enum ZipFlags} {default ZIP_FL_ENC_GUESS}}}
+            {pzip PZIP_T name string flags ZIP_ENCODING}
         }
+        zip_get_num_entries { {int64_t nonnegative} {pzip PZIP_T flags ZIP_FLAGS_T} }
+        zip_name_locate     { int64_t               {pzip PZIP_T fname string flags ZIP_FLAGS_T}}
+        zip_get_name        { string                {pzip PZIP_T index uint64_t flags ZIP_FLAGS_T} }
+        zip_file_rename     { LIBZIPSTATUS          {pzip PZIP_T index uint64_t newname string flags ZIP_ENCODING}}
+        # {Get / set file properties}
+        zip_stat       { LIBZIPSTATUS {pzip PZIP_T name string flags ZIP_FLAGS_T stat {struct.zip_stat_t out}} }
+        zip_stat_index { LIBZIPSTATUS {pzip PZIP_T index uint64_t flags ZIP_FLAGS_T stat {struct.zip_stat_t out}} }
+
+        # {Add / remove files}
         zip_source_file {
             {PZIP_SOURCE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T fname string start {uint64_t {default 0}} len { uint64_t {default 0}}}
@@ -119,12 +170,18 @@ namespace eval libzip {
             {int64_t nonnegative {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T fname string psource {PZIP_SOURCE_T dispose} flags ZIP_FLAGS_T}
         }
-        zip_name_locate {int64_t {pzip PZIP_T fname string flags {ZIP_FLAGS_T bitmask {enum ZipFlags} {default 0}}}}
+        zip_file_replace {
+            LIBZIPSTATUS
+            {pzip PZIP_T index uint64_t psource {PZIP_SOURCE_T dispose} flags ZIP_FLAGS_T}
+        }
+        zip_delete { LIBZIPSTATUS  {pzip PZIP_T index int64_t} }
+        
+
+
+
     }
 
 
-    # zip_delete { LIBZIPSTATUS  {pzip PZIP_T index int64_t} }
-    # zip_discard {void {pArchive pzip_t}}
     # zip_error_fini {void {perr pzip_error_t}}
     # zip_error_init {void {perr {struct.zip_error_t out}}}
     # zip_error_set {void {perr pzip_error_t zerr int syserr int}}
@@ -145,8 +202,6 @@ namespace eval libzip {
 # zip_file_get_comment string {pArchive pzip_t, uint64_t, uint32_t *_Nullable, flags zip_flags_t}
 # zip_file_get_error pzip_error_t {zfile pzip_file_t}
 # zip_file_get_external_attributes int {pArchive pzip_t, uint64_t, flags zip_flags_t, uint8_t *_Nullable, uint32_t *_Nullable}
-# zip_file_rename int {pArchive pzip_t, uint64_t, string _Nonnull, flags zip_flags_t}
-# zip_file_replace int {pArchive pzip_t, uint64_t, pzip_source_t _Nonnull, flags zip_flags_t}
 # zip_file_set_comment int {pArchive pzip_t, uint64_t, string _Nullable, uint16_t, flags zip_flags_t}
 # zip_file_set_dostime int {pArchive pzip_t, uint64_t, uint16_t, uint16_t, flags zip_flags_t}
 # zip_file_set_encryption int {pArchive pzip_t, uint64_t, uint16_t, string _Nullable}
@@ -159,12 +214,8 @@ namespace eval libzip {
 # zip_fread zip_int64_t {zfile pzip_file_t, void *_Nonnull, uint64_t}
 # zip_fseek zip_int8_t {zfile pzip_file_t, zip_int64_t, int}
 # zip_ftell zip_int64_t {zfile pzip_file_t}
-# zip_get_pArchive_comment string {pArchive pzip_t, int *_Nullable, flags zip_flags_t}
-# zip_get_pArchive_flag int {pArchive pzip_t, flags zip_flags_t, zip_flags_t}
-# zip_get_name string {pArchive pzip_t, uint64_t, flags zip_flags_t}
-# zip_get_num_entries zip_int64_t {pArchive pzip_t, flags zip_flags_t}
-# zip_libzip_version string {void}
-# zip_open pzip_t {string _Nonnull, int, int *_Nullable}
+# zip_get_zip_comment string {pArchive pzip_t, int *_Nullable, flags zip_flags_t}
+# zip_get_zip_flag int {pArchive pzip_t, flags zip_flags_t, zip_flags_t}
 # zip_open_from_source pzip_t {pzip_source_t _Nonnull, int, pzip_error_t _Nullable}
 # zip_register_progress_callback_with_state int {pArchive pzip_t, double, zip_progress_callback _Nullable, void  {*_Nullable} {void *_Nullable}, void *_Nullable}
 # zip_register_cancel_callback_with_state int {pArchive pzip_t, zip_cancel_callback _Nullable, void  {*_Nullable} {void *_Nullable}, void *_Nullable}
@@ -213,8 +264,6 @@ namespace eval libzip {
 # zip_source_write zip_int64_t {pzip_source_t _Nonnull, const void *_Nullable, uint64_t}
 # zip_source_zip pzip_source_t {pArchive pzip_t, pArchive pzip_t, uint64_t, flags zip_flags_t, uint64_t, zip_int64_t}
 # zip_source_zip_create pzip_source_t {pArchive pzip_t, uint64_t, flags zip_flags_t, uint64_t, zip_int64_t, pzip_error_t _Nullable}
-# zip_stat int {pArchive pzip_t, string _Nonnull, flags zip_flags_t, zip_stat_t *_Nonnull}
-# zip_stat_index int {pArchive pzip_t, uint64_t, flags zip_flags_t, zip_stat_t *_Nonnull}
 # zip_stat_init void {zip_stat_t *_Nonnull}
 # zip_strerror string {pArchive pzip_t}
 # zip_unchange int {pArchive pzip_t, uint64_t}
@@ -226,6 +275,7 @@ namespace eval libzip {
     proc InitFunctions {} {
         variable Functions
         foreach {fn_name prototype} [array get Functions] {
+            if {$fn_name eq "#"} continue
             proc $fn_name args "libzip function $fn_name [list {*}$prototype]; tailcall $fn_name {*}\$args"
         }
     }

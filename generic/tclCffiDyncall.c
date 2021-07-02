@@ -732,27 +732,33 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_FLOAT: CALLFN(Tcl_NewDoubleObj, dcCallFloat, flt);
     case CFFI_K_TYPE_DOUBLE: CALLFN(Tcl_NewDoubleObj, dcCallDouble, dbl);
     case CFFI_K_TYPE_POINTER:
+    case CFFI_K_TYPE_ASTRING:
+    case CFFI_K_TYPE_UNISTRING:
         pointer = dcCallPointer(vmP, fnP->fnAddr);
+        /* Do IMMEDIATELY so as to not lose GetLastError */
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK)
             fnCheckRet = CffiCheckPointer(
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
-        /* AFTER abover check so as to not lose GetLastError */
-        ret = CffiPointerToObj(
-            ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
-        break;
-    case CFFI_K_TYPE_ASTRING:
-        pointer = dcCallPointer(vmP, fnP->fnAddr);
-        /* TBD - should we permit error checks for NULL ? */
-        ret = CffiExternalCharsToObj(
-            ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
-        break;
-    case CFFI_K_TYPE_UNISTRING:
-        pointer = dcCallPointer(vmP, fnP->fnAddr);
-        /* TBD - should we permit error checks for NULL ? */
-        if (pointer)
-            resultObj = Tcl_NewUnicodeObj((Tcl_UniChar *)pointer, -1);
-        else
-            resultObj = Tcl_NewObj();
+        switch (protoP->returnType.typeAttrs.dataType.baseType) {
+            case CFFI_K_TYPE_POINTER:
+                ret = CffiPointerToObj(
+                    ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
+                break;
+            case CFFI_K_TYPE_ASTRING:
+                ret = CffiExternalCharsToObj(
+                    ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
+                break;
+            case CFFI_K_TYPE_UNISTRING:
+                if (pointer)
+                    resultObj = Tcl_NewUnicodeObj((Tcl_UniChar *)pointer, -1);
+                else
+                    resultObj = Tcl_NewObj();
+                break;
+            default:
+                /* Just to keep gcc happy */
+                CFFI_PANIC("UNEXPECTED BASE TYPE");
+                break;
+        }
         break;
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_BINARY:

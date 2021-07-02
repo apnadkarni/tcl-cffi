@@ -325,12 +325,8 @@ namespace eval ${NS}::test {
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
         }
 
-        foreach attr $errorAttrs {
-            if {$type in $intTypes} {
-                set msg $errorMessages(attrparsemode)
-            } else {
-                set msg $errorMessages(attrtype)
-            }
+        foreach attr [lsearch -all -inline -exact -not $requirementAttrs nonzero] {
+            set msg $errorMessages(attrtype)
             test function-param-$type-$attr "$type invalid attribute" -body {
                 testDll function ${type}_to_void void [list param [list $type $attr]]
             } -result "Invalid value \"$type $attr\". $msg" -returnCodes error
@@ -1106,6 +1102,11 @@ namespace eval ${NS}::test {
         } -body {
             pointer_to_pointer 0^
         } -result ""
+        test function-return-$type-nonzero-0 "return $type NULL - nonzero" -setup {
+            testDll function pointer_to_pointer "$type nonzero" {p {pointer unsafe}}
+        } -body {
+            pointer_to_pointer 0^
+        } -result {Invalid value "". Function returned an error value.} -returnCodes error
     }
     test function-return-string-1 "return string ascii" -setup {
         testDll function ascii_return string {}
@@ -1122,11 +1123,25 @@ namespace eval ${NS}::test {
     } -body {
         jis0208_return
     } -result "\u543e\u543e"
+    test function-return-string-4 "return string ascii - nonzero" -setup {
+        testDll function ascii_return {string nonzero} {}
+    } -body {
+        ascii_return
+    } -result "abc"
     test function-return-unistring-1 "return unistring" -setup {
         testDll function unistring_return unistring {}
     } -body {
         unistring_return
     } -result "\xe0\xe1\xe2"
+    test function-return-unistring-2 "return unistring - nonzero" -setup {
+        testDll function unistring_return {unistring nonzero} {}
+    } -body {
+        unistring_return
+    } -result "\xe0\xe1\xe2"
+
+    ## Error attributes for strings
+
+    test function-return-string-nonzero-0 ""
 
     # Other return types are not permitted - test here. Note it does not
     # matter that actual C prototype does not match what we define here since

@@ -755,16 +755,19 @@ namespace eval cffi::test {
 
         ## return mode
         teststring "$type" return ""
+        foreach attr {lasterror errno {{onerror E}}} {
+            teststring "$type nonzero $attr" return "nonzero $attr"
+        }
         foreach attr {in nullifempty} {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
-        foreach attr {out inout} {
+        foreach attr {out inout winerror} {
             testinvalidattr "$type $attr" return $errorMessages(attrtype)
         }
 
         ## field mode
         testinvalidattr "$type" field $errorMessages(typeparsemode)
-        foreach attr {in nullifempty} {
+        foreach attr {in nullifempty "nonzero"} {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
         foreach attr {out inout} {
@@ -775,8 +778,17 @@ namespace eval cffi::test {
         ## For all parse modes
         foreach parse_mode {param return field} {
             # Scalar tests - invalid attributes for type
-            foreach attr [list {*}$pointerAttrs {*}$errorAttrs bitmask {{enum E}}] {
-                testinvalidattr "$type $attr $parse_mode" $parse_mode $errorMessages(attrtype)
+            foreach attr [list {*}$pointerAttrs {*}$requirementAttrs winerror bitmask {{enum E}}] {
+                if {$attr ne "nonzero"} {
+                    testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
+                }
+            }
+            if {$parse_mode ne "return"} {
+                foreach attr $errorHandlerAttrs {
+                    if {$attr ne "winerror"} {
+                        testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
+                    }
+                }
             }
             # Array tests - success
             # none - currently arrays not supported
