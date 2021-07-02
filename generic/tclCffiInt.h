@@ -316,14 +316,20 @@ CffiResult CffiReturnPrepare(CffiCall *callP);
 CffiResult CffiReturnCleanup(CffiCall *callP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
-CffiResult CffiStructDescribeCmd(Tcl_Interp *ip,
-                                 int objc,
-                                 Tcl_Obj *const objv[],
-                                 CffiStructCtx *structCtxP);
-CffiResult CffiStructInfoCmd(Tcl_Interp *ip,
-                             int objc,
-                             Tcl_Obj *const objv[],
-                             CffiStructCtx *structCtxP);
+CffiResult
+CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
+CffiResult
+CffiUniCharsFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
+CffiResult CffiCharsFromObj(
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize);
+CffiResult CffiCharsToObj(Tcl_Interp *ip,
+                          const CffiTypeAndAttrs *typeAttrsP,
+                          char *srcP,
+                          Tcl_Obj **resultObjP);
+CffiResult CffiUniStringToObj(Tcl_Interp *ip,
+                              const CffiTypeAndAttrs *typeAttrsP,
+                              Tcl_DString *dsP,
+                              Tcl_Obj **resultObjP);
 CffiResult CffiStructFromObj(Tcl_Interp *ip,
                              const CffiStruct *structP,
                              Tcl_Obj *structValueObj,
