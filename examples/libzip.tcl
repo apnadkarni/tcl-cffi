@@ -2,17 +2,33 @@
 # All rights reserved.
 # See LICENSE file for details.
 
+# Here is the incantation to build libzip.dll using MingW-W64. In particular to bind against the
+# *static* libraries for zlib etc. so the DLLs do not have to be carried around. You need to
+# have first installed libz etc. with mingw's "pacman -Su" command.
+# In the libzip source dir,
+#   mkdir build && cd build
+#   cmake .. -G "MinGW Makefiles" -DLIBLZMA_LIBRARY=/mingw64/lib/liblzma.a -DZLIB_LIBRARY=/mingw64/lib/libz.a -DZstd_LIBRARY=/mingw64/lib/libzstd.a -DBZIP2_LIBRARY_RELEASE=/mingw64/lib/libbz2.a
+#   mingw32-make    (NOT make!)
+#
+# Similarly for 32-bit builds
+#   cmake .. -G "MinGW Makefiles" -DLIBLZMA_LIBRARY=/mingw32/lib/liblzma.a -DZLIB_LIBRARY=/mingw32/lib/libz.a -DZstd_LIBRARY=/mingw32/lib/libzstd.a -DBZIP2_LIBRARY_RELEASE=/mingw32/lib/libbz2.a
+#
+
+
 # libzip::init {D:\src\vcpkg\installed\x64-windows\bin}
 
 package require cffi
 
 namespace eval libzip {
+    variable PackageDir [file dirname [info script]]
+
     variable libzip
 
     proc InitTypes {} {
         cffi::alias load C
         cffi::alias load posix
 
+        # Define symbols for libzip enums and #defines
         cffi::enum define ZipFlags {
             ZIP_FL_ENC_GUESS   0
             ZIP_FL_NOCASE      1
@@ -96,8 +112,8 @@ namespace eval libzip {
         cffi::alias define ZIP_ENCODING  {
             uint32_t {enum ZipEncodingFlags} {default ZIP_FL_ENC_GUESS}
         }
-        cffi::alias define ZIP_ENCRYPTION_METHOD {uint16_t {enum ZipEncryptionFlags} {default ZIP_EM_NONE}}
-        cffi::alias define ZIP_COMPRESSION_METHOD {uint32_t {enum ZipCompressionMethod} {default ZIP_CM_DEFAULT}}
+        cffi::alias define ZIP_ENCRYPTION_METHOD {uint16_t {enum ZipEncryptionMethod} {default ZIP_EM_NONE}}
+        cffi::alias define ZIP_COMPRESSION_METHOD {int32_t {enum ZipCompressionMethod} {default ZIP_CM_DEFAULT}}
         # LIBZIPSTATUS - integer error return that is 0 on success. Error
         # detail is to be retrieved with zip_get_error.
         cffi::alias define LIBZIPSTATUS {int zero {onerror ::libzip::ArchiveErrorHandler}}
@@ -153,10 +169,12 @@ namespace eval libzip {
         ArchiveErrorHandler $fn_result $inparams $outparams
     }
 
-
     variable Functions
     array set Functions {
         zip_libzip_version { string {} }
+        zip_compression_method_supported { int {method ZIP_COMPRESSION_METHOD compress int} }
+        zip_encryption_method_supported { int {method ZIP_ENCRYPTION_METHOD encrypt int} }
+        # zip_encryption_method_supported int {uint16_t method, int encode}
 
         # {Error handling functions}
         zip_error_init_with_code { void   {zerr {ZIP_ERROR_REF out} zcode int} }
@@ -172,7 +190,7 @@ namespace eval libzip {
         # {Open/close archive}
         zip_open {
             {PZIP_T nonzero {onerror ::libzip::ArchiveOpenHandler}}
-            {path string flags {int {enum ZipOpenFlags}} zcode {int out storeonerror}}
+            {path string flags {int bitmask {enum ZipOpenFlags}} zcode {int out storeonerror}}
         }
         zip_close   { LIBZIPSTATUS {pzip {PZIP_T dispose}} }
         zip_discard { void         {pzip {PZIP_T dispose}} }
@@ -209,7 +227,7 @@ namespace eval libzip {
             {pzip PZIP_T fname UTF8 flags ZIP_FLAGS_T }
         }
         zip_get_name {
-            {UTF8 nonzero {onerror ArchiveErrorHandler}}
+            {UTF8 nonzero {onerror libzip::ArchiveErrorHandler}}
             {pzip PZIP_T index uint64_t flags ZIP_FLAGS_T}
         }
         zip_file_set_mtime {
@@ -299,78 +317,80 @@ namespace eval libzip {
     }
 
 
-
+    # Following functions not defined as yet as likely rarely used.
     # zip_error_fini {void {perr pzip_error_t}}
     # zip_error_init {void {perr {struct.zip_error_t out}}}
     # zip_error_set {void {perr pzip_error_t zerr int syserr int}}
     # zip_error_system_type {int {perr pzip_error_t}}
     # zip_error_to_data {{int64_t positive} {# perr pzip_error_t # data {bytes[len] out} # len int64_t # }}
-        # zip_fdopen {{pzip_t nonzero {onerror PArchiveOpenHandler}} {fd int flags int pcode {int out storeonerror}}}
-        # zip_fdopen pzip_t {int, int, int *_Nullable}
-        # zip_file_attributes_init void {pzip_file_attributes_t _Nonnull}
-        # zip_file_error_clear void {zfile PZIP_FILE_T}
-        # zip_file_extra_field_delete int {pzip PZIP_T uint64_t, uint16_t, flags ZIP_FLAGS_T}
-        # zip_file_extra_field_delete_by_id int {pzip PZIP_T uint64_t, uint16_t, uint16_t, flags ZIP_FLAGS_T}
-        # zip_file_extra_field_set int {pzip PZIP_T uint64_t, uint16_t, uint16_t, const uint8_t *_Nullable, uint16_t, flags ZIP_FLAGS_T}
-        # zip_file_extra_fields_count zip_int16_t {pzip PZIP_T uint64_t, flags ZIP_FLAGS_T}
-        # zip_file_extra_fields_count_by_id zip_int16_t {pzip PZIP_T uint64_t, uint16_t, flags ZIP_FLAGS_T}
-# const uint8_t *_Nullable zip_file_extra_field_get {pzip PZIP_T uint64_t, uint16_t, uint16_t *_Nullable, uint16_t *_Nullable, flags ZIP_FLAGS_T}
-# const uint8_t *_Nullable zip_file_extra_field_get_by_id {pzip PZIP_T uint64_t, uint16_t, uint16_t, uint16_t *_Nullable, flags ZIP_FLAGS_T}
-# zip_file_set_dostime int {pzip PZIP_T uint64_t, uint16_t, uint16_t, flags ZIP_FLAGS_T}
-# zip_open_from_source pzip_t {pzip_source_t _Nonnull, int, pzip_error_t _Nullable}
-# zip_register_progress_callback_with_state int {pzip PZIP_T double, zip_progress_callback _Nullable, void  {*_Nullable} {void *_Nullable}, void *_Nullable}
-# zip_register_cancel_callback_with_state int {pzip PZIP_T zip_cancel_callback _Nullable, void  {*_Nullable} {void *_Nullable}, void *_Nullable}
-# zip_set_pArchive_comment int {pzip PZIP_T string _Nullable, uint16_t}
-# zip_set_pArchive_flag int {pzip PZIP_T flags ZIP_FLAGS_T, int}
-# zip_source_begin_write int {pzip_source_t _Nonnull}
-# zip_source_begin_write_cloning int {pzip_source_t _Nonnull, uint64_t}
-# zip_source_buffer pzip_source_t {pzip PZIP_T const void *_Nullable, uint64_t, int}
-# zip_source_buffer_create pzip_source_t {const void *_Nullable, uint64_t, int, pzip_error_t _Nullable}
-# zip_source_buffer_fragment pzip_source_t {pzip PZIP_T const zip_buffer_fragment_t *_Nonnull, uint64_t, int}
-# zip_source_buffer_fragment_create pzip_source_t {const zip_buffer_fragment_t *_Nullable, uint64_t, int, pzip_error_t _Nullable}
-# zip_source_close int {pzip_source_t _Nonnull}
-# zip_source_commit_write int {pzip_source_t _Nonnull}
-# zip_source_error pzip_error_t {pzip_source_t _Nonnull}
-# zip_source_file pzip_source_t {pzip PZIP_T string _Nonnull, uint64_t, int64_t}
-# zip_source_file_create pzip_source_t {string _Nonnull, uint64_t, int64_t, pzip_error_t _Nullable}
-# zip_source_filep pzip_source_t {pzip PZIP_T FILE *_Nonnull, uint64_t, int64_t}
-# zip_source_filep_create pzip_source_t {FILE *_Nonnull, uint64_t, int64_t, pzip_error_t _Nullable}
-# zip_source_free void {pzip_source_t _Nullable}
-# zip_source_function pzip_source_t {pzip PZIP_T zip_source_callback _Nonnull, void *_Nullable}
-# zip_source_function_create pzip_source_t {zip_source_callback _Nonnull, void *_Nullable, pzip_error_t _Nullable}
-# zip_source_get_file_attributes int {pzip_source_t _Nonnull, pzip_file_attributes_t _Nonnull}
-# zip_source_is_deleted int {pzip_source_t _Nonnull}
-# zip_source_keep void {pzip_source_t _Nonnull}
-# zip_source_make_command_bitmap int64_t {zip_source_cmd_t, ...}
-# zip_source_open int {pzip_source_t _Nonnull}
-# zip_source_read int64_t {pzip_source_t _Nonnull, void *_Nonnull, uint64_t}
-# zip_source_rollback_write void {pzip_source_t _Nonnull}
-# zip_source_seek int {pzip_source_t _Nonnull, int64_t, int}
-# zip_source_seek_compute_offset int64_t {uint64_t, uint64_t, void *_Nonnull, uint64_t, pzip_error_t _Nullable}
-# zip_source_seek_write int {pzip_source_t _Nonnull, int64_t, int}
-# zip_source_stat int {pzip_source_t _Nonnull, zip_stat_t *_Nonnull}
-# zip_source_tell int64_t {pzip_source_t _Nonnull}
-# int64_t zip_source_tell_write {pzip_source_t _Nonnull}
-# #ifdef _WIN32
-# zip_source_win32a pzip_source_t {pzip_t , string , uint64_t, int64_t}
-# zip_source_win32a_create pzip_source_t {string , uint64_t, int64_t, pzip_error_t }
-# zip_source_win32handle pzip_source_t {pzip_t , void *, uint64_t, int64_t}
-# zip_source_win32handle_create pzip_source_t {void *, uint64_t, int64_t, pzip_error_t }
-# zip_source_win32w pzip_source_t {pzip_t , const wchar_t *, uint64_t, int64_t}
-# zip_source_win32w_create pzip_source_t {const wchar_t *, uint64_t, int64_t, pzip_error_t }
-# #endif
-# zip_source_window_create pzip_source_t {pzip_source_t _Nonnull, uint64_t, int64_t, pzip_error_t _Nullable}
-# zip_source_write int64_t {pzip_source_t _Nonnull, const void *_Nullable, uint64_t}
-# zip_source_zip pzip_source_t {pzip PZIP_T pzip PZIP_T uint64_t, flags ZIP_FLAGS_T, uint64_t, int64_t}
-# zip_source_zip_create pzip_source_t {pzip PZIP_T uint64_t, flags ZIP_FLAGS_T, uint64_t, int64_t, pzip_error_t _Nullable}
-# zip_stat_init void {zip_stat_t *_Nonnull}
-# zip_strerror string {pArchive pzip_t}
-# zip_unchange int {pzip PZIP_T uint64_t}
-# zip_unchange_all int {pArchive pzip_t}
-# zip_unchange_pArchive int {pArchive pzip_t}
-# zip_compression_method_supported int {zip_int32_t method, int compress}
-# zip_encryption_method_supported int {uint16_t method, int encode}
+    # zip_fdopen {{pzip_t nonzero {onerror PArchiveOpenHandler}} {fd int flags int pcode {int out storeonerror}}}
+    # zip_fdopen pzip_t {int, int, int *_Nullable}
+    # zip_file_attributes_init void {pzip_file_attributes_t _Nonnull}
+    # zip_file_error_clear void {zfile PZIP_FILE_T}
+    # zip_file_extra_field_delete int {pzip PZIP_T uint64_t, uint16_t, flags ZIP_FLAGS_T}
+    # zip_file_extra_field_delete_by_id int {pzip PZIP_T uint64_t, uint16_t, uint16_t, flags ZIP_FLAGS_T}
+    # zip_file_extra_field_set int {pzip PZIP_T uint64_t, uint16_t, uint16_t, const uint8_t *_Nullable, uint16_t, flags ZIP_FLAGS_T}
+    # zip_file_extra_fields_count zip_int16_t {pzip PZIP_T uint64_t, flags ZIP_FLAGS_T}
+    # zip_file_extra_fields_count_by_id zip_int16_t {pzip PZIP_T uint64_t, uint16_t, flags ZIP_FLAGS_T}
+    # const uint8_t *_Nullable zip_file_extra_field_get {pzip PZIP_T uint64_t, uint16_t, uint16_t *_Nullable, uint16_t *_Nullable, flags ZIP_FLAGS_T}
+    # const uint8_t *_Nullable zip_file_extra_field_get_by_id {pzip PZIP_T uint64_t, uint16_t, uint16_t, uint16_t *_Nullable, flags ZIP_FLAGS_T}
+    # zip_file_set_dostime int {pzip PZIP_T uint64_t, uint16_t, uint16_t, flags ZIP_FLAGS_T}
+    # zip_open_from_source pzip_t {pzip_source_t _Nonnull, int, pzip_error_t _Nullable}
+    # zip_register_progress_callback_with_state int {pzip PZIP_T double, zip_progress_callback _Nullable, void  {*_Nullable} {void *_Nullable}, void *_Nullable}
+    # zip_register_cancel_callback_with_state int {pzip PZIP_T zip_cancel_callback _Nullable, void  {*_Nullable} {void *_Nullable}, void *_Nullable}
+    # zip_set_pArchive_comment int {pzip PZIP_T string _Nullable, uint16_t}
+    # zip_set_pArchive_flag int {pzip PZIP_T flags ZIP_FLAGS_T, int}
+    # zip_source_begin_write int {pzip_source_t _Nonnull}
+    # zip_source_begin_write_cloning int {pzip_source_t _Nonnull, uint64_t}
+    # zip_source_buffer pzip_source_t {pzip PZIP_T const void *_Nullable, uint64_t, int}
+    # zip_source_buffer_create pzip_source_t {const void *_Nullable, uint64_t, int, pzip_error_t _Nullable}
+    # zip_source_buffer_fragment pzip_source_t {pzip PZIP_T const zip_buffer_fragment_t *_Nonnull, uint64_t, int}
+    # zip_source_buffer_fragment_create pzip_source_t {const zip_buffer_fragment_t *_Nullable, uint64_t, int, pzip_error_t _Nullable}
+    # zip_source_close int {pzip_source_t _Nonnull}
+    # zip_source_commit_write int {pzip_source_t _Nonnull}
+    # zip_source_error pzip_error_t {pzip_source_t _Nonnull}
+    # zip_source_file pzip_source_t {pzip PZIP_T string _Nonnull, uint64_t, int64_t}
+    # zip_source_file_create pzip_source_t {string _Nonnull, uint64_t, int64_t, pzip_error_t _Nullable}
+    # zip_source_filep pzip_source_t {pzip PZIP_T FILE *_Nonnull, uint64_t, int64_t}
+    # zip_source_filep_create pzip_source_t {FILE *_Nonnull, uint64_t, int64_t, pzip_error_t _Nullable}
+    # zip_source_free void {pzip_source_t _Nullable}
+    # zip_source_function pzip_source_t {pzip PZIP_T zip_source_callback _Nonnull, void *_Nullable}
+    # zip_source_function_create pzip_source_t {zip_source_callback _Nonnull, void *_Nullable, pzip_error_t _Nullable}
+    # zip_source_get_file_attributes int {pzip_source_t _Nonnull, pzip_file_attributes_t _Nonnull}
+    # zip_source_is_deleted int {pzip_source_t _Nonnull}
+    # zip_source_keep void {pzip_source_t _Nonnull}
+    # zip_source_make_command_bitmap int64_t {zip_source_cmd_t, ...}
+    # zip_source_open int {pzip_source_t _Nonnull}
+    # zip_source_read int64_t {pzip_source_t _Nonnull, void *_Nonnull, uint64_t}
+    # zip_source_rollback_write void {pzip_source_t _Nonnull}
+    # zip_source_seek int {pzip_source_t _Nonnull, int64_t, int}
+    # zip_source_seek_compute_offset int64_t {uint64_t, uint64_t, void *_Nonnull, uint64_t, pzip_error_t _Nullable}
+    # zip_source_seek_write int {pzip_source_t _Nonnull, int64_t, int}
+    # zip_source_stat int {pzip_source_t _Nonnull, zip_stat_t *_Nonnull}
+    # zip_source_tell int64_t {pzip_source_t _Nonnull}
+    # int64_t zip_source_tell_write {pzip_source_t _Nonnull}
+    # #ifdef _WIN32
+    # zip_source_win32a pzip_source_t {pzip_t , string , uint64_t, int64_t}
+    # zip_source_win32a_create pzip_source_t {string , uint64_t, int64_t, pzip_error_t }
+    # zip_source_win32handle pzip_source_t {pzip_t , void *, uint64_t, int64_t}
+    # zip_source_win32handle_create pzip_source_t {void *, uint64_t, int64_t, pzip_error_t }
+    # zip_source_win32w pzip_source_t {pzip_t , const wchar_t *, uint64_t, int64_t}
+    # zip_source_win32w_create pzip_source_t {const wchar_t *, uint64_t, int64_t, pzip_error_t }
+    # #endif
+    # zip_source_window_create pzip_source_t {pzip_source_t _Nonnull, uint64_t, int64_t, pzip_error_t _Nullable}
+    # zip_source_write int64_t {pzip_source_t _Nonnull, const void *_Nullable, uint64_t}
+    # zip_source_zip pzip_source_t {pzip PZIP_T pzip PZIP_T uint64_t, flags ZIP_FLAGS_T, uint64_t, int64_t}
+    # zip_source_zip_create pzip_source_t {pzip PZIP_T uint64_t, flags ZIP_FLAGS_T, uint64_t, int64_t, pzip_error_t _Nullable}
+    # zip_stat_init void {zip_stat_t *_Nonnull}
     
+    #
+    # The wrapped functions are lazy-initialized by default, i.e. they are actually
+    # wrapped the first time they are called. This has two benefits:
+    #  - faster initialization since symbols do not need to be looked up in
+    #    the symbol table if they are never used
+    #  - more important, symbols that are not defined in the shared library
+    #    (if it is an older version for example) will not prevent the package
+    #    from loading and other functions that are defined can still be used. 
     proc InitFunctions {{lazy 1}} {
         variable Functions
         foreach {fn_name prototype} [array get Functions] {
@@ -383,9 +403,28 @@ namespace eval libzip {
         }
     }
 
-    proc init [list [list path "libzip[info sharedlibextension]"] [list lazy 1]] {
+    # This function must be called to initialize the package with the path
+    # to the libzip shared library to be wrapped. By default it will try
+    # looking in a platform-specific dir on Windows only, otherwise leave
+    # it up to the system loader to find one.
+    proc init {{path ""} {lazy 1}} {
+        variable PackageDir
         variable Functions
 
+        if {$path eq ""} {
+            set path "libzip[info sharedlibextension]"
+            if {$::tcl_platform(platform) eq "windows"} {
+                # Prioritize loading from dir if possible over some system file
+                if {$::tcl_platform(machine) eq "amd64"} {
+                    set subdir AMD64
+                } else {
+                    set subdir X86
+                }
+                if {[file exists [file join $PackageDir $subdir $path]]} {
+                    set path [file join $PackageDir $subdir $path]
+                }
+            }
+        }
         ::cffi::dyncall::Library create libzip $path
         InitTypes
         InitFunctions $lazy
