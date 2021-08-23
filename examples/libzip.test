@@ -1,0 +1,195 @@
+#
+# Tests script for cffi's libzip wrappers.
+
+package require tcltest
+
+namespace eval libzip::test {
+    variable test_dir [file dirname [info script]]
+}
+
+if {[catch {package require cffi}]} {
+    # Try running from cffi sources
+    source [file join $::libzip::test::test_dir .. tests common.tcl]
+}
+
+source libzip.tcl
+libzip::init
+
+namespace eval libzip::test {
+
+    namespace import ::tcltest::test
+
+    variable temp_dir [tcltest::makeDirectory libzip-testdir]
+
+    # Expects libzip distribution test directory in LIBZIP_TEST_SAMPLES environment
+    variable samples_dir
+    if {[info exists ::env(LIBZIP_TEST_SAMPLES)]} {
+        set samples_dir $::env(LIBZIP_TEST_SAMPLES)
+    } else {
+        set samples_dir /src/AAThirdparty/C,C++/libzip/regress 
+    }
+    set samples_dir [file normalize $samples_dir]
+    if {![file exists [file join $samples_dir testfile.zip]]} {
+        puts stderr "Could not find sample ZIP archives. Set the LIBZIP_TEST_SAMPLES environment to the directory containing the files."
+        exit 1
+    }
+
+    proc sample_path {fname} {
+        variable samples_dir
+        return [file join $samples_dir $fname]
+    }
+    proc open_sample {fname {flags 0}} {
+        return [::libzip::zip_open [sample_path $fname] $flags code]
+    }
+    proc temp_zip_path {{fname ""}} {
+        variable temp_dir
+        if {$fname eq ""} {
+            set fname ziptest-[clock clicks].zip
+        }
+        return [file join $temp_dir $fname]
+    }
+    proc sample_copy {fname} {
+        set to [temp_zip_path]
+        file copy [sample_path $fname] $to
+        return $to
+    }
+    proc content_path {} {
+        variable content_path
+        if {![info exists content_path]} {
+            set content_path [file join $temp_dir ziptest-content.txt]
+            set fd [open $content_path w]
+            puts $fd "This is a test file"
+            close $fd
+        }
+        return $content_path
+    }
+
+    # Some tests need nested archives. Extract them into the temp directory
+    proc manyfiles_setup {} {
+        set zip [libzip::zip_open [sample_path manyfiles-zip.zip] ZIP_RDONLY code]
+        try {
+            set n [libzip::zip_get_num_entries $zip]
+            for {set i 0} {$i < $n} {incr i} {
+                set name [file tail [libzip::zip_get_name $zip $i]]
+                set zipfd [libzip::zip_fopen_index $zip $i]
+                set out_path [temp_zip_path $name]
+                set outfd [open $out_path wb]
+                while {[set nread [libzip::zip_fread $zipfd buf 16384]] > 0} {
+                    puts -nonewline $outfd [string range $buf 0 $nread-1]
+                }
+                close $outfd
+                libzip::zip_fclose $zipfd
+            }
+        } finally {
+            libzip::zip_close $zip
+        }
+        proc manyfiles_setup args {}
+    }
+
+    ### zip_open
+    test zip_open-read-0 "Open a zip file for read - RDONLY" -body {
+        set zip [libzip::zip_open [sample_path testfile.zip] ZIP_RDONLY code]
+        libzip::zip_get_num_entries $zip
+    } -cleanup {libzip::zip_close $zip} -result 1
+    test zip_open-read-1 "Open a zip file for read - fail" -body {
+        libzip::zip_open [temp_zip_path] ZIP_RDONLY code
+    } -result {No such file} -returnCodes error
+    test zip_open-read-2 "Open a zip file for read - fail" -body {
+        libzip::zip_open libzip.test ZIP_RDONLY code
+    } -result {Not a zip archive} -returnCodes error
+    test zip_open-read-4 "Open a zip file for read - CHECKCONS" -body {
+        set zip [libzip::zip_open [sample_path testfile.zip] {ZIP_CHECKCONS ZIP_RDONLY} code]
+        libzip::zip_get_num_entries $zip
+    } -cleanup {libzip::zip_close $zip} -result 1
+    test zip_open-write-0 "Open an existing zip file for write" -body {
+        set zip [libzip::zip_open [sample_copy testfile.zip] 0 code]
+        libzip::zip_get_num_entries $zip
+    } -cleanup {libzip::zip_close $zip} -result 1
+    test zip_open-write-1 "Open an new zip file for write - fail" -body {
+        libzip::zip_open [temp_zip_path] 0 code
+    } -result {No such file} -returnCodes error
+    test zip_open-write-2 "Open a new zip file for write - CREAT" -body {
+        set zip [libzip::zip_open [temp_zip_path] ZIP_CREATE code]
+        libzip::zip_get_num_entries $zip
+    } -cleanup {libzip::zip_close $zip} -result 0
+    test zip_open-write-3 "Open a new zip file - EXCL" -body {
+        libzip::zip_open [sample_copy testfile.zip] ZIP_EXCL code
+    } -result {File already exists} -returnCodes error
+    test zip_open-write-4 "Open an existing zip file for write - TRUNCATE" -body {
+        set zip [libzip::zip_open [sample_copy testfile.zip] ZIP_TRUNCATE code]
+        libzip::zip_get_num_entries $zip
+    } -cleanup {libzip::zip_close $zip} -result 0
+
+    ### zip_close
+    test zip_close-0 "Close a zip file" -body {
+        set zip [libzip::zip_open [sample_path testfile.zip] ZIP_RDONLY code]
+        libzip::zip_close $zip
+    } -result 0
+    test zip_close-1 "Close a zip file - twice" -body {
+        set zip [libzip::zip_open [sample_path testfile.zip] ZIP_RDONLY code]
+        libzip::zip_close $zip
+        libzip::zip_close $zip
+    } -result {Pointer 0x*^zip_t is not registered.} -returnCodes error -match glob
+
+    ## zip_get_num_entries
+    test zip_get_num_entries-0 "Get number of entries (> 64K)" -setup {
+        manyfiles_setup
+    } -body {
+        set zip [libzip::zip_open [temp_zip_path manyfiles.zip] ZIP_RDONLY code]
+        libzip::zip_get_num_entries $zip
+    } -cleanup {libzip::zip_close $zip} -result 70000
+
+    test zip_get_name-0 "Get names" -setup {
+        manyfiles_setup
+    } -body {
+        set zip [libzip::zip_open [temp_zip_path manyfiles.zip] ZIP_RDONLY code]
+        set n [libzip::zip_get_num_entries $zip]
+        set names [list]
+        for {set i 0} {$i < $n} {incr i} {
+            lappend names [libzip::zip_get_name $zip $i]
+        }
+        set names [lsort -integer $names]
+        set mismatches 0
+        for {set i 1} {$i <= $n} {incr i} {
+            if {$i ne [lindex $names $i-1]} {
+                incr mismatches
+            }
+        }
+        list $n $mismatches
+    } -cleanup {libzip::zip_close $zip} -result [list 70000 0]
+
+    test zip_get_name-1 "Get name - invalid index" -setup {
+        manyfiles_setup
+    } -body {
+        set zip [libzip::zip_open [temp_zip_path manyfiles.zip] ZIP_RDONLY code]
+        set n [libzip::zip_get_num_entries $zip]
+        libzip::zip_get_name $zip [incr n]
+    } -cleanup {libzip::zip_close $zip} -result {Invalid argument} -returnCodes error
+
+    ## zip_stat
+    test zip_stat-0 "Get file stat by name" -setup {
+        set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+    } -cleanup {
+        libzip::zip_close $zip
+    } -body {
+        libzip::zip_stat $zip test 0 s
+        dict map {k v} $s {
+            if {$k eq "name"} {
+                set v [cffi::memory tostring! $v]
+            }
+            set v
+        }
+    } -result {valid 255 name test index 0 size 5 comp_size 5 mtime 1065469602 crc 1001993670 comp_method 0 encryption_method 0 flags 7274611}
+
+    test zip_stat-error-0 "Get file stat by name - no such file" -setup {
+        set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+    } -cleanup {
+        libzip::zip_close $zip
+    } -body {
+        libzip::zip_stat $zip nosuchfile 0 s
+    } -result {No such file} -returnCodes error
+}
+
+::tcltest::cleanupTests
+namespace delete libzip::test
+
