@@ -179,7 +179,7 @@ namespace eval libzip::test {
             }
             set v
         }
-    } -result {valid 255 name test index 0 size 5 comp_size 5 mtime 1065469602 crc 1001993670 comp_method 0 encryption_method 0 flags 7274611}
+    } -result {valid 255 name test index 0 size 5 comp_size 5 mtime 1065435402 crc 1001993670 comp_method 0 encryption_method 0 flags 6881357}
 
     test zip_stat-error-0 "Get file stat by name - no such file" -setup {
         set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
@@ -188,6 +188,69 @@ namespace eval libzip::test {
     } -body {
         libzip::zip_stat $zip nosuchfile 0 s
     } -result {No such file} -returnCodes error
+
+    ## zip_fopen
+    test zip_fopen-0 "Read from a zip file" -setup {
+        set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+    } -cleanup {
+        libzip::zip_fclose $zfd
+        libzip::zip_close $zip
+    } -body {
+        set zfd [libzip::zip_fopen $zip testdir/test2 0]
+        set n [libzip::zip_fread $zfd data 2]
+        list $n [encoding convertfrom utf-8 $data]
+    } -result [list 2 "te"]
+    test zip_fopen-error-0 "Read from a zip file - no such file" -setup {
+        set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+    } -cleanup {
+        libzip::zip_close $zip
+    } -body {
+        set zfd [libzip::zip_fopen $zip nosuchfile 0]
+    } -result "No such file" -returnCodes error
+
+    ## zip_fopen_index
+    test zip_fopen_index-0 "Read from a zip file by index" -setup {
+        set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+    } -cleanup {
+        libzip::zip_fclose $zfd
+        libzip::zip_close $zip
+    } -body {
+        set zfd [libzip::zip_fopen_index $zip 0 0]
+        set n [libzip::zip_fread $zfd data 10]
+        list $n [encoding convertfrom utf-8 [string range $data 0 $n-1]]
+    } -result [list 5 "test\n"]
+    test zip_fopen_index-error-0 "Read from a zip file - no such index" -setup {
+        set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+    } -cleanup {
+        libzip::zip_close $zip
+    } -body {
+        set zfd [libzip::zip_fopen_index $zip 3 0]
+    } -result "Invalid argument" -returnCodes error
+
+    ## zip_add_file
+    test zip_add_file-0 "Add to a zip file" -setup {
+        set tmpdir [tcltest::temporaryDirectory]
+        set file0 [file join $tmpdir  zip_add_file-0.txt]
+        set fd [open $file0 wb]
+        puts -nonewline $fd "file content"
+        close $fd
+        set zippath [file join [tcltest::temporaryDirectory]  zip_add_file-0-test.zip]
+        file delete $zippath
+    } -cleanup {
+        file delete $zippath
+        file delete $file0
+    } -body {
+        set zip [libzip::zip_open $zippath ZIP_CREATE code]
+        set zipsrc [libzip::zip_source_file $zip $file0 0 -1]
+        libzip::zip_file_add $zip file0.txt $zipsrc
+        libzip::zip_close $zip
+        set zip [libzip::zip_open $zippath ZIP_RDONLY code]
+        set zfd [libzip::zip_fopen $zip file0.txt 0]
+        set n [libzip::zip_fread $zfd data 100]
+        libzip::zip_fclose $zfd
+        libzip::zip_close $zip
+        list $n [encoding convertfrom utf-8 [string range $data 0 $n-1]]
+    } -result {12 {file content}}
 }
 
 ::tcltest::cleanupTests

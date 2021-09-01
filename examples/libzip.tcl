@@ -2,10 +2,10 @@
 # All rights reserved.
 # See LICENSE file for details.
 
-# Here is the incantation to build libzip.dll using MingW-W64. In particular to bind against the
-# *static* libraries for zlib etc. so the DLLs do not have to be carried around. You need to
-# have first installed libz etc. with mingw's "pacman -Su" command.
-# In the libzip source dir,
+# Here is the incantation to build libzip.dll using MingW-W64. In particular to
+# bind against the *static* libraries for zlib etc. so the DLLs do not have to
+# be carried around. You need to have first installed libz etc. with mingw's
+# "pacman -Su" command. In the libzip source dir,
 #   mkdir build && cd build
 #   cmake .. -G "MinGW Makefiles" -DLIBLZMA_LIBRARY=/mingw64/lib/liblzma.a -DZLIB_LIBRARY=/mingw64/lib/libz.a -DZstd_LIBRARY=/mingw64/lib/libzstd.a -DBZIP2_LIBRARY_RELEASE=/mingw64/lib/libbz2.a
 #   mingw32-make    (NOT make!)
@@ -212,7 +212,7 @@ namespace eval libzip {
             {int nonnegative}
             {pzip PZIP_T flag_to_check ZIP_FLAGS_T flags ZIP_FLAGS_T}
         }
-        
+
         # {Directory related functions}
         zip_dir_add {
             {int64_t nonnegative {onerror libzip::ArchiveErrorHandler}}
@@ -272,7 +272,7 @@ namespace eval libzip {
         # {Add / remove files}
         zip_source_file {
             {PZIP_SOURCE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
-            {pzip PZIP_T fsname string start {uint64_t {default 0}} len { uint64_t {default 0}}}
+            {pzip PZIP_T fsname string start {uint64_t {default 0}} len { int64_t {default 0}}}
         }
         zip_file_add {
             {int64_t nonnegative {onerror ::libzip::ArchiveErrorHandler}}
@@ -290,8 +290,8 @@ namespace eval libzip {
         zip_unchange         { LIBZIPSTATUS {pzip PZIP_T index uint64_t}}
         zip_unchange_all     { LIBZIPSTATUS {pzip PZIP_T}}
         zip_unchange_archive { LIBZIPSTATUS {pzip PZIP_T}}
-        
-        
+
+
         # {File operations}
         zip_fopen {
             {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
