@@ -637,6 +637,14 @@ CffiFunctionCall(ClientData cdata,
     dcReset(vmP);
     dcMode(vmP, protoP->callMode);
 
+    /* Set up the return value */
+    if (CffiReturnPrepare(&callCtx) != TCL_OK)
+        goto pop_and_error;
+
+    /* Currently return values are always by value - enforced in prototype */
+    CFFI_ASSERT((protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) == 0);
+
+    /* Set up arguments if any */
     if (protoP->nParams) {
         /* Allocate space to hold argument values */
         argObjs = (Tcl_Obj **)MemLifoAlloc(
@@ -657,45 +665,17 @@ CffiFunctionCall(ClientData cdata,
         if (CffiFunctionSetupArgs(&callCtx, protoP->nParams, argObjs) != TCL_OK)
             goto pop_and_error;
         /* callCtx.argsP will have been set up by above call */
-
-        /* Only dispose of pointers AFTER all above param checks pass */
-        for (i = 0; i < protoP->nParams; ++i) {
-            CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
-            if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
-                && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))
-                && (typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)) {
-                /* TBD - could actualCount be greater than number of pointers
-                 * actually passed in ? */
-                int nptrs = callCtx.argsP[i].actualCount;
-                /* Note no error checks because the CffiFunctionSetup calls
-                   above would have already done validation */
-                if (nptrs <= 1) {
-                    if (callCtx.argsP[i].value.u.ptr != NULL)
-                        Tclh_PointerUnregister(
-                            ip, callCtx.argsP[i].value.u.ptr, NULL);
-                }
-                else {
-                    int j;
-                    void **ptrArray = callCtx.argsP[i].value.u.ptr;
-                    for (j = 0; j < nptrs; ++j) {
-                        if (ptrArray[j] != NULL)
-                            Tclh_PointerUnregister(ip, ptrArray[j], NULL);
-                    }
-                }
-            }
-        }
     }
 
-    /* Set up the return value */
-    if (CffiReturnPrepare(&callCtx) != TCL_OK) {
-        int j;
-        for (j = 0; j < callCtx.nArgs; ++j)
-            CffiArgCleanup(&callCtx, j);
-        goto pop_and_error;
-    }
-
-    /* Currently return values are always by value - enforced in prototype */
-    CFFI_ASSERT((protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) == 0);
+    /*
+     * A note on pointer disposal - pointers must be disposed of AFTER the
+     * function is invoked (since success/fail control disposal) but BEFORE
+     * wrapping of return values and output arguments that are pointers
+     * since a returned pointer may be the same as on just disposed. Not
+     * disposing first would cause pointer registration to fail. Hence
+     * the repeated CffiPointerArgsDispose calls below instead of a single
+     * one at the end.
+     */
 
     /*
      * CALLFN should only be used for numerics.
@@ -709,6 +689,7 @@ CffiFunctionCall(ClientData cdata,
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
+        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
         resultObj = objfn_(                                                    \
             retval.u.fld_); /* AFTER above Check to not lose GetLastError */   \
     } while (0);                                                               \
@@ -717,6 +698,7 @@ CffiFunctionCall(ClientData cdata,
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
         dcCallVoid(vmP, fnP->fnAddr);
+        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
         resultObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR: CALLFN(Tcl_NewIntObj, dcCallInt, schar);
@@ -739,6 +721,7 @@ CffiFunctionCall(ClientData cdata,
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK)
             fnCheckRet = CffiCheckPointer(
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
+        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
         switch (protoP->returnType.typeAttrs.dataType.baseType) {
             case CFFI_K_TYPE_POINTER:
                 ret = CffiPointerToObj(
@@ -785,7 +768,6 @@ CffiFunctionCall(ClientData cdata,
         ret = TCL_ERROR;
         break;
     }
-
 
     /*
      * At this point, the state of the call is reflected by the

@@ -677,6 +677,50 @@ namespace eval ${NS}::test {
             [cffi::pointer isvalid $p]
     } -result {1 1 1 0 1 0 0}
 
+    test function-pointer-param-safety-12 "pointer unsafe disposeonsuccess conflict" -body {
+        testDll function pointer_noop void {p {pointer disposeonsuccess unsafe}}
+    } -result "Invalid value \"pointer disposeonsuccess unsafe\". $errorMessages(attrconflict)" -returnCodes error
+
+    test function-pointer-param-safety-12 "pointer dispose disposeonsuccess conflict" -body {
+        testDll function pointer_noop void {p {pointer disposeonsuccess dispose}}
+    } -result "Invalid value \"pointer disposeonsuccess dispose\". $errorMessages(attrconflict)" -returnCodes error
+
+
+    test function-pointer-param-safety-13 "verify dispose in effect on function call errors" -setup {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        testDll function pointer_dispose {int nonzero} {p {pointer dispose} i int}
+    } -body {
+        list [cffi::pointer isvalid $p] [catch {pointer_dispose $p 0}] [cffi::pointer isvalid $p]
+    } -result {1 1 0}
+
+    test function-pointer-param-safety-14 "verify disposeonsuccess NOT in effect on function call errors" -setup {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        testDll function pointer_dispose {int nonzero} {p {pointer disposeonsuccess} i int}
+    } -cleanup {
+        cffi::pointer dispose $p
+    } -body {
+        list [cffi::pointer isvalid $p] [catch {pointer_dispose $p 0}] [cffi::pointer isvalid $p]
+    } -result {1 1 1}
+
+    test function-pointer-param-safety-15 "verify disposeonsuccess in effect on function call success" -setup {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        testDll function pointer_dispose {int nonzero} {p {pointer disposeonsuccess} i int}
+    } -body {
+        list [cffi::pointer isvalid $p] [catch {pointer_dispose $p 1}] [cffi::pointer isvalid $p]
+    } -result {1 0 0}
+
+    test function-pointer-param-safety-16 "verify disposeonsuccess in effect on function with no error annotation" -setup {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        testDll function pointer_dispose int {p {pointer disposeonsuccess} i int}
+    } -body {
+        list [cffi::pointer isvalid $p] [catch {pointer_dispose $p 1}] [cffi::pointer isvalid $p]
+    } -result {1 0 0}
+
+
     # pointer tags
     test function-pointer-param-tag-0 "pointer tag safe" -setup {
         testDll function pointer_noop void {p pointer.TAG}

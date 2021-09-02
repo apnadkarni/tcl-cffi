@@ -121,6 +121,7 @@ typedef struct CffiTypeAndAttrs {
 #define CFFI_F_ATTR_DISPOSE     0x0010 /* Unregister the pointer */
 #define CFFI_F_ATTR_COUNTED     0x0020 /* Counted safe pointer */
 #define CFFI_F_ATTR_UNSAFE      0x0040 /* Pointers need not be checked */
+#define CFFI_F_ATTR_DISPOSEONSUCCESS 0x0080 /* Unregister on successful call */
 
 #define CFFI_F_ATTR_ZERO        0x0100 /* Must be zero/null */
 #define CFFI_F_ATTR_NONZERO     0x0200 /* Must be nonzero/nonnull */
@@ -144,8 +145,9 @@ typedef struct CffiTypeAndAttrs {
     (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT | CFFI_F_ATTR_BYREF \
      | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS)
 /* Attributes related to pointer safety */
-#define CFFI_F_ATTR_SAFETY_MASK \
-    (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_COUNTED)
+#define CFFI_F_ATTR_SAFETY_MASK                                              \
+    (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS \
+     | CFFI_F_ATTR_COUNTED)
 /* Error checking attributes */
 #define CFFI_F_ATTR_REQUIREMENT_MASK                                  \
     (CFFI_F_ATTR_ZERO | CFFI_F_ATTR_NONZERO | CFFI_F_ATTR_NONNEGATIVE \
@@ -253,7 +255,7 @@ typedef struct CffiProto {
     CffiParam returnType;  /* Name and return type of function */
     CffiParam params[1];   /* Real size depends on nparams which
                                may even be 0!*/
-    /* !!!DO NOT ADD FIELDS HERE!!! */
+    /* !!!DO NOT ADD FIELDS HERE AT END OF STRUCT!!! */
 } CffiProto;
 CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
     protoP->nRefs += 1;
@@ -268,10 +270,12 @@ typedef struct CffiFunction {
 
 /* Used to store argument context when preparing to call a function */
 typedef struct CffiArgument {
-    CffiValue value; /* Native value being constructed. */
-    Tcl_Obj *varNameObj; /* Name of output variable or NULL */
-    int actualCount; /* For dynamic arrays, stores the actual size.
-                        Always >= 0 (0 being scalar) */
+    CffiValue value;      /* Native value being constructed. */
+    CffiValue savedValue; /* Copy of above - needed after call in some cases
+                             like disposable pointers. NOT used in all cases */
+    Tcl_Obj *varNameObj;  /* Name of output variable or NULL */
+    int actualCount;      /* For dynamic arrays, stores the actual size.
+                             Always >= 0 (0 being scalar) */
     int flags;
 #define CFFI_F_ARG_INITIALIZED 0x1
 } CffiArgument;
@@ -343,6 +347,10 @@ CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 void *valueP,
                                 int count,
                                 Tcl_Obj **valueObjP);
+void CffiPointerArgsDispose(Tcl_Interp *ip,
+                            CffiProto *protoP,
+                            CffiArgument *argsP,
+                            int callSucceeded);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);

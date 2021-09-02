@@ -179,6 +179,7 @@ enum cffiTypeAttrOpt {
     COUNTED,
     UNSAFE,
     DISPOSE,
+    DISPOSEONSUCCESS,
     ZERO,
     NONZERO,
     NONNEGATIVE,
@@ -219,6 +220,7 @@ static CffiAttrs cffiAttrs[] = {
          | CFFI_F_TYPE_PARSE_FIELD,
      1},
     {"dispose", DISPOSE, CFFI_F_ATTR_DISPOSE, CFFI_F_TYPE_PARSE_PARAM, 1},
+    {"disposeonsuccess", DISPOSEONSUCCESS, CFFI_F_ATTR_DISPOSEONSUCCESS, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"zero", ZERO, CFFI_F_ATTR_ZERO, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"nonzero", NONZERO, CFFI_F_ATTR_NONZERO, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"nonnegative",
@@ -798,14 +800,21 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_COUNTED;
             break;
         case UNSAFE:
-            if (flags & (CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_DISPOSE))
+            if (flags
+                & (CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_DISPOSE
+                   | CFFI_F_ATTR_DISPOSEONSUCCESS))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_UNSAFE;
             break;
         case DISPOSE:
-            if (flags & CFFI_F_ATTR_UNSAFE)
+            if (flags & (CFFI_F_ATTR_DISPOSEONSUCCESS | CFFI_F_ATTR_UNSAFE))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_DISPOSE;
+            break;
+        case DISPOSEONSUCCESS:
+            if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_UNSAFE))
+                goto invalid_format;
+            flags |= CFFI_F_ATTR_DISPOSEONSUCCESS;
             break;
         case ZERO:
             if (flags & CFFI_F_ATTR_REQUIREMENT_MASK)
@@ -920,22 +929,22 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
             /*
-             * NULLIFEMPTY never allowed for any output. DISPOSE, BITMASK,
+             * NULLIFEMPTY never allowed for any output. DISPOSE*, BITMASK,
              * ENUM not allowed for pure OUT.
              */
             if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
                 || ((flags & CFFI_F_ATTR_OUT)
                     && (flags
-                        & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_ENUM
-                           | CFFI_F_ATTR_BITMASK)))) {
+                        & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS
+                           | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK)))) {
                 message = "One or more annotations are invalid for the "
                           "parameter direction.";
                 goto invalid_format;
             }
-            #if 0
+#if 0
             if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
                 || ((flags
-                     & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_ENUM
+                     & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS | CFFI_F_ATTR_ENUM
                         | CFFI_F_ATTR_BITMASK))
                     != (flags & CFFI_F_ATTR_OUT))) {
                 message = "One or more annotations are invalid for the "
@@ -1250,6 +1259,62 @@ CffiNativeValueToObj(Tcl_Interp *ip,
         }
     }
 
+}
+
+/* Function: CffiPointerArgsDispose
+ * Disposes pointer arguments
+ *
+ * Parameters:
+ * ip - interpreter
+ * protoP - prototype structure with argument descriptors
+ * argsP - array of argument values
+ * callFailed - 0 if the function invocation had succeeded, else non-0
+ *
+ * The function loops through all argument values that are pointers
+ * and annotated as *dispose* or *disposeonsuccess*. Any such pointers
+ * are unregistered.
+ *
+ * Returns:
+ * Nothing.
+ */
+void
+CffiPointerArgsDispose(Tcl_Interp *ip,
+                       CffiProto *protoP,
+                       CffiArgument *argsP,
+                       int callFailed)
+{
+    int i;
+    for (i = 0; i < protoP->nParams; ++i) {
+        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
+            && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))) {
+            /*
+             * DISPOSE - always dispose of pointer
+             * DISPOSEONSUCCESS - dispose if the call had returned successfully
+             */
+            if ((typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)
+                || ((typeAttrsP->flags & CFFI_F_ATTR_DISPOSEONSUCCESS)
+                    && !callFailed)) {
+                int nptrs = argsP[i].actualCount;
+                /* Note no error checks because the CffiFunctionSetup calls
+                   above would have already done validation */
+                if (nptrs <= 1) {
+                    if (argsP[i].savedValue.u.ptr != NULL)
+                        Tclh_PointerUnregister(
+                            ip, argsP[i].savedValue.u.ptr, NULL);
+                }
+                else {
+                    int j;
+                    void **ptrArray = argsP[i].savedValue.u.ptr;
+                    CFFI_ASSERT(ptrArray);
+                    for (j = 0; j < nptrs; ++j) {
+                        if (ptrArray[j] != NULL)
+                            Tclh_PointerUnregister(ip, ptrArray[j], NULL);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /* Function: CffiCheckPointer
@@ -2050,15 +2115,16 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
  * The function modifies the following:
  * callP->argsP[arg_index].flags - sets CFFI_F_ARG_INITIALIZED
  * callP->argsP[arg_index].value - the native value.
+ * callP->argsP[arg_index].savedValue - copy of above for some types only
  * callP->argsP[arg_index].varNameObj - will store the variable name
  *            for byref parameters. This will be valueObj[0] for byref
  *            parameters and NULL for byval parameters. The reference
  *            count is unchanged from what is passed in so do NOT call
  *            an *additional* Tcl_DecrRefCount on it.
  *
- * In addition to storing the native value at *valueP*, the function also
- * stores it as a dyncall function argument. The function may allocate
- * additional dynamic storage from the call context that is the
+ * In addition to storing the native value in the *value* field, the
+ * function also stores it as a dyncall function argument. The function may
+ * allocate additional dynamic storage from the call context that is the
  * caller's responsibility to free.
  *
  * Returns:
@@ -2081,7 +2147,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     int flags;
     char *p;
 
-    /* Expected initialization to virgin state*/
+    /* Expected initialization to virgin state */
     CFFI_ASSERT(callP->argsP[arg_index].flags == 0);
 
     /*
@@ -2111,10 +2177,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * out/inout parameters are always expected to be byref. Prototype
      * parser should have ensured that.
      */
-    CFFI_ASSERT((typeAttrsP->flags
-                  & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT))
-                     == 0
-                 || (typeAttrsP->flags & CFFI_F_ATTR_BYREF) != 0);
+    CFFI_ASSERT((typeAttrsP->flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) == 0
+                || (typeAttrsP->flags & CFFI_F_ATTR_BYREF) != 0);
 
     /*
      * For pure in parameters, valueObj provides the value itself.
@@ -2254,7 +2318,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     OBJTONUM(objfn_, valueObjList[i], &valueArray[i]);         \
                 }                                                              \
                 /* Fill additional elements with 0 */                          \
-                for (i = nvalues; i < argP->actualCount; ++i)                  \
+                CFFI_ASSERT(i == nvalues);                                     \
+                for ( ; i < argP->actualCount; ++i)                  \
                     valueArray[i] = 0;                                         \
             }                                                                  \
             valueP->u.ptr = valueArray;                                        \
@@ -2311,6 +2376,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             else {
                 CHECK(
                     CffiPointerFromObj(ip, typeAttrsP, valueObj, &valueP->u.ptr));
+                if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS))
+                    argP->savedValue.u.ptr = valueP->u.ptr;
             }
             if (flags & CFFI_F_ATTR_BYREF)
                 dcArgPointer(vmP, &valueP->u.ptr);
@@ -2321,17 +2388,33 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             valueArray = MemLifoAlloc(&ipCtxP->memlifo,
                                       argP->actualCount * sizeof(void *));
-            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+            if (flags & CFFI_F_ATTR_OUT)
+                valueP->u.ptr = valueArray;
+            else {
                 Tcl_Obj **valueObjList;
                 int i, nvalues;
                 CHECK(Tcl_ListObjGetElements(
                     ip, valueObj, &nvalues, &valueObjList));
+                if (nvalues > argP->actualCount)
+                    nvalues = argP->actualCount;
                 for (i = 0; i < nvalues; ++i) {
                     CHECK(CffiPointerFromObj(
                         ip, typeAttrsP, valueObjList[i], &valueArray[i]));
                 }
+                CFFI_ASSERT(i == nvalues);
+                for ( ; i < argP->actualCount; ++i)
+                    valueArray[i] = NULL;/* Fill additional elements */
+                valueP->u.ptr = valueArray;
+                if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS)) {
+                    /* Save pointers to dispose after call completion */
+                    void **savedValueArray;
+                    savedValueArray = MemLifoAlloc(
+                        &ipCtxP->memlifo, argP->actualCount * sizeof(void *));
+                    for (i = 0; i < argP->actualCount; ++i)
+                        savedValueArray[i] = valueArray[i];
+                    argP->savedValue.u.ptr = savedValueArray;
+                }
             }
-            valueP->u.ptr = valueArray;
             dcArgPointer(vmP, valueP->u.ptr);
         }
         break;

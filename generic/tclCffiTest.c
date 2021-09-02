@@ -402,6 +402,9 @@ EXTERN void *pointer_reflect(void *in, void **outP) {
     *outP = in;
     return in;
 }
+EXTERN int pointer_dispose(void *in, int ret) {
+    return ret;
+}
 
 #ifdef _WIN32
 EXTERN void *pointer_lasterror(void *p)

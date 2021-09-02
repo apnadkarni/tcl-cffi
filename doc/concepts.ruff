@@ -122,7 +122,7 @@ namespace eval Concepts {
 
         Pointers that have been registered are unregistered when they are
         passed to a C function as an argument for a parameter that has been
-        annotated with the `dispose` attribute.
+        annotated with the `dispose` or `disposeonsuccess` annotation.
 
         The following fragment illustrates safe pointers. The fragment assumes a
         wrapper object `crtl` for the C runtime library has already been
@@ -143,6 +143,10 @@ namespace eval Concepts {
         Moreover, because the `free` function's `ptr` parameter has the
         `dispose` annotation, it is unregistered before the function is called.
         The second call to `free` therefore fails as desired.
+
+        The `disposeonsuccess` annotation is similar to `dispose` except that if
+        the function return type includes error check annotations, the
+        pointer is unregistered only if the return value passes the checks.
 
         ##### Reference counted pointers
 
@@ -466,10 +470,10 @@ namespace eval Concepts {
         reporting annotations `errno`, `lasterror`, `winerror` and
         `onerror` may be specified. See [Error handling] for details on these.
 
-        - For pointer type, `nonzero`, `errno` and `lasterror` annotations
-        may be specified as well as the `unsafe` and `counted`
-        annotations (but not `dispose`). See [Pointer safety] for
-        the meaning of these annotations.
+        - For pointer type, `nonzero`, `errno` and `lasterror` annotations may
+        be specified as well as the `unsafe` and `counted` annotations (but not
+        `dispose` or `disposeonsuccess`). See [Pointer safety] for the meaning
+        of these annotations.
 
         - For `string` and `unistring` types, the `nonzero`, `errno` and
         `lasterror` annotations may be specified. See [Error handling] for
@@ -489,7 +493,7 @@ namespace eval Concepts {
         to storing output values.
 
         Annotations in the first category are `unsafe`, `counted`
-        and `dispose`. See [Pointer safety] for details.
+        `dispose` and `disposeonsuccess`. See [Pointer safety] for details.
 
         The second set deals with how arguments are passed to the C function. C
         functions are passed arguments either by value or by reference (i.e. as
