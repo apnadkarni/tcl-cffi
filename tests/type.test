@@ -721,14 +721,14 @@ namespace eval cffi::test {
 
     ###
     # strings
-    proc teststring {typedecl parse_mode expected_typeattrs} {
+    proc teststring {typedecl parse_mode expected_typeattrs args} {
         variable typeInfo
         set typeattrs [lassign $typedecl type]
         set testlabel type-info-[join $typedecl -]
 
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
+        } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
     }
 
     foreach type {string string.utf-8 unistring} {
@@ -755,9 +755,11 @@ namespace eval cffi::test {
 
         ## return mode
         teststring "$type" return ""
-        foreach attr {lasterror errno {{onerror E}}} {
+        foreach attr {errno {{onerror E}}} {
             teststring "$type nonzero $attr" return "nonzero $attr"
         }
+        teststring "$type nonzero lasterror" return "nonzero lasterror" -constraints win
+
         foreach attr {in nullifempty} {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
