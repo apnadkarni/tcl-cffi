@@ -40,7 +40,7 @@ make install
 strip -s /d/tcl/lib/cffi1.0a5/x86/cffi10a5.dll
 ```
 
-Test the distribution
+Test the distribution with Tcl 8.6 built with VC++ 6
 
 ```
 set TCLLIBPATH=d:/tcl/lib
@@ -75,6 +75,3 @@ Extract the archive somewhere and ensure it builds.
 ## Web site documentation
 
 Upload documentation.
-# 
-
-

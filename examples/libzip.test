@@ -173,13 +173,14 @@ namespace eval libzip::test {
         libzip::zip_close $zip
     } -body {
         libzip::zip_stat $zip test 0 s
+        dict unset s flags;# flags is reserved and for future use
         dict map {k v} $s {
             if {$k eq "name"} {
                 set v [cffi::memory tostring! $v]
             }
             set v
         }
-    } -result {valid 255 name test index 0 size 5 comp_size 5 mtime 1065435402 crc 1001993670 comp_method 0 encryption_method 0 flags 6881357}
+    } -result {valid 255 name test index 0 size 5 comp_size 5 mtime 1065435402 crc 1001993670 comp_method 0 encryption_method 0}
 
     test zip_stat-error-0 "Get file stat by name - no such file" -setup {
         set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
@@ -227,14 +228,14 @@ namespace eval libzip::test {
         set zfd [libzip::zip_fopen_index $zip 3 0]
     } -result "Invalid argument" -returnCodes error
 
-    ## zip_add_file
-    test zip_add_file-0 "Add to a zip file" -setup {
+    ## zip_file_add
+    test zip_file_add-0 "Add to a zip file" -setup {
         set tmpdir [tcltest::temporaryDirectory]
-        set file0 [file join $tmpdir  zip_add_file-0.txt]
+        set file0 [file join $tmpdir  zip_file_add-0.txt]
         set fd [open $file0 wb]
         puts -nonewline $fd "file content"
         close $fd
-        set zippath [file join [tcltest::temporaryDirectory]  zip_add_file-0-test.zip]
+        set zippath [file join [tcltest::temporaryDirectory]  zip_file_add-0-test.zip]
         file delete $zippath
     } -cleanup {
         file delete $zippath
@@ -251,6 +252,41 @@ namespace eval libzip::test {
         libzip::zip_close $zip
         list $n [encoding convertfrom utf-8 [string range $data 0 $n-1]]
     } -result {12 {file content}}
+    test zip_file_add-1 "Add to a zip file - no such file" -setup {
+        set tmpdir [tcltest::temporaryDirectory]
+        set zippath [file join [tcltest::temporaryDirectory]  zip_file_add-1-test.zip]
+        file delete $zippath
+    } -cleanup {
+        file delete $zippath
+        file delete $file0
+    } -body {
+        set zip [libzip::zip_open $zippath ZIP_CREATE code]
+        set zipsrc [libzip::zip_source_file $zip nosuchfile.txt 0 -1]
+        libzip::zip_file_add $zip file0.txt $zipsrc
+        list \
+            [catch {libzip::zip_close $zip} result] \
+            [cffi::pointer isvalid $zip] \
+            [libzip::zip_discard $zip] \
+            [cffi::pointer isvalid $zip]
+    } -result {1 1 {} 0}
+
+    ## zip_dir_add
+    test zip_dir_add-0 "Add to a zip file" -setup {
+        set tmpdir [tcltest::temporaryDirectory]
+        set zippath [file join [tcltest::temporaryDirectory]  zip_dir_add-0-test.zip]
+        file delete $zippath
+    } -cleanup {
+        #file delete $zippath
+    } -body {
+        set zip [libzip::zip_open $zippath ZIP_CREATE code]
+        libzip::zip_dir_add $zip xdir
+        libzip::zip_close $zip
+        set zip [libzip::zip_open $zippath ZIP_RDONLY code]
+        set name [libzip::zip_get_name $zip 0]
+        set index [libzip::zip_name_locate $zip xdir/]
+        libzip::zip_close $zip
+        list $name $index
+    } -result {xdir/ 0}
 }
 
 ::tcltest::cleanupTests

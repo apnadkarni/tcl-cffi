@@ -192,7 +192,7 @@ namespace eval libzip {
             {PZIP_T nonzero {onerror ::libzip::ArchiveOpenHandler}}
             {path string flags {int bitmask {enum ZipOpenFlags}} zcode {int out storeonerror}}
         }
-        zip_close   { LIBZIPSTATUS {pzip {PZIP_T dispose}} }
+        zip_close   { LIBZIPSTATUS {pzip {PZIP_T disposeonsuccess}} }
         zip_discard { void         {pzip {PZIP_T dispose}} }
 
         # {Archive properties}
