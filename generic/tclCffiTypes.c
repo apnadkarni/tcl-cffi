@@ -86,21 +86,22 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NONZERO
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
-    /* Note string and unistring cannot be INOUT parameters */
     {TOKENANDLEN(string),
      CFFI_K_TYPE_ASTRING,
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NONZERO
+    /* Note string cannot be INOUT parameter */
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NONZERO
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
     {TOKENANDLEN(unistring),
      CFFI_K_TYPE_UNISTRING,
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NONZERO
+    /* Note unistring cannot be INOUT parameter */
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NONZERO
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
-    /* Note binary cannot be OUT or INOUT parameters */
     {TOKENANDLEN(binary),
      CFFI_K_TYPE_BINARY,
-     CFFI_F_ATTR_IN,
+    /* Note binary cannot be OUT or INOUT parameters */
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF,
      sizeof(unsigned char *)},
     {TOKENANDLEN(chars),
      CFFI_K_TYPE_CHAR_ARRAY,
@@ -2426,20 +2427,14 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         break;
 
     case CFFI_K_TYPE_ASTRING:
-        CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-        CFFI_ASSERT(!(flags & CFFI_F_ATTR_BYREF));
-        /*
-         * Code below is written to support OUT and BYREF (not INOUT) despite
-         * the asserts above which are maintained in the type declaration
-         * parsing code.
-         */
+        CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
         if (flags & CFFI_F_ATTR_OUT) {
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             valueP->u.ptr = NULL;
             dcArgPointer(vmP, &valueP->u.ptr);
         }
         else {
-            CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
+            CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
             CHECK(CffiArgPrepareInString(ip, typeAttrsP, valueObj, valueP));
             if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
                     == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
@@ -2448,7 +2443,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             }
             else
                 valueP->u.ptr = Tcl_DStringValue(&valueP->ancillary.ds);
-            if (flags & CFFI_F_ATTR_BYREF)
+            if (flags & CFFI_F_ATTR_BYREF) /* In case of future changes */
                 dcArgPointer(vmP, &valueP->u.ptr);
             else
                 dcArgPointer(vmP, valueP->u.ptr);
@@ -2456,8 +2451,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         break;
 
     case CFFI_K_TYPE_UNISTRING:
-        CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-        CFFI_ASSERT(!(flags & CFFI_F_ATTR_BYREF));
+        CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
         /*
          * Code below is written to support OUT and BYREF (not INOUT) despite
          * the asserts above which are maintained in the type declaration
@@ -2479,7 +2473,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 p = NULL; /* Null if empty */
             }
             valueP->u.ptr = p;
-            if (flags & CFFI_F_ATTR_BYREF)
+            if (flags & CFFI_F_ATTR_BYREF) /* In case of future changes */
                 dcArgPointer(vmP, &valueP->u.ptr);
             else
                 dcArgPointer(vmP, valueP->u.ptr);
@@ -2494,10 +2488,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_BINARY:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
-        CFFI_ASSERT(!(flags & CFFI_F_ATTR_BYREF));
         CHECK(CffiArgPrepareInBinary(ip, typeAttrsP, valueObj, valueP));
         valueP->u.ptr = Tcl_GetByteArrayFromObj(valueP->ancillary.baObj, NULL);
-        dcArgPointer(vmP, valueP->u.ptr);
+        if (flags & CFFI_F_ATTR_BYREF) /* In case of future changes */
+            dcArgPointer(vmP, &valueP->u.ptr);
+        else
+            dcArgPointer(vmP, valueP->u.ptr);
         break;
 
     case CFFI_K_TYPE_BYTE_ARRAY:
@@ -2602,7 +2598,18 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         break;
 
     case CFFI_K_TYPE_ASTRING:
+        ret = CffiExternalCharsToObj(
+            ip, typeAttrsP, valueP->u.ptr, &valueObj);
+        break;
+
     case CFFI_K_TYPE_UNISTRING:
+        if (valueP->u.ptr)
+            valueObj = Tcl_NewUnicodeObj((Tcl_UniChar *)valueP->u.ptr, -1);
+        else
+            valueObj = Tcl_NewObj();
+        ret = TCL_OK;
+        break;
+
     case CFFI_K_TYPE_BINARY:
     default:
         /* Should not happen */

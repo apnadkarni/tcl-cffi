@@ -740,11 +740,15 @@ namespace eval cffi::test {
             "{default 0}" "in {default 0}"
             "nullifempty" "in nullifempty"
             "in nullifempty" "in nullifempty"
+            "out" "out byref"
+            "byref" "in byref"
+            "byref in" "in byref"
+            "byref out" "out byref"
         } {
             teststring "$type $attr" param $expected
         }
 
-        foreach attr {out inout byref {in byref} {out byref} {inout byref}} {
+        foreach attr {inout {inout byref}} {
             testinvalidattr "$type $attr" param $errorMessages(attrtype)
         }
 
@@ -760,19 +764,19 @@ namespace eval cffi::test {
         }
         teststring "$type nonzero lasterror" return "nonzero lasterror" -constraints win
 
-        foreach attr {in nullifempty} {
+        foreach attr {in out nullifempty} {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
-        foreach attr {out inout winerror} {
+        foreach attr {inout winerror} {
             testinvalidattr "$type $attr" return $errorMessages(attrtype)
         }
 
         ## field mode
         testinvalidattr "$type" field $errorMessages(typeparsemode)
-        foreach attr {in nullifempty "nonzero"} {
+        foreach attr {in out nullifempty "nonzero"} {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
-        foreach attr {out inout} {
+        foreach attr {inout} {
             testinvalidattr "$type $attr" field $errorMessages(attrtype)
         }
 
@@ -821,11 +825,13 @@ namespace eval cffi::test {
         "" "in"
         "in"  "in"
         "{default 0}" "in {default 0}"
+        "byref in" "in byref"
+        "byref" "in byref"
     } {
         teststring "binary $attr" param $expected
     }
     # out and inout params not allowed for binary
-    foreach attr {out inout byref {in byref} {out byref} {inout byref} {nullifempty} {in nullifempty} bitmask {{enum E}}} {
+    foreach attr {out inout {out byref} {inout byref} {nullifempty} {in nullifempty} bitmask {{enum E}}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
     

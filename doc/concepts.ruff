@@ -505,8 +505,11 @@ namespace eval Concepts {
         In the case of `in` parameters, at the time of calling the function
         the argument must be specified as a Tcl value. These are then passed
         in to the C function by value if a scalar or by reference if an
-        array, one of the string variants or a struct. Scalars can be forced
+        array or a struct. Scalars can be forced
         to be passed by reference by annotating the parameter with `byref`.
+        In the case of `string` and `unistring`, `in` parameters correspond
+        to `char *` and `Tcl_UniChar *` respectively, while `in byref` map
+        to `char **` and `Tcl_UniChar **`.
 
         An `in` parameter may also be annotated with a default value so that no
         argument need be provided at the time of the call. The default parameter
@@ -522,16 +525,9 @@ namespace eval Concepts {
         not exist. In both cases, on return from the function the output
         value stored in the parameter by the function will be stored in the
         variable. Parameters annotated with `out` and `inout` are always passed
-        by reference for all types and use of `byref` is redundant.
-
-        The case of `out` and `inout` parameters of type `string`, `unistring`
-        and `binary` need special treatment. The package needs to know how
-        much memory is to be allocated for the function to store the output
-        value. Therefore, the corresponding argument has to be passed as
-        a list of two elements: the first is the name of a variable, as above,
-        and the second is the number of bytes of storage to allocate in the case
-        of `string` and `binary`, and number of Tcl_UniChar characters in the
-        case of `unistring`.
+        by reference for all types and use of `byref` is redundant. Note that
+        `inout` cannot be used with `string` and `unistring` types while neither
+        `out` nor `inout` can be used with `binary`.
 
         There are some subtleties with respect to error handling that are
         relevant to output parameters and must be accounted for in declarations.

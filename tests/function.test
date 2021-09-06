@@ -293,7 +293,6 @@ namespace eval ${NS}::test {
     }
 
     ## Parameter tests - string, unistring
-    # String is tested earlier for input parameters.
     foreach {type val} [list string abc unistring "\xe0\xe1\xe2"] {
         set len [string length $val]
         set repeat 100000
@@ -309,10 +308,35 @@ namespace eval ${NS}::test {
             $fn $largeval
         } -result $largelen
 
-        set fn ${type}_out
-        test function-$type-out-error-0 "$type out" -body {
-            testDll function $fn int [list inparam $type outparam [list $type out]]
-        } -result "Invalid value \"$type out\". A type annotation is not valid for the data type." -returnCodes error
+        set fn ${type}_inbyref_len
+        testDll function $fn int [list input [list $type in byref]]
+        test function-$type-in-byref-0 "$type in byref" -body {
+            $fn $val
+        } -result $len
+        test function-$type-in-byref-1 "$type in byref large" -body {
+            $fn $largeval
+        } -result $largelen
+
+        set fn ${type}_inbyref_len
+        testDll function $fn int [list input [list $type byref]]
+        test function-$type-byref-0 "$type byref" -body {
+            $fn $val
+        } -result $len
+        test function-$type-byref-1 "$type in byref large" -body {
+            $fn $largeval
+        } -result $largelen
+
+        set fn ${type}_param_out
+        testDll function $fn void [list outvar [list $type out]]
+        test function-$type-out-0 "$type out" -body {
+            $fn outvar
+            set outvar
+        } -result $val
+        testDll function $fn void [list outvar [list $type out byref]]
+        test function-$type-out-byref-0 "$type out byref" -body {
+            $fn outvar
+            set outvar
+        } -result $val
 
         set fn ${type}_reverse_inout
         test function-$type-inout-error-0 "$type inout" -body {
@@ -532,6 +556,15 @@ namespace eval ${NS}::test {
     } -result "Invalid value. Byte array length is greater than specified maximum buffer size." -returnCodes error
 
     ## Parameter tests - binary
+    # Note: binary in tests are tested earlier (converting to numerics)
+    test function-binary-in-byref-0 "binary in byref" -body {
+        testDll function binary_inbyref_len int {bin {binary in byref}}
+        binary_inbyref_len abc\0
+    } -result 3
+    test function-binary-byref-0 "binary byref" -body {
+        testDll function binary_inbyref_len int {bin {binary byref}}
+        binary_inbyref_len abc\0
+    } -result 3
     test function-binary-out-error-0 "binary out" -body {
         testDll function bytes_out void [list n int input binary output [list binary out]]
     } -result {Invalid value "binary out". A type annotation is not valid for the data type.} -returnCodes error

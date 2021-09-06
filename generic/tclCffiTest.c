@@ -120,6 +120,14 @@
         while (*in++)                                \
             ++len;                                   \
         return len;                                  \
+    }                                                \
+    EXTERN int token_##_inbyref_len(type_ **inP)     \
+    {                                                \
+        type_ *in = *inP;                            \
+        int len   = 0;                               \
+        while (*in++)                                \
+            ++len;                                   \
+        return len;                                  \
     }
 
 typedef struct InnerTestStruct {
@@ -426,11 +434,21 @@ EXTERN const unsigned char *jis0208_return() {
     static unsigned char jis[] = {'8', 'c', '8', 'c', 0, 0};
     return jis;
 }
+EXTERN void string_param_out(char **strPP) {
+    *strPP = "abc";
+}
+
 FNSTRINGS(unistring, Tcl_UniChar)
 EXTERN const Tcl_UniChar *unistring_return() {
     static Tcl_UniChar unichars[] = {0xe0, 0xe1, 0xe2, 0};
     return unichars;
 }
+EXTERN void unistring_param_out(Tcl_UniChar **strPP) {
+    static Tcl_UniChar unichars[] = {0xe0, 0xe1, 0xe2, 0};
+    *strPP                        = unichars;
+}
+
+
 FNSTRINGS(binary, unsigned char)
 
 EXTERN int jis0208_out(int bufsize, char *out)
