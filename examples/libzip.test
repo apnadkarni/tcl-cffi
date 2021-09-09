@@ -276,7 +276,7 @@ namespace eval libzip::test {
         set zippath [file join [tcltest::temporaryDirectory]  zip_dir_add-0-test.zip]
         file delete $zippath
     } -cleanup {
-        #file delete $zippath
+        file delete $zippath
     } -body {
         set zip [libzip::zip_open $zippath ZIP_CREATE code]
         libzip::zip_dir_add $zip xdir

@@ -1,21 +1,26 @@
+# CFFI example - bindings for libzip
 # Copyright (c) 2021 Ashok P. Nadkarni
 # All rights reserved.
 # See LICENSE file for details.
 
-# Here is the incantation to build libzip.dll using MingW-W64. In particular to
-# bind against the *static* libraries for zlib etc. so the DLLs do not have to
-# be carried around. You need to have first installed libz etc. with mingw's
-# "pacman -Su" command. In the libzip source dir,
+# To bind to libzip, you first need the libzip shared library :-)
+#
+# On Unix-like systems, use the system package manager to install it.
+#
+# For Windows, here is the incantation to build libzip.dll using MingW-W64. In
+# particular to bind against the *static* libraries for zlib etc. so the DLLs do
+# not have to be carried around. You need to have first installed libzip's
+# dependencies (libz etc.) with MingW-W64's "pacman -Su" command. Then, in the
+# libzip source dir,
+#
 #   mkdir build && cd build
 #   cmake .. -G "MinGW Makefiles" -DLIBLZMA_LIBRARY=/mingw64/lib/liblzma.a -DZLIB_LIBRARY=/mingw64/lib/libz.a -DZstd_LIBRARY=/mingw64/lib/libzstd.a -DBZIP2_LIBRARY_RELEASE=/mingw64/lib/libbz2.a
 #   mingw32-make    (NOT make!)
 #
 # Similarly for 32-bit builds
+#
 #   cmake .. -G "MinGW Makefiles" -DLIBLZMA_LIBRARY=/mingw32/lib/liblzma.a -DZLIB_LIBRARY=/mingw32/lib/libz.a -DZstd_LIBRARY=/mingw32/lib/libzstd.a -DBZIP2_LIBRARY_RELEASE=/mingw32/lib/libbz2.a
 #
-
-
-# libzip::init {D:\src\vcpkg\installed\x64-windows\bin}
 
 package require cffi
 
@@ -28,7 +33,11 @@ namespace eval libzip {
         cffi::alias load C
         cffi::alias load posix
 
-        # Define symbols for libzip enums and #defines
+        # Define a bunch of symbols for libzip enums and #defines. These
+        # correspond to the ones from the libzip public header file. This is not
+        # strictly necessary (we could just use the values) but makes for more
+        # readable code and convenient for the extension user.
+
         cffi::enum define ZipFlags {
             ZIP_FL_ENC_GUESS   0
             ZIP_FL_NOCASE      1
@@ -102,6 +111,9 @@ namespace eval libzip {
             flags        uint32_t
         }
 
+        # Now define some type aliases for clarity, consistency and reduce typing.
+        # Note the use of annotations like bitmask for OR-able flags and defaults for
+        # trailing arguments.
         cffi::alias define PZIP_T        pointer.zip_t
         cffi::alias define PZIP_SOURCE_T pointer.zip_source_t
         cffi::alias define PZIP_FILE_T   pointer.zip_file_t
@@ -114,6 +126,10 @@ namespace eval libzip {
         }
         cffi::alias define ZIP_ENCRYPTION_METHOD {uint16_t {enum ZipEncryptionMethod} {default ZIP_EM_NONE}}
         cffi::alias define ZIP_COMPRESSION_METHOD {int32_t {enum ZipCompressionMethod} {default ZIP_CM_DEFAULT}}
+        # libzip signals errors in function return values in two ways - directly with an error code or
+        # as a success/fail status with the error code needing to be retrieved separately.
+        # These are wrapped as aliases with appropriate error handlers to raise exceptions
+        # with user-friendly error messages.
         # LIBZIPSTATUS - integer error return that is 0 on success. Error
         # detail is to be retrieved with zip_get_error.
         cffi::alias define LIBZIPSTATUS {int zero {onerror ::libzip::ArchiveErrorHandler}}
@@ -131,12 +147,6 @@ namespace eval libzip {
     #   zcode  - integer error code
     #   zerr   - zip_error_t struct
 
-    proc ThrowLibzipError {zerr} {
-         set zmsg [zip_error_strerror $zerr]
-         set zcode [zip_error_code_zip $zerr]
-         set scode [zip_error_code_system $zerr]
-         throw [list LIBZIP [list ZCODE $zcode SYSERROR $scode] $zmsg] $zmsg
-    }
     proc ErrorCodeHandler {fn_result args} {
         # fn_result is the error code
         zip_error_init_with_code zerr $fn_result
@@ -167,6 +177,14 @@ namespace eval libzip {
             zip_source_free [dict get $inparams psource]
         }
         ArchiveErrorHandler $fn_result $inparams $outparams
+    }
+
+    # Helper to actually throw an error
+    proc ThrowLibzipError {zerr} {
+        set zmsg [zip_error_strerror $zerr]
+        set zcode [zip_error_code_zip $zerr]
+        set scode [zip_error_code_system $zerr]
+        throw [list LIBZIP [list ZCODE $zcode SYSERROR $scode] $zmsg] $zmsg
     }
 
     variable Functions
@@ -275,12 +293,12 @@ namespace eval libzip {
             {pzip PZIP_T fsname string start {uint64_t {default 0}} len { int64_t {default 0}}}
         }
         zip_file_add {
-            {int64_t nonnegative {onerror ::libzip::ArchiveErrorHandler}}
-            {pzip PZIP_T utfname UTF8 psource {PZIP_SOURCE_T dispose} flags ZIP_FLAGS_T}
+            {int64_t nonnegative {onerror ::libzip::SourceErrorHandler}}
+            {pzip PZIP_T utfname UTF8 psource {PZIP_SOURCE_T disposeonsuccess} flags ZIP_FLAGS_T}
         }
         zip_file_replace {
-            LIBZIPSTATUS
-            {pzip PZIP_T index uint64_t psource {PZIP_SOURCE_T dispose} flags ZIP_FLAGS_T}
+            {int {onerror SourceErrorHandler}}
+            {pzip PZIP_T index uint64_t psource {PZIP_SOURCE_T disposeonsuccess} flags ZIP_FLAGS_T}
         }
         zip_file_rename {
             LIBZIPSTATUS
@@ -292,7 +310,7 @@ namespace eval libzip {
         zip_unchange_archive { LIBZIPSTATUS {pzip PZIP_T}}
 
 
-        # {File operations}
+        # File operations
         zip_fopen {
             {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T utfname UTF8 flags ZIP_FLAGS_T}
