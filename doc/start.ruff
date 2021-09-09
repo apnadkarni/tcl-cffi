@@ -35,6 +35,9 @@ set start_page {
     loading shared libraries using the `dyncall` library and declaring function
     prototypes.
 
+    - Some tutorial material is available at [magicsplat](https://www.magicsplat.com/blog/tags/cffi/)
+    and the [samples directory](https://github.com/apnadkarni/tcl-cffi/tree/main/examples).
+
     ## Downloads
 
     Source distributions and binaries for some platforms are available from
@@ -61,7 +64,7 @@ set start_page {
 
     ````
     % package require cffi
-    0.1
+    1.0a7
     % cffi::dyncall::Library create user32 [file join $env(windir) system32 user32.dll]
     ::user32
     ````

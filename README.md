@@ -4,12 +4,14 @@ This is the source code for the Tcl `cffi` package which permits calling C funct
 in shared libraries from within Tcl scripts. It is based on the `dyncall` library
 available from https://dyncall.org.
 
-The repository for the package is at https://github.com/apnadkarni/tcl-cffi.
+The package source repository is at https://github.com/apnadkarni/tcl-cffi.
 
-Documentation pages are at https://cffi.magicsplat.com.
+Reference documentation is at https://cffi.magicsplat.com. Some additional
+tutorial material is available at https://www.magicsplat.com/blog/tags/cffi/
+and the samples in https://github.com/apnadkarni/tcl-cffi/tree/main/examples.
 
-Source distributions and binary packages for some platforms are at
-https://sourceforge.net/projects/magicsplat/files/cffi
+Source distributions and binary packages for some platforms can be
+downloaded from https://sourceforge.net/projects/magicsplat/files/cffi.
 
 ## Building
 

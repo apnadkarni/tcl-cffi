@@ -3,6 +3,10 @@
 # All rights reserved.
 # See LICENSE file for details.
 
+# To use (assuming the libzip shared library is built and located)
+# package require libzip
+# cffi::init ?PATHTOLIBZIP?; # Call to init is required
+
 # To bind to libzip, you first need the libzip shared library :-)
 #
 # On Unix-like systems, use the system package manager to install it.
@@ -29,11 +33,21 @@ namespace eval libzip {
 
     variable libzip
 
+    # Initialization is wrapped in proc for faster on-demand loading as
+    # described later.
     proc InitTypes {} {
+
+        # Most C libraries make use of system dependent type definitions. To use
+        # these within CFFI definitions, they have to be loaded.
+        # `C` aliases include type definitions like
+        # `int64_t` while the `posix` set includes those defined in the POSIX
+        # standard, for example `time_t`. Note it is preferable to load these
+        # as above as opposed to using native types like `int` or `long` as
+        # the underlying native type can be architecture or compiler dependent.
         cffi::alias load C
         cffi::alias load posix
 
-        # Define a bunch of symbols for libzip enums and #defines. These
+        # Define a bunch of symbols for libzip C enums and #defines. These
         # correspond to the ones from the libzip public header file. This is not
         # strictly necessary (we could just use the values) but makes for more
         # readable code and convenient for the extension user.
@@ -93,11 +107,15 @@ namespace eval libzip {
             ZIP_CM_XZ 95
             ZIP_CM_ZSTD 93
         }
-        cffi::Struct create zip_error_t {
-            zip_err int
-            sys_err int
-            str     {pointer unsafe}
-        }
+
+        # Define equivalents for the C structs used in the API The definitions
+        # uses some of the C99 and POSIX type definitions loaded earlier. The
+        # only other point to be noted is the use of the `unsafe` annotation
+        # with the `name` field. `unsafe` pointers are not tracked by CFFI and
+        # checked for validity with respect to allocation and freeing. The use
+        # of the annotation is appropriate in this case because `libzip` returns
+        # an internal pointer as part of the `struct` value and thus need not be
+        # tracked for allocation errors.
         cffi::Struct create zip_stat_t {
             valid        uint64_t
             name         {pointer unsafe}
@@ -117,7 +135,6 @@ namespace eval libzip {
         cffi::alias define PZIP_T        pointer.zip_t
         cffi::alias define PZIP_SOURCE_T pointer.zip_source_t
         cffi::alias define PZIP_FILE_T   pointer.zip_file_t
-        cffi::alias define ZIP_ERROR_REF {struct.zip_error_t byref}
         cffi::alias define ZIP_FLAGS_T   {uint32_t {enum ZipFlags} bitmask {default 0}}
         cffi::alias define PZIP_FILE_ATTRIBUTES_T pointer.zip_file_attributes_t
         cffi::alias define UTF8          string.utf-8
@@ -126,21 +143,43 @@ namespace eval libzip {
         }
         cffi::alias define ZIP_ENCRYPTION_METHOD {uint16_t {enum ZipEncryptionMethod} {default ZIP_EM_NONE}}
         cffi::alias define ZIP_COMPRESSION_METHOD {int32_t {enum ZipCompressionMethod} {default ZIP_CM_DEFAULT}}
-        # libzip signals errors in function return values in two ways - directly with an error code or
-        # as a success/fail status with the error code needing to be retrieved separately.
-        # These are wrapped as aliases with appropriate error handlers to raise exceptions
-        # with user-friendly error messages.
-        # LIBZIPSTATUS - integer error return that is 0 on success. Error
-        # detail is to be retrieved with zip_get_error.
+
+        # Types related to error conditions.
+        #
+        # libzip signals errors in function return values in two ways - directly
+        # with an error code or as a success/fail status with the error code
+        # needing to be retrieved separately. These are wrapped as aliases with
+        # appropriate error handlers to raise exceptions with user-friendly
+        # error messages. The zip_error_t structure is used to convert error
+        # codes to text.
+        cffi::Struct create zip_error_t {
+            zip_err int
+            sys_err int
+            str     {pointer unsafe}
+        }
+        cffi::alias define ZIP_ERROR_REF {struct.zip_error_t byref}
+
+        # LIBZIPSTATUS - integer status return type. Note the use of the `zero`
+        # annotation as indicator of success and the `onerror` annotation to run
+        # the ArchiveErrorHandler procedure to retrieve the error detail when
+        # the return value signals an failure condition.
+
         cffi::alias define LIBZIPSTATUS {int zero {onerror ::libzip::ArchiveErrorHandler}}
         # LIBZIPCODE - error code
         cffi::alias define LIBZIPCODE {int zero {onerror ::libzip::ErrorCodeHandler}}
-
-
     }
 
-    # The error handlers expect the following parameter names in the
-    # passed input/output dictionaries.
+    # Custom error handlers may need the return value from the function call
+    # (generally indicating errors), the arguments that were passed in to
+    # the function, and any output parameter values returned by the function
+    # on error. These are passed in to the error handlers as three arguments
+    #  - the return value of the function
+    #  - a dictionary containing the input arguments keyed by parameter name
+    #  - a dictionary containing output parameter values keyed by parameter name
+    # These last two dictionaries imply that the names of parameters used in
+    # functions that reference these error handlers must match the dictionary
+    # keys expected by the error handlers. The following parameter names are
+    # used consistently for that reason.
     #   pzip   - the PZIP_T handle to the archive
     #   psource - a PZIP_SOURCE_T handle
     #   pfile  - a PZIP_FILE_T handle to a file in the archive
@@ -170,8 +209,9 @@ namespace eval libzip {
          }
          throw [list LIBZIP [list ZCODE -1 SYSERROR -1] "Unknown error"] "Unknown error"
     }
-    # SourceErrorHander is needed because on error PZIP_SOURCE_T type
-    # arguments need to be freed.
+    # SourceErrorHander is needed because PZIP_SOURCE_T type
+    # arguments need to be freed ONLY on error by when calling functions like
+    # `zip_file_add`. On success, these functions free the arguments internally.
     proc SourceErrorHandler {fn_result inparams outparams} {
         if {[dict exists $inparams psource]} {
             zip_source_free [dict get $inparams psource]
@@ -187,14 +227,21 @@ namespace eval libzip {
         throw [list LIBZIP [list ZCODE $zcode SYSERROR $scode] $zmsg] $zmsg
     }
 
+    # Instead of directly defining the functions, we define an array keyed by
+    # the function name whose values are pairs containing the return type
+    # and parameter definitions. Again, this is for faster loading as described
+    # later.
+    
     variable Functions
     array set Functions {
         zip_libzip_version { string {} }
-        zip_compression_method_supported { int {method ZIP_COMPRESSION_METHOD compress int} }
-        zip_encryption_method_supported { int {method ZIP_ENCRYPTION_METHOD encrypt int} }
-        # zip_encryption_method_supported int {uint16_t method, int encode}
-
-        # {Error handling functions}
+        zip_compression_method_supported { int {comp_method ZIP_COMPRESSION_METHOD compress int} }
+        zip_encryption_method_supported { int {encr_method ZIP_ENCRYPTION_METHOD encrypt int} }
+    }
+    # Error handling functions - in general these are used within the error
+    # handlers defined above and usually there should be no need for
+    # applications to call them directly
+    array set Functions {
         zip_error_init_with_code { void   {zerr {ZIP_ERROR_REF out} zcode int} }
         zip_error_strerror       { string {zerr ZIP_ERROR_REF} }
         zip_error_code_zip       { int    {zerr ZIP_ERROR_REF} }
@@ -204,16 +251,27 @@ namespace eval libzip {
         zip_get_error            { {pointer.libzip::zip_error_t} {pzip PZIP_T} }
         zip_file_strerror        { string {pfile PZIP_FILE_T} }
         zip_file_get_error       { {pointer.libzip::zip_error_t} {pfile PZIP_FILE_T} }
+    }
 
-        # {Open/close archive}
+    # Archive open/close
+    # Note the use of `disposeonsuccess` annotation on zip_close. zip_close
+    # can fail under some circumstances such as non-existence of a file that
+    # is added lazy (at close time). In such cases, the library does not
+    # free up the handle to the archive and associated resources. Thus the
+    # corresponding CFFI pointer should not be marked as disposed of and
+    # invalid since it is still needed for (potential) recovery or passed to
+    # zip_discard for cleanup. Hence we mark it as to be disposed only on
+    # success.
+    array set Functions {
         zip_open {
             {PZIP_T nonzero {onerror ::libzip::ArchiveOpenHandler}}
             {path string flags {int bitmask {enum ZipOpenFlags}} zcode {int out storeonerror}}
         }
-        zip_close   { LIBZIPSTATUS {pzip {PZIP_T disposeonsuccess}} }
         zip_discard { void         {pzip {PZIP_T dispose}} }
-
-        # {Archive properties}
+        zip_close   { LIBZIPSTATUS {pzip {PZIP_T disposeonsuccess}} }
+    }
+    # Archive property management
+    array set Functions {
         zip_set_default_password {
             LIBZIPSTATUS
             {pzip PZIP_T password {UTF8 nullifempty}}
@@ -230,8 +288,9 @@ namespace eval libzip {
             {int nonnegative}
             {pzip PZIP_T flag_to_check ZIP_FLAGS_T flags ZIP_FLAGS_T}
         }
-
-        # {Directory related functions}
+    }
+    # Directory related functions
+    array set Functions {
         zip_dir_add {
             {int64_t nonnegative {onerror libzip::ArchiveErrorHandler}}
             {pzip PZIP_T name UTF8 flags ZIP_ENCODING}
@@ -252,8 +311,9 @@ namespace eval libzip {
             LIBZIPSTATUS
             {pzip PZIP_T index uint64_t mtime time_t flags ZIP_FLAGS_T}
         }
-
-        # {Get / set file properties}
+    }
+    # File properties
+    array set Functions {
         zip_stat {
             LIBZIPSTATUS
             {pzip PZIP_T fname UTF8 flags ZIP_FLAGS_T stat {struct.zip_stat_t out}}
@@ -286,8 +346,9 @@ namespace eval libzip {
             LIBZIPSTATUS
             {pzip PZIP_T index uint64_t comp ZIP_COMPRESSION_METHOD level {uint32_t {default 0}}}
         }
-
-        # {Add / remove files}
+    }
+    # Operations on contained files
+    array set Functions {
         zip_source_file {
             {PZIP_SOURCE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T fsname string start {uint64_t {default 0}} len { int64_t {default 0}}}
@@ -297,7 +358,7 @@ namespace eval libzip {
             {pzip PZIP_T utfname UTF8 psource {PZIP_SOURCE_T disposeonsuccess} flags ZIP_FLAGS_T}
         }
         zip_file_replace {
-            {int {onerror SourceErrorHandler}}
+            {int notzero {onerror SourceErrorHandler}}
             {pzip PZIP_T index uint64_t psource {PZIP_SOURCE_T disposeonsuccess} flags ZIP_FLAGS_T}
         }
         zip_file_rename {
@@ -309,8 +370,6 @@ namespace eval libzip {
         zip_unchange_all     { LIBZIPSTATUS {pzip PZIP_T}}
         zip_unchange_archive { LIBZIPSTATUS {pzip PZIP_T}}
 
-
-        # File operations
         zip_fopen {
             {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T utfname UTF8 flags ZIP_FLAGS_T}
@@ -335,7 +394,7 @@ namespace eval libzip {
     }
 
 
-    # Following functions not defined as yet as likely rarely used.
+    # Following functions not defined as yet and left as an exercise :-)
     # zip_error_fini {void {perr pzip_error_t}}
     # zip_error_init {void {perr {struct.zip_error_t out}}}
     # zip_error_set {void {perr pzip_error_t zerr int syserr int}}
@@ -401,9 +460,10 @@ namespace eval libzip {
     # zip_source_zip_create pzip_source_t {pzip PZIP_T uint64_t, flags ZIP_FLAGS_T, uint64_t, int64_t, pzip_error_t _Nullable}
     # zip_stat_init void {zip_stat_t *_Nonnull}
     
+    # Lazy initialization
     #
-    # The wrapped functions are lazy-initialized by default, i.e. they are actually
-    # wrapped the first time they are called. This has two benefits:
+    # The wrapped functions are lazy-initialized by default, i.e. they are
+    # actually wrapped the first time they are called. This has two benefits:
     #  - faster initialization since symbols do not need to be looked up in
     #    the symbol table if they are never used
     #  - more important, symbols that are not defined in the shared library

@@ -349,6 +349,7 @@ ruff_defitem {
 <li>The <a href="cffi_Concepts.html#::Concepts" title="Concepts" class='ruff_cmd'>Concepts</a> page, which describes how C level constructs are translated to the Tcl script level; for example, type definitions, memory management, pointers etc.</li>
 <li>The <a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a> page which contains reference documentation for the above</li>
 <li>The <a href="cffi_cffi_dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a> page which contains reference documentation for loading shared libraries using the <code>dyncall</code> library and declaring function prototypes.</li>
+<li>Some tutorial material is available at <a href="https://www.magicsplat.com/blog/tags/cffi/" >magicsplat</a> and the <a href="https://github.com/apnadkarni/tcl-cffi/tree/main/examples" >samples directory</a>.</li>
 </ul>
 <h2 class='ruff'><a name='Downloads'></a>Downloads<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
@@ -365,7 +366,7 @@ ruff_defitem {
 <p class='ruff'>After loading the package, the <code>user32</code> system DLL which contains the functions of interest is loaded.</p>
 <pre class='ruff'>
 % package require cffi
-0.1
+1.0a7
 % cffi::dyncall::Library create user32 [file join $env(windir) system32 user32.dll]
 ::user32
 </pre>
@@ -480,6 +481,7 @@ cffi WINERROR {The system cannot find the file specified. }
 </pre>
 <p class='ruff'>With the inclusion <code>lasterror</code> in the type declaration, the error message is much clearer. This also eliminates the second issue mentioned above with the error detail being lost before the call to retrieve it is made.</p>
 <p class='ruff'>While <code>lasterror</code> implies <code>GetLastError</code> as the retrieval mechanism and is specific to Windows, other annotation for error retrieval are also available. For example, the <code>errno</code> annotation serves a similar purpose except it retrieves the error based on the <code>errno</code> facility which is cross-platform and commonly applicable to both the C runtime as well as system calls on Unix.</p>
+<p class='ruff'>For cases where the error is library-specific and not derived from the system, the <code>onerror</code> annotation can be used to customize the handling of error conditions.</p>
 <h3 class='ruff'><a name='Pointers and memory'></a>Pointers and memory<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Pointers are ubiquitous in C. They give C much of its power while also being the source of many bugs. In many cases, pointers can be avoided through the use of the <code>out</code> parameters and <code>struct</code>, <code>string</code> and <code>binary</code> types that use pointers under the covers. Many times though, this is not possible or desirable and raw access to the native storage of the data is needed. The <code>pointer</code> type provides this access while also attempting to guard against some common errors through multiple mechanisms:</p>
