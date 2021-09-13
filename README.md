@@ -1,12 +1,12 @@
 # Tcl cffi package
 
-This is the source code for the Tcl `cffi` package which permits calling C functions
-in shared libraries from within Tcl scripts. It is based on the `dyncall` library
-available from https://dyncall.org.
+This is the source code for the Tcl `cffi` package which permits calling C
+functions in shared libraries from within Tcl scripts. It is based on the
+`dyncall` library available from https://dyncall.org.
 
 The package source repository is at https://github.com/apnadkarni/tcl-cffi.
 
-Reference documentation is at https://cffi.magicsplat.com. Some additional
+Documentation is at https://cffi.magicsplat.com. Some additional
 tutorial material is available at https://www.magicsplat.com/blog/tags/cffi/
 and the samples in https://github.com/apnadkarni/tcl-cffi/tree/main/examples.
 
@@ -40,4 +40,15 @@ Limitations in the current version include
 - No support of functions taking variable number of arguments
 - No support for callbacks from C code
 - No support for passing structs by value
+
+## Changes in 1.0a7
+
+- Support `string`, `unistring` and `binary` as return types and output parameters
+- Support `notzero` annotation for strings and unistrings
+- Added `enum` command to define constants and enumerations
+- Added `bitmask` annotation for integer parameters
+- Added `onerror` annotation for custom error handlers
+- Added `disposeonsuccess` annotation to only invalidate pointers on success
+- Sample `libzip` wrapper in examples directory
+- Miscellaneous bug fixes. See https://github.com/apnadkarni/tcl-cffi/milestone/1?closed=1 for a full list.
 
