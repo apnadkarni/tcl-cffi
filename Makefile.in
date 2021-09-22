@@ -108,6 +108,7 @@ MAKE_STUB_LIB	= @MAKE_STUB_LIB@
 OBJEXT		= @OBJEXT@
 RANLIB		= @RANLIB@
 RANLIB_STUB	= @RANLIB_STUB@
+SHLIB_SUFFIX    = @SHLIB_SUFFIX@
 SHLIB_CFLAGS	= @SHLIB_CFLAGS@
 SHLIB_LD	= @SHLIB_LD@
 SHLIB_LD_LIBS	= @SHLIB_LD_LIBS@
@@ -295,8 +296,8 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 	${MAKE_STUB_LIB}
 	$(RANLIB_STUB) $(PKG_STUB_LIB_FILE)
 
-test: cffitest.so
-cffitest.so: $(PKG_TEST_OBJECTS)
+test: cffitest$(SHLIB_SUFFIX)
+cffitest$(SHLIB_SUFFIX): $(PKG_TEST_OBJECTS)
 	${SHLIB_LD} ${LDFLAGS} ${LDFLAGS_DEFAULT} -o $@ $(PKG_TEST_OBJECTS)
 
 #========================================================================

@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([cffi],[1.0a7])
+AC_INIT([cffi],[1.0a8])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -183,6 +183,12 @@ TEA_PROG_TCLSH
 
 #TEA_EXPORT_CONFIG([sample])
 #AC_SUBST(SAMPLE_VAR)
+
+
+#--------------------------------------------------------------------
+# Needed for test DLL suffix depending on platform
+#--------------------------------------------------------------------
+AC_SUBST(SHLIB_SUFFIX)
 
 #--------------------------------------------------------------------
 # Specify files to substitute AC variables in. You may alternatively
