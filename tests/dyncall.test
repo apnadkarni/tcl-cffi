@@ -174,7 +174,7 @@ namespace eval ${NS}::test {
     } -result {1 {wrong # args: should be "dll addressof SYMBOL"} {TCL WRONGARGS}}
 
     # NOTE THIS TEST WILL CRASH IN PRESENCE OF THE BUG
-    test dyncall-Library-bug59 {Bug 59 - Library released with bound function} -constraints xxx  -setup {
+    test dyncall-Library-bug59 {Bug 59 - Library released with bound function} -setup {
         # Create a copy of the test dll since we are testing premature
         # unloading and do not want other tests that load the dll interfering
         set dllCopyPath [file join [tcltest::temporaryDirectory] testdllcopy[info sharedlibextension]]
@@ -185,9 +185,10 @@ namespace eval ${NS}::test {
     } -body {
         dllcopy function int_to_int int {i int}
         dllcopy destroy
-        # TBD - need to also test that DLL is released if function is also deleted
-        int_to_int 42
-    } -result 42
+        # This also tests that DLL is released if function is also deleted.
+        # Otherwise the cleanup fragment above would error out
+        list [int_to_int 42] [rename int_to_int {}]
+    } -result [list 42 {}]
 }
 
 # Symbols tests
