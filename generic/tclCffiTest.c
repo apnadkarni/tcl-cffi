@@ -2,12 +2,19 @@
  * a set of functions to test arguments and returns in dyncall.
  */
 
+/*
+ * IMPORTANT: we need tcl.h so we can get Tcl_UniChar type BUT we should not
+ * be making use of any Tcl functions as this DLL should be loadable and
+ * unloadable on the fly during testing (e.g. bug #59)
+ */
 #include <tcl.h>
 #include <stddef.h>
 #include <stdint.h>		/* uintptr_t */
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __WIN32__
 #include <windows.h>
@@ -391,9 +398,8 @@ FNNUMERICARRAY(double, double)
 EXTERN int pointer_in(int *pint) { return *pint; }
 EXTERN void pointer_out(int **ppint)
 {
-    int *pint = ckalloc(sizeof(int));
-    *pint = 99;
-    *ppint = pint;
+    static int outint = 99;
+    *ppint = &outint;
 }
 EXTERN void pointer_incr(char **pp) { *pp = *pp + 1; }
 EXTERN void *pointer_byref(void **pp) { return *pp; }
@@ -439,13 +445,12 @@ EXTERN void string_param_out(char **strPP) {
 }
 
 FNSTRINGS(unistring, Tcl_UniChar)
+static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 EXTERN const Tcl_UniChar *unistring_return() {
-    static Tcl_UniChar unichars[] = {0xe0, 0xe1, 0xe2, 0};
-    return unichars;
+    return unichar_test_string;
 }
 EXTERN void unistring_param_out(Tcl_UniChar **strPP) {
-    static Tcl_UniChar unichars[] = {0xe0, 0xe1, 0xe2, 0};
-    *strPP                        = unichars;
+    *strPP = unichar_test_string;
 }
 
 
@@ -483,8 +488,10 @@ EXTERN int jis0208_in(char *in)
 EXTERN int jis0208_inout(char *in)
 {
     int len = (int) strlen(in);
-    if (in[len+1] != 0)
-        Tcl_Panic("jis0208_inout assumption false.");
+    if (in[len+1] != 0) {
+        printf("jis0208_inout assumption false.");
+        exit(1);
+    }
     memmove(in + len, in, len + 2); /* Two null bytes */
     return len;
 }
@@ -518,9 +525,6 @@ EXTERN int getTestStructSize() { return (int)sizeof(TestStruct); }
 EXTERN int getTestStruct(TestStruct *tsP)
 {
     int off;
-    Tcl_Obj *objP;
-    Tcl_UniChar *unichars;
-    int len;
 
 #define OFF(type, field) (type) offsetof(TestStruct, field)
     tsP->c = OFF(signed char, c);
@@ -533,10 +537,17 @@ EXTERN int getTestStruct(TestStruct *tsP)
     tsP->ul = OFF(unsigned long,ul);
     snprintf(tsP->c3, sizeof(tsP->c3), "%d", (int) offsetof(TestStruct, c3));
     tsP->ll = OFF(long long, ll);
-    objP = Tcl_ObjPrintf("%d", (int) offsetof(TestStruct, unic));
-    unichars = Tcl_GetUnicodeFromObj(objP, &len);
-    memmove(tsP->unic, unichars, (len+1)*sizeof(Tcl_UniChar));
-    Tcl_DecrRefCount(objP);
+    {
+        /* This awkardness because we do not want to link to Tcl lib for
+           Tcl_UniChar functions and cannot use wsprintf etc because sizes
+           may not match UniChar */
+        char offset_string[20];
+        int i;
+        snprintf(offset_string, sizeof(offset_string), "%d", (int)offsetof(TestStruct, unic));
+        for (i = 0; offset_string[i]; ++i)
+            tsP->unic[i] = (Tcl_UniChar)offset_string[i];
+        tsP->unic[i] = 0;
+    }
     tsP->ull = OFF(unsigned long long, ull);
     tsP->b[0] = OFF(unsigned char, b);
     tsP->b[1] = tsP->b[0]+1;
@@ -553,9 +564,6 @@ EXTERN int getTestStruct(TestStruct *tsP)
 EXTERN void incrTestStruct(TestStruct *tsP)
 {
     int i;
-    Tcl_Obj *objP;
-    Tcl_UniChar *unichars;
-    int len;
 
 #define SET(fld)                 \
     do {                         \
@@ -577,13 +585,21 @@ EXTERN void incrTestStruct(TestStruct *tsP)
     SET(ll);
 
     /* unic */
-    objP = Tcl_NewUnicodeObj(tsP->unic, -1);
-    Tcl_GetIntFromObj(NULL, objP, &i);
-    Tcl_DecrRefCount(objP);
-    objP     = Tcl_NewIntObj(i);
-    unichars = Tcl_GetUnicodeFromObj(objP, &len);
-    memmove(tsP->unic, unichars, (len+1)*sizeof(Tcl_UniChar));
-    Tcl_DecrRefCount(objP);
+    {
+        /* This awkardness because we do not want to link to Tcl lib for
+           Tcl_UniChar functions and cannot use wsprintf etc because sizes
+           may not match UniChar */
+        char ascii[20];
+        int i;
+        for (i = 0; tsP->unic[i]; ++i)
+            ascii[i] = (char) tsP->unic[i];
+        ascii[i] = 0;
+        sscanf(ascii, "%d", &i);
+        snprintf(ascii, sizeof(ascii), "%d", i + 1);
+        for (i = 0; ascii[i]; ++i)
+            tsP->unic[i] = (Tcl_UniChar)ascii[i];
+        tsP->unic[i] = 0;
+    }
 
     SET(ull);
 

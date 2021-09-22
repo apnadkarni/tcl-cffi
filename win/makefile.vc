@@ -39,9 +39,6 @@ DYNCALLDIR = $(ROOT)\external-libs\win\$(ARCH)
 !endif
 
 # Define the object files and resource file that make up the extension.
-# Note the resource file does not makes sense if doing a static library build
-# hence it is under that condition. TMP_DIR is the output directory
-# defined by rules for object files.
 PRJ_OBJS = \
 	$(TMP_DIR)\tclCffi.obj \
 	$(TMP_DIR)\tclCffiAlias.obj \
@@ -52,8 +49,9 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffiPrototype.obj \
 	$(TMP_DIR)\tclCffiStruct.obj \
 	$(TMP_DIR)\tclCffiTypes.obj \
-	$(TMP_DIR)\tclCffiTest.obj \
 	$(TMP_DIR)\memlifo.obj
+PRJ_TEST_OBJS = $(TMP_DIR)\tclCffiTest.obj
+PRJ_TEST_DLL = $(OUT_DIR)\cffitest.dll
 
 HEADERS = \
 	$(GENERICDIR)\tclCffiInt.h \
@@ -92,3 +90,12 @@ install: $(PRJLIB) default-install-docs-html
 	@$(CPY) $(PRJLIB) "$(LIB_INSTALL_DIR)\$(MACHINE)" >NUL
 
 $(PRJ_OBJS): $(HEADERS)
+
+# Build test DLL
+$(PROJECT): testdll
+testdll: $(PRJ_TEST_DLL)
+$(PRJ_TEST_OBJS): $(HEADERS)
+# NOTE - we intentionally do NOT link Tcl libraries. The DLL should be
+# loaded outside of the Tcl infrastructure.
+$(PRJ_TEST_DLL): $(PRJ_TEST_OBJS)
+	$(link32) $(dlllflags) -out:$@ $**
