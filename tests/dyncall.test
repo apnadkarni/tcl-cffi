@@ -172,6 +172,22 @@ namespace eval ${NS}::test {
             dll addressof schar_to_schar extra
         } result] $result $::errorCode
     } -result {1 {wrong # args: should be "dll addressof SYMBOL"} {TCL WRONGARGS}}
+
+    # NOTE THIS TEST WILL CRASH IN PRESENCE OF THE BUG
+    test dyncall-Library-bug59 {Bug 59 - Library released with bound function} -constraints xxx  -setup {
+        # Create a copy of the test dll since we are testing premature
+        # unloading and do not want other tests that load the dll interfering
+        set dllCopyPath [file join [tcltest::temporaryDirectory] testdllcopy[info sharedlibextension]]
+        file copy -force $testDllPath $dllCopyPath
+        $libraryClass create dllcopy $dllCopyPath
+    } -cleanup {
+        file delete $dllCopyPath
+    } -body {
+        dllcopy function int_to_int int {i int}
+        dllcopy destroy
+        # TBD - need to also test that DLL is released if function is also deleted
+        int_to_int 42
+    } -result 42
 }
 
 # Symbols tests

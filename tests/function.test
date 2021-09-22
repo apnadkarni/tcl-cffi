@@ -588,7 +588,7 @@ namespace eval ${NS}::test {
     test function-pointer-out-0 "pointer out" -setup {
         testDll function pointer_out void {p {pointer out}}
     } -cleanup {
-        cffi::memory free $p
+        cffi::pointer dispose $p
     } -body {
         pointer_out p
         list [cffi::pointer isvalid $p] [binary scan [cffi::memory tobinary $p 4] n val] $val
@@ -925,7 +925,7 @@ namespace eval ${NS}::test {
         incrTestStruct s
         # TBD - fix this result check for all platforms, including 32-bits
         set s
-    } -result [expr {$::tcl_platform(platform) eq "windows" ? {c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 56 ull 89 b abc f 101.0 s {c 105} d 121.0} : {c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 72 ull 105 b qrs f 117.0 s {c 121} d 137.0}}] 
+    } -result [expr {$::tcl_platform(platform) eq "windows" ? {c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 57 ull 89 b abc f 101.0 s {c 105} d 121.0} : {c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 73 ull 105 b qrs f 117.0 s {c 121} d 137.0}}] 
     test function-struct-inout-error-0 "Param struct inout - empty dictionary" -setup {
         testDll function incrTestStruct void {s {struct.TestStruct inout}}
     } -body {
