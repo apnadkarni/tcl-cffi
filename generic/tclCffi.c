@@ -234,6 +234,7 @@ CffiCallObjCmd(ClientData cdata,
     fnP = ckalloc(sizeof(*fnP));
     fnP->fnAddr = fnAddr;
     fnP->vmCtxP = vmCtxP;
+    fnP->libCtxP = NULL;
     CffiProtoRef(protoP);
     fnP->protoP = protoP;
 

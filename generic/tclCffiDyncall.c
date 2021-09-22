@@ -7,6 +7,17 @@
 
 #include "tclCffiInt.h"
 
+void CffiLibCtxUnref(CffiLibCtx *ctxP)
+{
+    if (ctxP->nRefs <= 1) {
+        /* Note cdlP->vmCtxP is interp-specific and not to be deleted here. */
+        dlFreeLibrary(ctxP->dlP);
+        ckfree(ctxP);
+    }
+    else
+        ctxP->nRefs -= 1;
+}
+
 static CffiResult
 CffiSymbolsDestroyCmd(Tcl_Interp *ip,
                     int objc,
@@ -887,6 +898,8 @@ static void
 CffiFunctionInstanceDeleter(ClientData cdata)
 {
     CffiFunction *fnP = (CffiFunction *)cdata;
+    if (fnP->libCtxP)
+        CffiLibCtxUnref(fnP->libCtxP);
     CffiProtoUnref(fnP->protoP);
     ckfree(fnP);
 }
@@ -904,7 +917,8 @@ CffiFunctionInstanceCmd(ClientData cdata,
  * Creates a single command mapped to a function.
  *
  * Parameters:
- *    ctxP - pointer to the context in which function is to be called
+ *    vmCtxP - pointer to the context in which function is to be called
+ *    libCtxP - containing library, NULL for free standing function
  *    fnAddr - address of function
  *    cmdNameObj - name to give to command
  *    returnTypeObj - function return type definition
@@ -924,6 +938,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
 static CffiResult
 CffiDefineOneFunction(Tcl_Interp *ip,
                       CffiCallVmCtx *vmCtxP,
+                      CffiLibCtx *libCtxP,
                       void *fnAddr,
                       Tcl_Obj *cmdNameObj,
                       Tcl_Obj *returnTypeObj,
@@ -941,6 +956,9 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     fnP = ckalloc(sizeof(*fnP));
     fnP->fnAddr = fnAddr;
     fnP->vmCtxP = vmCtxP;
+    fnP->libCtxP = libCtxP;
+    if (libCtxP)
+        CffiLibCtxRef(libCtxP);
     CffiProtoRef(protoP);
     fnP->protoP = protoP;
     fqnObj = CffiQualifyName(ip, cmdNameObj);
@@ -1004,6 +1022,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
 
     return CffiDefineOneFunction(ip,
                                  libCtxP->vmCtxP,
+                                 libCtxP,
                                  fn,
                                  cmdNameObj,
                                  returnTypeObj,
@@ -1016,7 +1035,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
  *
  * Parameters:
  * ip   - interpreter
- * ctxP - pointer to the context in which function is to be called
+ * ctxP - library context in which functions are being defined
  * objc - number of elements in *objv*
  * objv - array containing the function definition
  *
@@ -1046,7 +1065,7 @@ CffiDyncallFunctionCmd(Tcl_Interp *ip,
  *
  * Parameters:
  * ip   - interpreter
- * ctxP - pointer to the context in which function is to be called
+ * ctxP - library context in which functions are being defined
  * objc - number of elements in *objv*
  * objv - array containing the function definition
  *
@@ -1087,7 +1106,7 @@ CffiDyncallStdcallCmd(Tcl_Interp *ip,
  *
  * Parameters:
  * ip   - interpreter
- * ctxP - pointer to the context in which function is to be called
+ * ctxP - library context in which functions are being defined
  * objc - number of elements in *objv*
  * objv - array containing the function definition list
  * callMode - a dyncall call mode that overrides one specified
@@ -1137,7 +1156,7 @@ CffiDyncallManyFunctionsCmd(Tcl_Interp *ip,
  * ip   - interpreter
  * objc - number of elements in *objv*
  * objv - array containing the function definition list
- * ctxP - pointer to the context in which function is to be called
+ * ctxP - library context in which functions are defined
  *
  * The *objv[2]* element contains the function definition list.
  * This is a flat list of function name, type, parameter definitions.
@@ -1162,7 +1181,7 @@ CffiDyncallFunctionsCmd(Tcl_Interp *ip,
  * ip   - interpreter
  * objc - number of elements in *objv*
  * objv - array containing the function definition list
- * ctxP - pointer to the context in which function is to be called
+ * ctxP - library context in which function is defined
  *
  * The *objv[2]* element contains the function definition list.
  * This is a flat list of function name, type, parameter definitions.
@@ -1261,10 +1280,7 @@ CffiDyncallInstanceCmd(ClientData cdata,
 
 static void CffiDyncallInstanceDeleter(ClientData cdata)
 {
-    CffiLibCtx *ctxP = (CffiLibCtx *)cdata;
-    /* Note cdlP->vmCtxP is interp-specific and not to be deleted here. */
-    dlFreeLibrary(ctxP->dlP);
-    ckfree(ctxP);
+    CffiLibCtxUnref((CffiLibCtx *)cdata);
 }
 
 /* Function: CffiDyncallLibraryObjCmd
@@ -1331,6 +1347,7 @@ CffiResult CffiDyncallLibraryObjCmd(ClientData  cdata,
         ctxP         = ckalloc(sizeof(*ctxP));
         ctxP->vmCtxP = (CffiCallVmCtx *)cdata;
         ctxP->dlP    = dlP;
+        ctxP->nRefs  = 1;
 
         Tcl_CreateObjCommand(ip,
                              Tcl_GetString(nameObj),

@@ -233,7 +233,11 @@ typedef struct CffiCallVmCtx {
 typedef struct CffiLibCtx {
     CffiCallVmCtx *vmCtxP;
     DLLib *dlP;    /* The dyncall library context */
+    int nRefs;     /* To ensure library not released with bound functions */
 } CffiLibCtx;
+CFFI_INLINE void CffiLibCtxRef(CffiLibCtx *libCtxP) {
+    libCtxP->nRefs += 1;
+}
 
 /* Context for struct command functions */
 typedef struct CffiStructCtx {
@@ -266,6 +270,8 @@ typedef struct CffiFunction {
     CffiCallVmCtx *vmCtxP; /* Context for the call */
     void *fnAddr;          /* Pointer to the function to call */
     CffiProto *protoP;     /* Prototype for the call */
+    CffiLibCtx *libCtxP; /* Containing library for bound functions or
+                               NULL for free standing functions */
 } CffiFunction;
 
 /* Used to store argument context when preparing to call a function */
@@ -282,9 +288,9 @@ typedef struct CffiArgument {
 
 /* Complete context for a call invocation */
 typedef struct CffiCall {
-    CffiFunction *fnP;     /* Function being called */
+    CffiFunction *fnP;         /* Function being called */
     CffiArgument *argsP;   /* Argument contexts */
-    int nArgs; /* Size of argsP. */
+    int nArgs;             /* Size of argsP. */
 } CffiCall;
 
 /*
@@ -406,6 +412,8 @@ CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
 void CffiProtoUnref(CffiProto *protoP);
 void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
 CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
+
+void CffiLibCtxUnref(CffiLibCtx *ctxP);
 
 void CffiEnumsCleanup(Tcl_HashTable *enumsTableP);
 CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
