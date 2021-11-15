@@ -942,18 +942,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                           "parameter direction.";
                 goto invalid_format;
             }
-#if 0
-            if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
-                || ((flags
-                     & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS | CFFI_F_ATTR_ENUM
-                        | CFFI_F_ATTR_BITMASK))
-                    != (flags & CFFI_F_ATTR_OUT))) {
-                message = "One or more annotations are invalid for the "
-                          "parameter direction.";
-                goto invalid_format;
-            }
-#endif
-            flags |= CFFI_F_ATTR_BYREF; /* out, inout default to byref */
+            flags |= CFFI_F_ATTR_BYREF; /* out, inout always byref */
         }
         else {
             flags |= CFFI_F_ATTR_IN; /* in, or by default if nothing was said */
@@ -2135,13 +2124,13 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
 CffiResult
 CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 {
-    DCCallVM *vmP  = callP->fnP->vmCtxP->vmP;
+    DCCallVM *vmP         = callP->fnP->vmCtxP->vmP;
     CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
-    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Interp *ip        = ipCtxP->interp;
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
-    CffiArgument *argP = &callP->argsP[arg_index];
-    CffiValue *valueP = &argP->value;
+    CffiArgument *argP    = &callP->argsP[arg_index];
+    CffiValue *valueP     = &argP->value;
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
     CffiResult ret;
@@ -2260,7 +2249,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     /* May the programming gods forgive me for these macro */
 #define OBJTONUM(objfn_, obj_, valP_)                                         \
     do {                                                                      \
-        /* We do not want errors if enum specified */                         \
+        /* interp NULL when we do not want errors if enum specified */                         \
         ret = objfn_(lookup_enum ? NULL : ip, obj_, valP_);                   \
         if (ret != TCL_OK) {                                                  \
             Tcl_Obj *enumValueObj;                                            \
@@ -2288,7 +2277,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             }                                                                  \
             else {                                                             \
                 if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {            \
-                    /* We do not want errors if enum specified */              \
                     OBJTONUM(objfn_, valueObj, &valueP->u.fld_);               \
                 }                                                              \
             }                                                                  \

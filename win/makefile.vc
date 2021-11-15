@@ -23,7 +23,7 @@ PROJECT = cffi
 # The extension wraps the dyncall library. The location of the header and
 # library files is given by the DYNCALLDIR environment variable. This location
 # should contain the include and lib directories. If undefined, it will default
-# to ../dyncall/$(BUILDDIRTOP) where BUILDDIRTOP is defined by rules-ext.vc
+# to ../external-libs/$(BUILDDIRTOP) where BUILDDIRTOP is defined by rules-ext.vc
 # above based on architecture, compiler version and build mode (debug/release).
 # See the BUILD.md in top level directory for building dyncall itself.
 
