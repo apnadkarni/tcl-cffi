@@ -420,6 +420,11 @@ CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *enumObj,
                         Tcl_Obj *nameObj,
                         Tcl_Obj **valueObjP);
+CffiResult CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
+                               Tcl_Obj *enumObj,
+                               Tcl_WideInt needle,
+                               int strict,
+                               Tcl_Obj **nameObjP);
 CffiResult CffiEnumBitmask(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *enumObj,
                            Tcl_Obj *valueListObj,

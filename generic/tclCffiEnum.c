@@ -49,9 +49,12 @@ CffiEnumFind(CffiInterpCtx *ipCtxP,
  * Returns the name of an enum member value.
  *
  * Parameters:
- * ipCtxP - context in which the enum is defined
- * enumObj - name of the enum
+ * ipCtxP - Context in which the enum is defined
+ * enumObj - Name of the enum
  * needleObj - Value to map to a name
+ * strict - If true, an error is raised if the needle value cannot be
+ * mapped to a enum member name. Otherwise, the needle is returned in
+ * *nameObjP* in such a case.
  * nameObjP - location to store the name of the member
  *
  * The reference count on the Tcl_Obj returned in nameObjP is NOT incremented.
@@ -61,9 +64,10 @@ CffiEnumFind(CffiInterpCtx *ipCtxP,
  */
 CffiResult
 CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
-             Tcl_Obj *enumObj,
-             Tcl_Obj *needleObj,
-             Tcl_Obj **nameObjP)
+                    Tcl_Obj *enumObj,
+                    Tcl_WideInt needle,
+                    int strict,
+                    Tcl_Obj **nameObjP)
 {
     Tcl_HashEntry *heP;
     Tcl_Obj *nameObj;
@@ -71,54 +75,32 @@ CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
     int done;
 
     heP = Tcl_FindHashEntry(&ipCtxP->enums, enumObj);
-    if (heP == NULL)
-        return Tclh_ErrorNotFound(ipCtxP->interp, "Enum", enumObj, NULL);
+    if (heP == NULL) {
+        if (strict)
+            return Tclh_ErrorNotFound(ipCtxP->interp, "Enum", enumObj, NULL);
+    }
     else {
         Tcl_DictSearch search;
         Tcl_Obj *entries = Tcl_GetHashValue(heP);
         CHECK(Tcl_DictObjFirst(
             ipCtxP->interp, entries, &search, &nameObj, &valueObj, &done));
-        if (!done) {
-            Tcl_Obj *exprObjs[3];
-            Tcl_Obj *exprObj;
-            /* Do not use any Tcl_Obj directly because they might not be
-            holding a reference and Tcl_EvalObjv required callers to hold
-            at reference.
-            */
-            exprObjs[0] = Tcl_NewStringObj("::tcl::mathop::==", 17);
-            Tcl_IncrRefCount(exprObjs[0]);
-            exprObjs[1] = needleObj;
-            Tcl_IncrRefCount(exprObjs[1]);
-            while (!done) {
-                /* TBD optimize how compares are done */
-                /* Note: use of mathop::== is faster than Tcl_ExprObj */
-                int equal;
-                /* No need to IncrRef valueObj since we know ref count >= 1 as
-                it is contained in the dictionary */
-                exprObjs[2] = valueObj;
-                if (Tcl_EvalObjv(ipCtxP->interp, 3, exprObjs, TCL_EVAL_GLOBAL) == TCL_OK) {
-                    exprObj   = Tcl_GetObjResult(ipCtxP->interp);
-                    if (Tcl_GetBooleanFromObj(ipCtxP->interp, exprObj, &equal)
-                            == TCL_OK
-                        && equal) {
-                        *nameObjP = nameObj;
-                        Tcl_DictObjDone(&search);
-                        Tcl_ResetResult(ipCtxP->interp);
-                        Tcl_DecrRefCount(exprObjs[0]);
-                        Tcl_DecrRefCount(exprObjs[1]);
-                        return TCL_OK;
-                    }
-                }
-                Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
+        while (!done) {
+            Tcl_WideInt wide;
+            if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
+                && wide == needle) {
+                *nameObjP = nameObj;
+                Tcl_DictObjDone(&search);
+                return TCL_OK;
             }
-            Tcl_DictObjDone(&search);
-            Tcl_ResetResult(ipCtxP->interp);
-            Tcl_DecrRefCount(exprObjs[0]);
-            Tcl_DecrRefCount(exprObjs[1]);
+            Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
         }
-        return Tclh_ErrorNotFound(
-            ipCtxP->interp, "Enum member value", needleObj, NULL);
+        Tcl_DictObjDone(&search);
+        if (strict)
+            return Tclh_ErrorNotFound(
+                ipCtxP->interp, "Enum member value", NULL, NULL);
     }
+    *nameObjP = Tcl_NewWideIntObj(needle);
+    return TCL_OK;
 }
 
 
@@ -172,8 +154,11 @@ CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     Tcl_HashEntry *heP;
     Tcl_Interp *ip = ipCtxP->interp;
-    int count;
     int newEntry;
+    Tcl_DictSearch search;
+    Tcl_Obj *valueObj;
+    Tcl_Obj *nameObj;
+    int done;
 
     CFFI_ASSERT(objc == 4);
 
@@ -181,9 +166,15 @@ CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     CHECK(CffiNameSyntaxCheck(ip, objv[2]));
 
     /* Verify it is properly formatted */
-    CHECK(Tcl_DictObjSize(ip, objv[3], &count));
-
-    /* TBD - should we syntax check each member of the enum? */
+    CHECK(Tcl_DictObjFirst(
+        ip, objv[3], &search, &nameObj, &valueObj, &done));
+    while (!done) {
+        Tcl_WideInt wide;
+        CHECK(CffiNameSyntaxCheck(ip, nameObj));
+        /* Values must be integers */
+        CHECK(Tcl_GetWideIntFromObj(ip, valueObj, &wide));
+        Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
+    }
 
     heP = Tcl_CreateHashEntry(&ipCtxP->enums, (char *)objv[2], &newEntry);
     if (! newEntry)
@@ -208,9 +199,11 @@ static CffiResult
 CffiEnumNameCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     Tcl_Obj *nameObj;
+    Tcl_WideInt wide;
     CFFI_ASSERT(objc == 4);
 
-    CHECK(CffiEnumFindReverse(ipCtxP, objv[2], objv[3], &nameObj));
+    CHECK(Tcl_GetWideIntFromObj(ipCtxP->interp, objv[3], &wide));
+    CHECK(CffiEnumFindReverse(ipCtxP, objv[2], wide, 1, &nameObj));
     Tcl_SetObjResult(ipCtxP->interp, nameObj);
     return TCL_OK;
 }

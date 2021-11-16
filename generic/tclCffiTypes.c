@@ -212,7 +212,8 @@ static CffiAttrs cffiAttrs[] = {
     {"counted",
      COUNTED,
      CFFI_F_ATTR_COUNTED,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_FIELD,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN
+         | CFFI_F_TYPE_PARSE_FIELD,
      1},
     {"unsafe",
      UNSAFE,
@@ -221,7 +222,11 @@ static CffiAttrs cffiAttrs[] = {
          | CFFI_F_TYPE_PARSE_FIELD,
      1},
     {"dispose", DISPOSE, CFFI_F_ATTR_DISPOSE, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"disposeonsuccess", DISPOSEONSUCCESS, CFFI_F_ATTR_DISPOSEONSUCCESS, CFFI_F_TYPE_PARSE_PARAM, 1},
+    {"disposeonsuccess",
+     DISPOSEONSUCCESS,
+     CFFI_F_ATTR_DISPOSEONSUCCESS,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
     {"zero", ZERO, CFFI_F_ATTR_ZERO, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"nonzero", NONZERO, CFFI_F_ATTR_NONZERO, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"nonnegative",
@@ -232,14 +237,34 @@ static CffiAttrs cffiAttrs[] = {
     {"positive", POSITIVE, CFFI_F_ATTR_POSITIVE, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"errno", ERRNO, CFFI_F_ATTR_ERRNO, CFFI_F_TYPE_PARSE_RETURN, 1},
 #ifdef _WIN32
-    {"lasterror", LASTERROR, CFFI_F_ATTR_LASTERROR, CFFI_F_TYPE_PARSE_RETURN, 1},
+    {"lasterror",
+     LASTERROR,
+     CFFI_F_ATTR_LASTERROR,
+     CFFI_F_TYPE_PARSE_RETURN,
+     1},
     {"winerror", WINERROR, CFFI_F_ATTR_WINERROR, CFFI_F_TYPE_PARSE_RETURN, 1},
 #endif
     {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM, 2},
-    {"nullifempty", NULLIFEMPTY, CFFI_F_ATTR_NULLIFEMPTY, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"storeonerror", STOREONERROR, CFFI_F_ATTR_STOREONERROR, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"storealways", STOREALWAYS, CFFI_F_ATTR_STOREALWAYS, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"enum", ENUM, CFFI_F_ATTR_ENUM, CFFI_F_TYPE_PARSE_PARAM, 2},
+    {"nullifempty",
+     NULLIFEMPTY,
+     CFFI_F_ATTR_NULLIFEMPTY,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
+    {"storeonerror",
+     STOREONERROR,
+     CFFI_F_ATTR_STOREONERROR,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
+    {"storealways",
+     STOREALWAYS,
+     CFFI_F_ATTR_STOREALWAYS,
+     CFFI_F_TYPE_PARSE_PARAM,
+     1},
+    {"enum",
+     ENUM,
+     CFFI_F_ATTR_ENUM,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN,
+     2},
     {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"onerror", ONERROR, CFFI_F_ATTR_ONERROR, CFFI_F_TYPE_PARSE_RETURN, 2},
     {NULL}};
@@ -868,13 +893,19 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case ENUM:
             if (typeAttrP->dataType.u.tagObj)
                 goto invalid_format; /* Something already using the slot? */
+#if 0
+            if (typeAttrP->dataType.count != 0) {
+                message = "\"enum\" annotation not valid for arrays.";
+                goto invalid_format;
+            }
+#endif
             flags |= CFFI_F_ATTR_ENUM;
             Tcl_IncrRefCount(fieldObjs[1]);
             typeAttrP->dataType.u.tagObj = fieldObjs[1];
             break;
         case BITMASK:
             if (typeAttrP->dataType.count != 0) {
-                message = "One or more annotations not valid for arrays.";
+                message = "\"bitmask\" annotation not valid for arrays.";
                 goto invalid_format;
             }
             flags |= CFFI_F_ATTR_BITMASK;
@@ -937,7 +968,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 || ((flags & CFFI_F_ATTR_OUT)
                     && (flags
                         & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS
-                           | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK)))) {
+                           | CFFI_F_ATTR_BITMASK)))) {
                 message = "One or more annotations are invalid for the "
                           "parameter direction.";
                 goto invalid_format;
@@ -2607,6 +2638,62 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
 
     if (ret != TCL_OK)
         return ret;
+
+    /*
+     * Check if value is to be converted to a enum name. This is slightly
+     * inefficient since we have to convert back from a Tcl_Obj to an
+     * integer but currently the required context is not being passed down
+     * to the lower level functions that extract scalar values.
+     */
+    if ((typeAttrsP->flags & CFFI_F_ATTR_ENUM)
+        && typeAttrsP->dataType.u.tagObj) {
+        Tcl_WideInt wide;
+        if (typeAttrsP->dataType.count == 0) {
+            /* Note on error, keep the value */
+            if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
+                Tcl_DecrRefCount(valueObj);
+                CffiEnumFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                                    typeAttrsP->dataType.u.tagObj,
+                                    wide,
+                                    0,
+                                    &valueObj);
+            }
+        }
+        else {
+            /* Array of integers */
+            Tcl_Obj **elemObjs;
+            int nelems;
+            /* Note on error, keep the value */
+            if (Tcl_ListObjGetElements(NULL, valueObj, &nelems, &elemObjs)
+                == TCL_OK) {
+                Tcl_Obj *enumValuesObj;
+                Tcl_Obj *enumValueObj;
+                int i;
+                enumValuesObj = Tcl_NewListObj(nelems, NULL);
+                for (i = 0; i < nelems; ++i) {
+                    if (Tcl_GetWideIntFromObj(NULL, elemObjs[i], &wide)
+                        != TCL_OK) {
+                        break;
+                    }
+                    CffiEnumFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                                        typeAttrsP->dataType.u.tagObj,
+                                        wide,
+                                        0,
+                                        &enumValueObj);
+                    Tcl_ListObjAppendElement(NULL, enumValuesObj, enumValueObj);
+                }
+                if (i == nelems) {
+                    /* All converted successfully */
+                    Tcl_DecrRefCount(valueObj);
+                    valueObj = enumValuesObj;
+                }
+                else {
+                    /* Keep original */
+                    Tcl_DecrRefCount(enumValuesObj);
+                }
+            }
+        }
+    }
 
     /*
      * Tcl_ObjSetVar2 will release valueObj if its ref count is 0

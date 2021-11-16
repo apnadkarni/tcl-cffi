@@ -372,7 +372,7 @@ namespace eval Concepts {
 
         ## Enumerations
 
-        Enumerations allow the use of symbolic constants in place of numeric
+        Enumerations allow the use of symbolic constants in place of integral
         values passed as arguments to functions. Their primary purpose is
         similar to preprocessor `#define` constants and `enum` types in C.
         They are defined and otherwise managed through the `cffi::enum`
@@ -465,10 +465,10 @@ namespace eval Concepts {
         The following annotations may be follow the type in a return type
         declaration.
 
-        - For integer types, the error checking annotations
-        `zero`, `nonzero`, `nonnegative`, `positive`, the error
-        reporting annotations `errno`, `lasterror`, `winerror` and
-        `onerror` may be specified. See [Error handling] for details on these.
+        - For integer types, the `enum` annotation and the error checking
+        annotations `zero`, `nonzero`, `nonnegative`, `positive`, the error
+        reporting annotations `errno`, `lasterror`, `winerror` and `onerror` may
+        be specified. See [Enumerations] and [Error handling] for details on these.
 
         - For pointer type, `nonzero`, `errno` and `lasterror` annotations may
         be specified as well as the `unsafe` and `counted` annotations (but not
@@ -545,9 +545,11 @@ namespace eval Concepts {
 
         The annotation `enum` is available for integer types. It has an
         associated argument that specifies an [Enum][Enumerations]. When the
-        function is called, any enum value names from that enumeration are
+        function is called, any enum member names from that enumeration are
         accepted and the corresponding integer value is used as the argument to
-        the C function.
+        the C function. For output parameters, the integer output values are
+        replaced with the corresponding enum member name if possible or left
+        unaltered. The annotation cannot be applied to arrays.
 
         The `bitmask` annotation is also limited to integer types. If specified,
         an argument may be a list of integers. This are all OR-ed together and

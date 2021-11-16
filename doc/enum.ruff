@@ -1,14 +1,15 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 
-namespace eval ${NS}::alias {
-    proc define {enumname numdefs} {
+namespace eval ${NS}::enum {
+    proc define {enumname enumdefs} {
         # Defines a new enumeration.
         #  enumname - name of the enumeration
-        #  enumdefs - dictionary of enumeration symbol names to their values.
+        #  enumdefs - dictionary of enumeration member names to their values.
         # Parameter declarations can reference the enumeration to indicate
         # that the corresponding symbol names are acceptible as arguments
         # and will be replaced by the corresponding value in the function call.
+        # Enumeration member values must be integers.
     }
     proc delete {pattern} {
         # Deletes enumerations.
@@ -16,7 +17,7 @@ namespace eval ${NS}::alias {
         # The command deletes all enumerations whose name matches the specified
         # pattern.
     }
-    proc entries {enumname} {
+    proc members {enumname} {
         # Returns a dictionary containing the definitions in an enumerations.
         #  enumname - name of the enumeration whose elements are to be returned.
     }
@@ -26,7 +27,22 @@ namespace eval ${NS}::alias {
         # The command returns names of all enumerations with names matching
         # the specified pattern.
     }
-
+    proc sequence {enumname membernames {{start 0}}} {
+        # Defines an enumeration with consecutive member values
+        #  enumname - name of the enumeration
+        #  membernames - list of names of the enumeration members
+        #  start - value of first enumeration member
+    }
+    proc value {enumname membername} {
+        # Returns the value of an enumeration member
+        #  enumname - name of the enumeration
+        #  membername - name of the enumeration member to retrieve
+    }
+    proc name {enumname membervalue} {
+        # Returns the symbolic name of a value in an enumeration
+        #  enumname - name of the enumeration
+        #  membervalue - value of an enumeration member
+    }
     namespace export *
     namespace ensemble create
 }

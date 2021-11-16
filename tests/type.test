@@ -276,15 +276,27 @@ namespace eval cffi::test {
             "" "in"
             "in" "in"
             "inout" "inout byref"
+            "out" "out byref"
         } {
             if {$type in $intTypes} {
                 testnumeric "$type $attr {enum E}" param "$expected {enum E}"
-                testnumeric "$type $attr bitmask" param "$expected bitmask"
             } else {
                 testinvalidattr "$type $attr {enum E}" param $errorMessages(attrtype)
-                testinvalidattr "$type $attr bitmask" param $errorMessages(attrtype)
             }
             testinvalidattr "$type $attr enum" param {A type annotation has the wrong number of fields.}
+        }
+
+        # bitmask annotations
+        foreach {attr expected} {
+            "" "in"
+            "in" "in"
+            "inout" "inout byref"
+        } {
+            if {$type in $intTypes} {
+                testnumeric "$type $attr bitmask" param "$expected bitmask"
+            } else {
+                testinvalidattr "$type $attr bitmask" param $errorMessages(attrtype)
+            }
         }
 
         foreach {attr expected} {
@@ -305,7 +317,7 @@ namespace eval cffi::test {
             testnumericarray "$type $attr" NUMELEMS param $expected
         }
 
-        # enum, bitmask arrays
+        # enum arrays
         foreach {attr expected} {
             "" "in"
             "in" "in"
@@ -336,7 +348,7 @@ namespace eval cffi::test {
         }
         testinvalidattr "$type out storeonerror storealways" param $errorMessages(attrconflict)
         testinvalidattr "$type inout storeonerror storealways" param $errorMessages(attrconflict)
-        foreach attr {bitmask {enum E}} {
+        foreach attr {bitmask} {
             if {$type in $intTypes} {
                 testinvalidattr [list $type out $attr] param $errorMessages(attrparamdir)
             } else {
@@ -364,12 +376,14 @@ namespace eval cffi::test {
         }
 
         ### Parse mode = return
+
         # Scalar tests - success
         testnumeric $type return ""
         if {$type in $intTypes} {
             foreach attr [list {*}$errorAttrs] {
                 testnumeric "$type $attr" return $attr
             }
+            testnumeric "$type {enum E}" return "{enum E}"
         }
         if {$type in $intTypes} {
             foreach attr $requirementAttrs {
@@ -398,7 +412,6 @@ namespace eval cffi::test {
             testinvalidattr "$type {onerror foo}" return {"onerror" requires an error checking annotation.}
             testinvalidattr "$type onerror" return {A type annotation has the wrong number of fields.}
             testinvalidattr "$type bitmask" return $errorMessages(attrparsemode)
-            testinvalidattr "$type {enum E}" return $errorMessages(attrparsemode)
         } else {
             testinvalidattr "$type {onerror foo}" return $errorMessages(attrtype)
             testinvalidattr "$type bitmask" return $errorMessages(attrtype)

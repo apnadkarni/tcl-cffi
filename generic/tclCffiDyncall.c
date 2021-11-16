@@ -701,8 +701,20 @@ CffiFunctionCall(ClientData cdata,
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
-        resultObj = objfn_(                                                    \
-            retval.u.fld_); /* AFTER above Check to not lose GetLastError */   \
+        if (fnCheckRet == TCL_OK                                               \
+            && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ENUM)         \
+            && protoP->returnType.typeAttrs.dataType.u.tagObj) {               \
+            CffiEnumFindReverse(                                               \
+                ipCtxP,                                                        \
+                protoP->returnType.typeAttrs.dataType.u.tagObj,                \
+                (Tcl_WideInt)retval.u.fld_,                                    \
+                0, \
+                &resultObj);                                                   \
+        }                                                                      \
+        else {                                                                 \
+            /* AFTER above Check to not lose GetLastError */                   \
+            resultObj = objfn_(retval.u.fld_);                                 \
+        }                                                                      \
     } while (0);                                                               \
     break
 
