@@ -58,25 +58,18 @@ namespace eval cffi::test {
                 S info
             } -result [list size [expr {2*$size}] alignment $alignment fields [list fld [list size $size offset 0 definition $type] c [list size 1 offset $size definition uchar] ]] -match dict
         }
-        if {$type ne "pointer"} {
-            test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
-                S destroy
-            } -body {
-                cffi::Struct create S "c schar fld $type\[2\] c2 schar"
-                S info
-            } -result [list \
-                           size [expr {4*$size}] \
-                           alignment $alignment \
-                           fields [list \
-                                       c [list size 1 offset 0 definition schar] \
-                                       fld [list size [expr {2*$size}] offset $size definition [list "$type\[2\]"]] \
-                                       c2 [list size 1 offset [expr {3*$size}] definition schar]]]
-        } else {
-            test struct-$type-error-3 "struct create {schar $type\[2\]}" -body {
-                cffi::Struct create S "c schar fld $type\[2\] c2 schar"
-                S info
-            } -returnCodes error -result "Invalid value \"pointer\[2\]\". $errorMessages(unsupportedarraytype)"
-        }
+        test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
+            S destroy
+        } -body {
+            cffi::Struct create S "c schar fld $type\[2\] c2 schar"
+            S info
+        } -result [list \
+                       size [expr {4*$size}] \
+                       alignment $alignment \
+                       fields [list \
+                                   c [list size 1 offset 0 definition schar] \
+                                   fld [list size [expr {2*$size}] offset $size definition [list "$type\[2\]"]] \
+                                   c2 [list size 1 offset [expr {3*$size}] definition schar]]]
 
     }
 
@@ -376,6 +369,7 @@ namespace eval cffi::test {
     # tobinary/frombinary
     testnumargs struct-tobinary "::TestStruct tobinary" "DICTIONARY"
     testnumargs struct-frombinary "::TestStruct frombinary" "BINARY"
+
     test struct-tobinary-0 "struct tobinary" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
         getTestStruct s
@@ -386,6 +380,32 @@ namespace eval cffi::test {
         list [string length $b] [checkTestStruct [TestStruct frombinary $b]]
     } -result [list $testStructSize {}]
 
+    test struct-tobinary-1 "struct with pointer array" -setup {
+        catch {S destroy}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {ptrs {pointer[3] unsafe}}
+        set bin [S tobinary [list ptrs [make_unsafe_pointers 1 2 3]]]
+        if {$::tcl_platform(pointerSize) == 4} {
+            set scanner n
+        } else {
+            set scanner m
+        }
+        binary scan $bin ${scanner}3 result
+        set result
+    } -result {1 2 3}
+
+    test struct-tobinary-2 "struct with pointer array" -setup {
+        catch {S destroy}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {ptrs {pointer[3] unsafe}}
+        set bin [S tobinary [list ptrs [make_unsafe_pointers 1 2 3]]]
+        S frombinary $bin
+    } -result [list ptrs [make_unsafe_pointers 1 2 3]]
+
     test struct-tobinary-error-0 "struct tobinary missing field" -setup {
         cffi::Struct create ::S {x int y int}
     } -body {
@@ -393,6 +413,7 @@ namespace eval cffi::test {
     } -result {Struct field "y" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
 
     test struct-frombinary-error-0 "struct frombinary truncated" -setup {
+        catch {::S destroy}
         cffi::Struct create ::S {x int y int}
         set b [S tobinary {x 0 y 1}]
     } -cleanup {

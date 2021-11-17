@@ -407,15 +407,36 @@ CffiStructFromObj(Tcl_Interp *ip,
                 return ret;
             break;
         case CFFI_K_TYPE_POINTER:
-            if (count) {
-                /* TBD - nested array of pointers - just use STOREFIELD? */
-                return ErrorInvalidValue(ip, NULL, "Arrays not supported for pointer type.");
+            if (count == 0) {
+                ret = CffiPointerFromObj(
+                    ip, &structP->fields[i].field, valueObj, &pv);
+                if (ret != TCL_OK)
+                    return ret;
+                *(void **)(fieldP->offset + (char *)resultP) = pv;
             }
-            ret = CffiPointerFromObj(
-                ip, &structP->fields[i].field, valueObj, &pv);
-            if (ret != TCL_OK)
-                return ret;
-            *(void **)(fieldP->offset + (char *)resultP) = pv;
+            else {
+                /* TBD - nested array of pointers - just use STOREFIELD? */
+                void **valueP;
+                Tcl_Obj **valueObjList;
+                int nvalues;
+                int indx;
+                if (Tcl_ListObjGetElements(
+                        ip, valueObj, &nvalues, &valueObjList)
+                    != TCL_OK)
+                    return TCL_ERROR;
+                valueP = (void **)(fieldP->offset + (char *)resultP);
+                if (nvalues > count)
+                    nvalues = count;
+                for (indx = 0; indx < nvalues; ++indx) {
+                    ret = CffiPointerFromObj(
+                        ip, &structP->fields[i].field, valueObjList[indx], &valueP[indx]);
+                    if (ret != TCL_OK)
+                        return ret;
+                }
+                /* Fill additional unspecified elements with 0 */
+                for (indx = nvalues; indx < count; ++indx)
+                    valueP[indx] = NULL;
+            }
             break;
         case CFFI_K_TYPE_CHAR_ARRAY:
             CFFI_ASSERT(count > 0);

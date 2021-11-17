@@ -71,6 +71,7 @@ namespace eval cffi::test {
         defaultdisallowed {Defaults are not allowed in this declaration context.}
         structbyref {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.}
         store {Annotations "storeonerror" and "storealways" not allowed for "in" parameters.}
+        fieldvararray {Fields cannot be arrays of variable size.}
     }
 
     cffi::Struct create ::cffi::test::InnerTestStruct {
@@ -194,3 +195,29 @@ proc cffi::test::testnumargs {label cmd {fixed {}} {optional {}} args} {
     }
 }
 
+proc cffi::test::purge_pointers {} {
+    while {[llength [cffi::pointer list]]} {
+        foreach ptr [cffi::pointer list] {
+            cffi::pointer dispose $ptr
+        }
+    }
+}
+proc cffi::test::make_counted_pointers args {
+    lmap addr $args {
+        set p [makeptr $addr]
+        cffi::pointer counted $p
+        set p
+    }
+}
+proc cffi::test::make_safe_pointers args {
+    lmap addr $args {
+        set p [makeptr $addr]
+        cffi::pointer safe $p
+        set p
+    }
+}
+proc cffi::test::make_unsafe_pointers args {
+    lmap addr $args {
+        makeptr $addr
+    }
+}

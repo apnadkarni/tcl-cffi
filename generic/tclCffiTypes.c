@@ -547,7 +547,6 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
      */
     switch (typeP->baseType) {
     case CFFI_K_TYPE_VOID:
-    case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_BINARY:
@@ -2186,7 +2185,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     baseType = typeAttrsP->dataType.baseType;
     if (typeAttrsP->dataType.count != 0) {
         switch (baseType) {
-        case CFFI_K_TYPE_POINTER:
         case CFFI_K_TYPE_ASTRING:
         case CFFI_K_TYPE_UNISTRING:
         case CFFI_K_TYPE_STRUCT:
@@ -2592,6 +2590,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     case CFFI_K_TYPE_ULONGLONG:
     case CFFI_K_TYPE_FLOAT:
     case CFFI_K_TYPE_DOUBLE:
+    case CFFI_K_TYPE_POINTER:
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
         if (argP->actualCount == 0)
             ret = CffiNativeValueToObj(
@@ -2606,13 +2605,6 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
             ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
-        break;
-
-    case CFFI_K_TYPE_POINTER:
-        /* Arrays not supported for pointers currently */
-        CFFI_ASSERT(argP->actualCount == 0);
-        ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP, argP->actualCount, &valueObj);
         break;
 
     case CFFI_K_TYPE_STRUCT:

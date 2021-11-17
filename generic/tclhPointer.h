@@ -709,6 +709,8 @@ TclhPointerRegister(Tcl_Interp *interp,
                 /* Registered or passed - at least one is not a counted pointer */
                 return Tclh_ErrorExists(interp, "Registered pointer", NULL, NULL);
             }
+            if (!PointerTypeSame(ptrRecP->tagObj, tag))
+                return PointerTypeError(interp, ptrRecP->tagObj, tag);
             ptrRecP->nRefs += 1;
         }
         if (objPP)
