@@ -212,7 +212,8 @@ namespace eval ${NS}::test {
             pointer_to_${to_type} 0^
         } -result 0
         test pointer_unsafe_to_${to_type}-0 "$to_type (unsafe pointer = 0)" -body {
-            pointer_unsafe_to_${to_type} 0^
+            # Null pointer can be "0" as well
+            pointer_unsafe_to_${to_type} 0
         } -result 0
 
         test chars_to_${to_type}-0 "$to_type (chars = 123)" -body {
