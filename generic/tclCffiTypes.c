@@ -1392,8 +1392,8 @@ CffiPointerToObj(Tcl_Interp *ip,
     int         flags = typeAttrsP->flags;
 
     if (pointer == NULL) {
-        /* NULL pointers are never tagged with a type - TBD */
-        *resultObjP = Tclh_PointerWrap(NULL, NULL);
+        /* NULL pointers are never registered */
+        *resultObjP = Tclh_PointerWrap(NULL, typeAttrsP->dataType.u.tagObj);
         ret         = TCL_OK;
     } else {
         if (flags & CFFI_F_ATTR_UNSAFE) {
@@ -1428,6 +1428,7 @@ CffiPointerToObj(Tcl_Interp *ip,
  *
  * The function checks that the pointer meets the requirements such as type,
  * non-null etc.
+ *
  * Returns:
  * *TCL_OK* on success with unwrapped pointer in *pointerP* or *TCL_ERROR*
  * on failure with error message in the interpreter.
@@ -1439,16 +1440,21 @@ CffiPointerFromObj(Tcl_Interp *ip,
                     Tcl_Obj *pointerObj,
                     void **pointerP)
 {
-    CffiResult ret;
     Tcl_Obj *tagObj = typeAttrsP->dataType.u.tagObj;
     void *pv;
 
-    if (typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)
-        ret = Tclh_PointerUnwrap(ip, pointerObj, &pv, tagObj);
-    else
-        ret = Tclh_PointerObjVerify(ip, pointerObj, &pv, tagObj);
-    if (ret != TCL_OK)
-        return ret;
+    CHECK(Tclh_PointerUnwrap(ip, pointerObj, &pv, tagObj));
+
+    /*
+     * Do checks for safe pointers. Note: Cannot use Tclh_PointerObjVerify
+     * because that rejects NULL pointers.
+     */
+    if (!(typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
+        /* Only verify registration if not NULL pointer */
+        if (pv) {
+            CHECK(Tclh_PointerVerify(ip, pv, tagObj));
+        }
+    }
     if (typeAttrsP->flags & CFFI_F_ATTR_NONZERO && pv == NULL) {
         Tcl_SetResult(ip, "NULL pointer", TCL_STATIC);
         return TCL_ERROR;
@@ -2188,7 +2194,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             return ErrorInvalidValue(ip,
                                      NULL,
                                      "Arrays not supported for "
-                                     "struct/string/unistring/binary types.");
+                                     "pointer/struct/string/unistring/binary types.");
         default:
             break;
         }

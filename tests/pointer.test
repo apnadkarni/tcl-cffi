@@ -44,12 +44,17 @@ namespace eval ${NS}::test {
 
     # pointer tag
     testbadargs tag
-    testnullptr tag
-    test pointer-tag-0 "pointer tag" -body {
+    test pointer-tag-0 "pointer no tag" -body {
         cffi::pointer tag [makeptr 1]
     } -result ""
     test pointer-tag-1 "pointer tag" -body {
         cffi::pointer tag [makeptr 1 TAG]
+    } -result TAG
+    test pointer-tag-2 "pointer no tag null pointer " -body {
+        cffi::pointer tag [makeptr 0]
+    } -result ""
+    test pointer-tag-3 "pointer tag null pointer" -body {
+        cffi::pointer tag [makeptr 0 TAG]
     } -result TAG
 
     # pointer check

@@ -292,6 +292,9 @@ Tcl_Obj *Tclh_PointerWrap(void *pointer, Tclh_PointerTypeTag tag);
  * expected_tag - Type tag for the pointer. May be *NULL* if type is not
  *                to be checked.
  *
+ * The function does not check tags if the pointer is NULL and also does
+ * not have a tag.
+ *
  * Returns:
  * TCL_OK    - Success, with the unwrapped pointer stored in *pointerP.
  * TCL_ERROR - Failure, with interp containing error message.
@@ -433,14 +436,24 @@ Tclh_PointerUnwrap(Tcl_Interp *interp,
                    Tclh_PointerTypeTag expected_tag)
 {
     Tclh_PointerTypeTag tag;
+    void *pv;
+
     /* Try converting Tcl_Obj internal rep */
     if (objP->typePtr != &gPointerType) {
         if (SetPointerFromAny(interp, objP) != TCL_OK)
             return TCL_ERROR;
     }
     tag = PointerTypeGet(objP);
-    /* expected_tag NULL means no type check */
-    if (expected_tag && !PointerTypeSame(tag, expected_tag)) {
+    pv  = PointerValueGet(objP);
+
+    /*
+    * No tag check if
+    * - expected_tag is NULL or
+    * - pointer is NULL AND has no tag
+    * expected_tag NULL means no type check
+    * NULL pointers
+    */
+    if (expected_tag && (pv || tag) && !PointerTypeSame(tag, expected_tag)) {
         return Tclh_ErrorWrongType(interp, objP, "Pointer type mismatch.");
     }
 
@@ -563,13 +576,19 @@ SetPointerFromAny(Tcl_Interp *interp, Tcl_Obj *objP)
     if (sscanf(srep, "%p^", &pv) != 1)
         goto invalid_value;
     s = strchr(srep, '^');
-    if (s == NULL)
-        goto invalid_value;
-    if (s[1] == '\0')
+    if (s == NULL) {
+        /* "0" is acceptable as a pointer without a "^" */
+        if (pv)
+            goto invalid_value;
         tagObj = NULL;
+    }
     else {
-        tagObj = Tcl_NewStringObj(s + 1, -1);
-        Tcl_IncrRefCount(tagObj);
+        if (s[1] == '\0')
+            tagObj = NULL;
+        else {
+            tagObj = Tcl_NewStringObj(s + 1, -1);
+            Tcl_IncrRefCount(tagObj);
+        }
     }
 
     /* OK, valid opaque rep. Convert the passed object's internal rep */

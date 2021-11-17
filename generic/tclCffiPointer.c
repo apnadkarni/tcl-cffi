@@ -54,7 +54,7 @@ CffiPointerObjCmd(ClientData cdata,
         return TCL_OK;
     }
 
-    if (pv == NULL && cmdIndex != ISVALID)
+    if (pv == NULL && cmdIndex != ISVALID && cmdIndex != TAG)
         return Tclh_ErrorInvalidValue(ip, objv[2], "Pointer is NULL.");
 
     ret = Tclh_PointerObjGetTag(ip, objv[2], &tagObj);

@@ -187,6 +187,13 @@ namespace eval Concepts {
         not be checked for registration. Needless to say, the `unsafe`
         annotation should be used with care.
 
+        #### Null pointers
+
+        Null pointers cannot be registered and are not checked for
+        registration even when passed as safe pointers in function calls.
+        However, the tag is verified if present. The literal `0` can be used
+        to represent a null pointer.
+
         #### Memory operations
 
         Pointers are ofttimes returned by functions but more often than

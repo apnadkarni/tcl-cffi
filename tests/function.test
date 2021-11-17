@@ -202,13 +202,17 @@ namespace eval ${NS}::test {
 
     # NOTE: these also test "in" parameter types for pointer, chars, bytes, binary
     foreach to_type $intTypes {
-        testDll function pointer_to_$to_type $to_type [list param {pointer unsafe}]
+        testDll function pointer_to_$to_type $to_type [list param {pointer}]
+        testDll function [list pointer_to_$to_type pointer_unsafe_to_$to_type] $to_type [list param {pointer}]
         testDll function [list string_to_$to_type chars_to_$to_type] $to_type [list param {chars[20]}]
         testDll function [list string_to_$to_type bytes_to_$to_type] $to_type [list param {bytes[20]}]
         testDll function [list string_to_$to_type binary_to_$to_type] $to_type [list param binary]
 
-        test pointer_to_${to_type}-0 "$to_type (pointer = 0)" -body {
+        test pointer_to_${to_type}-0 "$to_type (safe pointer = 0)" -body {
             pointer_to_${to_type} 0^
+        } -result 0
+        test pointer_unsafe_to_${to_type}-0 "$to_type (unsafe pointer = 0)" -body {
+            pointer_unsafe_to_${to_type} 0^
         } -result 0
 
         test chars_to_${to_type}-0 "$to_type (chars = 123)" -body {
@@ -1053,13 +1057,17 @@ namespace eval ${NS}::test {
     }
 
     # Attributes for pointers
-    foreach type {pointer pointer.TAG} {
+    foreach type {pointer pointer.TAG} tag {{} TAG} {
         # safe
         test function-return-$type-safe-0 "return type $type safe" -body {
             testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
+        test function-return-$type-null-safe-0 "return type null $type safe" -body {
+            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
+            pointer_to_pointer [makeptr 0]
+        } -result [makeptr 0 $tag]
 
         # counted
         test function-return-$type-counted-0 "return type $type counted" -cleanup {
@@ -1073,6 +1081,10 @@ namespace eval ${NS}::test {
                 [cffi::pointer dispose $p2] \
                 [cffi::pointer isvalid $p]
         } -result {1 1 {} {} 0}
+        test function-return-$type-null-counted-0 "return type null $type counted" -body {
+            testDll function pointer_to_pointer [list $type counted] {p {pointer unsafe}}
+            pointer_to_pointer [makeptr 0]
+        } -result [makeptr 0 $tag]
 
         # unsafe
         test function-return-$type-unsafe-0 "return type $type unsafe" -body {
@@ -1080,6 +1092,10 @@ namespace eval ${NS}::test {
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p]
         } -result 0
+        test function-return-$type-null-unsafe-0 "return type null $type unsafe" -body {
+            testDll function pointer_to_pointer [list $type unsafe] {p {pointer unsafe}}
+            pointer_to_pointer [makeptr 0]
+        } -result [makeptr 0 $tag]
 
         # Pointer error attributes
         # safe
