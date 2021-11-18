@@ -481,7 +481,7 @@ namespace eval cffi::test {
     ###
     ### Pointer type
 
-    proc testpointer {typedecl parse_mode expected_typeattrs} {
+    proc testpointer {typedecl parse_mode expected_typeattrs {count 0}} {
         variable typeInfo
         if {"lasterror" in $typedecl || "winerror" in $typedecl} {
             set constraints win
@@ -489,11 +489,15 @@ namespace eval cffi::test {
             set constraints {}
         }
         set typeattrs [lassign $typedecl type]
+        if {$count} {
+            append type \[$count\]
+            set typedecl "$type $typeattrs"
+        }
         set testlabel type-info-[join $typedecl -]
 
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -constraints $constraints -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
+        } -result [list size [expr {$count ? ($count * $::tcl_platform(pointerSize)) : $::tcl_platform(pointerSize)}] count $count alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
     }
 
     foreach type {pointer pointer.TAG} {
@@ -531,7 +535,8 @@ namespace eval cffi::test {
         }
 
         # Array tests - success
-        # none (currently not supported)
+        testpointer "$type" param "in byref" 2
+        testpointer "$type out" param "out byref" 2
 
         # Failure tests - invalid attribute combinations
         foreach attra {in out inout} {
@@ -843,7 +848,6 @@ namespace eval cffi::test {
     foreach attr {out inout {out byref} {inout byref} {nullifempty} {in nullifempty} bitmask {{enum E}}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
-    
 
     # Failure tests - invalid attribute combinations
     testinvalidattr "binary in in" param $errorMessages(attrconflict)
@@ -855,15 +859,18 @@ namespace eval cffi::test {
 
     ###
     # struct
-    proc teststruct {typedecl parse_mode expected_typeattrs} {
+    proc teststruct {typedecl parse_mode expected_typeattrs {count 0}} {
         variable typeInfo
         variable testStructSize
         set typeattrs [lassign $typedecl type]
+        if {$count} {
+            append type \[$count\]
+            set typedecl "$type $typeattrs"
+        }
         set testlabel type-info-[join $typedecl -]
-
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size $testStructSize count 0 alignment 8 definition [list $type {*}$expected_typeattrs]] -match dict
+        } -result [list size [expr {$count ? ($count * $testStructSize) : $testStructSize}] count $count alignment 8 definition [list $type {*}$expected_typeattrs]] -match dict
     }
     # Parse mode = param
     foreach parse_mode {param return field} {
@@ -899,13 +906,23 @@ namespace eval cffi::test {
         foreach attr [list {*}$pointerAttrs {*}$errorAttrs bitmask {{enum E}}] {
             testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
         }
-        if {$parse_mode ne "param"} {
+
+        # Array tests
+        if {$parse_mode eq "param"} {
+            teststruct {struct.TestStruct byref} param "in byref" 2
+            teststruct {struct.TestStruct out} param "out byref" 2
+        }
+        if {$parse_mode eq "field"} {
             testinvalidattr "struct.TestStruct nullifempty" $parse_mode $errorMessages(attrparsemode)
+            testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(fieldvararray)
+        }
+        if {$parse_mode eq "return"} {
+            testinvalidattr "struct.TestStruct nullifempty" $parse_mode $errorMessages(attrparsemode)
+            testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(typeparsemode)
+            testinvalidattr "struct.TestStruct\[2\]" $parse_mode $errorMessages(typeparsemode)
         }
 
         # array invalid count spec failure
-        testinvalidattr "struct.TestStruct\[2\]" $parse_mode $errorMessages(unsupportedarraytype)
-        testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(unsupportedarraytype)
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
             testinvalidattr "struct.TestStruct$count" $parse_mode "$errorMessages(arraysize)"
         }

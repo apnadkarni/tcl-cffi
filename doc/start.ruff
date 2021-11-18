@@ -615,7 +615,6 @@ set start_page {
 
     The current version has the following limitations:
 
-    - Arrays of non-numeric types are not implemented.
     - Structs cannot be passed or returned by value, only by reference.
     - Callbacks into Tcl from C functions are not implemented.
     - C functions with a variable number of arguments are not implemented.
