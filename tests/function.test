@@ -902,7 +902,7 @@ namespace eval ${NS}::test {
         catch {struct_with_pointer_array destroy}
         cffi::Struct create struct_with_pointer_array {ptrs {pointer[3] counted}}
         testDll function struct_pointer_array_exchange void {from {struct.struct_with_pointer_array in byref} to {struct.struct_with_pointer_array out}}
-        set from [list ptrs [make_counted_pointers 1 2 3]] 
+        set from [list ptrs [make_counted_pointers 1 2 3]]
         unset -nocomplain to
     } -cleanup {
         purge_pointers
@@ -1637,7 +1637,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {} \
         out \
-        [list 1 {Invalid value "0x0000000000000000^". Function returned an error value.} 0]
+        [list 1 "Invalid value \"[makeptr 0]\". Function returned an error value." 0]
     testexcepts function-onerror-ignore-0 "Success with onerror onerror_ignore" \
         [list nonzero {onerror onerror_ignore}] \
         out \
@@ -1650,7 +1650,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror {list}}} \
         out \
-        [list 0 {0x0000000000000000^ {inparam 0x0000000000000000^} {}} 0]
+        [list 0 [list [makeptr 0] [list inparam [makeptr 0]] {}] 0]
     testexcepts function-onerror-raise-0 "Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         out \
@@ -1676,7 +1676,8 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {} \
         [list out storealways] \
-        [list 1 {Invalid value "0x0000000000000000^". Function returned an error value.} [makeptr 0]]
+        [list 1 "Invalid value \"[makeptr 0]\". Function returned an error value." [makeptr 0]] 
+    
     testexcepts function-storealways-onerror-ignore-0 "Storealways - Success with onerror onerror_ignore" \
         [list nonzero {onerror onerror_ignore}] \
         [list out storealways] \
@@ -1689,7 +1690,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror {list prefix}}} \
         [list out storealways] \
-        [list 0 {prefix 0x0000000000000000^ {inparam 0x0000000000000000^} {outparam 0x0000000000000000^}} 0x0000000000000000^]
+        [list 0 [list prefix [makeptr 0] [list inparam [makeptr 0]] [list outparam [makeptr 0]]] [makeptr 0]]
     testexcepts function-storealways-onerror-raise-0 "Storealways - Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         [list out storealways] \
@@ -1716,7 +1717,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {} \
         [list out storeonerror] \
-        [list 1 {Invalid value "0x0000000000000000^". Function returned an error value.} [makeptr 0]]
+        [list 1 "Invalid value \"[makeptr 0]\". Function returned an error value." [makeptr 0]]
     testexcepts function-storeonerror-onerror-ignore-0 "Storeonerror - Success with onerror onerror_ignore" \
         [list nonzero {onerror onerror_ignore}] \
         [list out storeonerror] \
