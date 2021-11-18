@@ -74,7 +74,7 @@ namespace eval cffi::test {
         }
 
         # Array tests
-        if {$type ni {pointer struct.TypeTestStruct string unistring binary void}} {
+        if {$type ni {struct.TypeTestStruct string unistring binary void}} {
 
             test type-info-$testlabel-array-1 "type info $typedecl array" -body {
                 cffi::type info "$type\[10\] $typeattrs"
@@ -558,9 +558,6 @@ namespace eval cffi::test {
             testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
         }
 
-        # array invalid count spec failure
-        testinvalidattr "$type\[2\]" param $errorMessages(unsupportedarraytype)
-        testinvalidattr "$type\[NUMELEMS\]" param $errorMessages(unsupportedarraytype)
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" param "$errorMessages(arraysize)"
         }
@@ -601,8 +598,8 @@ namespace eval cffi::test {
 
         # Array test failures
         # array invalid count spec failure
-        testinvalidattr "$type\[2\]" return $errorMessages(unsupportedarraytype)
-        testinvalidattr "$type\[NUMELEMS\]" return $errorMessages(unsupportedarraytype)
+        testinvalidattr "$type\[2\]" return $errorMessages(arrayreturn)
+        testinvalidattr "$type\[NUMELEMS\]" return $errorMessages(arrayreturn)
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" return "$errorMessages(arraysize)"
         }
@@ -637,8 +634,7 @@ namespace eval cffi::test {
         testinvalidattr [list $type [list onerror foo]] field $errorMessages(attrparsemode)
 
         # Array test failures
-        testinvalidattr "$type\[2\]" field $errorMessages(unsupportedarraytype)
-        testinvalidattr "$type\[NUMELEMS\]" field $errorMessages(unsupportedarraytype)
+        testinvalidattr "$type\[NUMELEMS\]" field $errorMessages(fieldvararray)
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" field "$errorMessages(arraysize)"
         }

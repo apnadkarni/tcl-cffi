@@ -89,7 +89,7 @@ namespace eval Concepts {
         can be associated with pointer values as well as pointer type
         declarations. The tag attached to a pointer value must match the tag for
         the `struct` field it is assigned to or the function parameter it is
-        passed as. Otherwise an error is raised. Tags also providing a typing
+        passed as. Otherwise an error is raised. Tags also provide a typing
         mechanism for function pointers. This is described in [Prototypes and function pointers].
 
         Note however that, although similar, pointer tags are orthogonal to the
@@ -189,18 +189,18 @@ namespace eval Concepts {
 
         #### Null pointers
 
-        Null pointers cannot be registered and are not checked for
-        registration even when passed as safe pointers in function calls.
-        However, the tag is verified if present. The literal `0` can be used
-        to represent a null pointer.
+        Null pointers cannot be registered and are not checked for registration
+        even when passed as safe pointers in function calls. However, the tag is
+        verified if present. The literal `NULL` can be used to represent a null
+        pointer.
 
         #### Memory operations
 
-        Pointers are ofttimes returned by functions but more often than
-        not the referenced memory has to be allocated and passed in to
-        functions. Some type constructs like strings and structs hide this
-        at the script level but there are times when direct access to
-        the memory content addressed by pointers is desired.
+        Pointers are ofttimes returned by functions but more often than not the
+        referenced memory has to be allocated and passed in to functions. Some
+        type constructs like strings and structs hide this at the script level
+        but there are times when direct access to the memory content addressed
+        by pointers is desired.
 
         A set of commands grouped as the `memory` command ensemble provide
         such functionality. The commands [::cffi::memory allocate] and
@@ -223,26 +223,23 @@ namespace eval Concepts {
         the pointer has to be converted into a Tcl string value with the
         [::cffi::memory tostring] command.
 
-        `string.ENCODING` - Values declared using this type are still
-        pointers at the C level but are
-        converted to and from Tcl strings implicitly at the C API interface
-        itself using the specified encoding. If `.ENCODING` is left off,
-        the system encoding is used.
+        `string.ENCODING` - Values declared using this type are still pointers
+        at the C level but are converted to and from Tcl strings implicitly at
+        the C API interface itself using the specified encoding. If `.ENCODING`
+        is left off, the system encoding is used.
 
-        `unistring` - This is similar to `string.ENCODING` except
-        the values are `Tcl_UniChar*` at the C level and the
-        encoding is implicitly the one used by Tcl for the `Tcl_UniChar` data
-        type.
+        `unistring` - This is similar to `string.ENCODING` except the values are
+        `Tcl_UniChar*` at the C level and the encoding is implicitly the one
+        used by Tcl for the `Tcl_UniChar` data type.
 
-        `chars.ENCODING` - The value is an array of characters at
-        the C level. The type must always appear as an array, for example,
-        `chars.utf-8[10]` and not as a scalar `chars.utf-8`. In this as well,
-        conversion to and from Tcl strings is implicit using the specified
-        encoding, which again defaults to the system encoding. Following
-        standard C rules, arrays are passed by reference as function arguments
-        and thus an declaration of `chars[10]` would also be passed into
-        a function as a `char*`. Within a `struct` definition on the other
-        hand, it would be stored as an array.
+        `chars.ENCODING` - The value is an array of characters at the C level.
+        The type must always appear as an array, for example, `chars.utf-8[10]`
+        and not as a scalar `chars.utf-8`. In this as well, conversion to and
+        from Tcl strings is implicit using the specified encoding, which again
+        defaults to the system encoding. Following standard C rules, arrays are
+        passed by reference as function arguments and thus an declaration of
+        `chars[10]` would also be passed into a function as a `char*`. Within a
+        `struct` definition on the other hand, it would be stored as an array.
 
         `unichars` - The value is an array of `Tcl_UniChar` characters
         and follows the same rules as `chars` except that the encoding is
@@ -252,25 +249,25 @@ namespace eval Concepts {
         (and `unichars`) depends on the C declaration and context as well as
         convenience.
 
-        - Function parameters of type `char*` that are purely
-        input are best declared as `string` or `unistring`.
+        - Function parameters of type `char*` that are purely input are best
+        declared as `string` or `unistring`.
 
         - Function parameters that are actually output buffers in which the
         called function stores the output string value are best declared as
         `chars[]`. Generally these have an associated parameter which indicates
-        the buffer size. In such cases the output parameter can be
-        declared as (for example) `chars[nchars]` where `nchars` is the name of
-        the parameter containing the buffer size. The `string` and `unistring`
-        types cannot be used for `out` or `inout` parameters as there is
-        no associated buffer size.
+        the buffer size. In such cases the output parameter can be declared as
+        (for example) `chars[nchars]` where `nchars` is the name of the
+        parameter containing the buffer size. The `string` and `unistring` types
+        cannot be used for `out` or `inout` parameters as there is no associated
+        buffer size.
 
-        - Function return values cannot be declared as `chars` or `unichars`
-        as C itself does not support array return values. Generally, functions
-        typed as returning `char *` need to be declaring as returning
-        `pointer` as the pointers have to be explcitly managed. Only in the
-        specific cases where the returned pointer is static or does not need
-        to be disposed of for some other reason, the return value can be
-        typed as `string` or `unistring`.
+        - Function return values cannot be declared as `chars` or `unichars` as
+        C itself does not support array return values. Generally, functions
+        typed as returning `char *` need to be declaring as returning `pointer`
+        as the pointers have to be explcitly managed. Only in the specific cases
+        where the returned pointer is static or does not need to be disposed of
+        for some other reason, the return value can be typed as `string` or
+        `unistring`.
 
         ### Binary strings
 
@@ -308,11 +305,10 @@ namespace eval Concepts {
         struct field names as dictionary keys. C function parameter declarations
         that take pointers to structs can be declared as `struct.STRUCTNAME
         byref`, for example `struct.Point byref`. The [byref][Parameters] is
-        required as structs can currently only be passed by reference.
-        The corresponding input argument for the parameter when the function is
-        called should be the dictionary value.
-        Conversely, output parameter results are returned as a
-        dictionary of the same form.
+        required as structs can currently only be passed by reference. The
+        corresponding input argument for the parameter when the function is
+        called should be the dictionary value. Conversely, output parameter
+        results are returned as a dictionary of the same form.
 
         Alternatively, structs can also be manipulated using raw pointers and
         explicit transforms to native C structures in memory. For example,

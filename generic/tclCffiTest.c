@@ -428,6 +428,33 @@ EXTERN void *pointer_lasterror(void *p)
 }
 #endif
 
+EXTERN void pointer_array_incr(char ** in, char **out, int n) {
+    int i;
+    for (i = 0; i < n; ++i)
+        out[i] = in[i] + 1;
+}
+
+EXTERN void pointer_array_exchange(char ** inout1, char **inout2, int n) {
+    int i;
+    void *p;
+    for (i = 0; i < n; ++i) {
+        p = inout1[i];
+        inout1[i] = inout2[i];
+        inout2[i] = p;
+    }
+}
+
+struct struct_with_pointer_array {
+    char *ptrs[3];
+};
+EXTERN void struct_pointer_array_incr(struct struct_with_pointer_array *fromP, struct struct_with_pointer_array *toP) {
+    pointer_array_incr(fromP->ptrs, toP->ptrs, 3);
+}
+EXTERN void struct_pointer_array_exchange(struct struct_with_pointer_array *a, struct struct_with_pointer_array *b) {
+    pointer_array_exchange(a->ptrs, b->ptrs, 3);
+}
+
+
 FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
     return "abc";

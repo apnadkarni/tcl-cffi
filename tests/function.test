@@ -212,8 +212,7 @@ namespace eval ${NS}::test {
             pointer_to_${to_type} 0^
         } -result 0
         test pointer_unsafe_to_${to_type}-0 "$to_type (unsafe pointer = 0)" -body {
-            # Null pointer can be "0" as well
-            pointer_unsafe_to_${to_type} 0
+            pointer_unsafe_to_${to_type} NULL
         } -result 0
 
         test chars_to_${to_type}-0 "$to_type (chars = 123)" -body {
@@ -899,6 +898,18 @@ namespace eval ${NS}::test {
     } -body {
         cffi::pointer isnull [pointer_to_pointer {c 0 ll 0 s 0}]
     } -result 0
+    test function-struct-in-3 "Pass struct with pointer array in and out" -setup {
+        catch {struct_with_pointer_array destroy}
+        cffi::Struct create struct_with_pointer_array {ptrs {pointer[3] counted}}
+        testDll function struct_pointer_array_exchange void {from {struct.struct_with_pointer_array in byref} to {struct.struct_with_pointer_array out}}
+        set from [list ptrs [make_counted_pointers 1 2 3]] 
+        unset -nocomplain to
+    } -cleanup {
+        purge_pointers
+    } -body {
+        struct_pointer_array_exchange $from to
+        list $from $to
+    } -result [list [list ptrs [make_unsafe_pointers 1 2 3]] [list ptrs [make_unsafe_pointers 1 2 3]]]
     
     test function-struct-in-error-0 "Param struct in - empty dictionary" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
@@ -931,6 +942,19 @@ namespace eval ${NS}::test {
         # TBD - fix this result check for all platforms, including 32-bits
         set s
     } -result [expr {$::tcl_platform(platform) eq "windows" ? {c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 57 ull 89 b abc f 101.0 s {c 105} d 121.0} : {c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 73 ull 105 b qrs f 117.0 s {c 121} d 137.0}}] 
+    test function-struct-inout-1 "Pass struct with pointer array inout" -setup {
+        catch {struct_with_pointer_array destroy}
+        cffi::Struct create struct_with_pointer_array {ptrs {pointer[3] counted}}
+        testDll function struct_pointer_array_exchange void {a {struct.struct_with_pointer_array inout} b {struct.struct_with_pointer_array inout}}
+    } -cleanup {
+        purge_pointers
+    } -body {
+        set a [list ptrs [make_counted_pointers 1 2 3]] 
+        set b [list ptrs [make_counted_pointers 4 5 6]] 
+        struct_pointer_array_exchange a b
+        list $a $b
+    } -result [list [list ptrs [make_unsafe_pointers 4 5 6]] [list ptrs [make_unsafe_pointers 1 2 3]]]
+
     test function-struct-inout-error-0 "Param struct inout - empty dictionary" -setup {
         testDll function incrTestStruct void {s {struct.TestStruct inout}}
     } -body {
@@ -1178,7 +1202,7 @@ namespace eval ${NS}::test {
 
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function pointer_to_pointer $type\[2\] {}
-        } -result "Invalid value \"$type\[2\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
         test function-return-$type-dispose-0 "return type $type dispose" -body {
             testDll function pointer_to_pointer [list $type dispose] {p {pointer unsafe}}
         } -result "Invalid value \"$type dispose\". $errorMessages(attrparsemode)" -returnCodes error
@@ -1317,7 +1341,7 @@ namespace eval ${NS}::test {
 
 
     ###
-    # Array tests
+    # Array tests - numerics
     foreach type $numericTypes {
         # This matches output of *_array_out function
         foreach count {1 10 10000} {
@@ -1463,6 +1487,55 @@ namespace eval ${NS}::test {
         } -result {expected * but got "a"} -returnCodes error -match glob
     }
 
+    # Array tests - pointers
+    test function-array-pointer-0 "input safe output unsafe" -setup {
+        purge_pointers
+        set safe_ptrs [make_safe_pointers 1 2 3]
+        unset -nocomplain unsafe_ptrs
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain safe_ptrs unsafe_ptrs
+    } -body {
+        testDll function pointer_array_incr void {inp pointer[n] outp {pointer[n] out unsafe} n int}
+        pointer_array_incr $safe_ptrs unsafe_ptrs [llength $safe_ptrs]
+        set unsafe_ptrs
+    } -result [make_unsafe_pointers 2 3 4]
+    test function-array-pointer-1 "input unsafe output safe" -setup {
+        purge_pointers
+        set unsafe_ptrs [make_unsafe_pointers 1 2 3]
+        unset -nocomplain safe_ptrs
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain safe_ptrs unsafe_ptrs
+    } -body {
+        testDll function pointer_array_incr void {inp {pointer[n] unsafe} outp {pointer[n] out} n int}
+        pointer_array_incr $unsafe_ptrs safe_ptrs [llength $unsafe_ptrs]
+        list $safe_ptrs [lsort [cffi::pointer list]]
+    } -result [list [make_unsafe_pointers 2 3 4] [make_unsafe_pointers 2 3 4]]
+    test function-array-pointer-2 "inout counted" -setup {
+        purge_pointers
+        set ptrs1 [make_counted_pointers 1 2 3]
+        set ptrs2 [make_counted_pointers 4 5 6]
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain ptrs1 ptrs2
+    } -body {
+        testDll function pointer_array_exchange void {inout1 {pointer[n] inout counted} inout2 {pointer[n] inout counted} n int}
+        pointer_array_exchange ptrs1 ptrs2 [llength $ptrs1]
+        list $ptrs1 $ptrs2
+    } -result [list [make_unsafe_pointers 4 5 6] [make_unsafe_pointers 1 2 3]]
+    test function-array-pointer-3 "input dispose output unsafe" -setup {
+        purge_pointers
+        set safe_ptrs [make_safe_pointers 1 2 3]
+        unset -nocomplain unsafe_ptrs
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain safe_ptrs unsafe_ptrs
+    } -body {
+        testDll function pointer_array_incr void {inp {pointer[n] dispose} outp {pointer[n] out unsafe} n int}
+        pointer_array_incr $safe_ptrs unsafe_ptrs [llength $safe_ptrs]
+        list $unsafe_ptrs [cffi::pointer list]
+    } -result [list [make_unsafe_pointers 2 3 4] {}]
 
     ###
     # Function failure tests with onerror:

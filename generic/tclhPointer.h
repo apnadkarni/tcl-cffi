@@ -571,24 +571,24 @@ SetPointerFromAny(Tcl_Interp *interp, Tcl_Obj *objP)
     if (objP->typePtr == &gPointerType)
         return TCL_OK;
 
-    /* Pointers are hexvalue^tag */
+    /* Pointers are address^tag, 0 or NULL*/
     srep = Tcl_GetString(objP);
-    if (sscanf(srep, "%p^", &pv) != 1)
-        goto invalid_value;
-    s = strchr(srep, '^');
-    if (s == NULL) {
-        /* "0" is acceptable as a pointer without a "^" */
-        if (pv)
+    if (sscanf(srep, "%p^", &pv) == 1) {
+        s = strchr(srep, '^');
+        if (s == NULL)
             goto invalid_value;
-        tagObj = NULL;
-    }
-    else {
         if (s[1] == '\0')
             tagObj = NULL;
         else {
             tagObj = Tcl_NewStringObj(s + 1, -1);
             Tcl_IncrRefCount(tagObj);
         }
+    }
+    else {
+        if (strcmp(srep, "NULL"))
+            goto invalid_value;
+        pv = NULL;
+        tagObj = NULL;
     }
 
     /* OK, valid opaque rep. Convert the passed object's internal rep */
@@ -709,6 +709,8 @@ TclhPointerRegister(Tcl_Interp *interp,
                 /* Registered or passed - at least one is not a counted pointer */
                 return Tclh_ErrorExists(interp, "Registered pointer", NULL, NULL);
             }
+            if (!PointerTypeSame(ptrRecP->tagObj, tag))
+                return PointerTypeError(interp, ptrRecP->tagObj, tag);
             ptrRecP->nRefs += 1;
         }
         if (objPP)
