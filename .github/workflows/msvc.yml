@@ -7,23 +7,31 @@ jobs:
   build:
     runs-on: windows-latest
 
+    strategy:
+      matrix:
+        arch:
+          - amd64
+          - amd64_x86
+
     steps:
     # Note msvc defaults to 64-bit
     - name: Init MSVC
       uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.arch }}
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v2
 
     - name: Cache Tcl build
-      id: tcl-msvc-x64-cache
+      id: tcl-msvc-${{ matrix.arch }}-cache
       uses: actions/cache@v2
       with:
-        path: C:/tcl/msvc/x64
-        key: ${{ runner.os }}-tcl-msvc-x64
+        path: C:/tcl/msvc/${{ matrix.arch }}
+        key: ${{ runner.os }}-tcl-msvc-${{ matrix.arch }}
 
     - name: Checkout Tcl
-      if: steps.tcl-msvc-x64-cache.outputs.cache-hit != 'true'
+      if: steps.tcl-msvc-${{ matrix.arch }}-cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v2
       with:
         repository: tcltk/tcl
@@ -31,37 +39,37 @@ jobs:
         path: tcl
 
     - name: Build Tcl
-      if: steps.tcl-msvc-x64-cache.outputs.cache-hit != 'true'
+      if: steps.tcl-msvc-${{ matrix.arch }}-cache.outputs.cache-hit != 'true'
       working-directory: tcl/win
       shell: cmd
       run: |
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 install
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} install
 
     - name: Cache dyncall
-      id: dyncall-msvc-x64-cache
+      id: dyncall-msvc-${{ matrix.arch }}-cache
       uses: actions/cache@v2
       with:
-        path: C:/dyncall/msvc/x64
-        key: ${{ runner.os }}-dyncall-msvc-x64
+        path: C:/dyncall/msvc/${{ matrix.arch }}
+        key: ${{ runner.os }}-dyncall-msvc-${{ matrix.arch }}
 
     - name: Install dyncall
-      if: steps.dyncall-msvc-x64-cache.outputs.cache-hit != 'true'
+      if: steps.dyncall-msvc-${{ matrix.arch }}-cache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
         curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
         7z x dyncall-1.2.zip
         cd dyncall-1.2
-        mkdir build-msvc-x64
-        cd build-msvc-x64
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\x64 -G"NMake Makefiles" ..
+        mkdir build-msvc-${{ matrix.arch }}
+        cd build-msvc-${{ matrix.arch }}
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..
         cd ..
-        cmake --build build-msvc-x64 --config Release
-        cmake --build build-msvc-x64 --config Release --target install
+        cmake --build build-msvc-${{ matrix.arch }} --config Release
+        cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
 
     - name: Make
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=c:\dyncall\msvc\x64
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\x64 DYNCALLDIR=c:\dyncall\msvc\x64 test
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} DYNCALLDIR=c:\dyncall\msvc\${{ matrix.arch }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} DYNCALLDIR=c:\dyncall\msvc\${{ matrix.arch }} test
