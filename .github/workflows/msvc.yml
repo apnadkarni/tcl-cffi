@@ -24,14 +24,14 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Cache Tcl build
-      id: tcl-msvc-${{ matrix.arch }}-cache
+      id: tcl-msvc-cache
       uses: actions/cache@v2
       with:
         path: C:/tcl/msvc/${{ matrix.arch }}
         key: ${{ runner.os }}-tcl-msvc-${{ matrix.arch }}
 
     - name: Checkout Tcl
-      if: steps.tcl-msvc-${{ matrix.arch }}-cache.outputs.cache-hit != 'true'
+      if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v2
       with:
         repository: tcltk/tcl
@@ -39,7 +39,7 @@ jobs:
         path: tcl
 
     - name: Build Tcl
-      if: steps.tcl-msvc-${{ matrix.arch }}-cache.outputs.cache-hit != 'true'
+      if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
       working-directory: tcl/win
       shell: cmd
       run: |
@@ -47,14 +47,14 @@ jobs:
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} install
 
     - name: Cache dyncall
-      id: dyncall-msvc-${{ matrix.arch }}-cache
+      id: dyncall-msvc-cache
       uses: actions/cache@v2
       with:
         path: C:/dyncall/msvc/${{ matrix.arch }}
         key: ${{ runner.os }}-dyncall-msvc-${{ matrix.arch }}
 
     - name: Install dyncall
-      if: steps.dyncall-msvc-${{ matrix.arch }}-cache.outputs.cache-hit != 'true'
+      if: steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
         curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
