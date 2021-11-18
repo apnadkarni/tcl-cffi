@@ -550,7 +550,6 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_BINARY:
-    case CFFI_K_TYPE_STRUCT:
         if (typeP->count != 0) {
             message = "The specified type is invalid or unsupported for array "
                       "declarations.";
@@ -1232,8 +1231,33 @@ CffiNativeValueToObj(Tcl_Interp *ip,
 
     switch (baseType) {
     case CFFI_K_TYPE_STRUCT:
-        return CffiStructToObj(
-            ip, typeAttrsP->dataType.u.structP, valueP, valueObjP);
+        if (count == 0) {
+            return CffiStructToObj(
+                ip, typeAttrsP->dataType.u.structP, valueP, valueObjP);
+        }
+        else {
+            /* Array, possible even a single element, still represent as list */
+            Tcl_Obj *listObj;
+            int i;
+            int offset;
+            int elem_size;
+
+            CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
+            elem_size = typeAttrsP->dataType.u.structP->size;
+            /* TBD - may be allocate Tcl_Obj* array from memlifo for speed */
+            listObj = Tcl_NewListObj(count, NULL);
+            for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
+                ret = CffiStructToObj(
+                    ip, typeAttrsP->dataType.u.structP, offset + (char *)valueP, &valueObj);
+                if (ret != TCL_OK) {
+                    Tcl_DecrRefCount(listObj);
+                    return ret;
+                }
+                Tcl_ListObjAppendElement(ip, listObj, valueObj);
+            }
+            *valueObjP = listObj;
+            return TCL_OK;
+        }
     case CFFI_K_TYPE_CHAR_ARRAY:
         CFFI_ASSERT(count > 0);
         return CffiCharsToObj(ip, typeAttrsP, valueP, valueObjP);
@@ -2187,12 +2211,11 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         switch (baseType) {
         case CFFI_K_TYPE_ASTRING:
         case CFFI_K_TYPE_UNISTRING:
-        case CFFI_K_TYPE_STRUCT:
         case CFFI_K_TYPE_BINARY:
             return ErrorInvalidValue(ip,
                                      NULL,
                                      "Arrays not supported for "
-                                     "pointer/struct/string/unistring/binary types.");
+                                     "string/unistring/binary types.");
         default:
             break;
         }
@@ -2342,8 +2365,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     OBJTONUM(objfn_, valueObjList[i], &valueArray[i]);         \
                 }                                                              \
                 /* Fill additional elements with 0 */                          \
-                CFFI_ASSERT(i == nvalues);                                     \
-                for ( ; i < argP->actualCount; ++i)                  \
+                for (; i < argP->actualCount; ++i)                             \
                     valueArray[i] = 0;                                         \
             }                                                                  \
             valueP->u.ptr = valueArray;                                        \
@@ -2367,26 +2389,59 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_DOUBLE: STORENUM(ObjToDouble, dcArgDouble, dbl, double); break;
     case CFFI_K_TYPE_STRUCT:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
-            int dict_size;
-            CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
-            CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
-            if (dict_size == 0) {
-                /* Empty dictionary AND NULLIFEMPTY set */
-                valueP->u.ptr = NULL;
-                dcArgPointer(vmP, valueP->u.ptr);
-                break;
+        CFFI_ASSERT(argP->actualCount >= 0);
+        if (argP->actualCount == 0) {
+            /* Single struct */
+            if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
+                int dict_size;
+                CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+                CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
+                if (dict_size == 0) {
+                    /* Empty dictionary AND NULLIFEMPTY set */
+                    valueP->u.ptr = NULL;
+                    dcArgPointer(vmP, valueP->u.ptr);
+                    break;
+                }
+                /* NULLIFEMPTY but dictionary has elements */
             }
-            /* NULLIFEMPTY but dictionary has elements */
-        }
-        valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo,
-                                    typeAttrsP->dataType.u.structP->size);
-        if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
-            CHECK(CffiStructFromObj(
-                ip, typeAttrsP->dataType.u.structP, valueObj, valueP->u.ptr));
+            valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo,
+                                         typeAttrsP->dataType.u.structP->size);
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
+                CHECK(CffiStructFromObj(ip,
+                                        typeAttrsP->dataType.u.structP,
+                                        valueObj,
+                                        valueP->u.ptr));
+            }
         }
         else {
-            /* TBD - should we zero out the memory */
+            /* Array of structs */
+            char *valueArray;
+            char *toP;
+            int struct_size = typeAttrsP->dataType.u.structP->size;
+            CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            valueArray =
+                MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount * struct_size);
+            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+                /* IN or INOUT */
+                Tcl_Obj **valueObjList;
+                int i, nvalues;
+                CHECK(Tcl_ListObjGetElements(
+                    ip, valueObj, &nvalues, &valueObjList));
+                if (nvalues > argP->actualCount)
+                    nvalues = argP->actualCount;
+                for (toP = valueArray, i = 0; i < nvalues;
+                     toP += struct_size, ++i) {
+                    CHECK(CffiStructFromObj(ip,
+                                            typeAttrsP->dataType.u.structP,
+                                            valueObjList[i],
+                                            toP));
+                }
+                if (i < argP->actualCount) {
+                    /* Fill uninitialized with 0 */
+                    memset(toP, 0, (argP->actualCount - i) * struct_size);
+                }
+            }
+            valueP->u.ptr = valueArray;
         }
         dcArgPointer(vmP, valueP->u.ptr);
         break;
@@ -2609,7 +2664,6 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
 
     case CFFI_K_TYPE_STRUCT:
         /* Arrays not supported for struct currently */
-        CFFI_ASSERT(argP->actualCount == 0);
         ret = CffiNativeValueToObj(
             ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
         break;

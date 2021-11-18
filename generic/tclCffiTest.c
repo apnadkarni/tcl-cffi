@@ -646,7 +646,7 @@ struct SimpleStruct {
     long long ll;
     short s;
 };
-EXTERN int structFillArray (int n, struct SimpleStruct *out)
+EXTERN int structArrayFill (int n, struct SimpleStruct *out)
 {
     int i;
     int val = 0;
@@ -660,6 +660,34 @@ EXTERN int structFillArray (int n, struct SimpleStruct *out)
 EXTERN int structCheck(struct SimpleStruct *in, signed char c, long long ll, short s)
 {
     return in->c == c && in->ll == ll && in->s == s;
+}
+EXTERN void structArrayCopy (struct SimpleStruct *fromP, struct SimpleStruct *toP, int n) {
+    int i;
+    for (i = 0; i < n; ++i) {
+        toP[i] = fromP[i];
+    }
+}
+EXTERN void structArrayExchange (struct SimpleStruct *a, struct SimpleStruct *b, int n) {
+    int i;
+    for (i = 0; i < n; ++i) {
+        struct SimpleStruct c = a[i];
+        a[i]           = b[i];
+        b[i]           = c;
+    }
+}
+
+struct StructWithNestedArrays {
+    struct SimpleStruct s[3];
+    void *p[3];
+};
+EXTERN void
+nestedStructArrayCopy(struct StructWithNestedArrays *from,
+                      struct StructWithNestedArrays *to)
+{
+    int i;
+    structArrayCopy(from->s, to->s, 3);
+    for (i = 0; i < 3; ++i)
+        to->p[i] = from->p[i];
 }
 
 struct StructWithFunc {

@@ -910,6 +910,7 @@ namespace eval ${NS}::test {
         struct_pointer_array_exchange $from to
         list $from $to
     } -result [list [list ptrs [make_unsafe_pointers 1 2 3]] [list ptrs [make_unsafe_pointers 1 2 3]]]
+
     
     test function-struct-in-error-0 "Param struct in - empty dictionary" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
@@ -962,6 +963,59 @@ namespace eval ${NS}::test {
         incrTestStruct s
     } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
 
+    test function-struct-array-0 "Pass in and out array of structs" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        unset -nocomplain outstruct
+    } -body {
+        testDll function structArrayCopy void {from {struct.SimpleStruct[n]} to {struct.SimpleStruct[n] out} n int}
+        structArrayCopy {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} outstruct 3
+        set outstruct
+    } -result {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}}
+
+    test function-struct-array-1 "Pass in and out short array of structs" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        unset -nocomplain outstruct
+    } -body {
+        testDll function structArrayCopy void {from {struct.SimpleStruct[n]} to {struct.SimpleStruct[n] out} n int}
+        structArrayCopy {{c 0 i 1 s 2} {c 3 i 4 s 5}} outstruct 3
+        set outstruct
+    } -result {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 0 i 0 s 0}}
+    
+    test function-struct-array-2 "Pass inout short array of structs" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        set a {{c 0 i 1 s 2} {c 3 i 4 s 5}}
+        set b {{c 10 i 11 s 12} {c 13 i 14 s 15}}
+    } -body {
+        testDll function structArrayExchange void {from {struct.SimpleStruct[n] inout} to {struct.SimpleStruct[n] inout} n int}
+        structArrayExchange a b 2
+        list $a $b
+    } -result {{{c 10 i 11 s 12} {c 13 i 14 s 15}} {{c 0 i 1 s 2} {c 3 i 4 s 5}}}
+
+    test function-struct-array-3 "Pass in and out struct with nested array of structs" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        catch {StructWithNestedStructArray destroy}
+        cffi::Struct create StructWithNestedStructArray {s struct.SimpleStruct[3] p {pointer[3] unsafe}}
+        unset -nocomplain outstruct
+    } -body {
+        testDll function nestedStructArrayCopy void {from {struct.StructWithNestedStructArray byref} to {struct.StructWithNestedStructArray out}}
+        nestedStructArrayCopy {s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p {0^ 1^ 2^}} outstruct
+        set outstruct
+    } -result [list s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p [make_unsafe_pointers 0 1 2]]
+
+    test function-struct-array-error-0 "Pass in empty struct" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        unset -nocomplain outstruct
+    } -body {
+        testDll function structArrayCopy void {from {struct.SimpleStruct[n]} to {struct.SimpleStruct[n] out} n int}
+        structArrayCopy {{}} outstruct 3
+        set outstruct
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    
     # Note -  tests for invalid attrs are done in type.test
 
     ###

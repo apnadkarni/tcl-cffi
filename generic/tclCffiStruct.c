@@ -394,15 +394,40 @@ CffiStructFromObj(Tcl_Interp *ip,
             STOREFIELD(ObjToDouble, double);
             break;
         case CFFI_K_TYPE_STRUCT:
-            if (count) {
-                /* TBD - nested array of structs */
-                return ErrorInvalidValue(ip, NULL, "Arrays not supported for struct type.");
+            if (count == 0) {
+                ret = CffiStructFromObj(
+                    ip,
+                    fieldP->field.dataType.u.structP,
+                    valueObj,
+                    (void *)(fieldP->offset + (char *)resultP));
             }
-            ret =
-                CffiStructFromObj(ip,
-                                   fieldP->field.dataType.u.structP,
-                                   valueObj,
-                                   (void *)(fieldP->offset + (char *)resultP));
+            else {
+                /* Nested array of structs */
+                char *valueP;
+                Tcl_Obj **valueObjList;
+                int nvalues;
+                int indx;
+                int struct_size = fieldP->field.dataType.u.structP->size;
+                if (Tcl_ListObjGetElements(
+                        ip, valueObj, &nvalues, &valueObjList)
+                    != TCL_OK)
+                    return TCL_ERROR;
+                valueP = fieldP->offset + (char *)resultP;
+                if (nvalues > count)
+                    nvalues = count;
+                for (indx = 0; indx < nvalues; ++indx, valueP += struct_size) {
+                    ret = CffiStructFromObj(ip,
+                                            fieldP->field.dataType.u.structP,
+                                            valueObjList[indx],
+                                            valueP);
+                    if (ret != TCL_OK)
+                        return ret;
+                }
+                /* Fill additional unspecified elements with 0 */
+                if (indx < count) {
+                    memset(valueP, 0, struct_size * (count - indx));
+                }
+            }
             if (ret != TCL_OK)
                 return ret;
             break;
@@ -415,7 +440,6 @@ CffiStructFromObj(Tcl_Interp *ip,
                 *(void **)(fieldP->offset + (char *)resultP) = pv;
             }
             else {
-                /* TBD - nested array of pointers - just use STOREFIELD? */
                 void **valueP;
                 Tcl_Obj **valueObjList;
                 int nvalues;

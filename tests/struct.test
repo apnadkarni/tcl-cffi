@@ -236,12 +236,12 @@ namespace eval cffi::test {
     test struct-fromnative-1 "struct fromnative index" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
         set p [S allocate 3]
-        testDll function structFillArray int {n int p pointer.S}
+        testDll function structArrayFill int {n int p pointer.S}
     } -cleanup {
         S free $p
         rename S ""
     } -body {
-        list [structFillArray 3 $p] [S fromnative $p 1]
+        list [structArrayFill 3 $p] [S fromnative $p 1]
     } -result [list 9 {c 4 i 5 s 6}]
 
     ###
