@@ -82,4 +82,8 @@ jobs:
       run: |
         cd build
         make
+
+    - name: Test
+      run: |
+        cd build
         make test

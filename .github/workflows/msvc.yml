@@ -72,4 +72,9 @@ jobs:
       run: |
         cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} DYNCALLDIR=c:\dyncall\msvc\${{ matrix.arch }}
+
+    - name: Test
+      shell: cmd
+      run: |
+        cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} DYNCALLDIR=c:\dyncall\msvc\${{ matrix.arch }} test
