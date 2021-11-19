@@ -358,7 +358,7 @@ namespace eval libzip {
             {pzip PZIP_T utfname UTF8 psource {PZIP_SOURCE_T disposeonsuccess} flags ZIP_FLAGS_T}
         }
         zip_file_replace {
-            {int notzero {onerror SourceErrorHandler}}
+            {int nonzero {onerror SourceErrorHandler}}
             {pzip PZIP_T index uint64_t psource {PZIP_SOURCE_T disposeonsuccess} flags ZIP_FLAGS_T}
         }
         zip_file_rename {

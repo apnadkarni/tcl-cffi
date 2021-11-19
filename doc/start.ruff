@@ -611,6 +611,24 @@ set start_page {
     useful typedefs including cross-platform ones such as `size_t` as well
     as platform-specific ones such as `HANDLE`, `DWORD` etc. on Windows.
 
+    ### Introspection
+
+    The package includes a `help` command ensemble that is useful during
+    interactive development. The [::cffi::help function] command describes
+    the syntax for a command wrapping a C function.
+
+    ````
+    % cffi::help function GetWindowRect
+    Syntax: GetWindowRect hwnd rect
+    ````
+
+    The [::cffi::help functions] command lists wrapped functions matching a pattern.
+
+    ````
+    % cffi::help functions Heap*
+    HeapCreate HeapDestroy
+    ````
+
     ### Limitations
 
     The current version has the following limitations:

@@ -916,7 +916,7 @@ CffiFunctionInstanceDeleter(ClientData cdata)
     ckfree(fnP);
 }
 
-static CffiResult
+CffiResult
 CffiFunctionInstanceCmd(ClientData cdata,
                         Tcl_Interp *ip,
                         int objc,

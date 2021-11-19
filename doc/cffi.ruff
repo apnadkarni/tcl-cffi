@@ -28,3 +28,26 @@ namespace eval $NS {
     }
 }
 
+namespace eval ${NS}::help {
+    proc function {FUNCNAME} {
+        # Returns a string describing the syntax for a CFFI wrapped function
+        #   FUNCNAME - name of a wrapped function
+    }
+
+    proc functions {{FUNCPATTERN *}} {
+        # Returns a list of CFFI-wrapped functions matching the pattern `FUNCPATTERN`
+        #   FUNCPATTERN - glob pattern to match
+        #
+        # Note that like Tcl's `info commands` the pattern is interpreted relative
+        # to the current namespace. So for example, to obtain the list of
+        # commands within a namespace, the namespace must also be included
+        # in the pattern. For example,
+        #
+        # ````
+        # cffi::help functions ::libzip::*
+        # ````
+    }
+
+    namespace export *
+    namespace ensemble create
+}

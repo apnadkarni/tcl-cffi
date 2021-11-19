@@ -158,7 +158,7 @@ void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
     Tcl_HashSearch hSearch;
     const char *pattern;
 
-    CFFI_ASSERT(pathObj);
+    CFFI_ASSERT(patObj);
 
     heP = Tcl_FindHashEntry(htP, patObj);
     if (heP) {
@@ -349,6 +349,8 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::alias", CffiAliasObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::pointer", CffiPointerObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::help", CffiHelpObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::sandbox", CffiSandboxObjCmd, NULL, NULL);
 

@@ -435,11 +435,16 @@ CffiResult CffiFunctionCall(ClientData cdata,
                             int objArgIndex, /* Where in objv[] args start */
                             int objc,
                             Tcl_Obj *const objv[]);
+CffiResult CffiFunctionInstanceCmd(ClientData cdata,
+                                   Tcl_Interp *ip,
+                                   int objc,
+                                   Tcl_Obj *const objv[]);
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiEnumObjCmd;
 Tcl_ObjCmdProc CffiDyncallLibraryObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
+Tcl_ObjCmdProc CffiHelpObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;
 Tcl_ObjCmdProc CffiPointerObjCmd;
 Tcl_ObjCmdProc CffiPrototypeObjCmd;
