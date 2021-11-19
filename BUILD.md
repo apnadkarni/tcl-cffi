@@ -31,7 +31,7 @@ The `cffi` package can then be built like any standard TEA based Tcl extension.
 ```
 $ mkdir build-ubuntu-x64
 $ cd build-ubuntu-x64
-$ ../configure --enable-64bit LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include 
+$ ../configure LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include 
 $ make
 $ make install
 ```
@@ -112,7 +112,7 @@ Then build the `cffi` package. From the `cffi` top level directory,
 ```
 $ mkdir build-mingw-x64
 $ cd build-mingw-x64
-$ ../configure --enable-64bit --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include 
+$ ../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include 
 $ make
 $ make install
 ```

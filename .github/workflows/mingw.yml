@@ -6,6 +6,12 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        sys:
+          - mingw64
+          - mingw32
+
     defaults:
       run:
         shell: msys2 {0}
@@ -17,7 +23,7 @@ jobs:
     - name: Set up msys2
       uses: msys2/setup-msys2@v2
       with:
-        msystem: MINGW64
+        msystem: ${{ matrix.sys }}
         path-type: minimal
         release: false
         update: false
@@ -27,7 +33,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: C:/tcl
-        key: ${{ runner.os }}-tcl
+        key: ${{ runner.os }}-tcl-${{ matrix.sys }}
 
     - name: Checkout Tcl
       if: steps.tcl-cache.outputs.cache-hit != 'true'
@@ -43,7 +49,7 @@ jobs:
         cd tcl/win
         mkdir build
         cd build
-        ../configure --enable-64bit --prefix=C:/tcl || (cat config.log && exit 1)
+        ../configure --prefix=C:/tcl || (cat config.log && exit 1)
         make
         make install
 
@@ -52,7 +58,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: C:/dyncall
-        key: ${{ runner.os }}-dyncall
+        key: ${{ runner.os }}-dyncall-${{ matrix.sys }}
 
     - name: Install dyncall
       if: steps.dyncall-cache.outputs.cache-hit != 'true'
@@ -70,7 +76,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        ../configure --with-tcl=/c/tcl/lib --enable-64bit LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include
+        ../configure --with-tcl=/c/tcl/lib LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include
 
     - name: Make
       run: |
