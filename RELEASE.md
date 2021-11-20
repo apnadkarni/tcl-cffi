@@ -50,6 +50,8 @@ d:\tcl\archive\868-vc6\x64\bin\tclsh86t.exe all.tcl
 d:\tcl\archive\868-vc6\x86\bin\tclsh86t.exe all.tcl
 ```
 
+Copy RELEASE.md and LICENSE into distribution directory.
+
 Zip up the distribution from d:\tcl\lib\cffi1.0b0
 
 ## Windows sources
