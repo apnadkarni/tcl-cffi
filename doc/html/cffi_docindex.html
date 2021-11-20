@@ -1,5 +1,5 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>CFFI Reference</title>
+<title>CFFI Reference (V1.0b0)</title>
 <style>
 /*
 Copyright (c) 2009, Yahoo! Inc. All rights reserved.
@@ -330,7 +330,7 @@ ruff_defitem {
 }
 </script></head>
 <body><div id='doc3' class='yui-t2'><div id='hd' class='banner'>
-<a style='text-decoration:none;' href='cffi.html'>CFFI Reference</a>
+<a style='text-decoration:none;' href='cffi.html'>CFFI Reference (V1.0b0)</a>
 </div>
 <div id='bd'><div id='yui-main'><div class='yui-b'><h1 class='ruff'>Index</h1><p><div class='ruff_index'>
 <input style='width:100%;' accesskey='s' type='text' id='filterText' onkeyup='myFilterHook()' placeholder='Enter index term'>
@@ -353,10 +353,9 @@ ruff_defitem {
 <ul id='indexUL'>
 <li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::addressof'>addressof</a><span class='tooltiptext'>Returns the address of a symbol from the loaded library.
 </span> ::cffi::dyncall::Library</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias body'>alias body</a><span class='tooltiptext'>Returns the resolved body of an alias.
-</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias define'>alias define</a><span class='tooltiptext'>Defines a new enumeration.
-</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias delete'>alias delete</a><span class='tooltiptext'>Deletes enumerations.
-</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias entries'>alias entries</a><span class='tooltiptext'>Returns a dictionary containing the definitions in an enumerations.
-</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias list'>alias list</a><span class='tooltiptext'>Lists enumerations.
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias define'>alias define</a><span class='tooltiptext'>Defines a type alias
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias delete'>alias delete</a><span class='tooltiptext'>Deletes type aliases matching a pattern.
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias list'>alias list</a><span class='tooltiptext'>Returns a list of aliases matching the specified pattern.
 </span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::alias load'>alias load</a><span class='tooltiptext'>Loads predefined type aliases.
 </span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::allocate'>allocate</a><span class='tooltiptext'>Allocates memory for one or more C structs.
 </span> ::cffi::Struct</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='tooltiptext'>Returns the name of the symbol at a specified address.
@@ -368,12 +367,21 @@ ruff_defitem {
 </span> ::cffi::dyncall::Symbols</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::describe'>describe</a><span class='tooltiptext'>Returns a human-readable description of the C struct definition.
 </span> ::cffi::Struct</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::destructor'>destructor</a><span class='tooltiptext'>Destroys the object and releases internal resources.
 </span> ::cffi::dyncall::Library</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::destructor'>destructor</a><span class='tooltiptext'>Destroys the object.
-</span> ::cffi::dyncall::Symbols</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::free'>free</a><span class='tooltiptext'>Frees memory that was allocated for a native C struct.
+</span> ::cffi::dyncall::Symbols</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum define'>enum define</a><span class='tooltiptext'>Defines a new enumeration.
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum delete'>enum delete</a><span class='tooltiptext'>Deletes enumerations.
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum list'>enum list</a><span class='tooltiptext'>Lists enumerations.
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum members'>enum members</a><span class='tooltiptext'>Returns a dictionary containing the definitions in an enumerations.
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum name'>enum name</a><span class='tooltiptext'>Returns the symbolic name of a value in an enumeration
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum sequence'>enum sequence</a><span class='tooltiptext'>Defines an enumeration with consecutive member values
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::enum value'>enum value</a><span class='tooltiptext'>Returns the value of an enumeration member
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::free'>free</a><span class='tooltiptext'>Frees memory that was allocated for a native C struct.
 </span> ::cffi::Struct</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::frombinary'>frombinary</a><span class='tooltiptext'>Decodes a Tcl binary string containing a native C struct into a Tcl dictionary.
 </span> ::cffi::Struct</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::fromnative'>fromnative</a><span class='tooltiptext'>Decodes native C struct(s) in memory into a Tcl dictionary.
 </span> ::cffi::Struct</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::function'>function</a><span class='tooltiptext'>Creates a Tcl command to invoke a C function in the loaded library.
 </span> ::cffi::dyncall::Library</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::functions'>functions</a><span class='tooltiptext'>Creates Tcl commands for multiple C functions within the loaded library.
-</span> ::cffi::dyncall::Library</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::index'>index</a><span class='tooltiptext'>Returns the name of the symbol at a specified index.
+</span> ::cffi::dyncall::Library</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::help function'>help function</a><span class='tooltiptext'>Returns a string describing the syntax for a CFFI wrapped function
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::help functions'>help functions</a><span class='tooltiptext'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code>
+</span> ::cffi</li><li class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::index'>index</a><span class='tooltiptext'>Returns the name of the symbol at a specified index.
 </span> ::cffi::dyncall::Symbols</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::Struct::info'>info</a><span class='tooltiptext'>Returns a dictionary containing information about the struct layout
 </span> ::cffi::Struct</li><li><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a> ::cffi::dyncall</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::memory allocate'>memory allocate</a><span class='tooltiptext'>Allocates memory of the specified size
 </span> ::cffi</li><li class='tooltip'><a href='cffi_cffi.html#::cffi::memory free'>memory free</a><span class='tooltiptext'>Frees the memory referenced by the passed pointer

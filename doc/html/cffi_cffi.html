@@ -1,5 +1,5 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>CFFI Reference</title>
+<title>CFFI Reference (V1.0b0)</title>
 <style>
 /*
 Copyright (c) 2009, Yahoo! Inc. All rights reserved.
@@ -330,7 +330,7 @@ ruff_defitem {
 }
 </script></head>
 <body><div id='doc3' class='yui-t2'><div id='hd' class='banner'>
-<a style='text-decoration:none;' href='cffi.html'>CFFI Reference</a>
+<a style='text-decoration:none;' href='cffi.html'>CFFI Reference (V1.0b0)</a>
 </div>
 <div id='bd'><div id='yui-main'><div class='yui-b'><h1 class='ruff'><a name='::cffi'></a>::cffi<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
 <div style='clear:both;'></div>
@@ -351,38 +351,31 @@ package require cffi
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the resolved body of an alias.</p>
 <h4 class='ruffproc'><a name='::cffi::alias define'>alias define</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Defines a new enumeration.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>alias define</span> <span class='ruff_arg'>enumname numdefs</span><br></div>
+<p class='ruff'>Defines a type alias</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>alias define</span> <span class='ruff_arg'>alias_name alias_def</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration.</td></tr>
-<tr><td class='ruff_defitem'><code>numdefs</code></td><td class='ruff_defitem'>Not documented.</td></tr>
-<tr><td class='ruff_defitem'><code>enumdefs</code></td><td class='ruff_defitem'>Dictionary of enumeration symbol names to their values.</td></tr>
+<tr><td class='ruff_defitem'><code>alias_name</code></td><td class='ruff_defitem'>Name for type alias. Must begin with an alphabetic character and may contain alphanumerics and underscore.</td></tr>
+<tr><td class='ruff_defitem'><code>alias_def</code></td><td class='ruff_defitem'>Definition for the alias.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>Parameter declarations can reference the enumeration to indicate that the corresponding symbol names are acceptible as arguments and will be replaced by the corresponding value in the function call.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>Creates a new alias. An error will be raised if a the alias name matches a built-in type or an existing alias if the definitions are different. The definition may itself be based on an existing alias. In this case the existing alias is immediately resolved and expanded as part of the definition so further changes to it are not reflected in the alias being defined.</p>
+<p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Type aliases" title="Type aliases" >Type aliases</a> for more on type aliases.</p>
 <h4 class='ruffproc'><a name='::cffi::alias delete'>alias delete</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Deletes enumerations.</p>
+<p class='ruff'>Deletes type aliases matching a pattern.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>alias delete</span> <span class='ruff_arg'>pattern</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>A glob-style pattern.</td></tr>
+<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>Pattern to match against aliases.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The command deletes all enumerations whose name matches the specified pattern.</p>
-<h4 class='ruffproc'><a name='::cffi::alias entries'>alias entries</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
-<div style='clear:both;'></div>
-<p class='ruff'>Returns a dictionary containing the definitions in an enumerations.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>alias entries</span> <span class='ruff_arg'>enumname</span><br></div>
-<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration whose elements are to be returned.</td></tr>
-</table>
-<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary containing the definitions in an enumerations.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The pattern matching algorithm is the same as that of Tcl's <code>string match</code> command. It is not an error if the pattern does not match any aliasses.</p>
 <h4 class='ruffproc'><a name='::cffi::alias list'>alias list</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Lists enumerations.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>alias list</span> <span class='ruff_arg'>pattern</span><br></div>
+<p class='ruff'>Returns a list of aliases matching the specified pattern.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>alias list</span> <span class='ruff_arg'>?pattern?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>A glob-style pattern.</td></tr>
+<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>Pattern to match against aliases. Optional, default <code>*</code>.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The command returns names of all enumerations with names matching the specified pattern.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The pattern matching algorithm is the same as that of Tcl's <code>string match</code> command.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of aliases matching the specified pattern.</p>
 <h4 class='ruffproc'><a name='::cffi::alias load'>alias load</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Loads predefined type aliases.</p>
@@ -404,6 +397,87 @@ package require cffi
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The passed pointer <code>$fnptr</code> tag must corresponding to a function prototype defined through the <a href="cffi_cffi.html#::cffi::prototype function" title="prototype function" class='ruff_cmd'>prototype function</a> or <a href="cffi_cffi.html#::cffi::prototype stdcall" title="prototype stdcall" class='ruff_cmd'>prototype stdcall</a> commands.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the value returned by the invoked C function.</p>
+<h4 class='ruffproc'><a name='::cffi::enum define'>enum define</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Defines a new enumeration.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum define</span> <span class='ruff_arg'>enumname enumdefs</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration.</td></tr>
+<tr><td class='ruff_defitem'><code>enumdefs</code></td><td class='ruff_defitem'>Dictionary of enumeration member names to their values.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>Parameter declarations can reference the enumeration to indicate that the corresponding symbol names are acceptible as arguments and will be replaced by the corresponding value in the function call. Enumeration member values must be integers.</p>
+<h4 class='ruffproc'><a name='::cffi::enum delete'>enum delete</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Deletes enumerations.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum delete</span> <span class='ruff_arg'>pattern</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>A glob-style pattern.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command deletes all enumerations whose name matches the specified pattern.</p>
+<h4 class='ruffproc'><a name='::cffi::enum list'>enum list</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Lists enumerations.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum list</span> <span class='ruff_arg'>pattern</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>pattern</code></td><td class='ruff_defitem'>A glob-style pattern.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command returns names of all enumerations with names matching the specified pattern.</p>
+<h4 class='ruffproc'><a name='::cffi::enum members'>enum members</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns a dictionary containing the definitions in an enumerations.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum members</span> <span class='ruff_arg'>enumname</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration whose elements are to be returned.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary containing the definitions in an enumerations.</p>
+<h4 class='ruffproc'><a name='::cffi::enum name'>enum name</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the symbolic name of a value in an enumeration</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum name</span> <span class='ruff_arg'>enumname membervalue</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration.</td></tr>
+<tr><td class='ruff_defitem'><code>membervalue</code></td><td class='ruff_defitem'>Value of an enumeration member.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the symbolic name of a value in an enumeration</p>
+<h4 class='ruffproc'><a name='::cffi::enum sequence'>enum sequence</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Defines an enumeration with consecutive member values</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum sequence</span> <span class='ruff_arg'>enumname membernames start 0</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration.</td></tr>
+<tr><td class='ruff_defitem'><code>membernames</code></td><td class='ruff_defitem'>List of names of the enumeration members.</td></tr>
+<tr><td class='ruff_defitem'><code>start 0</code></td><td class='ruff_defitem'>Not documented.</td></tr>
+<tr><td class='ruff_defitem'><code>start</code></td><td class='ruff_defitem'>Value of first enumeration member.</td></tr>
+</table>
+<h4 class='ruffproc'><a name='::cffi::enum value'>enum value</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the value of an enumeration member</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum value</span> <span class='ruff_arg'>enumname membername</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>enumname</code></td><td class='ruff_defitem'>Name of the enumeration.</td></tr>
+<tr><td class='ruff_defitem'><code>membername</code></td><td class='ruff_defitem'>Name of the enumeration member to retrieve.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the value of an enumeration member</p>
+<h4 class='ruffproc'><a name='::cffi::help function'>help function</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns a string describing the syntax for a CFFI wrapped function</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>help function</span> <span class='ruff_arg'>FUNCNAME</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>FUNCNAME</code></td><td class='ruff_defitem'>Name of a wrapped function.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a string describing the syntax for a CFFI wrapped function</p>
+<h4 class='ruffproc'><a name='::cffi::help functions'>help functions</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code></p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>help functions</span> <span class='ruff_arg'>?FUNCPATTERN?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td class='ruff_defitem'><code>FUNCPATTERN</code></td><td class='ruff_defitem'>Glob pattern to match. Optional, default <code>*</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>Note that like Tcl's <code>info commands</code> the pattern is interpreted relative to the current namespace. So for example, to obtain the list of commands within a namespace, the namespace must also be included in the pattern. For example,</p>
+<pre class='ruff'>
+cffi::help functions ::libzip::*
+</pre>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code></p>
 <h4 class='ruffproc'><a name='::cffi::memory allocate'>memory allocate</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Allocates memory of the specified size</p>
@@ -775,12 +849,20 @@ package require cffi
 <h1><a style='color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi_cffi.html'>cffi</a></h1>
 <h1><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
 <hr><h1><a href='#::cffi'>cffi</a></h1><h2><a href='#::cffi-Commands'>Commands</a></h2><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias body'>alias body</a><span class='tooltiptext'>Returns the resolved body of an alias.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias define'>alias define</a><span class='tooltiptext'>Defines a new enumeration.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias delete'>alias delete</a><span class='tooltiptext'>Deletes enumerations.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias entries'>alias entries</a><span class='tooltiptext'>Returns a dictionary containing the definitions in an enumerations.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias list'>alias list</a><span class='tooltiptext'>Lists enumerations.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias define'>alias define</a><span class='tooltiptext'>Defines a type alias
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias delete'>alias delete</a><span class='tooltiptext'>Deletes type aliases matching a pattern.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias list'>alias list</a><span class='tooltiptext'>Returns a list of aliases matching the specified pattern.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias load'>alias load</a><span class='tooltiptext'>Loads predefined type aliases.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::call'>call</a><span class='tooltiptext'>Invokes a C function through a function pointer.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum define'>enum define</a><span class='tooltiptext'>Defines a new enumeration.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum delete'>enum delete</a><span class='tooltiptext'>Deletes enumerations.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum list'>enum list</a><span class='tooltiptext'>Lists enumerations.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum members'>enum members</a><span class='tooltiptext'>Returns a dictionary containing the definitions in an enumerations.
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum name'>enum name</a><span class='tooltiptext'>Returns the symbolic name of a value in an enumeration
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum sequence'>enum sequence</a><span class='tooltiptext'>Defines an enumeration with consecutive member values
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::enum value'>enum value</a><span class='tooltiptext'>Returns the value of an enumeration member
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::help function'>help function</a><span class='tooltiptext'>Returns a string describing the syntax for a CFFI wrapped function
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::help functions'>help functions</a><span class='tooltiptext'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code>
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory allocate'>memory allocate</a><span class='tooltiptext'>Allocates memory of the specified size
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory free'>memory free</a><span class='tooltiptext'>Frees the memory referenced by the passed pointer
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::memory frombinary'>memory frombinary</a><span class='tooltiptext'>Allocates memory and copied the passed Tcl binary string into it.
