@@ -36,10 +36,16 @@ C functions
 
 Limitations in the current version include
 
-- No support for arrays of non-scalars
 - No support of functions taking variable number of arguments
 - No support for callbacks from C code
 - No support for passing structs by value
+
+## Changes in 1.0b0
+
+- Added `help` command for wrapped function list and syntax
+- Added `enum value` and `enum name` to map enumeration values and names
+- Map enum values for output parameters and return values
+- Support arrays for pointers and structs
 
 ## Changes in 1.0a7
 
