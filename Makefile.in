@@ -298,7 +298,7 @@ $(PKG_STUB_LIB_FILE): $(PKG_STUB_OBJECTS)
 
 test: cffitest$(SHLIB_SUFFIX)
 cffitest$(SHLIB_SUFFIX): $(PKG_TEST_OBJECTS)
-	${SHLIB_LD} ${LDFLAGS} ${LDFLAGS_DEFAULT} -o $@ $(PKG_TEST_OBJECTS)
+	${SHLIB_LD} ${LDFLAGS} ${LDFLAGS_DEFAULT} -o $@ $(PKG_TEST_OBJECTS) $(SHLIB_LD_LIBS)
 
 #========================================================================
 # We need to enumerate the list of .c to .o lines here.

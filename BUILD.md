@@ -92,9 +92,11 @@ the command as the `DYNCALLDIR` variable.
 
 ### Building with MinGW-w64/gcc
 
-As an alternative to Visual C++, the package may also be build with the MinGW-w64
-gcc compiler suite. This follows almost the same exact method as the Unix builds
-described above as the steps below illustrate.
+As an alternative to Visual C++, the package may also be build with the
+MinGW-w64 gcc compiler suite. This follows almost the same exact method as the
+Unix builds described above as the steps below illustrate. NOTE: one
+difference - the --enable-64bit option for 64-bit builds must be specified else
+`make install` installs into the wrong directory.
 
 From a MinGW-w64 (not msys2) 64-bit shell, run the following commands at the top level
 `dyncall` directory. 
@@ -112,7 +114,7 @@ Then build the `cffi` package. From the `cffi` top level directory,
 ```
 $ mkdir build-mingw-x64
 $ cd build-mingw-x64
-$ ../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include 
+$ ../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include --enable-64bit
 $ make
 $ make install
 ```

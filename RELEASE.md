@@ -16,12 +16,13 @@ Tag release
 
 ## Windows binaries
 
-From MINGW64 shell
+From MINGW64 shell (note --enable-64bit required for correct installation into 
+architecture-specific subdirectory)
 
 ```
 cd build-mingw-x64
 rm *
-../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include  --prefix=/d/tcl --exec-prefix=/d/tcl
+../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include  --prefix=/d/tcl --exec-prefix=/d/tcl --enable-64bit
 make
 make test
 make install
