@@ -503,7 +503,7 @@ namespace eval cffi::test {
     foreach type {pointer pointer.TAG} {
         ### Parse mode = param
 
-        set pointer_valid_error_attrs {nonzero errno lasterror}
+        set pointer_valid_error_attrs {errno lasterror}
 
         # Scalar tests - success
         foreach {attr expected} {
@@ -530,6 +530,9 @@ namespace eval cffi::test {
             "out storealways" "out byref storealways"
             "inout storealways" "inout byref storealways"
             "inout storeonerror" "inout byref storeonerror"
+            "nullok" "in nullok"
+            "nullok out" "out byref nullok"
+            "nullok inout" "inout byref nullok"
         } {
             testpointer "$type $attr" param $expected
         }
@@ -552,7 +555,7 @@ namespace eval cffi::test {
         }
 
         # Scalar tests - invalid attributes for type
-        foreach attr [list {*}$errorAttrs nullifempty bitmask {enum E}] {
+        foreach attr [list {*}$errorAttrs {*}$requirementAttrs nullifempty bitmask {enum E}] {
             if {$attr ni $pointer_valid_error_attrs} {
                 testinvalidattr [list $type $attr] param $errorMessages(attrtype)
             }
@@ -579,10 +582,7 @@ namespace eval cffi::test {
         foreach attr $pointer_valid_error_attrs {
             testpointer "$type $attr" return $attr
         }
-        testpointer "$type nonzero {onerror foo}" return "nonzero {onerror foo}"
-
-        # Array tests - success
-        # none - pointer arrays not currently supported
+        testpointer "$type {onerror foo}" return "{onerror foo}"
 
         # Failure tests - invalid attribute combinations
         testinvalidattr "$type counted unsafe" return $errorMessages(attrconflict)
@@ -599,7 +599,6 @@ namespace eval cffi::test {
             testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
-        testinvalidattr "$type {onerror foo}" return {"onerror" requires an error checking annotation.}
 
         # Array test failures
         # array invalid count spec failure
@@ -758,6 +757,10 @@ namespace eval cffi::test {
             "byref" "in byref"
             "byref in" "in byref"
             "byref out" "out byref"
+            "nullok" "in nullok"
+            "in nullok" "in nullok"
+            "byref nullok" "in byref nullok"
+            "out nullok" "out byref nullok"
         } {
             teststring "$type $attr" param $expected
         }
@@ -774,9 +777,9 @@ namespace eval cffi::test {
         ## return mode
         teststring "$type" return ""
         foreach attr {errno {{onerror E}}} {
-            teststring "$type nonzero $attr" return "nonzero $attr"
+            teststring "$type $attr" return "$attr"
         }
-        teststring "$type nonzero lasterror" return "nonzero lasterror" -constraints win
+        teststring "$type lasterror" return "lasterror" -constraints win
 
         foreach attr {in out nullifempty} {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
@@ -787,19 +790,19 @@ namespace eval cffi::test {
 
         ## field mode
         testinvalidattr "$type" field $errorMessages(typeparsemode)
-        foreach attr {in out nullifempty "nonzero"} {
+        foreach attr {in out nullifempty } {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
+        testinvalidattr "$type nullok" field $errorMessages(typeparsemode)
         foreach attr {inout} {
             testinvalidattr "$type $attr" field $errorMessages(attrtype)
         }
-
 
         ## For all parse modes
         foreach parse_mode {param return field} {
             # Scalar tests - invalid attributes for type
             foreach attr [list {*}$pointerAttrs {*}$requirementAttrs winerror bitmask {{enum E}}] {
-                if {$attr ne "nonzero"} {
+                if {$attr ne "nullok"} {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
                 }
             }

@@ -191,8 +191,19 @@ namespace eval Concepts {
 
         Null pointers cannot be registered and are not checked for registration
         even when passed as safe pointers in function calls. However, the tag is
-        verified if present. The literal `NULL` can be used to represent a null
-        pointer.
+        verified if present.
+
+        The literal `NULL` can be used to represent a null pointer. By default,
+        a function result is a null pointer, it is treated as an error and
+        triggers the function's error handling mechanisms. Similarly, an attempt
+        to pass a null pointer to a function or store it as a field value
+        in a C struct will raise an exception. This can be overridden by
+        including the `nullok` annotation on the function return, parameter
+        or structure fields type definition.
+
+        Note that when returned as as output parameters from function,
+        either directly or embedded as struct fields, null pointers are
+        permitted even without the `nullok` annotation.
 
         #### Memory operations
 
@@ -264,7 +275,7 @@ namespace eval Concepts {
         - Function return values cannot be declared as `chars` or `unichars` as
         C itself does not support array return values. Generally, functions
         typed as returning `char *` need to be declaring as returning `pointer`
-        as the pointers have to be explcitly managed. Only in the specific cases
+        as the pointers have to be explicitly managed. Only in the specific cases
         where the returned pointer is static or does not need to be disposed of
         for some other reason, the return value can be typed as `string` or
         `unistring`.
@@ -579,32 +590,35 @@ namespace eval Concepts {
 
         Two additional sets of type annotations are provided to solve these
         issues. The first set of annotations is used to define the error check
-        conditions to be applied to function return values. The second set is
-        used to specify how the error detail is to be retrieved.
+        conditions to be applied to function return values. The
+        second set is used to specify how the error detail is to be retrieved.
 
-        The annotations for error checking are:
+        The following annotations for error checking can be used for
+        **integer** return values.
 
         `zero` - The value must be zero.
         `nonzero` - The value must be non-zero.
         `nonnegative` - The value must be zero or greater.
         `positive` - The value must be greater than 0.
 
-        These annotations may only be used with integer types except `nonzero`
-        which can also be used for `pointer`, `string` and `unistring` types.
-        In the case of the latter two, returned `char *` values that are `NULL`
-        pointers are transformed to empty strings by default. The use of
-        the `nonzero` annotation will force an exception to be generated instead.
-
         At most one of the above annotations can be attached to a return type.
         The function value is then checked whether the corresponding
         condition is met. Failure to do so is treated as an error condition.
 
-        An error condition results in an exception being generated unless the
-        `onerror` annotation is specified (see below).
-        However, the default error message generated is
-        generic and does not provide detail about why the error occured. The
-        following error retrieval annotations specify how detail about the error
-        is to be obtained.
+        An error condition is also generated when a function returning
+        a pointer returns a null pointer. This is also true for `string` and
+        `unistring` return types since those are pointers beneath the covers.
+        This treatment of null pointers as errors can be overridden with the
+        the `nullok` annotation. If this annotation is specified, a null
+        pointer return value, or an empty string in the case of `string` and
+        `unistring` types, will be returned to the caller.
+
+        An error condition arising from one of the error checking annotations or
+        a null pointer results in an exception being generated unless the
+        `onerror` annotation is specified (see below). However, the default
+        error message generated is generic and does not provide detail about why
+        the error occured. The following error retrieval annotations specify how
+        detail about the error is to be obtained.
 
         `errno` - The POSIX error is stored in `errno`. The error message is
         generated using the C runtime `strerror` function.

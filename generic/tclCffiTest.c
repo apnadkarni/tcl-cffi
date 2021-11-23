@@ -676,6 +676,16 @@ EXTERN void structArrayExchange (struct SimpleStruct *a, struct SimpleStruct *b,
     }
 }
 
+struct StructWithPointer {
+    void *p;
+};
+EXTERN void makeStructWithPointer(struct StructWithPointer *strucP, void *p) {
+    strucP->p = p;
+}
+EXTERN void *extractStructWithPointer(struct StructWithPointer *strucP) {
+    return strucP->p;
+}
+
 struct StructWithNestedArrays {
     struct SimpleStruct s[3];
     void *p[3];

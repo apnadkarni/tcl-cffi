@@ -741,9 +741,8 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_UNISTRING:
         pointer = dcCallPointer(vmP, fnP->fnAddr);
         /* Do IMMEDIATELY so as to not lose GetLastError */
-        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK)
-            fnCheckRet = CffiCheckPointer(
-                ip, &protoP->returnType.typeAttrs, pointer, &sysError);
+        fnCheckRet = CffiCheckPointer(
+            ip, &protoP->returnType.typeAttrs, pointer, &sysError);
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
         switch (protoP->returnType.typeAttrs.dataType.baseType) {
             case CFFI_K_TYPE_POINTER:

@@ -45,7 +45,8 @@ namespace eval cffi::test {
     variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes]
 
     variable paramAttrs {in out inout byref}
-    variable pointerAttrs {unsafe dispose counted}
+    variable pointerAttrs {nullok unsafe dispose counted}
+    variable stringAttrs {nullok nullifempty}
     variable requirementAttrs {zero nonzero nonnegative positive}
     variable errorHandlerAttrs {errno}
     if {$::tcl_platform(platform) eq "windows"} {

@@ -449,6 +449,26 @@ namespace eval cffi::test {
         S info
     } -result {size 20 alignment 4 fields {x {size 1 offset 0 definition schar} a {size 16 offset 4 definition {{int[4]}}}}}
 
+
+    ###
+    # pointer handling in fields
+    test struct-pointer-nullok-0 "NULL pointer in field" -body {
+        cffi::Struct create S {p {pointer nullok unsafe}}
+        S frombinary [S tobinary [list p [makeptr 0]]]
+    } -result [list p [makeptr 0]]
+
+    test struct-pointer-nullok-1 "NULL pointer in field" -body {
+        cffi::Struct create S {p {pointer unsafe}}
+        S frombinary [S tobinary [list p [makeptr 0]]]
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
+
+    test struct-pointer-nullok-2 "NULL pointer in output field" -body {
+        cffi::Struct create S {p {pointer nullok unsafe}}
+        cffi::Struct create S2 {p {pointer unsafe}}
+        S2 frombinary [S tobinary [list p [makeptr 0]]]
+    } -result [list p [makeptr 0]]
+
+
     ###
     # Bug fixes
 

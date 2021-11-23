@@ -83,24 +83,26 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     /*  */
     {TOKENANDLEN(pointer),
      CFFI_K_TYPE_POINTER,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NONZERO
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NULLOK
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
     {TOKENANDLEN(string),
      CFFI_K_TYPE_ASTRING,
-    /* Note string cannot be INOUT parameter */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NONZERO
-         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
+     /* Note string cannot be INOUT parameter */
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF
+         | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR
+         | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
     {TOKENANDLEN(unistring),
      CFFI_K_TYPE_UNISTRING,
-    /* Note unistring cannot be INOUT parameter */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NONZERO
-         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
+     /* Note unistring cannot be INOUT parameter */
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF
+         | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR
+         | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
     {TOKENANDLEN(binary),
      CFFI_K_TYPE_BINARY,
-    /* Note binary cannot be OUT or INOUT parameters */
+     /* Note binary cannot be OUT or INOUT parameters */
      CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF,
      sizeof(unsigned char *)},
     {TOKENANDLEN(chars),
@@ -194,7 +196,8 @@ enum cffiTypeAttrOpt {
     STOREALWAYS,
     ENUM,
     BITMASK,
-    ONERROR
+    ONERROR,
+    NULLOK,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -267,6 +270,11 @@ static CffiAttrs cffiAttrs[] = {
      2},
     {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"onerror", ONERROR, CFFI_F_ATTR_ONERROR, CFFI_F_TYPE_PARSE_RETURN, 2},
+    {"nullok",
+     NULLOK,
+     CFFI_F_ATTR_NULLOK,
+     CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD,
+     1},
     {NULL}};
 
 
@@ -917,6 +925,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             Tcl_IncrRefCount(fieldObjs[1]);
             typeAttrP->parseModeSpecificObj = fieldObjs[1];
             break;
+        case NULLOK:
+            flags |= CFFI_F_ATTR_NULLOK;
+            break;
         }
     }
 
@@ -1026,7 +1037,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
             if ((flags & CFFI_F_ATTR_ONERROR)
-                && (flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0) {
+                && (flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0
+                && baseType != CFFI_K_TYPE_POINTER
+                && baseType != CFFI_K_TYPE_ASTRING
+                && baseType != CFFI_K_TYPE_UNISTRING) {
                 message = "\"onerror\" requires an error checking annotation.";
                 goto invalid_format;
             }
@@ -1362,17 +1376,16 @@ CffiPointerArgsDispose(Tcl_Interp *ip,
 }
 
 /* Function: CffiCheckPointer
- * Checks if a pointer has any associated error checks.
+ * Checks if a pointer meets requirements annotations.
  *
  * Parameters:
  * ip - interpreter
  * typeAttrsP - descriptor for type and attributes
- * pointer - pointer value to wrap
+ * pointer - pointer value to check
  * sysErrorP - location to store system error
  *
  * Returns:
- * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error. A message
- * is stored in the interpreter unless the noexcept attribute is set.
+ * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error.
  */
 CffiResult
 CffiCheckPointer(Tcl_Interp *ip,
@@ -1381,19 +1394,20 @@ CffiCheckPointer(Tcl_Interp *ip,
                   Tcl_WideInt *sysErrorP)
 
 {
-    int         flags = typeAttrsP->flags;
+    int flags = typeAttrsP->flags;
 
-    if (((flags & CFFI_F_ATTR_ZERO) && pointer != NULL)
-        || ((flags & CFFI_F_ATTR_NONZERO) && pointer == NULL)) {
-        *sysErrorP =
-            CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
-        return TCL_ERROR;
-    }
-    return TCL_OK;
+    if (pointer || (flags & CFFI_F_ATTR_NULLOK))
+        return TCL_OK;
+    *sysErrorP =
+        CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
+    return TCL_ERROR;
 }
 
 /* Function: CffiPointerToObj
  * Wraps a pointer into a Tcl_Obj based on type settings.
+ *
+ * If the pointer is not NULL, it is registered if the type attributes
+ * indicate it should be wrapped a safe pointer.
  *
  * Parameters:
  * ip - interpreter
@@ -1468,19 +1482,19 @@ CffiPointerFromObj(Tcl_Interp *ip,
 
     CHECK(Tclh_PointerUnwrap(ip, pointerObj, &pv, tagObj));
 
-    /*
-     * Do checks for safe pointers. Note: Cannot use Tclh_PointerObjVerify
-     * because that rejects NULL pointers.
-     */
-    if (!(typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
-        /* Only verify registration if not NULL pointer */
-        if (pv) {
-            CHECK(Tclh_PointerVerify(ip, pv, tagObj));
+    if (pv == NULL) {
+        if ((typeAttrsP->flags & CFFI_F_ATTR_NULLOK) == 0) {
+            return Tclh_ErrorInvalidValue(ip, NULL, "Pointer is NULL.");
         }
     }
-    if (typeAttrsP->flags & CFFI_F_ATTR_NONZERO && pv == NULL) {
-        Tcl_SetResult(ip, "NULL pointer", TCL_STATIC);
-        return TCL_ERROR;
+    else {
+        /*
+         * Do checks for safe pointers. Note: Cannot use Tclh_PointerObjVerify
+         * because that rejects NULL pointers.
+         */
+        if (!(typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
+            CHECK(Tclh_PointerVerify(ip, pv, tagObj));
+        }
     }
 
     *pointerP = pv;
@@ -2813,8 +2827,7 @@ CffiResult CffiReturnCleanup(CffiCall *callP)
  *          Only set if error detected.
  *
  * Returns:
- * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error. A message
- * is stored in the interpreter unless the noexcept attribute is set.
+ * *TCL_OK* if requirements pass, else *TCL_ERROR* with an error.
  */
 CffiResult
 CffiCheckNumeric(Tcl_Interp *ip,
@@ -2883,7 +2896,6 @@ CffiCheckNumeric(Tcl_Interp *ip,
     return TCL_OK;
 
 failed_requirements:
-    /* If exceptions are not being reported, do not store error in interp */
     *sysErrorP = CffiGrabSystemError(typeAttrsP, value);
     return TCL_ERROR;
 }

@@ -203,16 +203,17 @@ namespace eval ${NS}::test {
     # NOTE: these also test "in" parameter types for pointer, chars, bytes, binary
     foreach to_type $intTypes {
         testDll function pointer_to_$to_type $to_type [list param {pointer}]
-        testDll function [list pointer_to_$to_type pointer_unsafe_to_$to_type] $to_type [list param {pointer}]
+        testDll function [list pointer_to_$to_type pointer_to_$to_type] $to_type [list param {pointer unsafe}]
+        testDll function [list pointer_to_$to_type pointer_nullok_unsafe_to_$to_type] $to_type [list param {pointer unsafe nullok}]
         testDll function [list string_to_$to_type chars_to_$to_type] $to_type [list param {chars[20]}]
         testDll function [list string_to_$to_type bytes_to_$to_type] $to_type [list param {bytes[20]}]
         testDll function [list string_to_$to_type binary_to_$to_type] $to_type [list param binary]
 
-        test pointer_to_${to_type}-0 "$to_type (safe pointer = 0)" -body {
-            pointer_to_${to_type} 0^
-        } -result 0
-        test pointer_unsafe_to_${to_type}-0 "$to_type (unsafe pointer = 0)" -body {
-            pointer_unsafe_to_${to_type} NULL
+        test pointer_to_${to_type}-0 "$to_type (safe pointer = 1)" -body {
+            pointer_to_${to_type} 1^
+        } -result 1
+        test pointer_nullok_unsafe_to_${to_type}-0 "$to_type (unsafe pointer = 0)" -body {
+            pointer_nullok_unsafe_to_${to_type} NULL
         } -result 0
 
         test chars_to_${to_type}-0 "$to_type (chars = 123)" -body {
@@ -348,9 +349,11 @@ namespace eval ${NS}::test {
         } -result "Invalid value \"$type inout\". A type annotation is not valid for the data type." -returnCodes error
 
         foreach attr $pointerAttrs {
-            test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
-                testDll function ${type}_to_void void [list param [list $type $attr]]
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            if {$attr ne "nullok"} {
+                test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
+                    testDll function ${type}_to_void void [list param [list $type $attr]]
+                } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            }
         }
 
         foreach attr [lsearch -all -inline -exact -not $requirementAttrs nonzero] {
@@ -361,7 +364,7 @@ namespace eval ${NS}::test {
         }
 
         test function-$type-nullifempty-0 "$type in nullifempty" -setup {
-            testDll function pointer_to_pointer {pointer unsafe} {s {string nullifempty}}
+            testDll function pointer_to_pointer {pointer nullok unsafe} {s {string nullok nullifempty}}
         } -body {
             pointer_to_pointer ""
         } -result [makeptr 0]
@@ -757,6 +760,21 @@ namespace eval ${NS}::test {
         list [cffi::pointer isvalid $p] [catch {pointer_dispose $p 1}] [cffi::pointer isvalid $p]
     } -result {1 0 0}
 
+    test function-pointer-param-in-null-0 "pass null pointer - fail" -body {
+        testDll function pointer_to_pointer void {p {pointer unsafe}}
+        pointer_to_pointer [makeptr 0]
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
+
+    test function-pointer-param-in-null-nullok-0 "pass null pointer nullok" -body {
+        testDll function pointer_to_pointer {pointer unsafe nullok} {p {pointer unsafe nullok}}
+        pointer_to_pointer [makeptr 0]
+    } -result [makeptr 0]
+
+    test function-pointer-param-out-null-0 "output parameter NULL pointer is allowed by default" -body {
+        testDll function pointer_reflect void {inp {pointer nullok} outp {pointer out}}
+        pointer_reflect [makeptr 0] x
+        set x
+    } -result [makeptr 0]
 
     # pointer tags
     test function-pointer-param-tag-0 "pointer tag safe" -setup {
@@ -847,7 +865,7 @@ namespace eval ${NS}::test {
         } else {
             set constraints {}
         }
-        if {$attr in {nonzero lasterror errno}} {
+        if {$attr in {lasterror errno}} {
             set msg $errorMessages(attrparsemode)
         } else {
             set msg $errorMessages(attrtype)
@@ -888,7 +906,7 @@ namespace eval ${NS}::test {
     } -result 1
     test function-struct-in-1 "Param struct in - null if empty" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
-        testDll function pointer_to_pointer {pointer unsafe} {s {struct.::S byref in nullifempty}}
+        testDll function pointer_to_pointer {pointer unsafe nullok} {s {struct.::S byref in nullifempty}}
     } -body {
         pointer_to_pointer {}
     } -result [makeptr 0]
@@ -911,7 +929,6 @@ namespace eval ${NS}::test {
         list $from $to
     } -result [list [list ptrs [make_unsafe_pointers 1 2 3]] [list ptrs [make_unsafe_pointers 1 2 3]]]
 
-    
     test function-struct-in-error-0 "Param struct in - empty dictionary" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
@@ -982,7 +999,7 @@ namespace eval ${NS}::test {
         structArrayCopy {{c 0 i 1 s 2} {c 3 i 4 s 5}} outstruct 3
         set outstruct
     } -result {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 0 i 0 s 0}}
-    
+ 
     test function-struct-array-2 "Pass inout short array of structs" -setup {
         catch {SimpleStruct destroy}
         cffi::Struct create SimpleStruct {c uchar i longlong s short}
@@ -1002,9 +1019,9 @@ namespace eval ${NS}::test {
         unset -nocomplain outstruct
     } -body {
         testDll function nestedStructArrayCopy void {from {struct.StructWithNestedStructArray byref} to {struct.StructWithNestedStructArray out}}
-        nestedStructArrayCopy {s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p {0^ 1^ 2^}} outstruct
+        nestedStructArrayCopy {s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p {1^ 2^ 3^}} outstruct
         set outstruct
-    } -result [list s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p [make_unsafe_pointers 0 1 2]]
+    } -result [list s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p [make_unsafe_pointers 1 2 3]]
 
     test function-struct-array-error-0 "Pass in empty struct" -setup {
         catch {SimpleStruct destroy}
@@ -1015,7 +1032,47 @@ namespace eval ${NS}::test {
         structArrayCopy {{}} outstruct 3
         set outstruct
     } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
-    
+
+    # Tests for null values in pointer fields
+    test function-struct-pointerfield-in-0 "input param, non-NULL" -body {
+        catch {S destroy}
+        cffi::Struct create S {p {pointer unsafe}}
+        testDll function extractStructWithPointer {pointer unsafe nullok} {ins {struct.S byref in}}
+        extractStructWithPointer [list p [makeptr 1]]
+    } -result [makeptr 1]
+    test function-struct-pointerfield-in-1 "input param, NULL" -body {
+        catch {S destroy}
+        cffi::Struct create S {p {pointer unsafe}}
+        testDll function extractStructWithPointer {pointer unsafe nullok} {ins {struct.S byref in}}
+        extractStructWithPointer [list p [makeptr 0]]
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
+    test function-struct-pointerfield-in-0 "input param, nullok, NULL" -body {
+        catch {S destroy}
+        cffi::Struct create S {p {pointer unsafe nullok}}
+        testDll function extractStructWithPointer {pointer unsafe nullok} {ins {struct.S byref in}}
+        extractStructWithPointer [list p [makeptr 0]]
+    } -result [makeptr 0]
+    test function-struct-pointerfield-out-0 "output param, non-NULL" -body {
+        catch {S destroy}
+        cffi::Struct create S {p {pointer unsafe}}
+        testDll function makeStructWithPointer void {ins {struct.S out} ptr {pointer unsafe}}
+        makeStructWithPointer sout [makeptr 1]
+        set sout
+    } -result [list p [makeptr 1]]
+    test function-struct-pointerfield-out-1 "output param, NULL" -body {
+        catch {S destroy}
+        cffi::Struct create S {p {pointer unsafe}}
+        testDll function makeStructWithPointer void {ins {struct.S out} ptr {pointer nullok unsafe}}
+        makeStructWithPointer sout [makeptr 0]
+    } -result {}
+    test function-struct-pointerfield-out-2 "output param, non-NULL" -body {
+        catch {S destroy}
+        cffi::Struct create S {p {pointer nullok unsafe}}
+        testDll function makeStructWithPointer void {ins {struct.S out} ptr {pointer nullok unsafe}}
+        makeStructWithPointer sout [makeptr 0]
+        set sout
+    } -result [list p [makeptr 0]]
+
     # Note -  tests for invalid attrs are done in type.test
 
     ###
@@ -1135,7 +1192,7 @@ namespace eval ${NS}::test {
         }
     }
 
-    # Attributes for pointers
+    # Return attributes for pointers
     foreach type {pointer pointer.TAG} tag {{} TAG} {
         # safe
         test function-return-$type-safe-0 "return type $type safe" -body {
@@ -1144,7 +1201,7 @@ namespace eval ${NS}::test {
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
         test function-return-$type-null-safe-0 "return type null $type safe" -body {
-            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
+            testDll function pointer_to_pointer [list $type nullok] {p {pointer nullok unsafe}}
             pointer_to_pointer [makeptr 0]
         } -result [makeptr 0 $tag]
 
@@ -1160,10 +1217,6 @@ namespace eval ${NS}::test {
                 [cffi::pointer dispose $p2] \
                 [cffi::pointer isvalid $p]
         } -result {1 1 {} {} 0}
-        test function-return-$type-null-counted-0 "return type null $type counted" -body {
-            testDll function pointer_to_pointer [list $type counted] {p {pointer unsafe}}
-            pointer_to_pointer [makeptr 0]
-        } -result [makeptr 0 $tag]
 
         # unsafe
         test function-return-$type-unsafe-0 "return type $type unsafe" -body {
@@ -1171,71 +1224,86 @@ namespace eval ${NS}::test {
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p]
         } -result 0
-        test function-return-$type-null-unsafe-0 "return type null $type unsafe" -body {
-            testDll function pointer_to_pointer [list $type unsafe] {p {pointer unsafe}}
-            pointer_to_pointer [makeptr 0]
-        } -result [makeptr 0 $tag]
 
         # Pointer error attributes
         # safe
-        test function-return-$type-nonzero-0 "return type $type nonzero" -body {
-            testDll function pointer_to_pointer [list $type nonzero] {p {pointer unsafe}}
+        test function-return-$type-0 "return type $type" -body {
+            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
-        test function-return-$type-nonzero-null-0 "return type $type nonzero - null" -body {
-            testDll function pointer_to_pointer [list $type nonzero] {p {pointer unsafe}}
+        test function-return-$type-nullok-0 "return type $type nullok" -body {
+            testDll function pointer_to_pointer [list $type nullok] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+        } -result {1 {} 0}
+        test function-return-$type-null-0 "return type $type - null" -body {
+            testDll function pointer_to_pointer [list $type] {p {pointer nullok unsafe}}
             pointer_to_pointer 0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
-        test function-return-$type-nonzero-errno-0 "return type $type nonzero - errno" -body {
-            testDll function pointer_errno [list $type nonzero errno] {p {pointer unsafe}}
+        test function-return-$type-nullok-null-0 "return type $type nullok - NULL" -body {
+            testDll function pointer_to_pointer [list $type nullok] {p {pointer nullok unsafe}}
+            set p [pointer_to_pointer 0^]
+            list [cffi::pointer isvalid $p] $p
+        } -result [list 0 [makeptr 0 $tag]]
+
+        test function-return-$type-errno-0 "return type $type - errno" -body {
+            testDll function pointer_errno [list $type errno] {p {pointer unsafe nullok}}
             list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
-        test function-return-$type-nonzero-lasterror-0 "return type $type nonzero - lasterror" -constraints win -body {
-            testDll function pointer_lasterror [list $type nonzero lasterror] {p {pointer unsafe}}
+        test function-return-$type-lasterror-0 "return type $type - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type lasterror] {p {pointer unsafe nullok}}
             list [catch {pointer_lasterror 0^} result] $result
         } -result {1 {The data is invalid. }}
 
         # counted
-        test function-return-$type-counted-nonzero-0 "return type $type counted nonzero" -body {
-            testDll function pointer_to_pointer [list $type counted nonzero] {p {pointer unsafe}}
+        test function-return-$type-counted-nullok-0 "return type $type counted" -body {
+            testDll function pointer_to_pointer [list $type nullok counted] {p {pointer nullok unsafe}}
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
-        test function-return-$type-counted-nonzero-null-0 "return type $type counted nonzero - null" -body {
-            testDll function pointer_to_pointer [list $type counted nonzero] {p {pointer unsafe}}
+        test function-return-$type-counted-null-0 "return type $type counted nullok - null" -body {
+            testDll function pointer_to_pointer [list $type counted] {p {pointer nullok unsafe}}
             pointer_to_pointer 0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
-        test function-return-$type-counted-nonzero-errno-0 "return type $type counted-nonzero - errno" -body {
-            testDll function pointer_errno [list $type nonzero counted errno] {p {pointer unsafe}}
+        test function-return-$type-counted-nullok-null-0 "return type $type counted nullok - NULL" -body {
+            testDll function pointer_to_pointer [list $type nullok counted] {p {pointer nullok unsafe}}
+            pointer_to_pointer 0^
+        } -result [makeptr 0 $tag]
+        test function-return-$type-counted-errno-0 "return type $type counted - errno" -body {
+            testDll function pointer_errno [list $type counted errno] {p {pointer nullok unsafe}}
             list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
-        test function-return-$type-counted-nonzero-lasterror-0 "return type $type counted-nonzero - lasterror" -constraints win -body {
-            testDll function pointer_lasterror [list $type counted nonzero lasterror] {p {pointer unsafe}}
+        test function-return-$type-counted-lasterror-0 "return type $type counted - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type counted lasterror] {p {pointer nullok unsafe}}
             list [catch {pointer_lasterror 0^} result] $result
         } -result {1 {The data is invalid. }}
 
         # unsafe
-        test function-return-$type-unsafe-nonzero-0 "return type $type unsafe nonzero" -body {
-            testDll function pointer_to_pointer [list $type unsafe nonzero] {p {pointer unsafe}}
+        test function-return-$type-unsafe-nullok-0 "return type $type unsafe nullok" -body {
+            testDll function pointer_to_pointer [list $type unsafe nullok] {p {pointer nullok unsafe}}
             set p [pointer_to_pointer 1^]
             cffi::pointer isvalid $p
         } -result 0
-        test function-return-$type-unsafe-nonzero-null-0 "return type $type unsafe nonzero - null" -body {
-            testDll function pointer_to_pointer [list $type unsafe nonzero] {p {pointer unsafe}}
+        test function-return-$type-unsafe-null-0 "return type $type unsafe - null" -body {
+            testDll function pointer_to_pointer [list $type unsafe] {p {pointer nullok unsafe}}
             pointer_to_pointer 0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
-        test function-return-$type-unsafe-nonzero-errno-0 "return type $type unsafe-nonzero - errno" -body {
-            testDll function pointer_errno [list $type nonzero unsafe errno] {p {pointer unsafe}}
+        test function-return-$type-unsafe-nullok-null-0 "return type $type unsafe nullok - NULL" -body {
+            testDll function pointer_to_pointer [list $type unsafe nullok] {p {pointer nullok unsafe}}
+            pointer_to_pointer 0^
+        } -result [makeptr 0 $tag]
+        test function-return-$type-unsafe-errno-0 "return type $type unsafe - errno" -body {
+            testDll function pointer_errno [list $type unsafe errno] {p {pointer nullok unsafe}}
             list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
-        test function-return-$type-unsafe-nonzero-lasterror-0 "return type $type unsafe-nonzero - lasterror" -constraints win -body {
-            testDll function pointer_lasterror [list $type unsafe nonzero lasterror] {p {pointer unsafe}}
+        test function-return-$type-unsafe-lasterror-0 "return type $type unsafe - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type unsafe lasterror] {p {pointer nullok unsafe}}
             list [catch {pointer_lasterror 0^} result] $result
         } -result {1 {The data is invalid. }}
 
         # checks that are not valid for pointers
-        foreach attr {zero nonnegative positive nullifempty} {
+        foreach attr {nonzero zero nonnegative positive nullifempty} {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -1269,13 +1337,13 @@ namespace eval ${NS}::test {
 
     # string, unistring return types
     foreach type {string string.utf-8 unistring} {
-        test function-return-$type-0 "return $type NULL" -setup {
-            testDll function pointer_to_pointer $type {p {pointer unsafe}}
+        test function-return-$type-NULL-nullok-0 "return $type NULL - nullok" -setup {
+            testDll function pointer_to_pointer "$type nullok" {p {pointer nullok unsafe}}
         } -body {
             pointer_to_pointer 0^
         } -result ""
-        test function-return-$type-nonzero-0 "return $type NULL - nonzero" -setup {
-            testDll function pointer_to_pointer "$type nonzero" {p {pointer unsafe}}
+        test function-return-$type-NULL-0 "return $type NULL - error" -setup {
+            testDll function pointer_to_pointer "$type" {p {pointer nullok unsafe}}
         } -body {
             pointer_to_pointer 0^
         } -result {Invalid value "". Function returned an error value.} -returnCodes error
@@ -1295,8 +1363,8 @@ namespace eval ${NS}::test {
     } -body {
         jis0208_return
     } -result "\u543e\u543e"
-    test function-return-string-4 "return string ascii - nonzero" -setup {
-        testDll function ascii_return {string nonzero} {}
+    test function-return-string-4 "return string ascii - nullok" -setup {
+        testDll function ascii_return {string nullok} {}
     } -body {
         ascii_return
     } -result "abc"
@@ -1305,15 +1373,13 @@ namespace eval ${NS}::test {
     } -body {
         unistring_return
     } -result "\xe0\xe1\xe2"
-    test function-return-unistring-2 "return unistring - nonzero" -setup {
-        testDll function unistring_return {unistring nonzero} {}
+    test function-return-unistring-2 "return unistring - nullok" -setup {
+        testDll function unistring_return {unistring nullok} {}
     } -body {
         unistring_return
     } -result "\xe0\xe1\xe2"
 
     ## Error attributes for strings
-
-    test function-return-string-nonzero-0 ""
 
     # Other return types are not permitted - test here. Note it does not
     # matter that actual C prototype does not match what we define here since
@@ -1590,10 +1656,48 @@ namespace eval ${NS}::test {
         pointer_array_incr $safe_ptrs unsafe_ptrs [llength $safe_ptrs]
         list $unsafe_ptrs [cffi::pointer list]
     } -result [list [make_unsafe_pointers 2 3 4] {}]
+    test function-array-pointer-4 "input NULL output unsafe" -setup {
+        purge_pointers
+        set in_ptrs [make_unsafe_pointers 0 1 2]
+        unset -nocomplain unsafe_ptrs
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain in_ptrs unsafe_ptrs
+    } -body {
+        testDll function pointer_array_incr void {inp pointer[n] outp {pointer[n] out unsafe} n int}
+        pointer_array_incr $in_ptrs unsafe_ptrs [llength $in_ptrs]
+        set unsafe_ptrs
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
+    test function-array-pointer-5 "input nullok NULL output unsafe" -setup {
+        purge_pointers
+        set in_ptrs [make_unsafe_pointers 0 1 2]
+        unset -nocomplain unsafe_ptrs
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain in_ptrs unsafe_ptrs
+    } -body {
+        testDll function pointer_array_incr void {inp {pointer[n] unsafe nullok} outp {pointer[n] out unsafe} n int}
+        pointer_array_incr $in_ptrs unsafe_ptrs [llength $in_ptrs]
+        set unsafe_ptrs
+    } -result [make_unsafe_pointers 1 2 3]
+    test function-array-pointer-6 "inout nullok" -setup {
+        purge_pointers
+        set ptrs1 [make_unsafe_pointers 0 1 2]
+        set ptrs2 [make_unsafe_pointers 4 5 6]
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain ptrs1 ptrs2
+    } -body {
+        # Note - inout2 does not have nullok - should still allow output NULL pointer
+        testDll function pointer_array_exchange void {inout1 {pointer[n] inout unsafe nullok} inout2 {pointer[n] inout unsafe} n int}
+        pointer_array_exchange ptrs1 ptrs2 [llength $ptrs1]
+        list $ptrs1 $ptrs2
+    } -result [list [make_unsafe_pointers 4 5 6] [make_unsafe_pointers 0 1 2]]
+
 
     ###
     # Function failure tests with onerror:
-    
+ 
     proc onerror_ignore {args} {
         upvar 1 handler_output v
         incr v
@@ -1621,7 +1725,7 @@ namespace eval ${NS}::test {
         test $label $comment -setup {
             unset -nocomplain outvar
         } -body {
-            testDll function pointer_reflect [list pointer unsafe nonzero {*}$retannot] [list inparam {pointer unsafe} outparam [list pointer unsafe {*}$paramannot]]
+            testDll function pointer_reflect [list pointer unsafe {*}$retannot] [list inparam {pointer nullok unsafe} outparam [list pointer nullok unsafe {*}$paramannot]]
             list \
                 [catch {pointer_reflect $ptr outvar} result] \
                 $result \
@@ -1677,7 +1781,7 @@ namespace eval ${NS}::test {
         {} \
         [list out storealways] \
         [list 1 "Invalid value \"[makeptr 0]\". Function returned an error value." [makeptr 0]] 
-    
+
     testexcepts function-storealways-onerror-ignore-0 "Storealways - Success with onerror onerror_ignore" \
         [list nonzero {onerror onerror_ignore}] \
         [list out storealways] \
