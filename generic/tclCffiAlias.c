@@ -140,8 +140,34 @@ CffiAliasDefineCmd(CffiInterpCtx *ipCtxP,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    CFFI_ASSERT(objc == 4);
-    return CffiAliasAdd(ipCtxP, objv[2], objv[3]);
+    CFFI_ASSERT(objc == 3 || objc == 4);
+    if (objc == 4)
+        return CffiAliasAdd(ipCtxP, objv[2], objv[3]);
+    else {
+        /* Dup to protect list from shimmering away */
+        Tcl_Obj *defsObj = Tcl_DuplicateObj(objv[2]);
+        Tcl_Obj **objs;
+        int nobjs;
+        int ret;
+        Tcl_IncrRefCount(defsObj);
+        ret = Tcl_ListObjGetElements(ip, defsObj, &nobjs, &objs);
+        if (ret == TCL_OK) {
+            if (nobjs & 1) {
+                ret = Tclh_ErrorInvalidValue(
+                    ip, defsObj, "Invalid alias dictionary, missing definition for alias.");
+            }
+            else {
+                int i;
+                for (i = 0; i < nobjs; i += 2) {
+                    ret = CffiAliasAdd(ipCtxP, objs[i], objs[i + 1]);
+                    if (ret != TCL_OK)
+                        break;
+                }
+            }
+        }
+        Tcl_DecrRefCount(defsObj);
+        return ret;
+    }
 }
 
 static CffiResult
@@ -387,7 +413,7 @@ CffiAliasObjCmd(ClientData cdata,
     int cmdIndex;
     static const Tclh_SubCommand subCommands[] = {
         {"body", 1, 1, "ALIAS", CffiAliasBodyCmd},
-        {"define", 2, 2, "ALIAS DEFINITION", CffiAliasDefineCmd},
+        {"define", 1, 2, "(ALIASDEFS | ALIAS DEFINITION)", CffiAliasDefineCmd},
         {"delete", 1, 1, "PATTERN", CffiAliasDeleteCmd},
         {"list", 0, 1, "?PATTERN?", CffiAliasListCmd},
         {"load", 1, 1, "ALIASSET", CffiAliasLoadCmd},

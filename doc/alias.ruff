@@ -2,15 +2,25 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::alias {
-    proc define {alias_name alias_def} {
-        # Defines a type alias
-        #  alias_name - Name for type alias. Must begin with an alphabetic
+    proc define {args} {
+        # Defines one or more type aliases.
+        #  name - Name for type alias. Must begin with an alphabetic
         #   character and may contain alphanumerics and underscore.
-        #  alias_def - definition for the alias
+        #  definition - definition for the alias
+        #  aliasdefs - dictionary mapping alias names to their definition
         #
-        # Creates a new alias.
-        # An error will be raised if a the alias name matches a built-in
-        # type or an existing alias if the definitions are different.
+        # Synopsis: name definition
+        # Synopsis: aliasdefs
+        #
+        # Given two arguments, creates an alias of the given name for
+        # passed definition.
+        # If a single argument is provided, it must be a dictionary mapping
+        # alias names to their definitions.
+        #
+        # An error will be raised if an alias name matches a built-in
+        # type or if an alias of that name already exists with a different
+        # definition.
+        #
         # The definition may itself be based on an existing alias. In this
         # case the existing alias is immediately resolved and expanded
         # as part of the definition so further changes to it are not reflected

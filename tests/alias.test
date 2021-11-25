@@ -16,7 +16,8 @@ namespace eval cffi::test {
     }
 
     testsubcmd ::cffi::alias
-    testnumargs alias-define "cffi::alias define" "ALIAS DEFINITION"
+    testnumargs alias-define "cffi::alias define" "(ALIASDEFS | ALIAS DEFINITION)"
+    testnumargs alias-define "cffi::alias define" "(ALIASDEFS | ALIAS DEFINITION)"
 
     test alias-define-error-0 "Invalid alias syntax - starting with numeric" -body {
         cffi::alias define 0alias int
@@ -53,6 +54,35 @@ namespace eval cffi::test {
     testalias alias-define-nested-0 "nested" "size 4 count 0 alignment 4 definition {int out}" {
         cffi::alias define nested {int out}
     }
+
+    test alias-define-multi-0 "Empty defs" -setup {
+        cffi::alias delete *
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias define {}
+        cffi::alias list
+    } -result {}
+
+    test alias-define-multi-1 "Multiple aliases" -setup {
+        cffi::alias delete *
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        cffi::alias define {f float i {int nonzero}}
+        list [lsort [cffi::alias list]] [cffi::type info f] [cffi::type info i]
+    } -result {{f i} {size 4 count 0 alignment 4 definition float} {size 4 count 0 alignment 4 definition {int nonzero}}}
+
+    test alias-define-multi-error-0 "Missing definition" -setup {
+        cffi::alias delete *
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        list [catch {cffi::alias define {f float i}} result] [cffi::alias list] $result
+    } -result {1 {} {Invalid value "f float i". Invalid alias dictionary, missing definition for alias.}}
+
+
+
     test alias-define-nested-1 "Redefine nested" -setup {
         cffi::alias define X int
         cffi::alias define Y X
