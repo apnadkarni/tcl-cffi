@@ -90,7 +90,7 @@ install: $(PRJLIB) default-install-docs-html
 	@if not exist "$(LIB_INSTALL_DIR)\$(MACHINE)" mkdir "$(LIB_INSTALL_DIR)\$(MACHINE)"
 	@$(CPY) $(PRJLIB) "$(LIB_INSTALL_DIR)\$(MACHINE)" >NUL
 
-$(PRJ_OBJS): $(HEADERS)
+$(PRJ_OBJS): $(HEADERS) $(ROOT)\configure.ac
 
 # Build test DLL
 $(PROJECT): testdll
