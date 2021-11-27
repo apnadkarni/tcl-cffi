@@ -155,7 +155,7 @@ namespace eval libzip {
         cffi::Struct create zip_error_t {
             zip_err int
             sys_err int
-            str     {pointer unsafe}
+            str     {pointer unsafe nullok}
         }
         cffi::alias define ZIP_ERROR_REF {struct.zip_error_t byref}
 
@@ -264,7 +264,7 @@ namespace eval libzip {
     # success.
     array set Functions {
         zip_open {
-            {PZIP_T nonzero {onerror ::libzip::ArchiveOpenHandler}}
+            {PZIP_T {onerror ::libzip::ArchiveOpenHandler}}
             {path string flags {int bitmask {enum ZipOpenFlags}} zcode {int out storeonerror}}
         }
         zip_discard { void         {pzip {PZIP_T dispose}} }
@@ -304,7 +304,7 @@ namespace eval libzip {
             {pzip PZIP_T fname UTF8 flags ZIP_FLAGS_T }
         }
         zip_get_name {
-            {UTF8 nonzero {onerror libzip::ArchiveErrorHandler}}
+            {UTF8 {onerror libzip::ArchiveErrorHandler}}
             {pzip PZIP_T index uint64_t flags ZIP_FLAGS_T}
         }
         zip_file_set_mtime {
@@ -350,7 +350,7 @@ namespace eval libzip {
     # Operations on contained files
     array set Functions {
         zip_source_file {
-            {PZIP_SOURCE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
+            {PZIP_SOURCE_T {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T fsname string start {uint64_t {default 0}} len { int64_t {default 0}}}
         }
         zip_file_add {
@@ -371,19 +371,19 @@ namespace eval libzip {
         zip_unchange_archive { LIBZIPSTATUS {pzip PZIP_T}}
 
         zip_fopen {
-            {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
+            {PZIP_FILE_T {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T utfname UTF8 flags ZIP_FLAGS_T}
         }
         zip_fopen_index {
-            {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
+            {PZIP_FILE_T {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T index uint64_t flags ZIP_FLAGS_T}
         }
         zip_fopen_encrypted {
-            {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
+            {PZIP_FILE_T {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T utfname UTF8 flags ZIP_FLAGS_T password {UTF8 nullifempty}}
         }
         zip_fopen_index_encrypted {
-            {PZIP_FILE_T nonzero {onerror ::libzip::ArchiveErrorHandler}}
+            {PZIP_FILE_T {onerror ::libzip::ArchiveErrorHandler}}
             {pzip PZIP_T index uint64_t flags ZIP_FLAGS_T password {UTF8 nullifempty}}
         }
         zip_fclose { LIBZIPCODE {pfile {PZIP_FILE_T dispose}} }

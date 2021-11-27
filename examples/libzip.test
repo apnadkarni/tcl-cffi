@@ -222,6 +222,7 @@ namespace eval libzip::test {
     } -result [list 5 "test\n"]
     test zip_fopen_index-error-0 "Read from a zip file - no such index" -setup {
         set zip [libzip::zip_open [sample_path test.zip] ZIP_RDONLY code]
+        puts ZIP:$zip
     } -cleanup {
         libzip::zip_close $zip
     } -body {
