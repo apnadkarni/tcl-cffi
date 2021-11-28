@@ -1801,12 +1801,12 @@ namespace eval ${NS}::test {
     testexcepts function-onerror-ignore-1 "Fail with onerror onerror_ignore" \
         [list zero {onerror onerror_ignore}] \
         out \
-        [list 0 "onerror_ignore: {In {inparam 42} Out {} Value 44 Command ::cffi::test::int_out}" 0 100]
+        [list 0 "onerror_ignore: {In {inparam 42} Out {} Result 44 Command ::cffi::test::int_out}" 0 100]
     testptrexcepts function-onerror-ignore-2 "Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror {return -level 0}}} \
         out \
-        [list 0 [list In [list inparam [makeptr 0]] Out [list ] Value [makeptr 0] Command ::cffi::test::pointer_reflect] 0]
+        [list 0 [list In [list inparam [makeptr 0]] Out [list ] Result [makeptr 0] Command ::cffi::test::pointer_reflect] 0]
     testexcepts function-onerror-raise-0 "Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         out \
@@ -1814,12 +1814,12 @@ namespace eval ${NS}::test {
     testexcepts function-onerror-raise-1 "Fail with onerror onerror_raise" \
         [list zero {onerror {onerror_raise prefixarg}}] \
         out \
-        [list 1 {prefixarg: {In {inparam 42} Out {} Value 44 Command ::cffi::test::int_out}} 0 100]
+        [list 1 {prefixarg: {In {inparam 42} Out {} Result 44 Command ::cffi::test::int_out}} 0 100]
     testptrexcepts function-onerror-raise-2 "Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror error}} \
         out \
-        [list 1 {In {inparam 0x0000000000000000^} Out {} Value 0x0000000000000000^ Command ::cffi::test::pointer_reflect} 0]
+        [list 1 {In {inparam 0x0000000000000000^} Out {} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect} 0]
 
     ###
     # storealways
@@ -1841,12 +1841,12 @@ namespace eval ${NS}::test {
     testexcepts function-storealways-onerror-ignore-1 "Storealways - Fail with onerror onerror_ignore" \
         [list zero {onerror onerror_ignore}] \
         [list out storealways] \
-        [list 0 "onerror_ignore: {In {inparam 42} Out {outparam 43} Value 44 Command ::cffi::test::int_out}" 43 100]
+        [list 0 "onerror_ignore: {In {inparam 42} Out {outparam 43} Result 44 Command ::cffi::test::int_out}" 43 100]
     testptrexcepts function-storealways-onerror-ignore-2 "Storealways - Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror {list prefix}}} \
         [list out storealways] \
-        [list 0 [list prefix [list In [list inparam [makeptr 0]] Out [list outparam [makeptr 0]] Value [makeptr 0] Command ::cffi::test::pointer_reflect]] [makeptr 0]]
+        [list 0 [list prefix [list In [list inparam [makeptr 0]] Out [list outparam [makeptr 0]] Result [makeptr 0] Command ::cffi::test::pointer_reflect]] [makeptr 0]]
     testexcepts function-storealways-onerror-raise-0 "Storealways - Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         [list out storealways] \
@@ -1854,12 +1854,12 @@ namespace eval ${NS}::test {
     testexcepts function-storealways-onerror-raise-1 "Storealways - Fail with onerror onerror_raise" \
         [list zero {onerror {onerror_raise prefixarg}}] \
         [list out storealways] \
-        [list 1 {prefixarg: {In {inparam 42} Out {outparam 43} Value 44 Command ::cffi::test::int_out}} 43 100]
+        [list 1 {prefixarg: {In {inparam 42} Out {outparam 43} Result 44 Command ::cffi::test::int_out}} 43 100]
     testptrexcepts function-storealways-onerror-raise-2 "Storealways - Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror error}} \
         [list out storealways] \
-        [list 1 {In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Value 0x0000000000000000^ Command ::cffi::test::pointer_reflect} [makeptr 0]]
+        [list 1 {In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect} [makeptr 0]]
 
 
     ###
@@ -1881,12 +1881,12 @@ namespace eval ${NS}::test {
     testexcepts function-storeonerror-onerror-ignore-1 "Storeonerror - Fail with onerror onerror_ignore" \
         [list zero {onerror onerror_ignore}] \
         [list out storeonerror] \
-        [list 0 {onerror_ignore: {In {inparam 42} Out {outparam 43} Value 44 Command ::cffi::test::int_out}} 43 100]
+        [list 0 {onerror_ignore: {In {inparam 42} Out {outparam 43} Result 44 Command ::cffi::test::int_out}} 43 100]
     testptrexcepts function-storeonerror-onerror-ignore-2 "Storeonerror - Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror {list}}} \
         [list out storeonerror] \
-        [list 0 {{In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Value 0x0000000000000000^ Command ::cffi::test::pointer_reflect}} 0x0000000000000000^]
+        [list 0 {{In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect}} 0x0000000000000000^]
     testexcepts function-storeonerror-onerror-raise-0 "Storeonerror - Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         [list out storeonerror] \
@@ -1894,12 +1894,12 @@ namespace eval ${NS}::test {
     testexcepts function-storeonerror-onerror-raise-1 "Storeonerror - Fail with onerror onerror_raise" \
         [list zero {onerror {onerror_raise prefixarg}}] \
         [list out storeonerror] \
-        {1 {prefixarg: {In {inparam 42} Out {outparam 43} Value 44 Command ::cffi::test::int_out}} 43 100}
+        {1 {prefixarg: {In {inparam 42} Out {outparam 43} Result 44 Command ::cffi::test::int_out}} 43 100}
     testptrexcepts function-storeonerror-onerror-raise-2 "Storeonerror - Pointer fail with onerror handler" \
         [makeptr 0] \
         {{onerror error}} \
         [list out storeonerror] \
-        [list 1 {In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Value 0x0000000000000000^ Command ::cffi::test::pointer_reflect} [makeptr 0]]
+        [list 1 {In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect} [makeptr 0]]
 
     ###
     # enum tests

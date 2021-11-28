@@ -186,25 +186,29 @@ namespace eval libzip {
     #   zcode  - integer error code
     #   zerr   - zip_error_t struct
 
-    proc ErrorCodeHandler {fn_result args} {
+    proc TranslateErrorAndThrow {error_code} {
         # fn_result is the error code
-        zip_error_init_with_code zerr $fn_result
+        zip_error_init_with_code zerr $error_code
         ThrowLibzipError $zerr
     }
-    proc ArchiveErrorHandler {fn_result inparams outparams} {
+    proc ErrorCodeHandler {callinfo} {
+        zip_error_init_with_code zerr [dict get $callinfo Result]
+        ThrowLibzipError $zerr
+    }
+    proc ArchiveErrorHandler {callinfo} {
         # fn_result is any value that did not meet requirements
         # Error to be retrieved from archive (pzip parameter)
-        set perr [zip_get_error [dict get $inparams pzip]]
+        set perr [zip_get_error [dict get $callinfo In pzip]]
         set zerr [zip_error_t fromnative $perr]
         # This is a static pointer, no freeing to be done. Just unregister
         cffi::pointer dispose $perr
         ThrowLibzipError $zerr
     }
-    proc ArchiveOpenHandler {fn_result inparams outparams} {
+    proc ArchiveOpenHandler {callinfo} {
         # fn_result is any value that did not meet requirements
         # Error given by zcode output parameter
-         if {[dict exists $outparams zcode]} {
-            zip_error_init_with_code zerr [dict get $outparams zcode]
+         if {[dict exists $callinfo Out zcode]} {
+            zip_error_init_with_code zerr [dict get $callinfo Out zcode]
             ThrowLibzipError $zerr
          }
          throw [list LIBZIP [list ZCODE -1 SYSERROR -1] "Unknown error"] "Unknown error"
@@ -212,11 +216,11 @@ namespace eval libzip {
     # SourceErrorHander is needed because PZIP_SOURCE_T type
     # arguments need to be freed ONLY on error by when calling functions like
     # `zip_file_add`. On success, these functions free the arguments internally.
-    proc SourceErrorHandler {fn_result inparams outparams} {
-        if {[dict exists $inparams psource]} {
-            zip_source_free [dict get $inparams psource]
+    proc SourceErrorHandler {callinfo} {
+        if {[dict exists $callinfo In psource]} {
+            zip_source_free [dict get $callinfo In psource]
         }
-        ArchiveErrorHandler $fn_result $inparams $outparams
+        TranslateErrorAndThrow [dict get $callinfo Result]
     }
 
     # Helper to actually throw an error

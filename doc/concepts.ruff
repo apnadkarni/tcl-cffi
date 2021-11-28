@@ -639,10 +639,10 @@ namespace eval Concepts {
         When this command prefix is invoked, a dictionary with the call information
         is passed. The dictionary contains the following keys:
 
-        `Value` - The return value from the function that triggered the error
-        handler
+        `Result` - The return value from the function that triggered the error
+        handler.
         `In` - a nested dictionary mapping all  `in` and `inout` parameter names to
-        the values passed in to the called function
+        the values passed in to the called function.
         `Out` - a dictionary mapping all `inout` and `out` parameter names to
         the values returned on output by the function. These only include
         output parameters marked as `storealways` or `storeonerror`.

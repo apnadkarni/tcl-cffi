@@ -577,7 +577,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("Out", 3));
     Tcl_ListObjAppendElement(NULL, callInfoObj, outputArgsObj);
     if (valueObj) {
-        Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("Value", 5));
+        Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("Result", 6));
         Tcl_ListObjAppendElement(NULL, callInfoObj, valueObj);
     }
     if (cmdNameObj) {
