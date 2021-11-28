@@ -189,6 +189,23 @@ namespace eval ${NS}::test {
         cffi::call [makeptr $addr itoi]
     } -result "Syntax: cffi::call [makeptr [testDll addressof int_to_int] itoi] x" -returnCodes error
 
+    # Error annotations
+    test prototype-errorannotation-0 "zero error" -setup {
+        set addr [testDll addressof int_to_int]
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype function itoi {int zero} {x int}
+        cffi::call [makeptr $addr itoi] 42
+    } -result {Invalid value "42". Function returned an error value.} -returnCodes error
+    test prototype-errorannotation-0 "onerror" -setup {
+        set addr [testDll addressof int_to_int]
+    } -cleanup {
+        cffi::prototype delete *
+    } -body {
+        cffi::prototype function itoi {int nonzero {onerror {return -level 0}}} {x int}
+        cffi::call [makeptr $addr itoi] 0
+    } -result {In {x 0} Out {} Value 0}
 
 }
 

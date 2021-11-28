@@ -519,6 +519,7 @@ CffiDefaultErrorHandler(Tcl_Interp *ip,
 static CffiResult
 CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
                        CffiProto *protoP,
+                       Tcl_Obj *cmdNameObj,
                        Tcl_Obj **argObjs,
                        CffiArgument *argsP,
                        Tcl_Obj *valueObj)
@@ -528,6 +529,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     Tcl_Obj **evalObjs;
     Tcl_Obj *inputArgsObj;
     Tcl_Obj *outputArgsObj;
+    Tcl_Obj *callInfoObj;
     CffiResult ret;
     int nOnErrorObjs;
     int nEvalObjs;
@@ -538,7 +540,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     CHECK(Tcl_ListObjGetElements(
         ip, protoP->returnType.typeAttrs.parseModeSpecificObj, &nOnErrorObjs, &onErrorObjs));
 
-    nEvalObjs = nOnErrorObjs + 3; /* value, input dict, output dict */
+    nEvalObjs = nOnErrorObjs + 1; /* We will tack on the call dictionary */
     evalObjs =
         MemLifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
 
@@ -546,6 +548,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
      * Construct the dictionary of arguments that were input to the function.
      * Built as a list for efficiency as the handler may or may not access it.
      */
+    callInfoObj = Tcl_NewListObj(0, NULL);
     inputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
     outputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
     for (i = 0; i < protoP->nParams; ++i) {
@@ -569,22 +572,32 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
         }
     }
 
+    Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("In", 2));
+    Tcl_ListObjAppendElement(NULL, callInfoObj, inputArgsObj);
+    Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("Out", 3));
+    Tcl_ListObjAppendElement(NULL, callInfoObj, outputArgsObj);
+    if (valueObj) {
+        Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("Value", 5));
+        Tcl_ListObjAppendElement(NULL, callInfoObj, valueObj);
+    }
+    if (cmdNameObj) {
+        Tcl_ListObjAppendElement(NULL, callInfoObj, Tcl_NewStringObj("Command", 7));
+        Tcl_ListObjAppendElement(NULL, callInfoObj, cmdNameObj);
+    }
+
     /* Must protect before call as Eval may or may not release objects */
     for (i = 0; i < nOnErrorObjs; ++i) {
         evalObjs[i] = onErrorObjs[i];
         /* Increment ref count in case underlying list shimmers away */
         Tcl_IncrRefCount(evalObjs[i]);
     }
-    Tcl_IncrRefCount(valueObj);
-    evalObjs[nOnErrorObjs] = valueObj;
-    Tcl_IncrRefCount(inputArgsObj);
-    evalObjs[nOnErrorObjs + 1] = inputArgsObj;
-    Tcl_IncrRefCount(outputArgsObj);
-    evalObjs[nOnErrorObjs + 2] = outputArgsObj;
+    Tcl_IncrRefCount(callInfoObj);
+    evalObjs[nOnErrorObjs] = callInfoObj;
 
     ret = Tcl_EvalObjv(ip, nEvalObjs, evalObjs, 0);
 
-    /* Undo the protection */
+    /* Undo the protection. */
+    CFFI_ASSERT(nEvalObjs == (nOnErrorObjs + 1));
     for (i = 0; i < nEvalObjs; ++i) {
         Tcl_DecrRefCount(evalObjs[i]);
     }
@@ -860,7 +873,7 @@ CffiFunctionCall(ClientData cdata,
                 && protoP->returnType.typeAttrs.parseModeSpecificObj) {
                 Tcl_IncrRefCount(resultObj);
                 ret = CffiCustomErrorHandler(
-                    ipCtxP, protoP, argObjs, callCtx.argsP, resultObj);
+                    ipCtxP, protoP, fnP->cmdNameObj, argObjs, callCtx.argsP, resultObj);
                 Tclh_ObjClearPtr(&resultObj);
             }
             else {
@@ -897,7 +910,8 @@ pop_and_error:
 
 }
 
-void CffiFunctionCleanup(CffiFunction *fnP) {
+void CffiFunctionCleanup(CffiFunction *fnP)
+{
     if (fnP->libCtxP)
         CffiLibCtxUnref(fnP->libCtxP);
     if (fnP->protoP)

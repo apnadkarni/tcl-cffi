@@ -621,7 +621,15 @@ Tcl_Obj *TclhMapWindowsError(
     WCHAR *winErrorMessagePtr = NULL;
     Tcl_Obj *objPtr;
 
-    objPtr = Tcl_NewStringObj(msgPtr ? msgPtr : "", -1);
+    if (msgPtr) {
+        int msgLen;
+        msgLen = Tclh_strlen(msgPtr);
+        objPtr = Tcl_NewStringObj(msgPtr, msgLen);
+        if (msgLen && msgPtr[msgLen-1] == ' ')
+            Tcl_AppendToObj(objPtr, " ", 1);
+    } else {
+        objPtr = Tcl_NewObj();
+    }
 
     flags = moduleHandle ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM;
     flags |=

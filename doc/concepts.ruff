@@ -636,15 +636,19 @@ namespace eval Concepts {
         error handling when the error is from a library and not a system error.
         The annotation takes an additional argument which is a command prefix to
         be invoked when an error checking annotation is triggered.
-        When this command prefix is invoked, three additional arguments are
-        appended to it:
+        When this command prefix is invoked, a dictionary with the call information
+        is passed. The dictionary contains the following keys:
 
-        - the function return value that failed the error condition check
-        - a dictionary mapping all  `in` and `inout` parameter names to
+        `Value` - The return value from the function that triggered the error
+        handler
+        `In` - a nested dictionary mapping all  `in` and `inout` parameter names to
         the values passed in to the called function
-        - a dictionary mapping all `inout` and `out` parameter names to
+        `Out` - a dictionary mapping all `inout` and `out` parameter names to
         the values returned on output by the function. These only include
         output parameters marked as `storealways` or `storeonerror`.
+        `Command` - the Tcl command for which the error handler was triggered.
+        This key will not be present if the function was invoked with an
+        address through the [::cffi::call] command.
 
         The result of the handler execution is returned as the
         function call result and may be a normal result or a raised exception.
