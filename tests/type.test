@@ -270,6 +270,26 @@ namespace eval cffi::test {
         } {
             testnumeric "$type $attr" param $expected
         }
+        foreach {attr expected} {
+            "in lasterror" "in"
+            "in winerror" "in"
+            "in errno" "in"
+            "in {onerror handler}" "in"
+            "out lasterror" "out byref"
+            "out winerror" "out byref"
+            "out errno" "out byref"
+            "out {onerror handler}" "out byref"
+            "inout lasterror" "inout byref"
+            "inout winerror" "inout byref"
+            "inout errno" "inout byref"
+            "inout {onerror handler}" "inout byref"
+        } {
+            if {$type in $intTypes} {
+                testnumeric "$type $attr" param $expected
+            } else {
+                testinvalidattr "$type $attr" param $errorMessages(attrtype)
+            }
+        }
 
         # enum, bitmask annotations
         foreach {attr expected} {
@@ -362,7 +382,7 @@ namespace eval cffi::test {
             testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
         }
         # Scalar tests - attributes invalid for param parse mode
-        foreach attr [list {*}$errorAttrs {{onerror foo}}] {
+        foreach attr $requirementAttrs {
             if {$type in $intTypes} {
                 testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
                 testinvalidattr "$type\[2\] $attr" param $errorMessages(attrparsemode)
@@ -448,6 +468,18 @@ namespace eval cffi::test {
 
         # Scalar tests - success
         testnumeric $type field ""
+        foreach {attr expected} {
+            "lasterror" ""
+            "winerror" ""
+            "errno" ""
+            "{onerror handler}" ""
+        } {
+            if {$type in $intTypes} {
+                testnumeric "$type $attr" field $expected
+            } else {
+                testinvalidattr "$type $attr" field $errorMessages(attrtype)
+            }
+        }
 
         # Array tests - success
         testnumericarray "$type" 2 field ""
@@ -461,7 +493,7 @@ namespace eval cffi::test {
                 testinvalidattr [list $type $attr] field $errorMessages(attrtype)
             }
         } else {
-            foreach attr {{onerror foo} bitmask {enum E}} {
+            foreach attr {bitmask {enum E}} {
                 testinvalidattr [list $type $attr] field $errorMessages(attrparsemode)
             }
         }
@@ -533,6 +565,15 @@ namespace eval cffi::test {
             "nullok" "in nullok"
             "nullok out" "out byref nullok"
             "nullok inout" "inout byref nullok"
+            "in lasterror" "in"
+            "in errno" "in"
+            "in {onerror handler}" "in"
+            "out lasterror" "out byref"
+            "out errno" "out byref"
+            "out {onerror handler}" "out byref"
+            "inout lasterror" "inout byref"
+            "inout errno" "inout byref"
+            "inout {onerror handler}" "inout byref"
         } {
             testpointer "$type $attr" param $expected
         }
@@ -559,11 +600,6 @@ namespace eval cffi::test {
             if {$attr ni $pointer_valid_error_attrs} {
                 testinvalidattr [list $type $attr] param $errorMessages(attrtype)
             }
-        }
-
-        # Scalar tests - attributes invalid for param parse mode
-        foreach attr [list {*}$pointer_valid_error_attrs {{onerror foo}}] {
-            testinvalidattr "$type $attr" param $errorMessages(attrparsemode)
         }
 
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
@@ -616,6 +652,10 @@ namespace eval cffi::test {
                 testpointer "$type $attr" field $attr
             }
         }
+        # Error handling attributes should be ignored
+        foreach attr [list {*}$pointer_valid_error_attrs [list {onerror handler}]] {
+            testpointer "$type $attr" field ""
+        }
 
         # Array tests - success
         # none
@@ -631,11 +671,10 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attribute for parse mode
-        foreach attr [list {*}$paramAttrs {*}$pointer_valid_error_attrs dispose storeonerror storealways] {
+        foreach attr [list {*}$paramAttrs dispose storeonerror storealways] {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] field $errorMessages(defaultdisallowed)
-        testinvalidattr [list $type [list onerror foo]] field $errorMessages(attrparsemode)
 
         # Array test failures
         testinvalidattr "$type\[NUMELEMS\]" field $errorMessages(fieldvararray)
@@ -761,6 +800,12 @@ namespace eval cffi::test {
             "in nullok" "in nullok"
             "byref nullok" "in byref nullok"
             "out nullok" "out byref nullok"
+            "in lasterror" "in"
+            "in errno" "in"
+            "in {onerror handler}" "in"
+            "out lasterror" "out byref"
+            "out errno" "out byref"
+            "out {onerror handler}" "out byref"
         } {
             teststring "$type $attr" param $expected
         }
@@ -806,18 +851,11 @@ namespace eval cffi::test {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
                 }
             }
-            if {$parse_mode ne "return"} {
-                foreach attr $errorHandlerAttrs {
-                    if {$attr ne "winerror"} {
-                        testinvalidattr "$type $attr" $parse_mode $errorMessages(attrparsemode)
-                    }
-                }
-            }
             # Array tests - success
             # none - currently arrays not supported
 
             # Scalar tests - attributes invalid for param parse mode
-            # none - no attrs are invalid only for param mode
+            # none - no attrs are invalid solely for param mode
 
             # array invalid count spec failure
             testinvalidattr "$type\[2\]" $parse_mode $errorMessages(unsupportedarraytype)

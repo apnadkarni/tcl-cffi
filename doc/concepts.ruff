@@ -651,14 +651,19 @@ namespace eval Concepts {
         The handler may use `upvar` for access to the calling script's context
         including any input or output arguments to the original function call.
 
-        This `onerror` facility may be used to ignore errors,
-        provide default values as well as raise exceptions with more detailed
-        library-specific information.
+        This `onerror` facility may be used to ignore errors, provide default
+        values as well as raise exceptions with more detailed library-specific
+        information. Note that the use of a `onerror` handler that returns
+        normally is **not** the same as not specifying any error checking
+        annotations because the function return is still treated as an error
+        condition in terms of the output variables as described in
+        [Errors and output parameters].
 
-        **NOTE:** Note that the use of a `onerror` handler that returns normally
-        is **not** the same as not specifying any error checking annotations
-        because the function return is still treated as an error condition in
-        terms of the output variables as described below.
+        **NOTE:** Although the `errno`, `lasterror`, `winerror` and `onerror`
+        annotations have effect only with respect to function return values, they
+        can also be specified for parameters and struct fields where they are
+        silently ignored. This is to permit the same type alias (e.g. status codes)
+        to be used in all three declaration contexts.
 
         #### Errors and output parameters
 

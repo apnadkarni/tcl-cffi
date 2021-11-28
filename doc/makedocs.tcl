@@ -24,5 +24,5 @@ ruff::document [list Concepts $NS ${NS}::dyncall] \
     -pagesplit namespace \
     -autopunctuate true \
     -hidenamespace $NS \
-    -title "CFFI Reference (V1.0b0)"
+    -title "CFFI Reference (V1.0b0)" {*}$::argv
 

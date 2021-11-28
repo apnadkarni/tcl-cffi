@@ -285,7 +285,39 @@ namespace eval ${NS}::test {
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
         }
 
-        foreach attr $errorAttrs {
+        # Error handler attrs to be ignored
+        if {$type in $intTypes} {
+            test function-param-$type-errno-0 "$type in params errno" -setup {
+                set fn ${type}_to_${type}
+                testDll function $fn $type [list param [list $type in errno]]
+            } -body {
+                $fn $val
+            } -result $val
+
+            test function-param-$type-onerror-0 "$type out params onerror" -body {
+                set fn ${type}_out
+                testDll function $fn $type [list inparam [list $type in {onerror handler}] outparam [list $type out {onerror handler}]]
+                unset -nocomplain out
+                list [$fn $val out] $out
+            } -result [list [expr {2+$val}] [expr {1+$val}]]
+
+            test function-param-$type-lasterror-0 "$type in params lasterror" -constraints win -setup {
+                set fn ${type}_to_${type}
+                testDll function $fn $type [list param [list $type in lasterror]]
+            } -body {
+                $fn $val
+            } -result $val
+
+            test function-param-$type-winerror-0 "$type in params winerror" -constraints win -setup {
+                set fn ${type}_to_${type}
+                testDll function $fn $type [list param [list $type in winerror]]
+            } -body {
+                $fn $val
+            } -result $val
+        }
+
+        # Parameters do not permit requirements
+        foreach attr $requirementAttrs {
             if {$type in $intTypes} {
                 set msg $errorMessages(attrparsemode)
             } else {
@@ -776,6 +808,26 @@ namespace eval ${NS}::test {
         set x
     } -result [makeptr 0]
 
+    # pointer param - ignore error handler attributes
+    test function-pointer-param-in-errno-0 "errno attr in pointer param " -body {
+        testDll function pointer_to_pointer {pointer unsafe} {p {pointer unsafe errno}}
+        pointer_to_pointer [makeptr 1]
+    } -result [makeptr 1]
+
+    test function-pointer-param-out-onerror-0 "onerrno attr in pointer param " -body {
+        testDll function pointer_reflect void {inp {pointer unsafe} outp {pointer out unsafe {onerror handler}}}
+        pointer_reflect [makeptr 1] x
+        set x
+    } -result [makeptr 1]
+
+    test function-pointer-param-in-lasterror-0 {
+        lasterror attr in pointer param 
+    } -constraints win -body {
+        testDll function pointer_to_pointer {pointer unsafe} {p {pointer unsafe lasterror}}
+        pointer_to_pointer [makeptr 1]
+    } -result [makeptr 1]
+
+
     # pointer tags
     test function-pointer-param-tag-0 "pointer tag safe" -setup {
         testDll function pointer_noop void {p pointer.TAG}
@@ -859,7 +911,7 @@ namespace eval ${NS}::test {
     } -result {1 {Value "1^" has the wrong type. Pointer type mismatch.}}
 
     # Pointer param error attributes
-    foreach attr [linsert $errorAttrs end nullifempty] {
+    foreach attr [linsert $requirementAttrs end nullifempty] {
         if {$attr in {winerror lasterror}} {
             set constraints win
         } else {

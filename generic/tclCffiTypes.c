@@ -238,14 +238,25 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_TYPE_PARSE_RETURN,
      1},
     {"positive", POSITIVE, CFFI_F_ATTR_POSITIVE, CFFI_F_TYPE_PARSE_RETURN, 1},
-    {"errno", ERRNO, CFFI_F_ATTR_ERRNO, CFFI_F_TYPE_PARSE_RETURN, 1},
+    {"errno",
+     ERRNO,
+     CFFI_F_ATTR_ERRNO,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
+         | CFFI_F_TYPE_PARSE_RETURN,
+     1},
 #ifdef _WIN32
     {"lasterror",
      LASTERROR,
      CFFI_F_ATTR_LASTERROR,
-     CFFI_F_TYPE_PARSE_RETURN,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
+         | CFFI_F_TYPE_PARSE_RETURN,
      1},
-    {"winerror", WINERROR, CFFI_F_ATTR_WINERROR, CFFI_F_TYPE_PARSE_RETURN, 1},
+    {"winerror",
+     WINERROR,
+     CFFI_F_ATTR_WINERROR,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
+         | CFFI_F_TYPE_PARSE_RETURN,
+     1},
 #endif
     {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM, 2},
     {"nullifempty",
@@ -269,11 +280,17 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN,
      2},
     {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"onerror", ONERROR, CFFI_F_ATTR_ONERROR, CFFI_F_TYPE_PARSE_RETURN, 2},
+    {"onerror",
+     ONERROR,
+     CFFI_F_ATTR_ONERROR,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
+         | CFFI_F_TYPE_PARSE_RETURN,
+     2},
     {"nullok",
      NULLOK,
      CFFI_F_ATTR_NULLOK,
-     CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD,
+     CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM
+         | CFFI_F_TYPE_PARSE_FIELD,
      1},
     {NULL}};
 
@@ -869,19 +886,25 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_POSITIVE;
             break;
         case ERRNO:
-            if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto invalid_format;
-            flags |= CFFI_F_ATTR_ERRNO;
+            if (parseMode & CFFI_F_TYPE_PARSE_RETURN) {
+                if (flags & CFFI_F_ATTR_ERROR_MASK)
+                    goto invalid_format;
+                flags |= CFFI_F_ATTR_ERRNO;
+            }
             break;
         case LASTERROR:
-            if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto invalid_format;
-            flags |= CFFI_F_ATTR_LASTERROR;
+            if (parseMode & CFFI_F_TYPE_PARSE_RETURN) {
+                if (flags & CFFI_F_ATTR_ERROR_MASK)
+                    goto invalid_format;
+                flags |= CFFI_F_ATTR_LASTERROR;
+            }
             break;
         case WINERROR:
-            if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto invalid_format;
-            flags |= CFFI_F_ATTR_WINERROR;
+            if (parseMode & CFFI_F_TYPE_PARSE_RETURN) {
+                if (flags & CFFI_F_ATTR_ERROR_MASK)
+                    goto invalid_format;
+                flags |= CFFI_F_ATTR_WINERROR;
+            }
             break;
         case NULLIFEMPTY:
             flags |= CFFI_F_ATTR_NULLIFEMPTY;
@@ -917,13 +940,16 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_BITMASK;
             break;
         case ONERROR:
-            if (typeAttrP->parseModeSpecificObj)
-                goto invalid_format; /* Something already using the slot? */
-            if (flags & CFFI_F_ATTR_ERROR_MASK)
-                goto invalid_format;
-            flags |= CFFI_F_ATTR_ONERROR;
-            Tcl_IncrRefCount(fieldObjs[1]);
-            typeAttrP->parseModeSpecificObj = fieldObjs[1];
+            /* Ignore excecpt in return mode */
+            if (parseMode & CFFI_F_TYPE_PARSE_RETURN) {
+                if (typeAttrP->parseModeSpecificObj)
+                    goto invalid_format; /* Something already using the slot? */
+                if (flags & CFFI_F_ATTR_ERROR_MASK)
+                    goto invalid_format;
+                flags |= CFFI_F_ATTR_ONERROR;
+                Tcl_IncrRefCount(fieldObjs[1]);
+                typeAttrP->parseModeSpecificObj = fieldObjs[1];
+            }
             break;
         case NULLOK:
             flags |= CFFI_F_ATTR_NULLOK;
