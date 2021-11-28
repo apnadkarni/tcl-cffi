@@ -131,7 +131,7 @@ namespace eval cffi::test {
     basictypetest bytes
 
 
-    proc testinvalidattr {typedecl parse_mode expected_message} {
+    proc testinvalidattr {typedecl parse_mode expected_message args} {
         variable typeInfo
 
         if {"lasterror" in $typedecl || "winerror" in $typedecl} {
@@ -145,12 +145,12 @@ namespace eval cffi::test {
             type info param, $typedecl invalid attr
         } -constraints $constraints -body {
             cffi::type info $typedecl $parse_mode
-        } -result "Invalid value \"$typedecl\". $expected_message" -returnCodes error
+        } -result "Invalid value \"$typedecl\". $expected_message" -returnCodes error {*}$args
     }
 
     # Tests for numeric types with parse mode specified
 
-    proc testnumeric {typedecl parse_mode expected_typeattrs} {
+    proc testnumeric {typedecl parse_mode expected_typeattrs args} {
         variable typeInfo
         set typeattrs [lassign $typedecl type]
         lassign $typeInfo($type) size alignment
@@ -159,10 +159,10 @@ namespace eval cffi::test {
         # Scalar test for each parse mode
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size $size count 0 alignment $alignment definition [list $type {*}$expected_typeattrs]] -match dict
+        } -result [list size $size count 0 alignment $alignment definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
     }
 
-    proc testnumericarray {typedecl count parse_mode expected_typeattrs} {
+    proc testnumericarray {typedecl count parse_mode expected_typeattrs args} {
         variable typeInfo
         variable errorMessages
         set typeattrs [lassign $typedecl type]
@@ -177,23 +177,23 @@ namespace eval cffi::test {
             }
             test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
                 cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-            } -result [list size $size count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict
+            } -result [list size $size count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict {*}$args
         } elseif {$parse_mode eq "field"} {
             # Only fixed size array element counts allowed
             if {[string is integer -strict $count]} {
                 test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
                     cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-                } -result [list size [expr {$count * $size}] count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict
+                } -result [list size [expr {$count * $size}] count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict {*}$args
             } else {
                 test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
                     cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-                } -result "Invalid value \"$type\[$count\]\". $errorMessages(arraysize)" -returnCodes error
+                } -result "Invalid value \"$type\[$count\]\". $errorMessages(arraysize)" -returnCodes error {*}$args
             }
         } else {
             # parse mode = return
             test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
                 cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-            } -result "Invalid value \"$type\[$count\]\". $errorMessages(arraysize)" -returnCodes error
+            } -result "Invalid value \"$type\[$count\]\". $errorMessages(arraysize)" -returnCodes error {*}$args
         }
     }
 
@@ -271,16 +271,10 @@ namespace eval cffi::test {
             testnumeric "$type $attr" param $expected
         }
         foreach {attr expected} {
-            "in lasterror" "in"
-            "in winerror" "in"
             "in errno" "in"
             "in {onerror handler}" "in"
-            "out lasterror" "out byref"
-            "out winerror" "out byref"
             "out errno" "out byref"
             "out {onerror handler}" "out byref"
-            "inout lasterror" "inout byref"
-            "inout winerror" "inout byref"
             "inout errno" "inout byref"
             "inout {onerror handler}" "inout byref"
         } {
@@ -288,6 +282,20 @@ namespace eval cffi::test {
                 testnumeric "$type $attr" param $expected
             } else {
                 testinvalidattr "$type $attr" param $errorMessages(attrtype)
+            }
+        }
+        foreach {attr expected} {
+            "in lasterror" "in"
+            "in winerror" "in"
+            "out lasterror" "out byref"
+            "out winerror" "out byref"
+            "inout lasterror" "inout byref"
+            "inout winerror" "inout byref"
+        } {
+            if {$type in $intTypes} {
+                testnumeric "$type $attr" param $expected -constraints win
+            } else {
+                testinvalidattr "$type $attr" param $errorMessages(attrtype) -constraints win
             }
         }
 
@@ -468,16 +476,16 @@ namespace eval cffi::test {
 
         # Scalar tests - success
         testnumeric $type field ""
-        foreach {attr expected} {
-            "lasterror" ""
-            "winerror" ""
-            "errno" ""
-            "{onerror handler}" ""
+        foreach {attr expected constraints} {
+            "lasterror" "" "-constraints win"
+            "winerror" "" "-constraints win"
+            "errno" "" ""
+            "{onerror handler}" "" ""
         } {
             if {$type in $intTypes} {
-                testnumeric "$type $attr" field $expected
+                testnumeric "$type $attr" field $expected {*}$constraints
             } else {
-                testinvalidattr "$type $attr" field $errorMessages(attrtype)
+                testinvalidattr "$type $attr" field $errorMessages(attrtype) {*}$constraints
             }
         }
 
@@ -800,14 +808,19 @@ namespace eval cffi::test {
             "in nullok" "in nullok"
             "byref nullok" "in byref nullok"
             "out nullok" "out byref nullok"
-            "in lasterror" "in"
             "in errno" "in"
             "in {onerror handler}" "in"
-            "out lasterror" "out byref"
             "out errno" "out byref"
             "out {onerror handler}" "out byref"
         } {
             teststring "$type $attr" param $expected
+        }
+
+        foreach {attr expected} {
+            "in lasterror" "in"
+            "out lasterror" "out byref"
+        } {
+            teststring "$type $attr" param $expected -constraints win
         }
 
         foreach attr {inout {inout byref}} {
