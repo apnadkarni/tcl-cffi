@@ -897,6 +897,14 @@ pop_and_error:
 
 }
 
+void CffiFunctionCleanup(CffiFunction *fnP) {
+    if (fnP->libCtxP)
+        CffiLibCtxUnref(fnP->libCtxP);
+    if (fnP->protoP)
+        CffiProtoUnref(fnP->protoP);
+    if (fnP->cmdNameObj)
+        Tcl_DecrRefCount(fnP->cmdNameObj);
+}
 
 /* Function: CffiFunctionInstanceDeleter
  * Called by Tcl to cleanup resources associated with a ffi function
@@ -909,9 +917,7 @@ static void
 CffiFunctionInstanceDeleter(ClientData cdata)
 {
     CffiFunction *fnP = (CffiFunction *)cdata;
-    if (fnP->libCtxP)
-        CffiLibCtxUnref(fnP->libCtxP);
-    CffiProtoUnref(fnP->protoP);
+    CffiFunctionCleanup(fnP);
     ckfree(fnP);
 }
 
@@ -974,6 +980,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     fnP->protoP = protoP;
     fqnObj = CffiQualifyName(ip, cmdNameObj);
     Tcl_IncrRefCount(fqnObj);
+    fnP->cmdNameObj = fqnObj;
 
     Tcl_CreateObjCommand(ip,
                          Tcl_GetString(fqnObj),
@@ -981,7 +988,6 @@ CffiDefineOneFunction(Tcl_Interp *ip,
                          fnP,
                          CffiFunctionInstanceDeleter);
 
-    Tcl_DecrRefCount(fqnObj);
     return TCL_OK;
 }
 

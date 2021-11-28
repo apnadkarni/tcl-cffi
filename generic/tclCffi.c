@@ -235,13 +235,15 @@ CffiCallObjCmd(ClientData cdata,
     fnP->fnAddr = fnAddr;
     fnP->vmCtxP = vmCtxP;
     fnP->libCtxP = NULL;
+    fnP->cmdNameObj = NULL;
     CffiProtoRef(protoP);
     fnP->protoP = protoP;
 
     ret = CffiFunctionCall(fnP, ip, 2, objc, objv);
 
-    CffiProtoUnref(protoP);
+    CffiFunctionCleanup(fnP);
     ckfree(fnP);
+
     return ret;
 }
 

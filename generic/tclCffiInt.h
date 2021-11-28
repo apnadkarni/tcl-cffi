@@ -273,6 +273,7 @@ typedef struct CffiFunction {
     CffiProto *protoP;     /* Prototype for the call */
     CffiLibCtx *libCtxP; /* Containing library for bound functions or
                                NULL for free standing functions */
+    Tcl_Obj *cmdNameObj; /* Name of Tcl command. May be NULL */
 } CffiFunction;
 
 /* Used to store argument context when preparing to call a function */
@@ -440,6 +441,7 @@ CffiResult CffiFunctionInstanceCmd(ClientData cdata,
                                    Tcl_Interp *ip,
                                    int objc,
                                    Tcl_Obj *const objv[]);
+void CffiFunctionCleanup(CffiFunction *fnP);
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiEnumObjCmd;
