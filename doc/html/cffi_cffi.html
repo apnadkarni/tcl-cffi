@@ -351,13 +351,16 @@ package require cffi
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the resolved body of an alias.</p>
 <h4 class='ruffproc'><a name='::cffi::alias define'>alias define</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Defines a type alias</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>alias define</span> <span class='ruff_arg'>alias_name alias_def</span><br></div>
+<p class='ruff'>Defines one or more type aliases.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>alias define</span> <span class='ruff_arg'>name definition</span><br><span class='ruff_cmd'>alias define</span> <span class='ruff_arg'>aliasdefs</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>alias_name</code></td><td class='ruff_defitem'>Name for type alias. Must begin with an alphabetic character and may contain alphanumerics and underscore.</td></tr>
-<tr><td class='ruff_defitem'><code>alias_def</code></td><td class='ruff_defitem'>Definition for the alias.</td></tr>
+<tr><td class='ruff_defitem'><code>aliasdefs</code></td><td class='ruff_defitem'>Dictionary mapping alias names to their definition.</td></tr>
+<tr><td class='ruff_defitem'><code>definition</code></td><td class='ruff_defitem'>Definition for the alias.</td></tr>
+<tr><td class='ruff_defitem'><code>name</code></td><td class='ruff_defitem'>Name for type alias. Must begin with an alphabetic character and may contain alphanumerics and underscore.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>Creates a new alias. An error will be raised if a the alias name matches a built-in type or an existing alias if the definitions are different. The definition may itself be based on an existing alias. In this case the existing alias is immediately resolved and expanded as part of the definition so further changes to it are not reflected in the alias being defined.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>Given two arguments, creates an alias of the given name for passed definition. If a single argument is provided, it must be a dictionary mapping alias names to their definitions.</p>
+<p class='ruff'>An error will be raised if an alias name matches a built-in type or if an alias of that name already exists with a different definition.</p>
+<p class='ruff'>The definition may itself be based on an existing alias. In this case the existing alias is immediately resolved and expanded as part of the definition so further changes to it are not reflected in the alias being defined.</p>
 <p class='ruff'>See <a href="cffi_Concepts.html#::Concepts-Type aliases" title="Type aliases" >Type aliases</a> for more on type aliases.</p>
 <h4 class='ruffproc'><a name='::cffi::alias delete'>alias delete</a><span class='ns_scope'> [<a href="cffi_cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='tinylink'><a href='cffi_cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -849,7 +852,7 @@ cffi::help functions ::libzip::*
 <h1><a style='color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi_cffi.html'>cffi</a></h1>
 <h1><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
 <hr><h1><a href='#::cffi'>cffi</a></h1><h2><a href='#::cffi-Commands'>Commands</a></h2><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias body'>alias body</a><span class='tooltiptext'>Returns the resolved body of an alias.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias define'>alias define</a><span class='tooltiptext'>Defines a type alias
+</span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias define'>alias define</a><span class='tooltiptext'>Defines one or more type aliases.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias delete'>alias delete</a><span class='tooltiptext'>Deletes type aliases matching a pattern.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias list'>alias list</a><span class='tooltiptext'>Returns a list of aliases matching the specified pattern.
 </span></h4><h4 class='tooltip'><a href='cffi_cffi.html#::cffi::alias load'>alias load</a><span class='tooltiptext'>Loads predefined type aliases.
