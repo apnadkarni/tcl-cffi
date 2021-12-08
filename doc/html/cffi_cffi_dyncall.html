@@ -1,190 +1,520 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>CFFI Reference (V1.0b0)</title>
+<title>CFFI Reference</title>
 <style>
-/*
-Copyright (c) 2009, Yahoo! Inc. All rights reserved.
-Code licensed under the BSD License:
-http://developer.yahoo.net/yui/license.txt
-version: 2.7.0
-*/
-html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,button,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var,optgroup{font-style:inherit;font-weight:inherit;}del,ins{text-decoration:none;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:baseline;}sub{vertical-align:baseline;}legend{color:#000;}input,button,textarea,select,optgroup,option{font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;}input,button,textarea,select{*font-size:100%;}body{font:13px/1.231 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small;}select,input,button,textarea,button{font:99% arial,helvetica,clean,sans-serif;}table{font-size:inherit;font:100%;}pre,code,kbd,samp,tt{font-family:monospace;*font-size:108%;line-height:100%;}body{text-align:center;}#doc,#doc2,#doc3,#doc4,.yui-t1,.yui-t2,.yui-t3,.yui-t4,.yui-t5,.yui-t6,.yui-t7{margin:auto;text-align:left;width:57.69em;*width:56.25em;}#doc2{width:73.076em;*width:71.25em;}#doc3{margin:auto 10px;width:auto;}#doc4{width:74.923em;*width:73.05em;}.yui-b{position:relative;}.yui-b{_position:static;}#yui-main .yui-b{position:static;}#yui-main,.yui-g .yui-u .yui-g{width:100%;}.yui-t1 #yui-main,.yui-t2 #yui-main,.yui-t3 #yui-main{float:right;margin-left:-25em;}.yui-t4 #yui-main,.yui-t5 #yui-main,.yui-t6 #yui-main{float:left;margin-right:-25em;}.yui-t1 .yui-b{float:left;width:12.30769em;*width:12.00em;}.yui-t1 #yui-main .yui-b{margin-left:13.30769em;*margin-left:13.05em;}.yui-t2 .yui-b{float:left;width:13.8461em;*width:13.50em;}.yui-t2 #yui-main .yui-b{margin-left:14.8461em;*margin-left:14.55em;}.yui-t3 .yui-b{float:left;width:23.0769em;*width:22.50em;}.yui-t3 #yui-main .yui-b{margin-left:24.0769em;*margin-left:23.62em;}.yui-t4 .yui-b{float:right;width:13.8456em;*width:13.50em;}.yui-t4 #yui-main .yui-b{margin-right:14.8456em;*margin-right:14.55em;}.yui-t5 .yui-b{float:right;width:18.4615em;*width:18.00em;}.yui-t5 #yui-main .yui-b{margin-right:19.4615em;*margin-right:19.125em;}.yui-t6 .yui-b{float:right;width:23.0769em;*width:22.50em;}.yui-t6 #yui-main .yui-b{margin-right:24.0769em;*margin-right:23.62em;}.yui-t7 #yui-main .yui-b{display:block;margin:0 0 1em 0;}#yui-main .yui-b{float:none;width:auto;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf,.yui-gc .yui-u,.yui-gd .yui-g,.yui-g .yui-gc .yui-u,.yui-ge .yui-u,.yui-ge .yui-g,.yui-gf .yui-g,.yui-gf .yui-u{float:right;}.yui-g div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first,.yui-ge div.first,.yui-gf div.first,.yui-g .yui-gc div.first,.yui-g .yui-ge div.first,.yui-gc div.first div.first{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf{width:49.1%;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{width:32%;margin-left:1.99%;}.yui-gb .yui-u{*margin-left:1.9%;*width:31.9%;}.yui-gc div.first,.yui-gd .yui-u{width:66%;}.yui-gd div.first{width:32%;}.yui-ge div.first,.yui-gf .yui-u{width:74.2%;}.yui-ge .yui-u,.yui-gf div.first{width:24%;}.yui-g .yui-gb div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first{margin-left:0;}.yui-g .yui-g .yui-u,.yui-gb .yui-g .yui-u,.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u,.yui-ge .yui-g .yui-u,.yui-gf .yui-g .yui-u{width:49%;*width:48.1%;*margin-left:0;}.yui-g .yui-g .yui-u{width:48.1%;}.yui-g .yui-gb div.first,.yui-gb .yui-gb div.first{*margin-right:0;*width:32%;_width:31.7%;}.yui-g .yui-gc div.first,.yui-gd .yui-g{width:66%;}.yui-gb .yui-g div.first{*margin-right:4%;_margin-right:1.3%;}.yui-gb .yui-gc div.first,.yui-gb .yui-gd div.first{*margin-right:0;}.yui-gb .yui-gb .yui-u,.yui-gb .yui-gc .yui-u{*margin-left:1.8%;_margin-left:4%;}.yui-g .yui-gb .yui-u{_margin-left:1.0%;}.yui-gb .yui-gd .yui-u{*width:66%;_width:61.2%;}.yui-gb .yui-gd div.first{*width:31%;_width:29.5%;}.yui-g .yui-gc .yui-u,.yui-gb .yui-gc .yui-u{width:32%;_float:right;margin-right:0;_margin-left:0;}.yui-gb .yui-gc div.first{width:66%;*float:left;*margin-left:0;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf .yui-u{margin:0;}.yui-gb .yui-gb .yui-u{_margin-left:.7%;}.yui-gb .yui-g div.first,.yui-gb .yui-gb div.first{*margin-left:0;}.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u{*width:48.1%;*margin-left:0;}.yui-gb .yui-gd div.first{width:32%;}.yui-g .yui-gd div.first{_width:29.9%;}.yui-ge .yui-g{width:24%;}.yui-gf .yui-g{width:74.2%;}.yui-gb .yui-ge div.yui-u,.yui-gb .yui-gf div.yui-u{float:right;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf div.first{float:left;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf div.first{*width:24%;_width:20%;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf .yui-u{*width:73.5%;_width:65.5%;}.yui-ge div.first .yui-gd .yui-u{width:65%;}.yui-ge div.first .yui-gd div.first{width:32%;}#hd:after,#bd:after,#ft:after,.yui-g:after,.yui-gb:after,.yui-gc:after,.yui-gd:after,.yui-ge:after,.yui-gf:after{content:".";display:block;height:0;clear:both;visibility:hidden;}#hd,#bd,#ft,.yui-g,.yui-gb,.yui-gc,.yui-gd,.yui-ge,.yui-gf{zoom:1;}
+:root {
+  --ruff-grid-template-rows: min-content 1fr;
+  /* TBD - maybe use fit-content(200px) instead of minmax(...) */
+  --ruff-grid-template-columns: minmax(200px, min-content) 1fr;
+  --ruff-grid-template-areas: "toparea toparea" "navarea mainarea" "botarea botarea";
+  --ruff-tip-z-index: 10;
+  /*
+   * This padding is to ensure auto scrollbar does not change centering pages
+   * between pages that need a scrollbar and those that do not.
+   * See https://stackoverflow.com/questions/1417934/how-to-prevent-scrollbar-from-repositioning-web-page.
+   */
+  padding-left: calc(100vw - 100%);
 
-body{margin:10px;}h1{font-size:138.5%;}h2{font-size:123.1%;}h3{font-size:108%;}h1,h2,h3{margin:1em 0;}h1,h2,h3,h4,h5,h6,strong,dt{font-weight:bold;}optgroup{font-weight:normal;}abbr,acronym{border-bottom:1px dotted #000;cursor:help;}em{font-style:italic;}del{text-decoration:line-through;}blockquote,ul,ol,dl{margin:1em;}ol,ul,dl{margin-left:2em;}ol li{list-style:decimal outside;}ul li{list-style:disc outside;}dl dd{margin-left:1em;}th,td{border:1px solid #000;padding:.5em;}th{font-weight:bold;text-align:center;}caption{margin-bottom:.5em;text-align:center;}sup{vertical-align:super;}sub{vertical-align:sub;}p,fieldset,table,pre{margin-bottom:1em;}button,input[type="checkbox"],input[type="radio"],input[type="reset"],input[type="submit"]{padding:1px;}
+  /* Default theme button gradient */
+  --ruff-theme-gradient: linear-gradient(90deg, lightblue, coral, lightgreen);
+}
+
+/* Color theming support from https://dev.to/ananyaneogi/create-a-dark-light-mode-switch-with-css-variables-34l8 */
+
+.ruff-theme-light {
+  --ruff-color: #444;
+  --ruff-background-color: whitesmoke;
+  --ruff-minor-color: #888;
+
+  --ruff-layout-background-color: #fefefe;
+
+  --ruff-hd-color: #666;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #FFF5EA;
+  --ruff-nav-color: #666;
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-color: var(--ruff-background-color);
+  --ruff-nav-highlight-background-color: coral;
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: var(--ruff-bd-color);
+  --ruff-bd-code-background-color: whitesmoke;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: #968C83;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: #666;
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: blue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: inherit;
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-clouds {
+  --ruff-color: #111;
+  --ruff-background-color: whitesmoke;
+  --ruff-minor-color: #888;
+
+  --ruff-layout-background-color: azure;
+
+  --ruff-hd-color: #666;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: lightblue;
+  --ruff-nav-color: #212121;
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-color: var(--ruff-background-color);
+  --ruff-nav-highlight-background-color: #14a7ff;
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: var(--ruff-bd-color);
+  --ruff-bd-code-background-color: #cfebf7;
+  --ruff-bd-code-background-color: #cffcff;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: #968C83;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: #666;
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: blue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: inherit;
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-dark {
+  --ruff-color: #ddd;
+  --ruff-background-color: #27242c;
+  --ruff-minor-color: #aaa;
+
+  --ruff-layout-background-color: #212121;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #22272e;
+  --ruff-nav-color: var(--ruff-color);
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: #e6eff5;
+  --ruff-nav-highlight-background-color: #1164a3;
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: inherit;
+  --ruff-bd-code-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: lightblue;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: #489bf5;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: var(--ruff-bd-background-color);
+  --ruff-bd-tip-background-color: var(--ruff-bd-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-solar {
+  --ruff-color: whitesmoke;
+  --ruff-background-color: #011;
+  --ruff-minor-color: #aaa;
+
+  --ruff-layout-background-color: #002b35;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #003641;
+  --ruff-nav-color: var(--ruff-color);
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-background-color: var(--ruff-nav-color);
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: inherit;
+  --ruff-bd-code-background-color: #003641;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: cornsilk;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: palegreen;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: var(--ruff-bd-color);
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-slate {
+  --ruff-color: #ccc;
+  --ruff-background-color: #829ab1;
+  --ruff-minor-color: #aaa;
+
+  --ruff-layout-background-color: #181a26;
+  --ruff-layout-background-color: #1a202c;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: rgb(45,55,72);
+  --ruff-nav-color: var(--ruff-color);
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-background-color: var(--ruff-nav-color);
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: #ecdbba;
+  --ruff-bd-code-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: lightsteelblue;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: lightskyblue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: var(--ruff-bd-color);
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+/* The original ruff theme */
+.ruff-theme-v1 {
+  --ruff-color: #121212;
+  --ruff-background-color: white;
+  --ruff-minor-color: #888;
+
+  --ruff-layout-background-color: white;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #006666;
+  --ruff-nav-color: white;
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: whitesmoke;
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-background-color: var(--ruff-nav-color);
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: var(--ruff-bd-color);
+  --ruff-bd-code-background-color: whitesmoke;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: var(--ruff-nav-background-color);
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: blue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: inherit;
+  --ruff-bd-tip-background-color: whitesmoke;
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+#ruffButtonBar {
+  float: right;
+}
+
+#ruffToggleTheme {
+  background-image: var(--ruff-theme-gradient);
+  transition: 0.25s;
+  background-size: 200% auto;
+  border: none;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  vertical-align: text-top;
+}
+
+#ruffToggleTheme:hover {
+  background-position: right center; /* change the direction of the change here */
+  vertical-align: text-top;
+}
+
+#ruffNavMove {
+  color: lightblue;
+  border-color: lightblue;
+  background-color: var(--ruff-bd-background-color);
+  height: 20px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  vertical-align: text-top; /* Move button up */
+  line-height: 1; /* To vertically center text within button */
+}
 
 
-/* Ruff default CSS */
+*, *::before, *::after {
+  box-sizing:border-box;
+}
 
 body {
-  max-width: 70em;
+  color: var(--ruff-color);
   margin: 0;
+  background-color: var(--ruff-background-color);
 }
 
-h1,h2 {
-  color: #888888;
+a, a:visited {
+  color: inherit;
+  background-color: inherit;
+}
+
+.ruff-layout {
+  display: grid;
+  grid-template-rows: var(--ruff-grid-template-rows);
+  grid-template-columns: var(--ruff-grid-template-columns);
+  grid-template-areas: var(--ruff-grid-template-areas);
+  column-gap: 1rem;
+  min-height: 100vh;
+  max-width: 60rem;
+  margin: 0 auto;
+  background-color: var(--ruff-layout-background-color);
+  padding: 0 10px;
+}
+
+.ruff-layout-header { grid-area: toparea; }
+.ruff-layout-main {grid-area: mainarea; }
+.ruff-layout-nav {grid-area: navarea; }
+.ruff-layout-footer {grid-area: botarea; }
+
+/*** Context free styles ***/
+
+h1,h2,h3,h4,h5,h6 {
   margin-bottom: 0.5em;
-  margin-top: 0em;
-}
-
-#ft {
-  text-align: left;
-  border-top: 1px solid #006666;
-  color: #888888;
-  margin-top: 10px;
-}
-
-.banner h2 {
-  color: #006666;
-}
-
-#hd.banner {
- font-family: "Times New Roman", serif;
- font-size: 200%;
- line-height: 64px;
- border-bottom: thin solid #006666;
- color: #006666;
-}
-
-p.linkline {
-    text-align: right;
-    font-size: smaller;
-    /*    margin-top: -1em; */
-    margin-bottom: 0;
-}
-
-.tinylink {
-    font-size: x-small;
-    font-variant: normal;
-    font-family: Arial, sans-serif;
-    float: right;
-    padding:2px;
-}
-
-h1 .tinylink a {
-    color: white;
-}
-
-a {
-    text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
-}
-.tinylink a {
-    text-decoration: underline;
-}
-
-#bd {
-font-family: Arial, sans-serif;
-font-size: 108%;
-}
-
-div.navbox {
-  /* margin-top: 1em; */
-    background-color: #006666;
-    color: white;
-    padding: 3px 4px 2px 4px;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-}
-
-div.navbox:hover {
-    overflow: visible;
-}
-
-/* Note .navbox header css should be based on $header_levels */
-.navbox h1, .navbox h2, .navbox h3, .navbox h4, .navbox h5 {
-  font-size: 85%;
-  margin: 0px;
-  font-weight: normal;
-}
-.navbox h1 {
-    font-weight: bold; /* Override */
-}
-.navbox h2 {
-  padding-left: 1em;
-}
-.navbox h3 {
-  padding-left: 2em;
-}
-.navbox h4 {
-  padding-left: 2.5em;
-  font-weight: normal;
-}
-.navbox h5 {
-  padding-left: 3em;
-  font-weight: normal;
-}
-.navbox hr {
-  color: white;
-  margin-top:0.1em;
-  margin-bottom:0.1em;
-}
-
-.navbox a:link, .navbox a:visited, .navbox a:hover {
-  text-decoration: none;
-  color: white;
-  background-color: #006666;
-}
-
-.navbox a:hover {
-   font-weight: bold;
-}
-
-/* Tooltip text - see https://www.w3schools.com/css/css_tooltip.asp */
-.tooltip {
-    position: relative;
-    /* display: inline-block; */
-}
-
-.tooltip .tooltiptext {
-    width: 100%;
-    font-weight: bold;
-    background-color: white;
-    color: #006666;
-    text-align: left;
-    border: 1px solid #006666;
-    /* border-radius: 4px; */
-    position: absolute;
-    z-index: 1;
-    margin-left: 4px;
-    padding: 2px 3px;
-    visibility: hidden;
-}
-
-/* Show the tooltip text when you mouse over the tooltip container */
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-}
-
-span.ns_scope {
-    color: #aaaaaa;
-}
-
-span.ns_scope a:link, span.ns_scope a:visited {
-  text-decoration: none;
-  color: #aaaaaa;
-
+  margin-top: 0;
 }
 
 li {
   margin-top: 0.5em;
 }
 
-span.ns_scope a:hover {
-  text-decoration: none;
-  color: #666666;
+span.ns_scope {
+  color: var(--ruff-minor-color);
+  font-size: 85%;
+  font-weight: bold;
 }
 
-table {
+span.ns_scope a[href]:link, span.ns_scope a[href]:visited {
+  text-decoration: none;
+  color: var(--ruff-minor-color);
+
+}
+
+span.ns_scope a[href]:hover {
+  text-decoration: underline;
+}
+
+/* Tooltip text - see https://www.w3schools.com/css/css_tooltip.asp */
+.ruff-tip {
+  position: relative;
+  /* display: inline-block; */
+}
+/* Show the tooltip text when you mouse over the tooltip container */
+.ruff-tip:hover .ruff-tiptext {
+  visibility: visible;
+}
+.ruff-tiptext {
+  width: 20em;
+  text-align: left;
+  border:none;
+  position: absolute;
+  z-index: var(--ruff-tip-z-index);
+  margin-left: 4px;
+  padding: 2px 3px;
+  visibility: hidden;
+}
+
+
+/*** Header styles ***/
+
+.ruff-hd {
+  font-family: "Times New Roman", serif;
+  font-size: 200%;
+  padding: 5px 0px 10px;
+  color: var(--ruff-hd-color);
+  background-color: var(--ruff-hd-background-color);
+}
+
+/*** Footer styles ***/
+
+.ruff-ft {
+  text-align: left;
+  border-top: 1px solid var(--ruff-ft-color);
+  color: var(--ruff-ft-color);
+  background-color: var(--ruff-ft-background-color);
+  margin: 10px 0px;
+}
+
+.ruff-ft div {
+  padding: 5px 0px;
+}
+
+/*** Nav pane styles ***/
+
+.ruff-nav {
+  background-color: var(--ruff-nav-background-color);
+  color: var(--ruff-nav-color);
+  --ruff-nav-padding-x: 4px;
+  padding: 3px var(--ruff-nav-padding-x) 2px var(--ruff-nav-padding-x);
+  font-family: Arial, sans-serif;
+  /* NOTE: without overflow: visible, tooltips will be clipped */
+  overflow: visible;
+  font-size: 85%;
+  margin: 0;
+}
+
+.ruff-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ruff-nav li {
+  margin: 0;
+}
+
+.ruff-nav .ruff-toc1 {
+  font-weight: bold; /* Override */
+}
+.ruff-nav .ruff-toc2 {
+  padding-left: 1em;
+}
+.ruff-nav .ruff-toc3 {
+  padding-left: 2em;
+}
+.ruff-nav .ruff-toc4 {
+  padding-left: 2.5em;
+}
+.ruff-nav .ruff-toc5 {
+  padding-left: 3em;
+}
+.ruff-nav hr {
+  color: inherit;
+  margin-top:0.2em;
+  margin-bottom:0.2em;
+}
+
+.ruff-nav a:link, .ruff-nav a:visited, .ruff-nav a:hover {
+  text-decoration: none;
+  color: inherit;
+  background-color: inherit;
+}
+
+.ruff-nav a:hover {
+  /* Disabled because it causes navigation pane width changes. */
+  /* Instead reverse foreground/background */
+  /* font-weight: bold; */
+  color: var(--ruff-nav-background-color);
+  background-color: var(--ruff-nav-color);
+}
+
+.ruff-nav a.ruff-highlight {
+  color: var(--ruff-nav-highlight-color);
+  background-color: var(--ruff-nav-highlight-background-color);
+  margin-left: calc(-1 * var(--ruff-nav-padding-x));
+  padding-left: var(--ruff-nav-padding-x);
+  padding-right: var(--ruff-nav-padding-x);
+}
+
+.ruff-nav .ruff-tiptext {
+  background-color: var(--ruff-nav-tip-background-color);
+  color: var(--ruff-nav-tip-color);
+}
+
+/*** Main content styles ***/
+
+.ruff-bd {
+  font-family: Arial, sans-serif;
+  color: var(--ruff-bd-color);
+  background-color: var(--ruff-bd-background-color);
+  font-size: 93%;
+  line-height: 1.3;
+}
+
+.ruff-bd .ruff-uplink {
+  font-size: x-small;
+  font-variant: normal;
+  font-family: Arial, sans-serif;
+  float: right;
+  padding:2px;
+}
+
+.ruff-bd .ruff-uplink a[href], .ruff-bd .ruff-uplink a[href]:visited {
+  text-decoration: underline;
+  /* Override bd link color */
+  color: inherit;
+}
+
+.ruff-bd table.ruff_deflist {
   margin: 1em;
   margin-top: 0.5em;
   border: thin solid;
   border-collapse: collapse;
-  border-color: #808080;
+  border-color: var(--ruff-bd-table-border);
   padding: 4px;
 }
 
-td {
+.ruff-bd .ruff_deflist td {
   border: thin solid;
   border-color: #808080;
   vertical-align: top;
@@ -192,7 +522,8 @@ td {
   padding: 0.3em;
   padding-top: 0.1em;
 }
-th {
+
+.ruff-bd .ruff_deflist th {
   border: thin solid;
   border-color: #808080;
   padding: 0.3em;
@@ -200,103 +531,126 @@ th {
   background-color: #CCCCCC;
 }
 
-dt, dd {
-   font-size: 93%;
+.ruff-bd h1 {
+  background-color: var(--ruff-bd-h1-background-color);
+  color: var(--ruff-bd-h1-color);
+  padding-left: 0.2em;
+  font-family: "Times New Roman", serif;
 }
 
-h1.ruff {
-    background-color: #006666;
-    color: #ffffff;
-    padding-left: 0.2em;
-    font-family: "Times New Roman", serif;
-}
-h2.ruff {
-    font-variant: small-caps;
-    color: #006666;
-    font-family: "Times New Roman", serif;
+.ruff-bd h2 {
+  font-variant: small-caps;
+  color: var(--ruff-bd-h-color);
+  background-color: var(--ruff-bd-h-background-color);
+  font-family: "Times New Roman", serif;
 }
 
-h3.ruff, h4.ruff, h5.ruff, h6.ruff {
-    color: #006666;
-    margin-bottom: 0.2em;
+.ruff-bd h3, .ruff-bd h4, .ruff-bd h5, .ruff-bd h6 {
+  color: var(--ruff-bd-h-color);
+  background-color: var(--ruff-bd-h-background-color);
+  margin-bottom: 0.2em;
 }
 
-
-h5.ruff {
+.ruff-bd h5 {
     font-style: italic;
     font-weight: normal;
+    font-size: inherit;
 }
-h6.ruff {
+.ruff-bd h6 {
     font-weight: normal;
+    font-size: inherit;
 }
-h3.ruffclass, h3.ruffproc, h3.ruffmethod,
-h4.ruffclass, h4.ruffproc, h4.ruffmethod,
-h5.ruffclass, h5.ruffproc, h5.ruffmethod {
-    border-bottom: thin solid #006666;
-    color: #006666;
+
+.ruff-bd h3.ruffclass, .ruff-bd h3.ruffproc, .ruff-bd h3.ruffmethod,
+.ruff-bd h4.ruffclass, .ruff-bd h4.ruffproc, .ruff-bd h4.ruffmethod,
+.ruff-bd h5.ruffclass, .ruff-bd h5.ruffproc, .ruff-bd h5.ruffmethod {
+    border-bottom: thin solid var(--ruff-brand-color);
     margin-bottom: 0.2em;
 }
 
-pre {
-    background-color: #eeeeee;
-    margin-top: 1em;
-    margin-left: 1em;
-    padding: 5px;
-    font-family: Consolas, "Courier New", monospace;
-    //width: max-content;
-    font-size: smaller;
-    line-height: 1.2em;
+.ruff-bd pre {
+  color: var(--ruff-bd-code-color);
+  background-color: var(--ruff-bd-code-background-color);
+  margin-top: 1em;
+  margin-left: 1em;
+  padding: 5px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: smaller;
+  line-height: 1.2em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
+
+.ruff-bd a[href], .ruff-bd a[href]:visited {
+  text-decoration: none;
+  color: var(--ruff-bd-a-color);
+}
+
+.ruff-bd a[href]:hover {
+  text-decoration: underline;
+}
+
 
 .ruff_dyn_src {
     display: none; /* Displayed via JS */
 }
 
-.ruff_synopsis {
-    border: thin solid #cccccc;
-    background: #eeeeee;
-    //font-size: smaller;
-    font-family: Consolas, "Courier New", monospace;
-    padding: 3px;
-    margin: 0em 2em 1em;
+.ruff-bd .ruff_synopsis {
+  border: var(--ruff-bd-synopsis-border);
+  color: var(--ruff-bd-code-color);
+  background-color: var(--ruff-bd-code-background-color);
+  font-family: Consolas, "Courier New", monospace;
+  margin: 0em 2em 1em;
+  padding: 0.5em;
+  /* Cannot arrange for wrapped line indent since synopsis may have multiple lines
+  padding-left: 1em;
+  text-indent: 0.5em;
+  */
 }
 
-.ruff_const, .ruff_cmd, code {
-    font-family: Consolas, "Courier New", monospace;
-    font-weight: bold;
-    font-size: smaller;
-    //background-color: #eeeeee;
-    //padding: 0px 2px;
-    //border-radius: 3px;
+.ruff-bd .ruff_const, .ruff-bd .ruff_cmd, .ruff-bd code {
+  font-family: Consolas, "Courier New", monospace;
 }
 
-ruff_defitem {
-    font-weight: bold;
-    font-family: Consolas, "Courier New", monospace;
-}
-.ruff_arg {
+.ruff-bd .ruff_arg {
     font-style: italic;
     font-family: Consolas, "Courier New", monospace;
     font-size: smaller;
 }
 
-.ruff_source_link {
-    font-size: smaller;
+.ruff-bd .ruff_source_link {
+    font-size: small;
 }
 
+.ruff-bd .ruff_source_link a[href] {
+  color: var(--ruff-bd-sourcelink-color);
+  background-color: var(--ruff-bd-sourcelink-background-color);
+  text-decoration: underline;
+}
+
+/* Specialization for index page body */
+
 .ruff_index {
-    font-size: small;
-    color: grey;
-    line-height: 1;
+  #font-size: small;
 }
 
 .ruff_index ul li {
-    list-style-type: none;
+  list-style-type: none;
 }
 
 .ruff_index ul li a {
-    text-decoration: none;
+  text-decoration: none;
 }
+
+#indexUL {
+  line-height: 1;
+}
+
+#indexUL .ruff-tiptext {
+  background-color: var(--ruff-bd-tip-background-color);
+  color: var(--ruff-bd-tip-color);
+}
+
 </style>
 <script>function toggleSource( id )
 {
@@ -328,59 +682,151 @@ ruff_defitem {
         link.innerHTML = "Hide source"
     }
 }
+
+
+/***
+ * NOTE: for file URL's local storage is per-file so is not maintained between files.
+ * It will still persist for http urls.
+ * Someone who actually knows Javascript please rewrite this!
+*/
+
+function ruffSetTheme(themeName) {
+    localStorage.ruff_theme = themeName;
+    document.documentElement.className = "ruff-theme-".concat(themeName);
+}
+
+function ruffNextTheme() {
+    themeNames = JSON.parse(localStorage.ruff_themes);
+    currentTheme = localStorage.ruff_theme;
+    if (currentTheme === undefined) {
+        themeIndex = 0;
+    } else {
+        themeIndex = themeNames.indexOf(currentTheme);
+        ++themeIndex;
+        if (themeIndex >= themeNames.length) {
+            themeIndex = 0;
+        }
+    }
+    ruffSetTheme(themeNames[themeIndex]);
+}
+
+function ruffSetNavSide(navSide) {
+    localStorage.ruff_nav_side = navSide;
+    but = document.getElementById("ruffNavMove");
+    // Note we set individual border properties as we do not want color to change */
+    if (navSide === "right") {
+        gridAreas = '"toparea toparea" "mainarea navarea" "botarea botarea"';
+        gridCols = "1fr minmax(200px, min-content)";
+        but.textContent = "\u25c0";
+        but.style.setProperty("border-left", "none");
+        but.style.setProperty("border-right-style", "solid");
+        but.style.setProperty("border-right-width", "thick");
+    } else {
+        gridAreas = '"toparea toparea" "navarea mainarea" "botarea botarea"';
+        gridCols = "minmax(200px, min-content) 1fr";
+        but.textContent = "\u25b6";
+        but.style.setProperty("border-right", "none");
+        but.style.setProperty("border-left-style", "solid");
+        but.style.setProperty("border-left-width", "thick");
+    }
+    document.documentElement.style.setProperty("--ruff-grid-template-areas", gridAreas);
+    document.documentElement.style.setProperty("--ruff-grid-template-columns", gridCols);
+}
+
+function ruffMoveNavPane() {
+    if (localStorage.ruff_nav_side === "left")
+        ruffSetNavSide("right");
+    else
+        ruffSetNavSide("left");
+}
+
+// Immediately invoked function to set the theme on initial load
+(function () {
+    // Set up the themes
+    themeNames = ["v1", "light", "dark", "slate", "solar", "clouds"];
+    // Store list of ruff themes since they may change between releases
+    // localStorage can only contain strings
+    localStorage.ruff_themes = JSON.stringify(themeNames);
+    navSide = localStorage.ruff_nav_side;
+    if (navSide !== "left" && navSide !== "right")
+        navSide = "left";
+
+    // Actual updating of DOM only to be done AFTEr load is done
+    window.onload = init;
+    function init () {
+        currentTheme = localStorage.ruff_theme;
+        if (currentTheme === undefined || themeNames.indexOf(currentTheme) < 0) {
+            currentTheme = "v1";
+        }
+        ruffSetTheme(currentTheme);
+
+        // Set up the navigation layout
+        navSide = localStorage.ruff_nav_side;
+        if (navSide !== "right")
+            navSide = "left";
+        ruffSetNavSide(navSide);
+    }
+})();
 </script></head>
-<body><div id='doc3' class='yui-t2'><div id='hd' class='banner'>
-<a style='text-decoration:none;' href='cffi.html'>CFFI Reference (V1.0b0)</a>
-</div>
-<div id='bd'><div id='yui-main'><div class='yui-b'><h1 class='ruff'><a name='::cffi::dyncall'></a>::cffi::dyncall<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
+<body>
+<div class='ruff-layout'>
+<header class='ruff-layout-header ruff-hd'>
+<a style='text-decoration:none;' href='cffi.html'>CFFI Reference (v1.0b1)</a>
+
+
+            <div id="ruffButtonBar">
+            <button id="ruffNavMove" onclick="ruffMoveNavPane()"></button>
+            <button id="ruffToggleTheme" onclick="ruffNextTheme()"></button>
+            </div>
+        </header><main class='ruff-layout-main ruff-bd'><h1 class='ruff'><a name='::cffi::dyncall'></a>::cffi::dyncall<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
 <div style='clear:both;'></div>
 <p class='ruff'>This namespace contains classes wrapping the <code>dyncall</code> library for calling C functions in shared library. The namespace is automatically loaded with the <code>cffi</code> package.</p>
-<h2 class='ruff'><a name='::cffi::dyncall-Classes'></a>Classes<span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<h2 class='ruff'><a name='::cffi::dyncall-Classes'></a>Classes<span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
-<h3 class='ruffclass'><a name='::cffi::dyncall::Library'>Library</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruffclass'><a name='::cffi::dyncall::Library'>Library</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td class='ruff_defitem'>Constructor for the class.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::destructor" title="destructor" class='ruff_cmd'>destructor</a></td><td class='ruff_defitem'>Destructor for the class.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::addressof" title="addressof" class='ruff_cmd'>addressof</a></td><td class='ruff_defitem'>Returns the address of a symbol from the loaded library.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a></td><td class='ruff_defitem'>Creates a Tcl command to invoke a C function in the loaded library.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::functions" title="functions" class='ruff_cmd'>functions</a></td><td class='ruff_defitem'>Creates Tcl commands for multiple C functions within the loaded library.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::path" title="path" class='ruff_cmd'>path</a></td><td class='ruff_defitem'>Returns the file system path for the wrapped library or image wrapped by the object.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a></td><td class='ruff_defitem'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcalls" title="stdcalls" class='ruff_cmd'>stdcalls</a></td><td class='ruff_defitem'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td>Constructor for the class.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::destructor" title="destructor" class='ruff_cmd'>destructor</a></td><td>Destructor for the class.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::addressof" title="addressof" class='ruff_cmd'>addressof</a></td><td>Returns the address of a symbol from the loaded library.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a></td><td>Creates a Tcl command to invoke a C function in the loaded library.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::functions" title="functions" class='ruff_cmd'>functions</a></td><td>Creates Tcl commands for multiple C functions within the loaded library.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::path" title="path" class='ruff_cmd'>path</a></td><td>Returns the file system path for the wrapped library or image wrapped by the object.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a></td><td>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcalls" title="stdcalls" class='ruff_cmd'>stdcalls</a></td><td>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.</td></tr>
 </table>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Wraps a shared library / DLL, loading it in the process.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>Library create OBJNAME</span> <span class='ruff_arg'>?path?</span><br><span class='ruff_cmd'>Library new</span> <span class='ruff_arg'>?path?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>path</code></td><td class='ruff_defitem'>Path to the shared library. If an empty string, the process main executable is wrapped. Optional, default <code>&quot;&quot;</code>.</td></tr>
+<tr><td><code>path</code></td><td>Path to the shared library. If an empty string, the process main executable is wrapped. Optional, default <code>&quot;&quot;</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>It is strongly recommended that the path to the shared library be specified as an absolute path. Otherwise, it is located in a system-specific manner involving operating system version, environment variables, registry settings (on Windows), phase of the moon etc.. This is not advisable for both reliability and security reasons.</p>
 <p class='ruff'>When no longer needed, the object can be deleted in the usual manner (via <code>rename</code> to an empty string) or by invoking its <code>destroy</code> method.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created object.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::destructor'>destructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::destructor'>destructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Destroys the object and releases internal resources.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT destroy</span> <br></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>The managed library may be unloaded if there is nothing else holding a reference to it.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::addressof'>addressof</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::addressof'>addressof</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the address of a symbol from the loaded library.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT addressof</span> <span class='ruff_arg'>symbol</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>symbol</code></td><td class='ruff_defitem'>Name of the symbol.</td></tr>
+<tr><td><code>symbol</code></td><td>Name of the symbol.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The command will raise an error if the symbol is not found.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the address of a symbol from the loaded library.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::function'>function</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::function'>function</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Creates a Tcl command to invoke a C function in the loaded library.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT function</span> <span class='ruff_arg'>fnname fntype parameters</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>fnname</code></td><td class='ruff_defitem'>Name of the function and optionally, Tcl command.</td></tr>
-<tr><td class='ruff_defitem'><code>fntype</code></td><td class='ruff_defitem'>The type definition for the return value from the function.</td></tr>
-<tr><td class='ruff_defitem'><code>parameters</code></td><td class='ruff_defitem'>List of alternating parameter name and type definitions.</td></tr>
+<tr><td><code>fnname</code></td><td>Name of the function and optionally, Tcl command.</td></tr>
+<tr><td><code>fntype</code></td><td>The type definition for the return value from the function.</td></tr>
+<tr><td><code>parameters</code></td><td>List of alternating parameter name and type definitions.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The command creates a Tcl command corresponding to a C function contained in the library. The function must be one that follows the default C calling convention (See <a href="cffi_Concepts.html#::Concepts-Calling conventions" title="Calling conventions" >Calling conventions</a>).</p>
 <p class='ruff'>The <code>$fnname</code> argument is a one or two element list, the first being the name of the C function and the second, if present, being the name of the corresponding Tcl command. The latter defaults to the former if unspecified. Unless fully qualified, the command is created in the namespace from which it is called.</p>
@@ -389,107 +835,107 @@ ruff_defitem {
 <p class='ruff'>The return type as well as parameter type declarations may have annotations that control semantics and behavior with respect to how values are passed and converted between Tcl and C. See <a href="cffi_Concepts.html#::Concepts-Functions" title="Functions" >Functions</a> for details of these.</p>
 <p class='ruff'>The command will raise an error if the function identified by <code>$cname</code> is not found in the loaded DLL.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created Tcl command.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::functions'>functions</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::functions'>functions</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Creates Tcl commands for multiple C functions within the loaded library.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT functions</span> <span class='ruff_arg'>fnlist</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>fnlist</code></td><td class='ruff_defitem'>List of function definitions.</td></tr>
+<tr><td><code>fnlist</code></td><td>List of function definitions.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>This is a wrapper around the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> method that provides some syntactic sugar for defining multiple functions. The <code>$fnlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> method.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::path'>path</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::path'>path</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the file system path for the wrapped library or image wrapped by the object.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT path</span> <br></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned path may be or may not be normalized and may be in native form or Tcl's canonical form. If no <code>path</code> argument was provided to the constructor, an empty string may be returned on some platforms.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the file system path for the wrapped library or image wrapped by the object.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::stdcall'>stdcall</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::stdcall'>stdcall</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdcall</span> <span class='ruff_arg'>fnname fntype parameters</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>fnname</code></td><td class='ruff_defitem'>Name of the function and optionally, Tcl command.</td></tr>
-<tr><td class='ruff_defitem'><code>fntype</code></td><td class='ruff_defitem'>The type definition for the return value from the function.</td></tr>
-<tr><td class='ruff_defitem'><code>parameters</code></td><td class='ruff_defitem'>List of alternating parameter name and type definitions.</td></tr>
+<tr><td><code>fnname</code></td><td>Name of the function and optionally, Tcl command.</td></tr>
+<tr><td><code>fntype</code></td><td>The type definition for the return value from the function.</td></tr>
+<tr><td><code>parameters</code></td><td>List of alternating parameter name and type definitions.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The command creates a Tcl command corresponding to a C function contained in the library. The function must be one that follows the <code>__stdcall</code> calling convention (See <a href="cffi_Concepts.html#::Concepts-Calling conventions" title="Calling conventions" >Calling conventions</a>). The only platform where this differs from the C calling convention is 32-bit Windows. On other platforms, this method is a synonym for <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a>.</p>
 <p class='ruff'>See <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> for other details.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created Tcl command.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdcalls</span> <span class='ruff_arg'>fnlist</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>fnlist</code></td><td class='ruff_defitem'>List of function definitions.</td></tr>
+<tr><td><code>fnlist</code></td><td>List of function definitions.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>This is a wrapper around the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> method that provides some syntactic sugar for defining multiple functions. The <code>$fnlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> method.</p>
-<h3 class='ruffclass'><a name='::cffi::dyncall::Symbols'>Symbols</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruffclass'><a name='::cffi::dyncall::Symbols'>Symbols</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td class='ruff_defitem'>Constructor for the class.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::destructor" title="destructor" class='ruff_cmd'>destructor</a></td><td class='ruff_defitem'>Destructor for the class.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::ataddress" title="ataddress" class='ruff_cmd'>ataddress</a></td><td class='ruff_defitem'>Returns the name of the symbol at a specified address.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::count" title="count" class='ruff_cmd'>count</a></td><td class='ruff_defitem'>Returns the number of symbols defined in the library.</td></tr>
-<tr><td class='ruff_defitem'><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::index" title="index" class='ruff_cmd'>index</a></td><td class='ruff_defitem'>Returns the name of the symbol at a specified index.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td>Constructor for the class.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::destructor" title="destructor" class='ruff_cmd'>destructor</a></td><td>Destructor for the class.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::ataddress" title="ataddress" class='ruff_cmd'>ataddress</a></td><td>Returns the name of the symbol at a specified address.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::count" title="count" class='ruff_cmd'>count</a></td><td>Returns the number of symbols defined in the library.</td></tr>
+<tr><td><a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::index" title="index" class='ruff_cmd'>index</a></td><td>Returns the name of the symbol at a specified index.</td></tr>
 </table>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Wraps a shared library / DLL to allow access to its symbols.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>Symbols create OBJNAME</span> <span class='ruff_arg'>?path?</span><br><span class='ruff_cmd'>Symbols new</span> <span class='ruff_arg'>?path?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>path</code></td><td class='ruff_defitem'>Path to the shared library. Optional, default <code>&quot;&quot;</code>.</td></tr>
+<tr><td><code>path</code></td><td>Path to the shared library. Optional, default <code>&quot;&quot;</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>It is strongly recommended that the path to the shared library be specified as an absolute path. Otherwise, it is located in a system-specific manner involving operating system version, environment variables, registry settings (on Windows), phase of the moon etc.. This is not advisable for both reliability and security reasons.</p>
 <p class='ruff'>When no longer needed, the object can be deleted in the usual manner (via <code>rename</code> to an empty string) or by invoking its <code>destroy</code> method.</p>
 <p class='ruff'>Objects of this class provide access to the symbols defined in the file without actually loading the file and resolving addresses. They can only therefore be used to search for symbols, locate symbols based on their index, and if the library has been loaded already, based on the symbol address.</p>
 <p class='ruff'>An error is raised if the file does not exist or does not contain an exports table.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created object.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::destructor'>destructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::destructor'>destructor</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Destroys the object.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT destroy</span> <br></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>The managed shared library may be unloaded if there is nothing else holding a reference to it.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the name of the symbol at a specified address.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT ataddress</span> <span class='ruff_arg'>addr</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>addr</code></td><td class='ruff_defitem'>Memory address.</td></tr>
+<tr><td><code>addr</code></td><td>Memory address.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The shared library must have been loaded into the process.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the symbol at a specified address.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::count'>count</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::count'>count</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the number of symbols defined in the library.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT count</span> <br></div>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the number of symbols defined in the library.</p>
-<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::index'>index</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='tinylink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::index'>index</a><span class='ns_scope'> [<a href="cffi_cffi_dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the name of the symbol at a specified index.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT index</span> <span class='ruff_arg'>index</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>index</code></td><td class='ruff_defitem'>Index into symbol table.</td></tr>
+<tr><td><code>index</code></td><td>Index into symbol table.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned value may be an empty string if there is an entry in the symbol table at that index but no name.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the symbol at a specified index.</p>
-</div></div><div class='yui-b navbox' ><h1><a style='padding-top:2px;' href='cffi.html'>Start page</a></h1>
-<h1><a href='cffi_docindex.html' accesskey='i'>Index</a></h1>
+</main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
+<li class='ruff-toc1'><a href='cffi_docindex.html' accesskey='i'>Index</a></li>
 <hr>
-<h1><a href='cffi_Concepts.html'>Concepts</a></h1>
-<h1><a href='cffi_cffi.html'>cffi</a></h1>
-<h1><a style='color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
-<hr><h1><a href='#::cffi::dyncall'>cffi::dyncall</a></h1><h2><a href='#::cffi::dyncall-Classes'>Classes</a></h2><h3><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a></h3><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::constructor'>constructor</a><span class='tooltiptext'>Wraps a shared library / DLL, loading it in the process.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::destructor'>destructor</a><span class='tooltiptext'>Destroys the object and releases internal resources.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::addressof'>addressof</a><span class='tooltiptext'>Returns the address of a symbol from the loaded library.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::function'>function</a><span class='tooltiptext'>Creates a Tcl command to invoke a C function in the loaded library.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::functions'>functions</a><span class='tooltiptext'>Creates Tcl commands for multiple C functions within the loaded library.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::path'>path</a><span class='tooltiptext'>Returns the file system path for the wrapped library or image wrapped by the object.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall'>stdcall</a><span class='tooltiptext'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='tooltiptext'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
-</span></h4><h3><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a></h3><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::constructor'>constructor</a><span class='tooltiptext'>Wraps a shared library / DLL to allow access to its symbols.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::destructor'>destructor</a><span class='tooltiptext'>Destroys the object.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='tooltiptext'>Returns the name of the symbol at a specified address.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::count'>count</a><span class='tooltiptext'>Returns the number of symbols defined in the library.
-</span></h4><h4 class='tooltip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::index'>index</a><span class='tooltiptext'>Returns the name of the symbol at a specified index.
-</span></h4></div></div><div id='ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div></div>
+<li class='ruff-toc1'><a href='cffi_Concepts.html'>Concepts</a></li>
+<li class='ruff-toc1'><a href='cffi_cffi.html'>cffi</a></li>
+<li class='ruff-toc1'><a class='ruff-highlight' href='cffi_cffi_dyncall.html'>cffi::dyncall</a></li>
+<hr><li class='ruff-toc1'><a href='#::cffi::dyncall'>cffi::dyncall</a></li><li class='ruff-toc2'><a href='#::cffi::dyncall-Classes'>Classes</a></li><li class='ruff-toc3'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library'>Library</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL, loading it in the process.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object and releases internal resources.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::addressof'>addressof</a><span class='ruff-tiptext'>Returns the address of a symbol from the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::function'>function</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function in the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::functions'>functions</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::path'>path</a><span class='ruff-tiptext'>Returns the file system path for the wrapped library or image wrapped by the object.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall'>stdcall</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
+</span></li><li class='ruff-toc3'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols'>Symbols</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL to allow access to its symbols.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='ruff-tiptext'>Returns the name of the symbol at a specified address.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::count'>count</a><span class='ruff-tiptext'>Returns the number of symbols defined in the library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi_cffi_dyncall.html#::cffi::dyncall::Symbols::index'>index</a><span class='ruff-tiptext'>Returns the name of the symbol at a specified index.
+</span></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>

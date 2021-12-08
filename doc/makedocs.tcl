@@ -24,5 +24,8 @@ ruff::document [list Concepts $NS ${NS}::dyncall] \
     -pagesplit namespace \
     -autopunctuate true \
     -hidenamespace $NS \
-    -title "CFFI Reference (V1.0b0)" {*}$::argv
+    -product CFFI \
+    -version 1.0b1 \
+    -title "CFFI Reference" \
+    -copyright "Ashok P. Nadkarni" {*}$::argv
 

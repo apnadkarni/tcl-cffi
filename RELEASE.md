@@ -1,8 +1,8 @@
 # Release process
 
-A manual proceess that should be automated. Some day ...
+A manual process that should be automated. Some day ...
 
-Assumes release tagged as v1.0b0 in working directory ...
+Assumes release tagged as v1.0b1 in working directory ...
 
 ## Preliminaries
 
@@ -26,7 +26,7 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b0/AMD64/cffi10b0.dll
+strip -s /d/tcl/lib/cffi1.0b1/AMD64/cffi10b0.dll
 ```
 
 From MINGW32 shell
@@ -38,7 +38,7 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b0/x86/cffi10b0.dll
+strip -s /d/tcl/lib/cffi1.0b1/x86/cffi10b0.dll
 ```
 
 Test the distribution with Tcl 8.6 built with VC++ 6
@@ -52,14 +52,14 @@ d:\tcl\archive\868-vc6\x86\bin\tclsh86t.exe all.tcl
 
 Copy RELEASE.md and LICENSE into distribution directory.
 
-Zip up the distribution from d:\tcl\lib\cffi1.0b0
+Zip up the distribution from d:\tcl\lib\cffi1.0b1
 
 ## Windows sources
 
 From the *top* of the source repository
 
 ```
-git archive --prefix cffi1.0b0-src/ -o d:\src\cffi1.0b0-src.zip v1.0b0
+git archive --prefix cffi1.0b1-src/ -o d:\src\cffi1.0b1-src.zip v1.0b1
 ```
 
 Extract the archive somewhere and ensure it builds.
@@ -70,7 +70,7 @@ When generating a distribution from Windows, line endings are CR-LF. Rather than
 fixing them after the fact, clone the repository in WSL.
 
 ```
-git archive --prefix cffi1.0b0-src/ -o ../cffi1.0b0-src.tgz v1.0b0
+git archive --prefix cffi1.0b1-src/ -o ../cffi1.0b1-src.tgz v1.0b1
 ```
 
 Extract the archive somewhere and ensure it builds.

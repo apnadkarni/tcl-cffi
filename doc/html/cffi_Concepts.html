@@ -1,190 +1,520 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>CFFI Reference (V1.0b0)</title>
+<title>CFFI Reference</title>
 <style>
-/*
-Copyright (c) 2009, Yahoo! Inc. All rights reserved.
-Code licensed under the BSD License:
-http://developer.yahoo.net/yui/license.txt
-version: 2.7.0
-*/
-html{color:#000;background:#FFF;}body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,button,textarea,p,blockquote,th,td{margin:0;padding:0;}table{border-collapse:collapse;border-spacing:0;}fieldset,img{border:0;}address,caption,cite,code,dfn,em,strong,th,var,optgroup{font-style:inherit;font-weight:inherit;}del,ins{text-decoration:none;}li{list-style:none;}caption,th{text-align:left;}h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}q:before,q:after{content:'';}abbr,acronym{border:0;font-variant:normal;}sup{vertical-align:baseline;}sub{vertical-align:baseline;}legend{color:#000;}input,button,textarea,select,optgroup,option{font-family:inherit;font-size:inherit;font-style:inherit;font-weight:inherit;}input,button,textarea,select{*font-size:100%;}body{font:13px/1.231 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small;}select,input,button,textarea,button{font:99% arial,helvetica,clean,sans-serif;}table{font-size:inherit;font:100%;}pre,code,kbd,samp,tt{font-family:monospace;*font-size:108%;line-height:100%;}body{text-align:center;}#doc,#doc2,#doc3,#doc4,.yui-t1,.yui-t2,.yui-t3,.yui-t4,.yui-t5,.yui-t6,.yui-t7{margin:auto;text-align:left;width:57.69em;*width:56.25em;}#doc2{width:73.076em;*width:71.25em;}#doc3{margin:auto 10px;width:auto;}#doc4{width:74.923em;*width:73.05em;}.yui-b{position:relative;}.yui-b{_position:static;}#yui-main .yui-b{position:static;}#yui-main,.yui-g .yui-u .yui-g{width:100%;}.yui-t1 #yui-main,.yui-t2 #yui-main,.yui-t3 #yui-main{float:right;margin-left:-25em;}.yui-t4 #yui-main,.yui-t5 #yui-main,.yui-t6 #yui-main{float:left;margin-right:-25em;}.yui-t1 .yui-b{float:left;width:12.30769em;*width:12.00em;}.yui-t1 #yui-main .yui-b{margin-left:13.30769em;*margin-left:13.05em;}.yui-t2 .yui-b{float:left;width:13.8461em;*width:13.50em;}.yui-t2 #yui-main .yui-b{margin-left:14.8461em;*margin-left:14.55em;}.yui-t3 .yui-b{float:left;width:23.0769em;*width:22.50em;}.yui-t3 #yui-main .yui-b{margin-left:24.0769em;*margin-left:23.62em;}.yui-t4 .yui-b{float:right;width:13.8456em;*width:13.50em;}.yui-t4 #yui-main .yui-b{margin-right:14.8456em;*margin-right:14.55em;}.yui-t5 .yui-b{float:right;width:18.4615em;*width:18.00em;}.yui-t5 #yui-main .yui-b{margin-right:19.4615em;*margin-right:19.125em;}.yui-t6 .yui-b{float:right;width:23.0769em;*width:22.50em;}.yui-t6 #yui-main .yui-b{margin-right:24.0769em;*margin-right:23.62em;}.yui-t7 #yui-main .yui-b{display:block;margin:0 0 1em 0;}#yui-main .yui-b{float:none;width:auto;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf,.yui-gc .yui-u,.yui-gd .yui-g,.yui-g .yui-gc .yui-u,.yui-ge .yui-u,.yui-ge .yui-g,.yui-gf .yui-g,.yui-gf .yui-u{float:right;}.yui-g div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first,.yui-ge div.first,.yui-gf div.first,.yui-g .yui-gc div.first,.yui-g .yui-ge div.first,.yui-gc div.first div.first{float:left;}.yui-g .yui-u,.yui-g .yui-g,.yui-g .yui-gb,.yui-g .yui-gc,.yui-g .yui-gd,.yui-g .yui-ge,.yui-g .yui-gf{width:49.1%;}.yui-gb .yui-u,.yui-g .yui-gb .yui-u,.yui-gb .yui-g,.yui-gb .yui-gb,.yui-gb .yui-gc,.yui-gb .yui-gd,.yui-gb .yui-ge,.yui-gb .yui-gf,.yui-gc .yui-u,.yui-gc .yui-g,.yui-gd .yui-u{width:32%;margin-left:1.99%;}.yui-gb .yui-u{*margin-left:1.9%;*width:31.9%;}.yui-gc div.first,.yui-gd .yui-u{width:66%;}.yui-gd div.first{width:32%;}.yui-ge div.first,.yui-gf .yui-u{width:74.2%;}.yui-ge .yui-u,.yui-gf div.first{width:24%;}.yui-g .yui-gb div.first,.yui-gb div.first,.yui-gc div.first,.yui-gd div.first{margin-left:0;}.yui-g .yui-g .yui-u,.yui-gb .yui-g .yui-u,.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u,.yui-ge .yui-g .yui-u,.yui-gf .yui-g .yui-u{width:49%;*width:48.1%;*margin-left:0;}.yui-g .yui-g .yui-u{width:48.1%;}.yui-g .yui-gb div.first,.yui-gb .yui-gb div.first{*margin-right:0;*width:32%;_width:31.7%;}.yui-g .yui-gc div.first,.yui-gd .yui-g{width:66%;}.yui-gb .yui-g div.first{*margin-right:4%;_margin-right:1.3%;}.yui-gb .yui-gc div.first,.yui-gb .yui-gd div.first{*margin-right:0;}.yui-gb .yui-gb .yui-u,.yui-gb .yui-gc .yui-u{*margin-left:1.8%;_margin-left:4%;}.yui-g .yui-gb .yui-u{_margin-left:1.0%;}.yui-gb .yui-gd .yui-u{*width:66%;_width:61.2%;}.yui-gb .yui-gd div.first{*width:31%;_width:29.5%;}.yui-g .yui-gc .yui-u,.yui-gb .yui-gc .yui-u{width:32%;_float:right;margin-right:0;_margin-left:0;}.yui-gb .yui-gc div.first{width:66%;*float:left;*margin-left:0;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf .yui-u{margin:0;}.yui-gb .yui-gb .yui-u{_margin-left:.7%;}.yui-gb .yui-g div.first,.yui-gb .yui-gb div.first{*margin-left:0;}.yui-gc .yui-g .yui-u,.yui-gd .yui-g .yui-u{*width:48.1%;*margin-left:0;}.yui-gb .yui-gd div.first{width:32%;}.yui-g .yui-gd div.first{_width:29.9%;}.yui-ge .yui-g{width:24%;}.yui-gf .yui-g{width:74.2%;}.yui-gb .yui-ge div.yui-u,.yui-gb .yui-gf div.yui-u{float:right;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf div.first{float:left;}.yui-gb .yui-ge .yui-u,.yui-gb .yui-gf div.first{*width:24%;_width:20%;}.yui-gb .yui-ge div.first,.yui-gb .yui-gf .yui-u{*width:73.5%;_width:65.5%;}.yui-ge div.first .yui-gd .yui-u{width:65%;}.yui-ge div.first .yui-gd div.first{width:32%;}#hd:after,#bd:after,#ft:after,.yui-g:after,.yui-gb:after,.yui-gc:after,.yui-gd:after,.yui-ge:after,.yui-gf:after{content:".";display:block;height:0;clear:both;visibility:hidden;}#hd,#bd,#ft,.yui-g,.yui-gb,.yui-gc,.yui-gd,.yui-ge,.yui-gf{zoom:1;}
+:root {
+  --ruff-grid-template-rows: min-content 1fr;
+  /* TBD - maybe use fit-content(200px) instead of minmax(...) */
+  --ruff-grid-template-columns: minmax(200px, min-content) 1fr;
+  --ruff-grid-template-areas: "toparea toparea" "navarea mainarea" "botarea botarea";
+  --ruff-tip-z-index: 10;
+  /*
+   * This padding is to ensure auto scrollbar does not change centering pages
+   * between pages that need a scrollbar and those that do not.
+   * See https://stackoverflow.com/questions/1417934/how-to-prevent-scrollbar-from-repositioning-web-page.
+   */
+  padding-left: calc(100vw - 100%);
 
-body{margin:10px;}h1{font-size:138.5%;}h2{font-size:123.1%;}h3{font-size:108%;}h1,h2,h3{margin:1em 0;}h1,h2,h3,h4,h5,h6,strong,dt{font-weight:bold;}optgroup{font-weight:normal;}abbr,acronym{border-bottom:1px dotted #000;cursor:help;}em{font-style:italic;}del{text-decoration:line-through;}blockquote,ul,ol,dl{margin:1em;}ol,ul,dl{margin-left:2em;}ol li{list-style:decimal outside;}ul li{list-style:disc outside;}dl dd{margin-left:1em;}th,td{border:1px solid #000;padding:.5em;}th{font-weight:bold;text-align:center;}caption{margin-bottom:.5em;text-align:center;}sup{vertical-align:super;}sub{vertical-align:sub;}p,fieldset,table,pre{margin-bottom:1em;}button,input[type="checkbox"],input[type="radio"],input[type="reset"],input[type="submit"]{padding:1px;}
+  /* Default theme button gradient */
+  --ruff-theme-gradient: linear-gradient(90deg, lightblue, coral, lightgreen);
+}
+
+/* Color theming support from https://dev.to/ananyaneogi/create-a-dark-light-mode-switch-with-css-variables-34l8 */
+
+.ruff-theme-light {
+  --ruff-color: #444;
+  --ruff-background-color: whitesmoke;
+  --ruff-minor-color: #888;
+
+  --ruff-layout-background-color: #fefefe;
+
+  --ruff-hd-color: #666;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #FFF5EA;
+  --ruff-nav-color: #666;
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-color: var(--ruff-background-color);
+  --ruff-nav-highlight-background-color: coral;
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: var(--ruff-bd-color);
+  --ruff-bd-code-background-color: whitesmoke;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: #968C83;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: #666;
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: blue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: inherit;
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-clouds {
+  --ruff-color: #111;
+  --ruff-background-color: whitesmoke;
+  --ruff-minor-color: #888;
+
+  --ruff-layout-background-color: azure;
+
+  --ruff-hd-color: #666;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: lightblue;
+  --ruff-nav-color: #212121;
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-color: var(--ruff-background-color);
+  --ruff-nav-highlight-background-color: #14a7ff;
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: var(--ruff-bd-color);
+  --ruff-bd-code-background-color: #cfebf7;
+  --ruff-bd-code-background-color: #cffcff;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: #968C83;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: #666;
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: blue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: inherit;
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-dark {
+  --ruff-color: #ddd;
+  --ruff-background-color: #27242c;
+  --ruff-minor-color: #aaa;
+
+  --ruff-layout-background-color: #212121;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #22272e;
+  --ruff-nav-color: var(--ruff-color);
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: #e6eff5;
+  --ruff-nav-highlight-background-color: #1164a3;
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: inherit;
+  --ruff-bd-code-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: lightblue;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: #489bf5;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: var(--ruff-bd-background-color);
+  --ruff-bd-tip-background-color: var(--ruff-bd-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-solar {
+  --ruff-color: whitesmoke;
+  --ruff-background-color: #011;
+  --ruff-minor-color: #aaa;
+
+  --ruff-layout-background-color: #002b35;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #003641;
+  --ruff-nav-color: var(--ruff-color);
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-background-color: var(--ruff-nav-color);
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: inherit;
+  --ruff-bd-code-background-color: #003641;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: cornsilk;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: palegreen;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: var(--ruff-bd-color);
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+.ruff-theme-slate {
+  --ruff-color: #ccc;
+  --ruff-background-color: #829ab1;
+  --ruff-minor-color: #aaa;
+
+  --ruff-layout-background-color: #181a26;
+  --ruff-layout-background-color: #1a202c;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: rgb(45,55,72);
+  --ruff-nav-color: var(--ruff-color);
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: var(--ruff-nav-color);
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-background-color: var(--ruff-nav-color);
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: #ecdbba;
+  --ruff-bd-code-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: lightsteelblue;
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: lightskyblue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: var(--ruff-bd-color);
+  --ruff-bd-tip-background-color: var(--ruff-nav-background-color);
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+/* The original ruff theme */
+.ruff-theme-v1 {
+  --ruff-color: #121212;
+  --ruff-background-color: white;
+  --ruff-minor-color: #888;
+
+  --ruff-layout-background-color: white;
+
+  --ruff-hd-color: inherit;
+  --ruff-hd-background-color: inherit;
+  --ruff-hd-font: large bold;
+
+  --ruff-nav-background-color: #006666;
+  --ruff-nav-color: white;
+  --ruff-nav-tip-color: var(--ruff-nav-background-color);
+  --ruff-nav-tip-background-color: whitesmoke;
+  --ruff-nav-highlight-color: var(--ruff-nav-background-color);
+  --ruff-nav-highlight-background-color: var(--ruff-nav-color);
+
+  --ruff-bd-background-color: var(--ruff-layout-background-color);
+  --ruff-bd-color: var(--ruff-color);
+  --ruff-bd-minor-color: var(--ruff-minor-color);
+  --ruff-bd-table-border: #808080;
+  --ruff-bd-code-color: var(--ruff-bd-color);
+  --ruff-bd-code-background-color: whitesmoke;
+  --ruff-bd-h-background-color: inherit;
+  --ruff-bd-h-color: var(--ruff-nav-background-color);
+  /* H1 - special treatment to match navigation pane */
+  --ruff-bd-h1-color: var(--ruff-nav-color);
+  --ruff-bd-h1-background-color: var(--ruff-nav-background-color);
+  --ruff-bd-a-color: blue;
+  --ruff-bd-sourcelink-color: var(--ruff-bd-a-color);
+  --ruff-bd-sourcelink-background-color: var(--ruff-bd-background-color);
+  --ruff-bd-synopsis-border: none;
+  --ruff-bd-tip-color: inherit;
+  --ruff-bd-tip-background-color: whitesmoke;
+
+  --ruff-ft-color: var(--ruff-bd-minor-color);
+  --ruff-ft-minor-color: var(--ruff-ft-color);
+  --ruff-ft-background-color: var(--ruff-bd-background-color);
+}
+
+#ruffButtonBar {
+  float: right;
+}
+
+#ruffToggleTheme {
+  background-image: var(--ruff-theme-gradient);
+  transition: 0.25s;
+  background-size: 200% auto;
+  border: none;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  vertical-align: text-top;
+}
+
+#ruffToggleTheme:hover {
+  background-position: right center; /* change the direction of the change here */
+  vertical-align: text-top;
+}
+
+#ruffNavMove {
+  color: lightblue;
+  border-color: lightblue;
+  background-color: var(--ruff-bd-background-color);
+  height: 20px;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  vertical-align: text-top; /* Move button up */
+  line-height: 1; /* To vertically center text within button */
+}
 
 
-/* Ruff default CSS */
+*, *::before, *::after {
+  box-sizing:border-box;
+}
 
 body {
-  max-width: 70em;
+  color: var(--ruff-color);
   margin: 0;
+  background-color: var(--ruff-background-color);
 }
 
-h1,h2 {
-  color: #888888;
+a, a:visited {
+  color: inherit;
+  background-color: inherit;
+}
+
+.ruff-layout {
+  display: grid;
+  grid-template-rows: var(--ruff-grid-template-rows);
+  grid-template-columns: var(--ruff-grid-template-columns);
+  grid-template-areas: var(--ruff-grid-template-areas);
+  column-gap: 1rem;
+  min-height: 100vh;
+  max-width: 60rem;
+  margin: 0 auto;
+  background-color: var(--ruff-layout-background-color);
+  padding: 0 10px;
+}
+
+.ruff-layout-header { grid-area: toparea; }
+.ruff-layout-main {grid-area: mainarea; }
+.ruff-layout-nav {grid-area: navarea; }
+.ruff-layout-footer {grid-area: botarea; }
+
+/*** Context free styles ***/
+
+h1,h2,h3,h4,h5,h6 {
   margin-bottom: 0.5em;
-  margin-top: 0em;
-}
-
-#ft {
-  text-align: left;
-  border-top: 1px solid #006666;
-  color: #888888;
-  margin-top: 10px;
-}
-
-.banner h2 {
-  color: #006666;
-}
-
-#hd.banner {
- font-family: "Times New Roman", serif;
- font-size: 200%;
- line-height: 64px;
- border-bottom: thin solid #006666;
- color: #006666;
-}
-
-p.linkline {
-    text-align: right;
-    font-size: smaller;
-    /*    margin-top: -1em; */
-    margin-bottom: 0;
-}
-
-.tinylink {
-    font-size: x-small;
-    font-variant: normal;
-    font-family: Arial, sans-serif;
-    float: right;
-    padding:2px;
-}
-
-h1 .tinylink a {
-    color: white;
-}
-
-a {
-    text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
-}
-.tinylink a {
-    text-decoration: underline;
-}
-
-#bd {
-font-family: Arial, sans-serif;
-font-size: 108%;
-}
-
-div.navbox {
-  /* margin-top: 1em; */
-    background-color: #006666;
-    color: white;
-    padding: 3px 4px 2px 4px;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-}
-
-div.navbox:hover {
-    overflow: visible;
-}
-
-/* Note .navbox header css should be based on $header_levels */
-.navbox h1, .navbox h2, .navbox h3, .navbox h4, .navbox h5 {
-  font-size: 85%;
-  margin: 0px;
-  font-weight: normal;
-}
-.navbox h1 {
-    font-weight: bold; /* Override */
-}
-.navbox h2 {
-  padding-left: 1em;
-}
-.navbox h3 {
-  padding-left: 2em;
-}
-.navbox h4 {
-  padding-left: 2.5em;
-  font-weight: normal;
-}
-.navbox h5 {
-  padding-left: 3em;
-  font-weight: normal;
-}
-.navbox hr {
-  color: white;
-  margin-top:0.1em;
-  margin-bottom:0.1em;
-}
-
-.navbox a:link, .navbox a:visited, .navbox a:hover {
-  text-decoration: none;
-  color: white;
-  background-color: #006666;
-}
-
-.navbox a:hover {
-   font-weight: bold;
-}
-
-/* Tooltip text - see https://www.w3schools.com/css/css_tooltip.asp */
-.tooltip {
-    position: relative;
-    /* display: inline-block; */
-}
-
-.tooltip .tooltiptext {
-    width: 100%;
-    font-weight: bold;
-    background-color: white;
-    color: #006666;
-    text-align: left;
-    border: 1px solid #006666;
-    /* border-radius: 4px; */
-    position: absolute;
-    z-index: 1;
-    margin-left: 4px;
-    padding: 2px 3px;
-    visibility: hidden;
-}
-
-/* Show the tooltip text when you mouse over the tooltip container */
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-}
-
-span.ns_scope {
-    color: #aaaaaa;
-}
-
-span.ns_scope a:link, span.ns_scope a:visited {
-  text-decoration: none;
-  color: #aaaaaa;
-
+  margin-top: 0;
 }
 
 li {
   margin-top: 0.5em;
 }
 
-span.ns_scope a:hover {
-  text-decoration: none;
-  color: #666666;
+span.ns_scope {
+  color: var(--ruff-minor-color);
+  font-size: 85%;
+  font-weight: bold;
 }
 
-table {
+span.ns_scope a[href]:link, span.ns_scope a[href]:visited {
+  text-decoration: none;
+  color: var(--ruff-minor-color);
+
+}
+
+span.ns_scope a[href]:hover {
+  text-decoration: underline;
+}
+
+/* Tooltip text - see https://www.w3schools.com/css/css_tooltip.asp */
+.ruff-tip {
+  position: relative;
+  /* display: inline-block; */
+}
+/* Show the tooltip text when you mouse over the tooltip container */
+.ruff-tip:hover .ruff-tiptext {
+  visibility: visible;
+}
+.ruff-tiptext {
+  width: 20em;
+  text-align: left;
+  border:none;
+  position: absolute;
+  z-index: var(--ruff-tip-z-index);
+  margin-left: 4px;
+  padding: 2px 3px;
+  visibility: hidden;
+}
+
+
+/*** Header styles ***/
+
+.ruff-hd {
+  font-family: "Times New Roman", serif;
+  font-size: 200%;
+  padding: 5px 0px 10px;
+  color: var(--ruff-hd-color);
+  background-color: var(--ruff-hd-background-color);
+}
+
+/*** Footer styles ***/
+
+.ruff-ft {
+  text-align: left;
+  border-top: 1px solid var(--ruff-ft-color);
+  color: var(--ruff-ft-color);
+  background-color: var(--ruff-ft-background-color);
+  margin: 10px 0px;
+}
+
+.ruff-ft div {
+  padding: 5px 0px;
+}
+
+/*** Nav pane styles ***/
+
+.ruff-nav {
+  background-color: var(--ruff-nav-background-color);
+  color: var(--ruff-nav-color);
+  --ruff-nav-padding-x: 4px;
+  padding: 3px var(--ruff-nav-padding-x) 2px var(--ruff-nav-padding-x);
+  font-family: Arial, sans-serif;
+  /* NOTE: without overflow: visible, tooltips will be clipped */
+  overflow: visible;
+  font-size: 85%;
+  margin: 0;
+}
+
+.ruff-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ruff-nav li {
+  margin: 0;
+}
+
+.ruff-nav .ruff-toc1 {
+  font-weight: bold; /* Override */
+}
+.ruff-nav .ruff-toc2 {
+  padding-left: 1em;
+}
+.ruff-nav .ruff-toc3 {
+  padding-left: 2em;
+}
+.ruff-nav .ruff-toc4 {
+  padding-left: 2.5em;
+}
+.ruff-nav .ruff-toc5 {
+  padding-left: 3em;
+}
+.ruff-nav hr {
+  color: inherit;
+  margin-top:0.2em;
+  margin-bottom:0.2em;
+}
+
+.ruff-nav a:link, .ruff-nav a:visited, .ruff-nav a:hover {
+  text-decoration: none;
+  color: inherit;
+  background-color: inherit;
+}
+
+.ruff-nav a:hover {
+  /* Disabled because it causes navigation pane width changes. */
+  /* Instead reverse foreground/background */
+  /* font-weight: bold; */
+  color: var(--ruff-nav-background-color);
+  background-color: var(--ruff-nav-color);
+}
+
+.ruff-nav a.ruff-highlight {
+  color: var(--ruff-nav-highlight-color);
+  background-color: var(--ruff-nav-highlight-background-color);
+  margin-left: calc(-1 * var(--ruff-nav-padding-x));
+  padding-left: var(--ruff-nav-padding-x);
+  padding-right: var(--ruff-nav-padding-x);
+}
+
+.ruff-nav .ruff-tiptext {
+  background-color: var(--ruff-nav-tip-background-color);
+  color: var(--ruff-nav-tip-color);
+}
+
+/*** Main content styles ***/
+
+.ruff-bd {
+  font-family: Arial, sans-serif;
+  color: var(--ruff-bd-color);
+  background-color: var(--ruff-bd-background-color);
+  font-size: 93%;
+  line-height: 1.3;
+}
+
+.ruff-bd .ruff-uplink {
+  font-size: x-small;
+  font-variant: normal;
+  font-family: Arial, sans-serif;
+  float: right;
+  padding:2px;
+}
+
+.ruff-bd .ruff-uplink a[href], .ruff-bd .ruff-uplink a[href]:visited {
+  text-decoration: underline;
+  /* Override bd link color */
+  color: inherit;
+}
+
+.ruff-bd table.ruff_deflist {
   margin: 1em;
   margin-top: 0.5em;
   border: thin solid;
   border-collapse: collapse;
-  border-color: #808080;
+  border-color: var(--ruff-bd-table-border);
   padding: 4px;
 }
 
-td {
+.ruff-bd .ruff_deflist td {
   border: thin solid;
   border-color: #808080;
   vertical-align: top;
@@ -192,7 +522,8 @@ td {
   padding: 0.3em;
   padding-top: 0.1em;
 }
-th {
+
+.ruff-bd .ruff_deflist th {
   border: thin solid;
   border-color: #808080;
   padding: 0.3em;
@@ -200,103 +531,126 @@ th {
   background-color: #CCCCCC;
 }
 
-dt, dd {
-   font-size: 93%;
+.ruff-bd h1 {
+  background-color: var(--ruff-bd-h1-background-color);
+  color: var(--ruff-bd-h1-color);
+  padding-left: 0.2em;
+  font-family: "Times New Roman", serif;
 }
 
-h1.ruff {
-    background-color: #006666;
-    color: #ffffff;
-    padding-left: 0.2em;
-    font-family: "Times New Roman", serif;
-}
-h2.ruff {
-    font-variant: small-caps;
-    color: #006666;
-    font-family: "Times New Roman", serif;
+.ruff-bd h2 {
+  font-variant: small-caps;
+  color: var(--ruff-bd-h-color);
+  background-color: var(--ruff-bd-h-background-color);
+  font-family: "Times New Roman", serif;
 }
 
-h3.ruff, h4.ruff, h5.ruff, h6.ruff {
-    color: #006666;
-    margin-bottom: 0.2em;
+.ruff-bd h3, .ruff-bd h4, .ruff-bd h5, .ruff-bd h6 {
+  color: var(--ruff-bd-h-color);
+  background-color: var(--ruff-bd-h-background-color);
+  margin-bottom: 0.2em;
 }
 
-
-h5.ruff {
+.ruff-bd h5 {
     font-style: italic;
     font-weight: normal;
+    font-size: inherit;
 }
-h6.ruff {
+.ruff-bd h6 {
     font-weight: normal;
+    font-size: inherit;
 }
-h3.ruffclass, h3.ruffproc, h3.ruffmethod,
-h4.ruffclass, h4.ruffproc, h4.ruffmethod,
-h5.ruffclass, h5.ruffproc, h5.ruffmethod {
-    border-bottom: thin solid #006666;
-    color: #006666;
+
+.ruff-bd h3.ruffclass, .ruff-bd h3.ruffproc, .ruff-bd h3.ruffmethod,
+.ruff-bd h4.ruffclass, .ruff-bd h4.ruffproc, .ruff-bd h4.ruffmethod,
+.ruff-bd h5.ruffclass, .ruff-bd h5.ruffproc, .ruff-bd h5.ruffmethod {
+    border-bottom: thin solid var(--ruff-brand-color);
     margin-bottom: 0.2em;
 }
 
-pre {
-    background-color: #eeeeee;
-    margin-top: 1em;
-    margin-left: 1em;
-    padding: 5px;
-    font-family: Consolas, "Courier New", monospace;
-    //width: max-content;
-    font-size: smaller;
-    line-height: 1.2em;
+.ruff-bd pre {
+  color: var(--ruff-bd-code-color);
+  background-color: var(--ruff-bd-code-background-color);
+  margin-top: 1em;
+  margin-left: 1em;
+  padding: 5px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: smaller;
+  line-height: 1.2em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
+
+.ruff-bd a[href], .ruff-bd a[href]:visited {
+  text-decoration: none;
+  color: var(--ruff-bd-a-color);
+}
+
+.ruff-bd a[href]:hover {
+  text-decoration: underline;
+}
+
 
 .ruff_dyn_src {
     display: none; /* Displayed via JS */
 }
 
-.ruff_synopsis {
-    border: thin solid #cccccc;
-    background: #eeeeee;
-    //font-size: smaller;
-    font-family: Consolas, "Courier New", monospace;
-    padding: 3px;
-    margin: 0em 2em 1em;
+.ruff-bd .ruff_synopsis {
+  border: var(--ruff-bd-synopsis-border);
+  color: var(--ruff-bd-code-color);
+  background-color: var(--ruff-bd-code-background-color);
+  font-family: Consolas, "Courier New", monospace;
+  margin: 0em 2em 1em;
+  padding: 0.5em;
+  /* Cannot arrange for wrapped line indent since synopsis may have multiple lines
+  padding-left: 1em;
+  text-indent: 0.5em;
+  */
 }
 
-.ruff_const, .ruff_cmd, code {
-    font-family: Consolas, "Courier New", monospace;
-    font-weight: bold;
-    font-size: smaller;
-    //background-color: #eeeeee;
-    //padding: 0px 2px;
-    //border-radius: 3px;
+.ruff-bd .ruff_const, .ruff-bd .ruff_cmd, .ruff-bd code {
+  font-family: Consolas, "Courier New", monospace;
 }
 
-ruff_defitem {
-    font-weight: bold;
-    font-family: Consolas, "Courier New", monospace;
-}
-.ruff_arg {
+.ruff-bd .ruff_arg {
     font-style: italic;
     font-family: Consolas, "Courier New", monospace;
     font-size: smaller;
 }
 
-.ruff_source_link {
-    font-size: smaller;
+.ruff-bd .ruff_source_link {
+    font-size: small;
 }
 
+.ruff-bd .ruff_source_link a[href] {
+  color: var(--ruff-bd-sourcelink-color);
+  background-color: var(--ruff-bd-sourcelink-background-color);
+  text-decoration: underline;
+}
+
+/* Specialization for index page body */
+
 .ruff_index {
-    font-size: small;
-    color: grey;
-    line-height: 1;
+  #font-size: small;
 }
 
 .ruff_index ul li {
-    list-style-type: none;
+  list-style-type: none;
 }
 
 .ruff_index ul li a {
-    text-decoration: none;
+  text-decoration: none;
 }
+
+#indexUL {
+  line-height: 1;
+}
+
+#indexUL .ruff-tiptext {
+  background-color: var(--ruff-bd-tip-background-color);
+  color: var(--ruff-bd-tip-color);
+}
+
 </style>
 <script>function toggleSource( id )
 {
@@ -328,14 +682,106 @@ ruff_defitem {
         link.innerHTML = "Hide source"
     }
 }
+
+
+/***
+ * NOTE: for file URL's local storage is per-file so is not maintained between files.
+ * It will still persist for http urls.
+ * Someone who actually knows Javascript please rewrite this!
+*/
+
+function ruffSetTheme(themeName) {
+    localStorage.ruff_theme = themeName;
+    document.documentElement.className = "ruff-theme-".concat(themeName);
+}
+
+function ruffNextTheme() {
+    themeNames = JSON.parse(localStorage.ruff_themes);
+    currentTheme = localStorage.ruff_theme;
+    if (currentTheme === undefined) {
+        themeIndex = 0;
+    } else {
+        themeIndex = themeNames.indexOf(currentTheme);
+        ++themeIndex;
+        if (themeIndex >= themeNames.length) {
+            themeIndex = 0;
+        }
+    }
+    ruffSetTheme(themeNames[themeIndex]);
+}
+
+function ruffSetNavSide(navSide) {
+    localStorage.ruff_nav_side = navSide;
+    but = document.getElementById("ruffNavMove");
+    // Note we set individual border properties as we do not want color to change */
+    if (navSide === "right") {
+        gridAreas = '"toparea toparea" "mainarea navarea" "botarea botarea"';
+        gridCols = "1fr minmax(200px, min-content)";
+        but.textContent = "\u25c0";
+        but.style.setProperty("border-left", "none");
+        but.style.setProperty("border-right-style", "solid");
+        but.style.setProperty("border-right-width", "thick");
+    } else {
+        gridAreas = '"toparea toparea" "navarea mainarea" "botarea botarea"';
+        gridCols = "minmax(200px, min-content) 1fr";
+        but.textContent = "\u25b6";
+        but.style.setProperty("border-right", "none");
+        but.style.setProperty("border-left-style", "solid");
+        but.style.setProperty("border-left-width", "thick");
+    }
+    document.documentElement.style.setProperty("--ruff-grid-template-areas", gridAreas);
+    document.documentElement.style.setProperty("--ruff-grid-template-columns", gridCols);
+}
+
+function ruffMoveNavPane() {
+    if (localStorage.ruff_nav_side === "left")
+        ruffSetNavSide("right");
+    else
+        ruffSetNavSide("left");
+}
+
+// Immediately invoked function to set the theme on initial load
+(function () {
+    // Set up the themes
+    themeNames = ["v1", "light", "dark", "slate", "solar", "clouds"];
+    // Store list of ruff themes since they may change between releases
+    // localStorage can only contain strings
+    localStorage.ruff_themes = JSON.stringify(themeNames);
+    navSide = localStorage.ruff_nav_side;
+    if (navSide !== "left" && navSide !== "right")
+        navSide = "left";
+
+    // Actual updating of DOM only to be done AFTEr load is done
+    window.onload = init;
+    function init () {
+        currentTheme = localStorage.ruff_theme;
+        if (currentTheme === undefined || themeNames.indexOf(currentTheme) < 0) {
+            currentTheme = "v1";
+        }
+        ruffSetTheme(currentTheme);
+
+        // Set up the navigation layout
+        navSide = localStorage.ruff_nav_side;
+        if (navSide !== "right")
+            navSide = "left";
+        ruffSetNavSide(navSide);
+    }
+})();
 </script></head>
-<body><div id='doc3' class='yui-t2'><div id='hd' class='banner'>
-<a style='text-decoration:none;' href='cffi.html'>CFFI Reference (V1.0b0)</a>
-</div>
-<div id='bd'><div id='yui-main'><div class='yui-b'><h1 class='ruff'><a name='Concepts'></a>Concepts<span class='tinylink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
+<body>
+<div class='ruff-layout'>
+<header class='ruff-layout-header ruff-hd'>
+<a style='text-decoration:none;' href='cffi.html'>CFFI Reference (v1.0b1)</a>
+
+
+            <div id="ruffButtonBar">
+            <button id="ruffNavMove" onclick="ruffMoveNavPane()"></button>
+            <button id="ruffToggleTheme" onclick="ruffNextTheme()"></button>
+            </div>
+        </header><main class='ruff-layout-main ruff-bd'><h1 class='ruff'><a name='Concepts'></a>Concepts<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
 <div style='clear:both;'></div>
 <p class='ruff'>This page describes the mapping of C types and program elements to the Tcl script level. Basic knowledge of the package as described in <a href="cffi.html#Quick start" title="Quick start" >Quick start</a> is assumed.</p>
-<h2 class='ruff'><a name='::Concepts-Type declarations'></a>Type declarations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<h2 class='ruff'><a name='::Concepts-Type declarations'></a>Type declarations<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>Type declarations appear in three different contexts:</p>
 <ul class='ruff'>
@@ -345,30 +791,30 @@ ruff_defitem {
 </ul>
 <p class='ruff'>At the script level, a type declaration consists of the type itself followed by zero or more annotations that provide further information about the type in that particular context. For example, a parameter may have the <code>out</code> annotation to indicate that it is an output parameter for the function. A pointer type declaration may have the <code>unsafe</code> annotation to indicate it is not to be checked for validity.</p>
 <p class='ruff'>The annotations that are valid in each context are described in the relevant sections below.</p>
-<h2 class='ruff'><a name='::Concepts-Data types'></a>Data types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<h2 class='ruff'><a name='::Concepts-Data types'></a>Data types<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>This section describes the various data types supported by the package and their relation to C types. At runtime, the <a href="cffi_cffi.html#::cffi::type info" title="::cffi::type info" class='ruff_cmd'>::cffi::type info</a>, <a href="cffi_cffi.html#::cffi::type size" title="::cffi::type size" class='ruff_cmd'>::cffi::type size</a> and <a href="cffi_cffi.html#::cffi::type count" title="::cffi::type count" class='ruff_cmd'>::cffi::type count</a> commands may be used to obtain information about a type.</p>
-<h3 class='ruff'><a name='::Concepts-The void type'></a>The void type<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-The void type'></a>The void type<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>This corresponds to the C <code>void</code> type and is only permitted as the return type of a function. Note that the C <code>void *</code> type is declared as a <a href="cffi_Concepts.html#::Concepts-Pointers" title="pointer" >pointer</a> type.</p>
-<h3 class='ruff'><a name='::Concepts-Numeric types'></a>Numeric types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Numeric types'></a>Numeric types<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The following numeric types are supported.</p>
 <table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>schar</code></td><td class='ruff_defitem'>C <code>signed char</code></td></tr>
-<tr><td class='ruff_defitem'><code>uchar</code></td><td class='ruff_defitem'>C <code>unsigned char</code></td></tr>
-<tr><td class='ruff_defitem'><code>short</code></td><td class='ruff_defitem'>C <code>signed short</code></td></tr>
-<tr><td class='ruff_defitem'><code>ushort</code></td><td class='ruff_defitem'>C <code>unsigned short</code></td></tr>
-<tr><td class='ruff_defitem'><code>int</code></td><td class='ruff_defitem'>C <code>signed int</code></td></tr>
-<tr><td class='ruff_defitem'><code>uint</code></td><td class='ruff_defitem'>C <code>unsigned int</code></td></tr>
-<tr><td class='ruff_defitem'><code>long</code></td><td class='ruff_defitem'>C <code>signed long</code></td></tr>
-<tr><td class='ruff_defitem'><code>ulong</code></td><td class='ruff_defitem'>C <code>unsigned long</code></td></tr>
-<tr><td class='ruff_defitem'><code>longlong</code></td><td class='ruff_defitem'>C <code>signed long long</code></td></tr>
-<tr><td class='ruff_defitem'><code>ulonglong</code></td><td class='ruff_defitem'>C <code>unsigned long long</code></td></tr>
-<tr><td class='ruff_defitem'><code>float</code></td><td class='ruff_defitem'>C <code>float</code></td></tr>
-<tr><td class='ruff_defitem'><code>double</code></td><td class='ruff_defitem'>C <code>double</code></td></tr>
+<tr><td><code>schar</code></td><td>C <code>signed char</code></td></tr>
+<tr><td><code>uchar</code></td><td>C <code>unsigned char</code></td></tr>
+<tr><td><code>short</code></td><td>C <code>signed short</code></td></tr>
+<tr><td><code>ushort</code></td><td>C <code>unsigned short</code></td></tr>
+<tr><td><code>int</code></td><td>C <code>signed int</code></td></tr>
+<tr><td><code>uint</code></td><td>C <code>unsigned int</code></td></tr>
+<tr><td><code>long</code></td><td>C <code>signed long</code></td></tr>
+<tr><td><code>ulong</code></td><td>C <code>unsigned long</code></td></tr>
+<tr><td><code>longlong</code></td><td>C <code>signed long long</code></td></tr>
+<tr><td><code>ulonglong</code></td><td>C <code>unsigned long long</code></td></tr>
+<tr><td><code>float</code></td><td>C <code>float</code></td></tr>
+<tr><td><code>double</code></td><td>C <code>double</code></td></tr>
 </table>
-<h3 class='ruff'><a name='::Concepts-Arrays'></a>Arrays<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Arrays'></a>Arrays<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Arrays are declared as</p>
 <pre class='ruff'>
@@ -376,7 +822,7 @@ TYPE[N]
 </pre>
 <p class='ruff'>where <code>N</code> is a positive integer indicating the number of elements in an array of values of type <code>TYPE</code>. At the script level, arrays are represented as Tcl lists.</p>
 <p class='ruff'>Additionally, within parameter declarations, <code>N</code> may also be the name of a parameter within the same function declarations. In this case, the array is sized dynamically depending on the value of the referenced parameter at the time the call is made.</p>
-<h3 class='ruff'><a name='::Concepts-Pointers'></a>Pointers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Pointers'></a>Pointers<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Pointers are declared in one of the following forms:</p>
 <pre class='ruff'>
@@ -384,7 +830,7 @@ pointer
 pointer.TAG
 </pre>
 <p class='ruff'>The first is the equivalent of a <code>void*</code> C pointer. The second form associates the pointer type with a tag.</p>
-<h4 class='ruff'><a name='::Concepts-Pointer tags'></a>Pointer tags<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Pointer tags'></a>Pointer tags<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>A pointer tag is used to provide for some measure of type safety. Tags can be associated with pointer values as well as pointer type declarations. The tag attached to a pointer value must match the tag for the <code>struct</code> field it is assigned to or the function parameter it is passed as. Otherwise an error is raised. Tags also provide a typing mechanism for function pointers. This is described in <a href="cffi_Concepts.html#::Concepts-Prototypes and function pointers" title="Prototypes and function pointers" >Prototypes and function pointers</a>.</p>
 <p class='ruff'>Note however that, although similar, pointer tags are orthogonal to the type system. Any tag may be associated with a pointer type or value, irrespective of the underlying C pointer type.</p>
@@ -394,7 +840,7 @@ function get_path pointer.PATH {}
 </pre>
 <p class='ruff'>will be tagged with <code>PATH</code>. It can then only be assigned to a <code>struct</code> field or passed as a parameter if the corresponding pointer type is also tagged as <code>PATH</code>.</p>
 <p class='ruff'>If there is no tag specifed for a pointer field or parameter, it will accept pointer values with any tag analogous to a C <code>void *</code> pointer.</p>
-<h4 class='ruff'><a name='::Concepts-Pointer safety'></a>Pointer safety<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Pointer safety'></a>Pointer safety<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Pointer type checking via tags does not protect against errors related to invalid pointers, double frees etc. To provide some level of protection against these types of errors, pointers returned from functions, either as return values or through output parameters are by default registered in an internal table. These are referred to as <em>safe</em> pointers. Any pointer use is then checked for registration and an error raised if it is not found.</p>
 <p class='ruff'>Pointers that have been registered are unregistered when they are passed to a C function as an argument for a parameter that has been annotated with the <code>dispose</code> or <code>disposeonsuccess</code> annotation.</p>
@@ -428,25 +874,25 @@ Pointer 0x55dbb8b2ca10^ is not registered.
 Pointer 0x00007fb07ebb7500^ is not registered.
 </pre>
 <h5 class='ruff'>Unsafe pointers</h5><p class='ruff'>For those situations where neither safe nor counted pointers are suitable, pointer declarations can be annotated as <code>unsafe</code>. Return values from functions and output parameters with this annotation will not be registered. Input parameters with this designation will not be checked for registration. Needless to say, the <code>unsafe</code> annotation should be used with care.</p>
-<h4 class='ruff'><a name='::Concepts-Null pointers'></a>Null pointers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Null pointers'></a>Null pointers<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Null pointers cannot be registered and are not checked for registration even when passed as safe pointers in function calls. However, the tag is verified if present.</p>
 <p class='ruff'>The literal <code>NULL</code> can be used to represent a null pointer. By default, a function result is a null pointer, it is treated as an error and triggers the function's error handling mechanisms. Similarly, an attempt to pass a null pointer to a function or store it as a field value in a C struct will raise an exception. This can be overridden by including the <code>nullok</code> annotation on the function return, parameter or structure fields type definition.</p>
 <p class='ruff'>Note that when returned as as output parameters from function, either directly or embedded as struct fields, null pointers are permitted even without the <code>nullok</code> annotation.</p>
-<h4 class='ruff'><a name='::Concepts-Memory operations'></a>Memory operations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Memory operations'></a>Memory operations<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Pointers are ofttimes returned by functions but more often than not the referenced memory has to be allocated and passed in to functions. Some type constructs like strings and structs hide this at the script level but there are times when direct access to the memory content addressed by pointers is desired.</p>
 <p class='ruff'>A set of commands grouped as the <code>memory</code> command ensemble provide such functionality. The commands <a href="cffi_cffi.html#::cffi::memory allocate" title="::cffi::memory allocate" class='ruff_cmd'>::cffi::memory allocate</a> and <a href="cffi_cffi.html#::cffi::memory free" title="::cffi::memory free" class='ruff_cmd'>::cffi::memory free</a> provide memory management facilities. Access to the content is available through <a href="cffi_cffi.html#::cffi::memory tobinary" title="::cffi::memory tobinary" class='ruff_cmd'>::cffi::memory tobinary</a> and <a href="cffi_cffi.html#::cffi::memory frombinary" title="::cffi::memory frombinary" class='ruff_cmd'>::cffi::memory frombinary</a> commands which convert to and from Tcl binary strings.</p>
-<h3 class='ruff'><a name='::Concepts-Strings'></a>Strings<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Strings'></a>Strings<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Strings in C are generally represented in memory as a sequence of null terminated bytes in some specific encoding. They may be declared either as a <code>char *</code> or as an array of <code>char</code> where the size of the array places a limit on the maximum length.</p>
 <p class='ruff'>At the script level, these can be declared in multiple ways:</p>
 <table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>pointer</code></td><td class='ruff_defitem'>As discussed in the previous section, this is a pointer to raw memory. To access the underlying string, the memory referenced by the pointer has to be converted into a Tcl string value with the <a href="cffi_cffi.html#::cffi::memory tostring" title="::cffi::memory tostring" class='ruff_cmd'>::cffi::memory tostring</a> command.</td></tr>
-<tr><td class='ruff_defitem'><code>string.ENCODING</code></td><td class='ruff_defitem'>Values declared using this type are still pointers at the C level but are converted to and from Tcl strings implicitly at the C API interface itself using the specified encoding. If <code>.ENCODING</code> is left off, the system encoding is used.</td></tr>
-<tr><td class='ruff_defitem'><code>unistring</code></td><td class='ruff_defitem'>This is similar to <code>string.ENCODING</code> except the values are <code>Tcl_UniChar*</code> at the C level and the encoding is implicitly the one used by Tcl for the <code>Tcl_UniChar</code> data type.</td></tr>
-<tr><td class='ruff_defitem'><code>chars.ENCODING</code></td><td class='ruff_defitem'>The value is an array of characters at the C level. The type must always appear as an array, for example, <code>chars.utf-8[10]</code> and not as a scalar <code>chars.utf-8</code>. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding. Following standard C rules, arrays are passed by reference as function arguments and thus an declaration of <code>chars[10]</code> would also be passed into a function as a <code>char*</code>. Within a <code>struct</code> definition on the other hand, it would be stored as an array.</td></tr>
-<tr><td class='ruff_defitem'><code>unichars</code></td><td class='ruff_defitem'>The value is an array of <code>Tcl_UniChar</code> characters and follows the same rules as <code>chars</code> except that the encoding is always that used by Tcl for the <code>Tcl_UniChar</code> type.</td></tr>
+<tr><td><code>pointer</code></td><td>As discussed in the previous section, this is a pointer to raw memory. To access the underlying string, the memory referenced by the pointer has to be converted into a Tcl string value with the <a href="cffi_cffi.html#::cffi::memory tostring" title="::cffi::memory tostring" class='ruff_cmd'>::cffi::memory tostring</a> command.</td></tr>
+<tr><td><code>string.ENCODING</code></td><td>Values declared using this type are still pointers at the C level but are converted to and from Tcl strings implicitly at the C API interface itself using the specified encoding. If <code>.ENCODING</code> is left off, the system encoding is used.</td></tr>
+<tr><td><code>unistring</code></td><td>This is similar to <code>string.ENCODING</code> except the values are <code>Tcl_UniChar*</code> at the C level and the encoding is implicitly the one used by Tcl for the <code>Tcl_UniChar</code> data type.</td></tr>
+<tr><td><code>chars.ENCODING</code></td><td>The value is an array of characters at the C level. The type must always appear as an array, for example, <code>chars.utf-8[10]</code> and not as a scalar <code>chars.utf-8</code>. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding. Following standard C rules, arrays are passed by reference as function arguments and thus an declaration of <code>chars[10]</code> would also be passed into a function as a <code>char*</code>. Within a <code>struct</code> definition on the other hand, it would be stored as an array.</td></tr>
+<tr><td><code>unichars</code></td><td>The value is an array of <code>Tcl_UniChar</code> characters and follows the same rules as <code>chars</code> except that the encoding is always that used by Tcl for the <code>Tcl_UniChar</code> type.</td></tr>
 </table>
 <p class='ruff'>The choice of using <code>pointer</code>, <code>string</code> (and <code>unistring</code>), or <code>chars</code> (and <code>unichars</code>) depends on the C declaration and context as well as convenience.</p>
 <ul class='ruff'>
@@ -454,11 +900,11 @@ Pointer 0x00007fb07ebb7500^ is not registered.
 <li>Function parameters that are actually output buffers in which the called function stores the output string value are best declared as <code>chars[]</code>. Generally these have an associated parameter which indicates the buffer size. In such cases the output parameter can be declared as (for example) <code>chars[nchars]</code> where <code>nchars</code> is the name of the parameter containing the buffer size. The <code>string</code> and <code>unistring</code> types cannot be used for <code>out</code> or <code>inout</code> parameters as there is no associated buffer size.</li>
 <li>Function return values cannot be declared as <code>chars</code> or <code>unichars</code> as C itself does not support array return values. Generally, functions typed as returning <code>char *</code> need to be declaring as returning <code>pointer</code> as the pointers have to be explicitly managed. Only in the specific cases where the returned pointer is static or does not need to be disposed of for some other reason, the return value can be typed as <code>string</code> or <code>unistring</code>.</li>
 </ul>
-<h3 class='ruff'><a name='::Concepts-Binary strings'></a>Binary strings<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Binary strings'></a>Binary strings<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The types <code>binary</code> or <code>bytes</code> are used to declare a sequence of bytes in memory. The <code>binary</code> type translates to a C <code>unsigned char *</code> type where the memory is treated as a Tcl binary string (byte array). Similarly, the <code>bytes</code> type is analogous to the <code>chars</code> type except it declares a fixed size array of bytes, not characters. These types are converted between Tcl values and C values with the <code>Tcl_GetByteArrayFromObj</code> and <code>Tcl_NewByteArrayFromObj</code> functions.</p>
 <p class='ruff'>The <code>binary</code> value can only be used as an input parameter to a function. It is not permitted in any other declaration context.</p>
-<h3 class='ruff'><a name='::Concepts-Structs'></a>Structs<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Structs'></a>Structs<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>C structs are defined through the <a href="cffi_cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> class. This encapsulates the layout of the struct and provides various methods for manipulation. A structure layout is a list of alternating field name and type declarations. An example of a definition would be</p>
 <pre class='ruff'>
@@ -480,7 +926,7 @@ wrong # args: should be &quot;Point tonative POINTER INITIALIZER ?INDEX?&quot;
 x 0 y 1
 </pre>
 <p class='ruff'>See <a href="cffi_cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> for other methods related to allocation, conversion between Tcl binary strings and other utilities.</p>
-<h2 class='ruff'><a name='::Concepts-Type aliases'></a>Type aliases<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<h2 class='ruff'><a name='::Concepts-Type aliases'></a>Type aliases<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>Type aliases provide a convenient way to bind data types and one or more annotations. They can then be used in type declarations in the same manner as the built-in types.</p>
 <p class='ruff'>In addition to avoiding repetition, type aliases facilitate abstraction. For example, many Windows API's have an output parameter that is typed as a fixed size buffer of length MAX_PATH characters. A type alias <code>OUTPUT_PATH</code> defined as</p>
@@ -501,7 +947,7 @@ kernel stdcall HeapCreate pointer.HEAP {opts uint initSize SIZE_T maxSize SIZE_T
 </ul>
 <p class='ruff'>For convenience, the package provides the <a href="cffi_cffi.html#::cffi::alias load" title="::cffi::alias load" class='ruff_cmd'>::cffi::alias load</a> command which defines some standard C type aliases like <code>size_t</code> as well as some platform-specific type aliases such as <code>HANDLE</code> on Windows.</p>
 <p class='ruff'>Currently defined type aliases can be listed with the <a href="cffi_cffi.html#::cffi::alias list" title="::cffi::alias list" class='ruff_cmd'>::cffi::alias list</a> command and removed with <a href="cffi_cffi.html#::cffi::alias delete" title="::cffi::alias delete" class='ruff_cmd'>::cffi::alias delete</a>.</p>
-<h2 class='ruff'><a name='::Concepts-Enumerations'></a>Enumerations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<h2 class='ruff'><a name='::Concepts-Enumerations'></a>Enumerations<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>Enumerations allow the use of symbolic constants in place of integral values passed as arguments to functions. Their primary purpose is similar to preprocessor <code>#define</code> constants and <code>enum</code> types in C. They are defined and otherwise managed through the <code>cffi::enum</code> command ensemble. The fragment below provides an example.</p>
 <pre class='ruff'>
@@ -520,10 +966,10 @@ cffiLib function cmark_render_html pointer {
 }
 set htmlptr [cmark_render_html $root {SMART NORMALIZE}]
 </pre>
-<h2 class='ruff'><a name='::Concepts-Functions'></a>Functions<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<h2 class='ruff'><a name='::Concepts-Functions'></a>Functions<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>To invoke a function in a DLL or shared library, the library must first be loaded through the creation of a <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a> object. The <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="::cffi::dyncall::Library.function" class='ruff_cmd'>::cffi::dyncall::Library.function</a> and <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="::cffi::dyncall::Library.stdcall" class='ruff_cmd'>::cffi::dyncall::Library.stdcall</a> methods of the object can then be used to create Tcl commands that wrap individual functions implemented in the library.</p>
-<h3 class='ruff'><a name='::Concepts-Calling conventions'></a>Calling conventions<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Calling conventions'></a>Calling conventions<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The 32-bit Windows platform uses two common calling conventions for functions: the default C calling convention and the stdcall calling convention which is used by most system libraries. These differ in terms of parameter and stack management and it is crucial that the correct convention be used when defining the corresponding FFI.</p>
 <ul class='ruff'>
@@ -532,7 +978,7 @@ set htmlptr [cmark_render_html $root {SMART NORMALIZE}]
 </ul>
 <p class='ruff'>Other than use of the two separate methods for definition, there is no difference in terms of the function prototype used for definition or the method of invocation.</p>
 <p class='ruff'>Note that this difference in calling convention is only applicable to 32-bit Windows. For other platforms, including 64-bit Windows, <code>stdcall</code> behaves in identical fashion to <code>function</code>.</p>
-<h3 class='ruff'><a name='::Concepts-Function wrappers'></a>Function wrappers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Function wrappers'></a>Function wrappers<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The function wrapping methods <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> and <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> have the following syntax:</p>
 <pre class='ruff'>
@@ -541,11 +987,11 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 </pre>
 <p class='ruff'>where <code>FNNAME</code> is the name of the function (and an optional Tcl alias), <code>RETTYPE</code> is the function return type declaration and <code>PARAMS</code> is a list of alternating parameter names and type declarations. The type declarations may include annotations that control behaviour and conversion between Tcl and C values.</p>
 <p class='ruff'>The C function may then be invoked as <code>FNNAME</code> like any other Tcl command.</p>
-<h3 class='ruff'><a name='::Concepts-Return types'></a>Return types<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Return types'></a>Return types<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>A function return declaration is a type or type alias followed by zero or more annotations. The resolved type must not be a struct or an array including <code>chars</code>, <code>unichars</code>, <code>binary</code> and <code>bytes</code>. Note pointers to these are permitted.</p>
 <p class='ruff'>In the case of <code>string</code> and <code>unistring</code> types, the script level return values are constructed from C <code>char *</code> and <code>Tcl_UniChar *</code> types. Since the underlying pointer is not available, any storage cannot be freed and these types should only be used in cases where that is not needed (for example, when the function returns static strings).</p>
-<h4 class='ruff'><a name='::Concepts-Return annotations'></a>Return annotations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Return annotations'></a>Return annotations<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>The following annotations may be follow the type in a return type declaration.</p>
 <ul class='ruff'>
@@ -553,10 +999,10 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 <li>For pointer type, <code>nonzero</code>, <code>errno</code> and <code>lasterror</code> annotations may be specified as well as the <code>unsafe</code> and <code>counted</code> annotations (but not <code>dispose</code> or <code>disposeonsuccess</code>). See <a href="cffi_Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a> for the meaning of these annotations.</li>
 <li>For <code>string</code> and <code>unistring</code> types, the <code>nonzero</code>, <code>errno</code> and <code>lasterror</code> annotations may be specified. See <a href="cffi_Concepts.html#::Concepts-Error handling" title="Error handling" >Error handling</a> for details on these.</li>
 </ul>
-<h3 class='ruff'><a name='::Concepts-Parameters'></a>Parameters<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Parameters'></a>Parameters<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The <code>PARAMS</code> argument in a function prototype is a list of alternating parameter name and parameter type declaration elements. A parameter type declaration may begin with any supported type except <code>void</code> and may be followed a sequence of optional type annotations.</p>
-<h4 class='ruff'><a name='::Concepts-Parameter annotations'></a>Parameter annotations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Parameter annotations'></a>Parameter annotations<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Annotations that are valid for parameters are those related to pointers, those related to argument passing and those related to storing output values.</p>
 <p class='ruff'>Annotations in the first category are <code>unsafe</code>, <code>counted</code> <code>dispose</code> and <code>disposeonsuccess</code>. See <a href="cffi_Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a> for details.</p>
@@ -569,40 +1015,40 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 <p class='ruff'>The annotation <code>nullifempty</code> is available only for <code>in</code> parameters of type <code>string</code>, <code>unistring</code> and <code>struct</code>. If present, a NULL pointer is passed into the C function if the passed argument is an empty string in the case of <code>string</code> or <code>unistring</code> and an empty dictionary in the case of <code>struct</code>. This facility is useful for API's where NULL pointers signify default options.</p>
 <p class='ruff'>The annotation <code>enum</code> is available for integer types. It has an associated argument that specifies an <a href="cffi_Concepts.html#::Concepts-Enumerations" title="Enum" >Enum</a>. When the function is called, any enum member names from that enumeration are accepted and the corresponding integer value is used as the argument to the C function. For output parameters, the integer output values are replaced with the corresponding enum member name if possible or left unaltered. The annotation cannot be applied to arrays.</p>
 <p class='ruff'>The <code>bitmask</code> annotation is also limited to integer types. If specified, an argument may be a list of integers. This are all OR-ed together and the result passed to the C function. If the <code>enum</code> annotation was also specified, each element of the list may be an integer or a enum value name.</p>
-<h3 class='ruff'><a name='::Concepts-Error handling'></a>Error handling<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Error handling'></a>Error handling<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>C functions generally indicate errors through their return value. Details of the error are either in the return value itself or intended to be retrieved by some other mechanism.</p>
 <p class='ruff'>One way to deal with this at the script level is to simply check the return value (generally an integer or pointer) and take appropriate action. This has two downsides. The first is that error conditions in Tcl are almost always signalled by raising an exception rather than through a return status mechanism. The second, perhaps more important, downside is that the detail behind the error, stored in <code>errno</code> or available via <code>GetLastError()</code> on Windows, is often lost by the time the Tcl interpreter returns to the script level.</p>
-<h4 class='ruff'><a name='::Concepts-Error annotations'></a>Error annotations<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Error annotations'></a>Error annotations<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Two additional sets of type annotations are provided to solve these issues. The first set of annotations is used to define the error check conditions to be applied to function return values. The second set is used to specify how the error detail is to be retrieved.</p>
 <p class='ruff'>The following annotations for error checking can be used for <strong>integer</strong> return values.</p>
 <table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>zero</code></td><td class='ruff_defitem'>The value must be zero.</td></tr>
-<tr><td class='ruff_defitem'><code>nonzero</code></td><td class='ruff_defitem'>The value must be non-zero.</td></tr>
-<tr><td class='ruff_defitem'><code>nonnegative</code></td><td class='ruff_defitem'>The value must be zero or greater.</td></tr>
-<tr><td class='ruff_defitem'><code>positive</code></td><td class='ruff_defitem'>The value must be greater than 0.</td></tr>
+<tr><td><code>zero</code></td><td>The value must be zero.</td></tr>
+<tr><td><code>nonzero</code></td><td>The value must be non-zero.</td></tr>
+<tr><td><code>nonnegative</code></td><td>The value must be zero or greater.</td></tr>
+<tr><td><code>positive</code></td><td>The value must be greater than 0.</td></tr>
 </table>
 <p class='ruff'>At most one of the above annotations can be attached to a return type. The function value is then checked whether the corresponding condition is met. Failure to do so is treated as an error condition.</p>
 <p class='ruff'>An error condition is also generated when a function returning a pointer returns a null pointer. This is also true for <code>string</code> and <code>unistring</code> return types since those are pointers beneath the covers. This treatment of null pointers as errors can be overridden with the the <code>nullok</code> annotation. If this annotation is specified, a null pointer return value, or an empty string in the case of <code>string</code> and <code>unistring</code> types, will be returned to the caller.</p>
 <p class='ruff'>An error condition arising from one of the error checking annotations or a null pointer results in an exception being generated unless the <code>onerror</code> annotation is specified (see below). However, the default error message generated is generic and does not provide detail about why the error occured. The following error retrieval annotations specify how detail about the error is to be obtained.</p>
 <table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>errno</code></td><td class='ruff_defitem'>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function.</td></tr>
-<tr><td class='ruff_defitem'><code>lasterror</code></td><td class='ruff_defitem'>(Windows only). The error code and message is retrieved using the Windows <code>GetLastError</code> and <code>FormatMessage</code> functions.</td></tr>
-<tr><td class='ruff_defitem'><code>winerror</code></td><td class='ruff_defitem'>(Windows only). The numeric return value is itself the Windows error code and the error message is generated with <code>FormatMessage</code>. This annotation can only be used with the <code>zero</code> error checking annotation.</td></tr>
+<tr><td><code>errno</code></td><td>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function.</td></tr>
+<tr><td><code>lasterror</code></td><td>(Windows only). The error code and message is retrieved using the Windows <code>GetLastError</code> and <code>FormatMessage</code> functions.</td></tr>
+<tr><td><code>winerror</code></td><td>(Windows only). The numeric return value is itself the Windows error code and the error message is generated with <code>FormatMessage</code>. This annotation can only be used with the <code>zero</code> error checking annotation.</td></tr>
 </table>
 <p class='ruff'>Any of these annotations can be applied to integer types while the <code>errno</code> and <code>lasterror</code> can be used with pointer types as well.</p>
 <p class='ruff'>In addition, the <code>onerror</code> annotation provides a means for customizing error handling when the error is from a library and not a system error. The annotation takes an additional argument which is a command prefix to be invoked when an error checking annotation is triggered. When this command prefix is invoked, a dictionary with the call information is passed. The dictionary contains the following keys:</p>
 <table class='ruff_deflist'>
-<tr><td class='ruff_defitem'><code>Result</code></td><td class='ruff_defitem'>The return value from the function that triggered the error handler.</td></tr>
-<tr><td class='ruff_defitem'><code>In</code></td><td class='ruff_defitem'>A nested dictionary mapping all  <code>in</code> and <code>inout</code> parameter names to the values passed in to the called function.</td></tr>
-<tr><td class='ruff_defitem'><code>Out</code></td><td class='ruff_defitem'>A dictionary mapping all <code>inout</code> and <code>out</code> parameter names to the values returned on output by the function. These only include output parameters marked as <code>storealways</code> or <code>storeonerror</code>.</td></tr>
-<tr><td class='ruff_defitem'><code>Command</code></td><td class='ruff_defitem'>The Tcl command for which the error handler was triggered. This key will not be present if the function was invoked with an address through the <a href="cffi_cffi.html#::cffi::call" title="::cffi::call" class='ruff_cmd'>::cffi::call</a> command.</td></tr>
+<tr><td><code>Result</code></td><td>The return value from the function that triggered the error handler.</td></tr>
+<tr><td><code>In</code></td><td>A nested dictionary mapping all  <code>in</code> and <code>inout</code> parameter names to the values passed in to the called function.</td></tr>
+<tr><td><code>Out</code></td><td>A dictionary mapping all <code>inout</code> and <code>out</code> parameter names to the values returned on output by the function. These only include output parameters marked as <code>storealways</code> or <code>storeonerror</code>.</td></tr>
+<tr><td><code>Command</code></td><td>The Tcl command for which the error handler was triggered. This key will not be present if the function was invoked with an address through the <a href="cffi_cffi.html#::cffi::call" title="::cffi::call" class='ruff_cmd'>::cffi::call</a> command.</td></tr>
 </table>
 <p class='ruff'>The result of the handler execution is returned as the function call result and may be a normal result or a raised exception. The handler may use <code>upvar</code> for access to the calling script's context including any input or output arguments to the original function call.</p>
 <p class='ruff'>This <code>onerror</code> facility may be used to ignore errors, provide default values as well as raise exceptions with more detailed library-specific information. Note that the use of a <code>onerror</code> handler that returns normally is <strong>not</strong> the same as not specifying any error checking annotations because the function return is still treated as an error condition in terms of the output variables as described in <a href="cffi_Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</p>
 <p class='ruff'><strong>NOTE:</strong> Although the <code>errno</code>, <code>lasterror</code>, <code>winerror</code> and <code>onerror</code> annotations have effect only with respect to function return values, they can also be specified for parameters and struct fields where they are silently ignored. This is to permit the same type alias (e.g. status codes) to be used in all three declaration contexts.</p>
-<h4 class='ruff'><a name='::Concepts-Errors and output parameters'></a>Errors and output parameters<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<h4 class='ruff'><a name='::Concepts-Errors and output parameters'></a>Errors and output parameters<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>An important consideration in the presence of errors is how the called function deals with output (including input-output) parameters. There are three possibilities:</p>
 <ul class='ruff'>
@@ -613,7 +1059,7 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 <p class='ruff'>The distinction is particularly crucial for non-scalar output. Output parameters that have not been written to may result in corruption or crashes if the memory is accessed for conversion to Tcl script level values.</p>
 <p class='ruff'>By default, script level output variables are only written to when the error checks pass (including the case where none are specified). This is the first case above. If the <code>storealways</code> annotation is specified for a parameter, it is stored irrespective of whether an error check failed or not. This is the second case. Finally, the <code>storeonerror</code> annotation targets the third case. The output parameter is stored only if an error check fails.</p>
 <p class='ruff'>Note that an error checking annotation must be present for any of these to have an effect.</p>
-<h3 class='ruff'><a name='::Concepts-Prototypes and function pointers'></a>Prototypes and function pointers<span class='tinylink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<h3 class='ruff'><a name='::Concepts-Prototypes and function pointers'></a>Prototypes and function pointers<span class='ruff-uplink'><a href='cffi_Concepts.html#::Concepts'>Concepts</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The function wrapping methods <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> and <a href="cffi_cffi_dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> described earlier bind a function type definition consisting of the return type and parameters with the address of a function as specified by its name. For some uses, it is useful to be able to independently specify the function type information independent of the function address. The <a href="cffi_cffi.html#::cffi::prototype function" title="::cffi::prototype function" class='ruff_cmd'>::cffi::prototype function</a> and <a href="cffi_cffi.html#::cffi::prototype stdcall" title="::cffi::prototype stdcall" class='ruff_cmd'>::cffi::prototype stdcall</a> commands are provided for this purpose. They take a very similar form to the corresponding methods:</p>
 <pre class='ruff'>
@@ -635,11 +1081,11 @@ DLLOBJ function function_returning_adder pointer.ADDER {}
 set fnptr [function_returning_adder]
 cffi::call $fnptr 1 2
 </pre>
-</div></div><div class='yui-b navbox' ><h1><a style='padding-top:2px;' href='cffi.html'>Start page</a></h1>
-<h1><a href='cffi_docindex.html' accesskey='i'>Index</a></h1>
+</main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
+<li class='ruff-toc1'><a href='cffi_docindex.html' accesskey='i'>Index</a></li>
 <hr>
-<h1><a style='color: #006666;background-color: white; margin-left:-4px; padding-left:3px;padding-right:2px;' href='cffi_Concepts.html'>Concepts</a></h1>
-<h1><a href='cffi_cffi.html'>cffi</a></h1>
-<h1><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></h1>
-<hr><h1><a href='#Concepts'>Concepts</a></h1><h2><a href='#::Concepts-Type declarations'>Type declarations</a></h2><h2><a href='#::Concepts-Data types'>Data types</a></h2><h3><a href='#::Concepts-The void type'>The void type</a></h3><h3><a href='#::Concepts-Numeric types'>Numeric types</a></h3><h3><a href='#::Concepts-Arrays'>Arrays</a></h3><h3><a href='#::Concepts-Pointers'>Pointers</a></h3><h4><a href='#::Concepts-Pointer tags'>Pointer tags</a></h4><h4><a href='#::Concepts-Pointer safety'>Pointer safety</a></h4><h4><a href='#::Concepts-Null pointers'>Null pointers</a></h4><h4><a href='#::Concepts-Memory operations'>Memory operations</a></h4><h3><a href='#::Concepts-Strings'>Strings</a></h3><h3><a href='#::Concepts-Binary strings'>Binary strings</a></h3><h3><a href='#::Concepts-Structs'>Structs</a></h3><h2><a href='#::Concepts-Type aliases'>Type aliases</a></h2><h2><a href='#::Concepts-Enumerations'>Enumerations</a></h2><h2><a href='#::Concepts-Functions'>Functions</a></h2><h3><a href='#::Concepts-Calling conventions'>Calling conventions</a></h3><h3><a href='#::Concepts-Function wrappers'>Function wrappers</a></h3><h3><a href='#::Concepts-Return types'>Return types</a></h3><h4><a href='#::Concepts-Return annotations'>Return annotations</a></h4><h3><a href='#::Concepts-Parameters'>Parameters</a></h3><h4><a href='#::Concepts-Parameter annotations'>Parameter annotations</a></h4><h3><a href='#::Concepts-Error handling'>Error handling</a></h3><h4><a href='#::Concepts-Error annotations'>Error annotations</a></h4><h4><a href='#::Concepts-Errors and output parameters'>Errors and output parameters</a></h4><h3><a href='#::Concepts-Prototypes and function pointers'>Prototypes and function pointers</a></h3></div></div><div id='ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div></div>
+<li class='ruff-toc1'><a class='ruff-highlight' href='cffi_Concepts.html'>Concepts</a></li>
+<li class='ruff-toc1'><a href='cffi_cffi.html'>cffi</a></li>
+<li class='ruff-toc1'><a href='cffi_cffi_dyncall.html'>cffi::dyncall</a></li>
+<hr><li class='ruff-toc1'><a href='#Concepts'>Concepts</a></li><li class='ruff-toc2'><a href='#::Concepts-Type declarations'>Type declarations</a></li><li class='ruff-toc2'><a href='#::Concepts-Data types'>Data types</a></li><li class='ruff-toc3'><a href='#::Concepts-The void type'>The void type</a></li><li class='ruff-toc3'><a href='#::Concepts-Numeric types'>Numeric types</a></li><li class='ruff-toc3'><a href='#::Concepts-Arrays'>Arrays</a></li><li class='ruff-toc3'><a href='#::Concepts-Pointers'>Pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Pointer tags'>Pointer tags</a></li><li class='ruff-toc4'><a href='#::Concepts-Pointer safety'>Pointer safety</a></li><li class='ruff-toc4'><a href='#::Concepts-Null pointers'>Null pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Memory operations'>Memory operations</a></li><li class='ruff-toc3'><a href='#::Concepts-Strings'>Strings</a></li><li class='ruff-toc3'><a href='#::Concepts-Binary strings'>Binary strings</a></li><li class='ruff-toc3'><a href='#::Concepts-Structs'>Structs</a></li><li class='ruff-toc2'><a href='#::Concepts-Type aliases'>Type aliases</a></li><li class='ruff-toc2'><a href='#::Concepts-Enumerations'>Enumerations</a></li><li class='ruff-toc2'><a href='#::Concepts-Functions'>Functions</a></li><li class='ruff-toc3'><a href='#::Concepts-Calling conventions'>Calling conventions</a></li><li class='ruff-toc3'><a href='#::Concepts-Function wrappers'>Function wrappers</a></li><li class='ruff-toc3'><a href='#::Concepts-Return types'>Return types</a></li><li class='ruff-toc4'><a href='#::Concepts-Return annotations'>Return annotations</a></li><li class='ruff-toc3'><a href='#::Concepts-Parameters'>Parameters</a></li><li class='ruff-toc4'><a href='#::Concepts-Parameter annotations'>Parameter annotations</a></li><li class='ruff-toc3'><a href='#::Concepts-Error handling'>Error handling</a></li><li class='ruff-toc4'><a href='#::Concepts-Error annotations'>Error annotations</a></li><li class='ruff-toc4'><a href='#::Concepts-Errors and output parameters'>Errors and output parameters</a></li><li class='ruff-toc3'><a href='#::Concepts-Prototypes and function pointers'>Prototypes and function pointers</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>
