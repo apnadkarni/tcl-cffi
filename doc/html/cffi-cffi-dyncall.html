@@ -1,0 +1,176 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>Cffi</title>
+<link rel='stylesheet' type='text/css' href='assets/ruff-min.css' />
+<script type='text/javascript' src='assets/ruff-min.js'></script>
+</head>
+<body>
+<div class='ruff-layout'>
+<header class='ruff-layout-header ruff-hd'>
+<a style='text-decoration:none;' href='cffi.html'>Cffi (v1.0b1)</a>
+
+
+            <div id="ruffButtonBar">
+            <button id="ruffNavMove" onclick="ruffMoveNavPane()"></button>
+            <button id="ruffToggleTheme" onclick="ruffNextTheme()"></button>
+            </div>
+        </header><main class='ruff-layout-main ruff-bd'><h1 class='ruff'><a name='::cffi::dyncall'></a>::cffi::dyncall<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
+<div style='clear:both;'></div>
+<p class='ruff'>This namespace contains classes wrapping the <code>dyncall</code> library for calling C functions in shared library. The namespace is automatically loaded with the <code>cffi</code> package.</p>
+<h2 class='ruff'><a name='::cffi::dyncall-Classes'></a>Classes<span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<h3 class='ruffclass'><a name='::cffi::dyncall::Library'>Library</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td>Constructor for the class.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::destructor" title="destructor" class='ruff_cmd'>destructor</a></td><td>Destructor for the class.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::addressof" title="addressof" class='ruff_cmd'>addressof</a></td><td>Returns the address of a symbol from the loaded library.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a></td><td>Creates a Tcl command to invoke a C function in the loaded library.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::functions" title="functions" class='ruff_cmd'>functions</a></td><td>Creates Tcl commands for multiple C functions within the loaded library.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::path" title="path" class='ruff_cmd'>path</a></td><td>Returns the file system path for the wrapped library or image wrapped by the object.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a></td><td>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcalls" title="stdcalls" class='ruff_cmd'>stdcalls</a></td><td>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.</td></tr>
+</table>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Wraps a shared library / DLL, loading it in the process.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>Library create OBJNAME</span> <span class='ruff_arg'>?path?</span><br><span class='ruff_cmd'>Library new</span> <span class='ruff_arg'>?path?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>path</code></td><td>Path to the shared library. If an empty string, the process main executable is wrapped. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>It is strongly recommended that the path to the shared library be specified as an absolute path. Otherwise, it is located in a system-specific manner involving operating system version, environment variables, registry settings (on Windows), phase of the moon etc.. This is not advisable for both reliability and security reasons.</p>
+<p class='ruff'>When no longer needed, the object can be deleted in the usual manner (via <code>rename</code> to an empty string) or by invoking its <code>destroy</code> method.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created object.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::destructor'>destructor</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Destroys the object and releases internal resources.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT destroy</span> <br></div>
+<h5 class='ruff'>Description</h5><p class='ruff'>The managed library may be unloaded if there is nothing else holding a reference to it.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::addressof'>addressof</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the address of a symbol from the loaded library.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT addressof</span> <span class='ruff_arg'>symbol</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>symbol</code></td><td>Name of the symbol.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command will raise an error if the symbol is not found.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the address of a symbol from the loaded library.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::function'>function</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Creates a Tcl command to invoke a C function in the loaded library.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT function</span> <span class='ruff_arg'>fnname fntype parameters</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>fnname</code></td><td>Name of the function and optionally, Tcl command.</td></tr>
+<tr><td><code>fntype</code></td><td>The type definition for the return value from the function.</td></tr>
+<tr><td><code>parameters</code></td><td>List of alternating parameter name and type definitions.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command creates a Tcl command corresponding to a C function contained in the library. The function must be one that follows the default C calling convention (See <a href="cffi-Concepts.html#::Concepts-Calling conventions" title="Calling conventions" >Calling conventions</a>).</p>
+<p class='ruff'>The <code>$fnname</code> argument is a one or two element list, the first being the name of the C function and the second, if present, being the name of the corresponding Tcl command. The latter defaults to the former if unspecified. Unless fully qualified, the command is created in the namespace from which it is called.</p>
+<p class='ruff'>The return type of the C function is specified through the <code>$fntype</code> argument which should be a <a href="cffi-Concepts.html#::Concepts-Return types" title="type declaration" >type declaration</a>.</p>
+<p class='ruff'>The <code>$parameters</code> argument is a list of alternating parameter names and type declarations that describe the parameters of the C function. The parameter name is only used to construct error messages while the latter determines how arguments are converted and passed to the C function.</p>
+<p class='ruff'>The return type as well as parameter type declarations may have annotations that control semantics and behavior with respect to how values are passed and converted between Tcl and C. See <a href="cffi-Concepts.html#::Concepts-Functions" title="Functions" >Functions</a> for details of these.</p>
+<p class='ruff'>The command will raise an error if the function identified by <code>$cname</code> is not found in the loaded DLL.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created Tcl command.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::functions'>functions</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Creates Tcl commands for multiple C functions within the loaded library.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT functions</span> <span class='ruff_arg'>fnlist</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>fnlist</code></td><td>List of function definitions.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>This is a wrapper around the <a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> method that provides some syntactic sugar for defining multiple functions. The <code>$fnlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> method.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::path'>path</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the file system path for the wrapped library or image wrapped by the object.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT path</span> <br></div>
+<h5 class='ruff'>Description</h5><p class='ruff'>The returned path may be or may not be normalized and may be in native form or Tcl's canonical form. If no <code>path</code> argument was provided to the constructor, an empty string may be returned on some platforms.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the file system path for the wrapped library or image wrapped by the object.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::stdcall'>stdcall</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdcall</span> <span class='ruff_arg'>fnname fntype parameters</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>fnname</code></td><td>Name of the function and optionally, Tcl command.</td></tr>
+<tr><td><code>fntype</code></td><td>The type definition for the return value from the function.</td></tr>
+<tr><td><code>parameters</code></td><td>List of alternating parameter name and type definitions.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command creates a Tcl command corresponding to a C function contained in the library. The function must be one that follows the <code>__stdcall</code> calling convention (See <a href="cffi-Concepts.html#::Concepts-Calling conventions" title="Calling conventions" >Calling conventions</a>). The only platform where this differs from the C calling convention is 32-bit Windows. On other platforms, this method is a synonym for <a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a>.</p>
+<p class='ruff'>See <a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::function" title="function" class='ruff_cmd'>function</a> for other details.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created Tcl command.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library" title="::cffi::dyncall::Library" class='ruff_cmd'>::cffi::dyncall::Library</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdcalls</span> <span class='ruff_arg'>fnlist</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>fnlist</code></td><td>List of function definitions.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>This is a wrapper around the <a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> method that provides some syntactic sugar for defining multiple functions. The <code>$fnlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> method.</p>
+<h3 class='ruffclass'><a name='::cffi::dyncall::Symbols'>Symbols</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall" title="::cffi::dyncall" class='ruff_cmd'>::cffi::dyncall</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall'>dyncall</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td>Constructor for the class.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::destructor" title="destructor" class='ruff_cmd'>destructor</a></td><td>Destructor for the class.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::ataddress" title="ataddress" class='ruff_cmd'>ataddress</a></td><td>Returns the name of the symbol at a specified address.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::count" title="count" class='ruff_cmd'>count</a></td><td>Returns the number of symbols defined in the library.</td></tr>
+<tr><td><a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::index" title="index" class='ruff_cmd'>index</a></td><td>Returns the name of the symbol at a specified index.</td></tr>
+</table>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Wraps a shared library / DLL to allow access to its symbols.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>Symbols create OBJNAME</span> <span class='ruff_arg'>?path?</span><br><span class='ruff_cmd'>Symbols new</span> <span class='ruff_arg'>?path?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>path</code></td><td>Path to the shared library. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>It is strongly recommended that the path to the shared library be specified as an absolute path. Otherwise, it is located in a system-specific manner involving operating system version, environment variables, registry settings (on Windows), phase of the moon etc.. This is not advisable for both reliability and security reasons.</p>
+<p class='ruff'>When no longer needed, the object can be deleted in the usual manner (via <code>rename</code> to an empty string) or by invoking its <code>destroy</code> method.</p>
+<p class='ruff'>Objects of this class provide access to the symbols defined in the file without actually loading the file and resolving addresses. They can only therefore be used to search for symbols, locate symbols based on their index, and if the library has been loaded already, based on the symbol address.</p>
+<p class='ruff'>An error is raised if the file does not exist or does not contain an exports table.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created object.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::destructor'>destructor</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Destroys the object.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT destroy</span> <br></div>
+<h5 class='ruff'>Description</h5><p class='ruff'>The managed shared library may be unloaded if there is nothing else holding a reference to it.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the name of the symbol at a specified address.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT ataddress</span> <span class='ruff_arg'>addr</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>addr</code></td><td>Memory address.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The shared library must have been loaded into the process.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the symbol at a specified address.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::count'>count</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the number of symbols defined in the library.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT count</span> <br></div>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the number of symbols defined in the library.</p>
+<h4 class='ruffmethod'><a name='::cffi::dyncall::Symbols::index'>index</a><span class='ns_scope'> [<a href="cffi-cffi-dyncall.html#::cffi::dyncall::Symbols" title="::cffi::dyncall::Symbols" class='ruff_cmd'>::cffi::dyncall::Symbols</a>]</span><span class='ruff-uplink'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the name of the symbol at a specified index.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT index</span> <span class='ruff_arg'>index</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>index</code></td><td>Index into symbol table.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The returned value may be an empty string if there is an entry in the symbol table at that index but no name.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the symbol at a specified index.</p>
+</main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
+<li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>
+<hr>
+<li class='ruff-toc1'><a href='cffi-Concepts.html'>Concepts</a></li>
+<li class='ruff-toc1'><a href='cffi-cffi.html'>cffi</a></li>
+<li class='ruff-toc1'><a class='ruff-highlight' href='cffi-cffi-dyncall.html'>cffi::dyncall</a></li>
+<hr><li class='ruff-toc1'><a href='#::cffi::dyncall'>cffi::dyncall</a></li><li class='ruff-toc2'><a href='#::cffi::dyncall-Classes'>Classes</a></li><li class='ruff-toc3'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL, loading it in the process.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object and releases internal resources.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::addressof'>addressof</a><span class='ruff-tiptext'>Returns the address of a symbol from the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::function'>function</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function in the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::functions'>functions</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::path'>path</a><span class='ruff-tiptext'>Returns the file system path for the wrapped library or image wrapped by the object.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcall'>stdcall</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
+</span></li><li class='ruff-toc3'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL to allow access to its symbols.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='ruff-tiptext'>Returns the name of the symbol at a specified address.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::count'>count</a><span class='ruff-tiptext'>Returns the number of symbols defined in the library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::index'>index</a><span class='ruff-tiptext'>Returns the name of the symbol at a specified index.
+</span></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
+</div></body></html>

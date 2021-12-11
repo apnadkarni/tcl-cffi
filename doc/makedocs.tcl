@@ -18,14 +18,14 @@ source pointer.ruff
 source prototype.ruff
 
 ruff::document [list Concepts $NS ${NS}::dyncall] \
-    -output [file join [file dirname [info script]] html $NS.html] \
+    -outfile $NS.html \
+    -outdir [file join [file dirname [info script]] html] \
     -sortnamespaces false \
     -preamble $start_page \
     -pagesplit namespace \
     -autopunctuate true \
     -hidenamespace $NS \
-    -product CFFI \
+    -product cffi \
     -version 1.0b1 \
-    -title "CFFI Reference" \
     -copyright "Ashok P. Nadkarni" {*}$::argv
 
