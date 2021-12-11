@@ -26,7 +26,7 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b1/AMD64/cffi10b0.dll
+strip -s /d/tcl/lib/cffi1.0b1/AMD64/cffi10b1.dll
 ```
 
 From MINGW32 shell
@@ -38,7 +38,7 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b1/x86/cffi10b0.dll
+strip -s /d/tcl/lib/cffi1.0b1/x86/cffi10b1.dll
 ```
 
 Test the distribution with Tcl 8.6 built with VC++ 6

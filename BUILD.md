@@ -16,11 +16,11 @@ in the `dyncall` documentation. For example, using the `configure` script, from
  the top level directory of the distribution, run the following commands in a shell.
 
 ```
-$ mkdir build-ubuntu-x64
-$ cd build-ubuntu-x64
-$ ../configure --prefix=/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64
-$ make
-$ make install
+mkdir build-ubuntu-x64
+cd build-ubuntu-x64
+../configure --prefix=/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64
+make
+make install
 ```
 
 Note if the `--prefix` option is not supplied, the build will install in the
@@ -29,11 +29,11 @@ system library directories.
 The `cffi` package can then be built like any standard TEA based Tcl extension.
 
 ```
-$ mkdir build-ubuntu-x64
-$ cd build-ubuntu-x64
-$ ../configure LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include 
-$ make
-$ make install
+mkdir build-ubuntu-x64
+cd build-ubuntu-x64
+../configure LDFLAGS=-L/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/lib CPPFLAGS=-I/mnt/d/src/tcl-cffi/external-libs/ubuntu/x64/include 
+make
+make install
 ```
 
 Note the `LDFLAGS` and `CPPFLAGS` environment variables have to be specified if
