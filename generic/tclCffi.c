@@ -88,7 +88,6 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
                       Tcl_Obj *const objv[],
                       int *indexP)
 {
-    TCLH_ASSERT(objc > 1);
     if (objc < 2) {
         return Tclh_ErrorNumArgs(ip, 1, objv, "subcommand ?arg ...?");
     }

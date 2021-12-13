@@ -106,9 +106,9 @@ CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP)
 #endif
 
     if (dlH == NULL) {
+        Tclh_ErrorNotFound(ip, "Shared library", pathObj, "Could not load shared library.");
         Tcl_DecrRefCount(pathObj);
-        return Tclh_ErrorNotFound(
-            ip, "Shared library", pathObj, "Could not load shared library.");
+        return TCL_ERROR;
     }
 
     ctxP          = ckalloc(sizeof(*ctxP));

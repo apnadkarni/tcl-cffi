@@ -2658,7 +2658,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     int ret;
     Tcl_Obj *valueObj;
 
-    CFFI_ASSERT((callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED) == 0);
+    CFFI_ASSERT(callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED);
     CFFI_ASSERT(argP->actualCount >= 0); /* Array size known */
 
     if (typeAttrsP->flags & CFFI_F_ATTR_IN)
