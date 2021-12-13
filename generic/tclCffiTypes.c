@@ -1282,7 +1282,6 @@ CffiNativeValueToObj(Tcl_Interp *ip,
             int offset;
             int elem_size;
 
-            CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
             elem_size = typeAttrsP->dataType.u.structP->size;
             /* TBD - may be allocate Tcl_Obj* array from memlifo for speed */
             listObj = Tcl_NewListObj(count, NULL);
@@ -1323,8 +1322,6 @@ CffiNativeValueToObj(Tcl_Interp *ip,
             int i;
             int offset;
             int elem_size;
-
-            CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
 
             CffiTypeLayoutInfo(&typeAttrsP->dataType, &elem_size, NULL, NULL);
             CFFI_ASSERT(elem_size > 0);
@@ -2269,28 +2266,17 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 || (typeAttrsP->flags & CFFI_F_ATTR_BYREF) != 0);
 
     /*
-     * For pure in parameters, valueObj provides the value itself.
-     * For out and inout parameters, valueObj is a list consisting of a variable
-     * name followed by an optional size parameter. If the parameter is an
-     * inout parameter, the variable must exist since the value passed
-     * to the called function is taken from there. For pure out parameters, the
-     * variable need not exist and will be created if necessary. For both
-     * in and inout, on return from the function the corresponding  content
-     * is stored in that variable.
-     *
-     * The optional second element of out/inout argument is a size
-     * parameter. This is the number of bytes (for string and binary) or
-     * number of Tcl_UniChar (for unistring) to allocate to receive the
-     * output value and must be specified for string, unistring and binary
-     * types. It is not permitted for other types.
+     * For pure in parameters, valueObj provides the value itself. For out
+     * and inout parameters, valueObj is the variable name. If the parameter
+     * is an inout parameter, the variable must exist since the value passed
+     * to the called function is taken from there. For pure out parameters,
+     * the variable need not exist and will be created if necessary. For
+     * both in and inout, on return from the function the corresponding
+     * content is stored in that variable.
      */
     *varNameObjP = NULL;
     if (flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) {
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-
-        CFFI_ASSERT(baseType != CFFI_K_TYPE_ASTRING
-                    && baseType != CFFI_K_TYPE_UNISTRING
-                    && baseType != CFFI_K_TYPE_BINARY);
         *varNameObjP = valueObj;
         valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
         if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
@@ -2582,7 +2568,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         }
         else {
             CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-            CFFI_ASSERT(!(flags & CFFI_F_ATTR_BYREF));
             CHECK(CffiArgPrepareInUniString(ip, typeAttrsP, valueObj, valueP));
             p = Tcl_DStringValue(&valueP->ancillary.ds);
             if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))

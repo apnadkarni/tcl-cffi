@@ -268,9 +268,14 @@ namespace eval Concepts {
         `chars[]`. Generally these have an associated parameter which indicates
         the buffer size. In such cases the output parameter can be declared as
         (for example) `chars[nchars]` where `nchars` is the name of the
-        parameter containing the buffer size. The `string` and `unistring` types
-        cannot be used for `out` or `inout` parameters as there is no associated
-        buffer size.
+        parameter containing the buffer size.
+
+        - Function output parameters that stored by the called function as
+        pointer to strings can be declared as `out` parameters of type `string`
+        or `unistring` in the limited case where the stored pointer does not
+        need to be disposed of (e.g. a pointer to a statically allocated string
+        is being returned). In the general case, these parameters have to be
+        declared as pointers so they can be freed or otherwise disposed.
 
         - Function return values cannot be declared as `chars` or `unichars` as
         C itself does not support array return values. Generally, functions

@@ -27,12 +27,20 @@
 #define TCLH_PANIC Tcl_Panic
 #endif
 
-#ifndef TCLH_ASSERT
+#ifndef TCLH_ASSERT_LEVEL
 # ifdef NDEBUG
-#  define TCLH_ASSERT(bool_) (void) 0
+#  define TCLH_ASSERT_LEVEL 0
 # else
-#  define TCLH_ASSERT(bool_) (void)( (bool_) || (TCLH_PANIC("Assertion (%s) failed at line %d in file %s.", #bool_, __LINE__, __FILE__), 0) )
+#  define TCLH_ASSERT_LEVEL 2
 # endif
+#endif
+
+#if TCLH_ASSERT_LEVEL == 0
+# define TCLH_ASSERT(bool_) (void) 0
+#elif TCLH_ASSERT_LEVEL == 1
+# define TCLH_ASSERT(bool_) (void)( (bool_) || (__debugbreak(), 0))
+#else
+# define TCLH_ASSERT(bool_) (void)( (bool_) || (TCLH_PANIC("Assertion (%s) failed at line %d in file %s.", #bool_, __LINE__, __FILE__), 0) )
 #endif
 
 #ifdef TCLH_IMPL
