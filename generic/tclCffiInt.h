@@ -231,9 +231,15 @@ typedef struct CffiCallVmCtx {
 } CffiCallVmCtx;
 
 /* Context for dll commands. */
+#ifdef CFFI_USE_TCLLOAD
+typedef Tcl_LoadHandle CffiLoadHandle;
+#else
+typedef DLLib *CffiLoadHandle;
+#endif
 typedef struct CffiLibCtx {
     CffiCallVmCtx *vmCtxP;
-    DLLib *dlP;    /* The dyncall library context */
+    CffiLoadHandle  dlP;    /* The dyncall library context */
+    Tcl_Obj *pathObj;       /* Path to the library. May be NULL */
     int nRefs;     /* To ensure library not released with bound functions */
 } CffiLibCtx;
 CFFI_INLINE void CffiLibCtxRef(CffiLibCtx *libCtxP) {
@@ -416,6 +422,10 @@ void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
 CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
 
 void CffiLibCtxUnref(CffiLibCtx *ctxP);
+void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle dlP, Tcl_Obj *symbolObj);
+CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
+Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
+
 
 void CffiEnumsCleanup(Tcl_HashTable *enumsTableP);
 CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,

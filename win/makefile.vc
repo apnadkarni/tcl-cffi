@@ -45,6 +45,7 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffiDyncall.obj \
 	$(TMP_DIR)\tclCffiEnum.obj \
 	$(TMP_DIR)\tclCffiHelp.obj \
+	$(TMP_DIR)\tclCffiLoad.obj \
 	$(TMP_DIR)\tclCffiMemory.obj \
 	$(TMP_DIR)\tclCffiPointer.obj \
 	$(TMP_DIR)\tclCffiPrototype.obj \
@@ -65,6 +66,7 @@ PRJ_INCLUDES = -I $(DYNCALLDIR)\include
 PRJ_LIBS = $(DYNCALLDIR)\lib\dyncall_s.lib $(DYNCALLDIR)\lib\dynload_s.lib $(DYNCALLDIR)\lib\dyncallback_s.lib
 
 # Define any additional compiler flags that might be required for the project
+#PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS -DCFFI_USE_TCLLOAD
 PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS
 
 # Define the standard targets

@@ -7,17 +7,6 @@
 
 #include "tclCffiInt.h"
 
-void CffiLibCtxUnref(CffiLibCtx *ctxP)
-{
-    if (ctxP->nRefs <= 1) {
-        /* Note cdlP->vmCtxP is interp-specific and not to be deleted here. */
-        dlFreeLibrary(ctxP->dlP);
-        ckfree(ctxP);
-    }
-    else
-        ctxP->nRefs -= 1;
-}
-
 static CffiResult
 CffiSymbolsDestroyCmd(Tcl_Interp *ip,
                     int objc,
@@ -1042,7 +1031,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
     if (nNames == 0 || nNames > 2)
         return Tclh_ErrorInvalidValue(ip, nameObj, "Empty or invalid function name specification.");
 
-    fn = dlFindSymbol(libCtxP->dlP, Tcl_GetString(nameObjs[0]));
+    fn = CffiLibFindSymbol(ip, libCtxP->dlP, nameObjs[0]);
     if (fn == NULL)
         return Tclh_ErrorNotFound(ip, "Symbol", nameObjs[0], NULL);
 
@@ -1255,19 +1244,7 @@ CffiDyncallPathCmd(Tcl_Interp *ip,
                 Tcl_Obj *const objv[],
                 CffiLibCtx *ctxP)
 {
-    int len;
-    char buf[1024 + 1]; /* TBD - what size ? */
-
-    len = dlGetLibraryPath(ctxP->dlP, buf, sizeof(buf) / sizeof(buf[0]));
-    /*
-     * Workarounds for bugs in dyncall 1.2 on some platforms when dcLoad was
-     * called with null argument.
-     */
-    if (len <= 0)
-        return TCL_OK; /* Return empty string */
-    if (buf[len-1] == '\0')
-        --len;
-    Tcl_SetObjResult(ip, Tcl_NewStringObj(buf, len));
+    Tcl_SetObjResult(ip, CffiLibPath(ip, ctxP));
     return TCL_OK;
 }
 
@@ -1280,11 +1257,13 @@ CffiDyncallAddressOfCmd(Tcl_Interp *ip,
     void *addr;
 
     CFFI_ASSERT(objc == 3);
-    addr = dlFindSymbol(ctxP->dlP, Tcl_GetString(objv[2]));
-    if (addr == NULL)
-        return Tclh_ErrorNotFound(ip, "Symbol", objv[2], NULL);
-    Tcl_SetObjResult(ip, Tclh_ObjFromAddress(addr));
-    return TCL_OK;
+    addr = CffiLibFindSymbol(ip, ctxP->dlP, objv[2]);
+    if (addr) {
+        Tcl_SetObjResult(ip, Tclh_ObjFromAddress(addr));
+        return TCL_OK;
+    }
+    else
+        return TCL_ERROR; /* ip already contains error message */
 }
 
 static CffiResult
@@ -1332,11 +1311,9 @@ CffiResult CffiDyncallLibraryObjCmd(ClientData  cdata,
                                     int         objc,
                                     Tcl_Obj *const objv[])
 {
-    DLLib *dlP;
     CffiLibCtx *ctxP;
     Tcl_Obj *nameObj;
     Tcl_Obj *pathObj;
-    const char *path;
     static const Tclh_SubCommand subCommands[] = {
         {"new", 0, 1, "?DLLPATH?", NULL},
         {"create", 1, 2, "OBJNAME ?DLLPATH?", NULL},
@@ -1361,33 +1338,15 @@ CffiResult CffiDyncallLibraryObjCmd(ClientData  cdata,
     }
     Tcl_IncrRefCount(nameObj);
 
-    if (pathObj) {
-        path = Tcl_GetString(pathObj);
-        if (path[0] == '\0')
-            path = NULL;
-    }
-    else
-        path = NULL;
-
-    dlP = dlLoadLibrary(pathObj ? Tcl_GetString(pathObj) : NULL);
-    if (dlP == NULL) {
-        ret = Tclh_ErrorNotFound(
-            ip, "Shared library", pathObj, "Could not load shared library.");
-    }
-    else {
-        ctxP         = ckalloc(sizeof(*ctxP));
+    ret = CffiLibLoad(ip, pathObj, &ctxP);
+    if (ret == TCL_OK) {
         ctxP->vmCtxP = (CffiCallVmCtx *)cdata;
-        ctxP->dlP    = dlP;
-        ctxP->nRefs  = 1;
-
         Tcl_CreateObjCommand(ip,
                              Tcl_GetString(nameObj),
                              CffiDyncallInstanceCmd,
                              ctxP,
                              CffiDyncallInstanceDeleter);
-
         Tcl_SetObjResult(ip, nameObj);
-        ret = TCL_OK;
     }
 
     Tcl_DecrRefCount(nameObj);
