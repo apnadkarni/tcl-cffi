@@ -44,6 +44,22 @@ namespace eval cffi::test {
 
     variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes]
 
+    variable intMax
+    array set intMax {
+        schar 0x7f uchar 0xff short 0x7fff ushort 0xffff
+        int 0x7fffffff
+        uint 0xffffffff
+    }
+    if {$::tcl_platform(wordSize) == 8} {
+        set intMax(long) 0x7fffffffffffffff
+        set intMax(ulong) 0xffffffffffffffff
+    } else {
+        set intMax(long) 0x7fffffff
+        set intMax(ulong) 0xffffffff
+    }
+    set intMax(longlong) 0x7fffffffffffffff
+    set intMax(ulonglong) 0xffffffffffffffff
+
     variable paramAttrs {in out inout byref}
     variable pointerAttrs {nullok unsafe dispose counted}
     variable stringAttrs {nullok nullifempty}
