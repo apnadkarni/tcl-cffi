@@ -278,7 +278,7 @@ typedef struct CffiFunction {
     void *fnAddr;          /* Pointer to the function to call */
     CffiProto *protoP;     /* Prototype for the call */
     CffiLibCtx *libCtxP; /* Containing library for bound functions or
-                               NULL for free standing functions */
+                            NULL for free standing functions */
     Tcl_Obj *cmdNameObj; /* Name of Tcl command. May be NULL */
 } CffiFunction;
 
@@ -442,6 +442,66 @@ CffiResult CffiEnumBitmask(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *valueListObj,
                            Tcl_WideInt *maskP);
 
+#ifdef CFFI_USE_DYNCALL
+
+#define CffiLoadArg CffiDyncallLoadArg
+void CffiDyncallLoadArg(CffiCall *callP,
+                        CffiArgument *argP,
+                        CffiTypeAndAttrs *typeAttrsP);
+#define CffiResetCall CffiDyncallResetCall
+CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP);
+
+CFFI_INLINE signed char CffiCallSCharFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (signed char) dcCallInt(vmP, fnP);
+}
+CFFI_INLINE unsigned char CffiCallUCharFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (unsigned char) dcCallInt(vmP, fnP);
+}
+CFFI_INLINE short CffiCallShortFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (short) dcCallInt(vmP, fnP);
+}
+CFFI_INLINE unsigned short CffiCallUShortFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (unsigned short) dcCallInt(vmP, fnP);
+}
+CFFI_INLINE int CffiCallIntFunc(DCCallVM *vmP, DCpointer fnP) {
+    return dcCallInt(vmP, fnP);
+}
+CFFI_INLINE unsigned int CffiCallUIntFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (unsigned int) dcCallInt(vmP, fnP);
+}
+CFFI_INLINE long CffiCallLongFunc(DCCallVM *vmP, DCpointer fnP) {
+    return dcCallLong(vmP, fnP);
+}
+CFFI_INLINE unsigned long CffiCallULongFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (unsigned long) dcCallLong(vmP, fnP);
+}
+CFFI_INLINE long long CffiCallLongLongFunc(DCCallVM *vmP, DCpointer fnP) {
+    return dcCallLongLong(vmP, fnP);
+}
+CFFI_INLINE unsigned long long CffiCallULongLongFunc(DCCallVM *vmP, DCpointer fnP) {
+    return (unsigned long long) dcCallLongLong(vmP, fnP);
+}
+CFFI_INLINE float CffiCallFloatFunc(DCCallVM *vmP, DCpointer fnP) {
+    return dcCallFloat(vmP, fnP);
+}
+CFFI_INLINE double CffiCallDoubleFunc(DCCallVM *vmP, DCpointer fnP) {
+    return dcCallDouble(vmP, fnP);
+}
+CFFI_INLINE DCpointer CffiCallPointerFunc(DCCallVM *vmP, DCpointer fnP) {
+    return dcCallPointer(vmP, fnP);
+}
+
+
+
+
+#else
+
+#error Only Dyncall support implemented currently.
+
+#endif
+
+CffiResult
+CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs);
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,
                             int objArgIndex, /* Where in objv[] args start */
@@ -455,7 +515,7 @@ void CffiFunctionCleanup(CffiFunction *fnP);
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiEnumObjCmd;
-Tcl_ObjCmdProc CffiDyncallLibraryObjCmd;
+Tcl_ObjCmdProc CffiLibraryObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
 Tcl_ObjCmdProc CffiHelpObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;
