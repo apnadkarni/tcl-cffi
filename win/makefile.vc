@@ -1,9 +1,19 @@
 #------------------------------------------------------------- -*- makefile -*-
 #
-# Sample makefile for building Tcl extensions.
+# Nmake makefile for building cffi.
 #
-# Basic build, test and install
-#   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl
+# Basic build, test and install using libffi
+#   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl EXTDIR=c:\path\to\libffi
+# Basic build, test and install using dyncall
+#   nmake /s /nologo /f makefile.vc OPTS=dyncall INSTALLDIR=c:\path\to\tcl EXTDIR=c:\path\to\dyncall
+#
+# The EXTDIR directory should contain "include" and "lib" directories for
+# dyncall/libffi depending on the library being used. If undefined, it will default
+# to ../external-libs/win/$(BUILDDIRTOP) where BUILDDIRTOP is defined by rules-ext.vc
+# above based on architecture, compiler version and build mode (debug/release).
+# See the BUILD.md in top level directory for building dyncall and libffi itself.
+#
+# To test and install,
 #   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl test
 #   nmake /s /nologo /f makefile.vc INSTALLDIR=c:\path\to\tcl install
 #
@@ -20,29 +30,33 @@ PROJECT = cffi
 
 !include "rules-ext.vc"
 
-# The extension wraps the dyncall library. The location of the header and
-# library files is given by the DYNCALLDIR environment variable. This location
-# should contain the include and lib directories. If undefined, it will default
-# to ../external-libs/$(BUILDDIRTOP) where BUILDDIRTOP is defined by rules-ext.vc
-# above based on architecture, compiler version and build mode (debug/release).
-# See the BUILD.md in top level directory for building dyncall itself.
-
-!ifndef DYNCALLDIR
-DYNCALLDIR = $(ROOT)\external-libs\win\$(ARCH)
+!if [nmakehlp -f $(OPTS) "dyncall"]
+!message *** Using dyncall.
+USE_DYNCALL = 1
+KEYFILE = dyncall.h
+!else
+!message *** Using libffi.
+USE_DYNCALL = 0
+KEYFILE = ffi.h
 !endif
-!if exist("$(DYNCALLDIR)\include\dyncall.h")
+
+PRJ_DEFINES = $(PRJ_DEFINES)
+
+!ifndef EXTDIR
+EXTDIR = $(ROOT)\external-libs\win\$(BUILDDIRTOP)
+!endif
+!if exist("$(EXTDIR)\include\$(KEYFILE)")
 !message *** Using dyncall library in $(DYNCALLDIR)
 !else
-!message *** Could not locate dyncall.h in $(DYNCALLDIR).
-!message *** Please check path or see instructions to build dyncall in makefile.vc
-!error dyncall not found.
+!message *** Could not locate $(KEYFILE) in $(EXTDIR).
+!message *** Please check path or see instructions in makefile.vc
+!error Could not locate external libraries.
 !endif
 
 # Define the object files and resource file that make up the extension.
 PRJ_OBJS = \
 	$(TMP_DIR)\tclCffi.obj \
 	$(TMP_DIR)\tclCffiAlias.obj \
-	$(TMP_DIR)\tclCffiDyncall.obj \
 	$(TMP_DIR)\tclCffiEnum.obj \
 	$(TMP_DIR)\tclCffiFunction.obj \
 	$(TMP_DIR)\tclCffiHelp.obj \
@@ -53,6 +67,13 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffiStruct.obj \
 	$(TMP_DIR)\tclCffiTypes.obj \
 	$(TMP_DIR)\memlifo.obj
+
+!if $(USE_DYNCALL)
+PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiDyncall.obj
+!else
+PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiLibcffi.obj
+!endif
+
 PRJ_TEST_OBJS = $(TMP_DIR)\tclCffiTest.obj
 PRJ_TEST_DLL = $(OUT_DIR)\cffitest.dll
 
@@ -63,12 +84,17 @@ HEADERS = \
 	$(GENERICDIR)\memlifo.h \
 	$(GENERICDIR)\tclhObj.h
 
-PRJ_INCLUDES = -I $(DYNCALLDIR)\include
-PRJ_LIBS = $(DYNCALLDIR)\lib\dyncall_s.lib $(DYNCALLDIR)\lib\dynload_s.lib $(DYNCALLDIR)\lib\dyncallback_s.lib
+PRJ_INCLUDES = -I $(EXTDIR)\include
 
-# Define any additional compiler flags that might be required for the project
-#PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS -DCFFI_USE_TCLLOAD
-PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS -DCFFI_USE_DYNCALL
+PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS
+
+!if $(USE_DYNCALL)
+PRJ_DEFINES = $(PRJ_DEFINES) -DCFFI_USE_DYNCALL
+PRJ_LIBS = $(EXTDIR)\lib\dyncall_s.lib $(EXTDIR)\lib\dynload_s.lib $(EXTDIR)\lib\dyncallback_s.lib
+!else
+PRJ_DEFINES = $(PRJ_DEFINES) -DCFFI_USE_TCLLOAD
+PRJ_LIBS = $(EXTDIR)\lib\libffi.a
+!endif
 
 # Define the standard targets
 !include "$(_RULESDIR)\targets.vc"

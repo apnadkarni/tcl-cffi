@@ -50,6 +50,10 @@ CffiProtoUnref(CffiProto *protoP)
         for (i = 0; i < protoP->nParams; ++i) {
             CffiParamCleanup(&protoP->params[i]);
         }
+#ifndef CFFI_USE_DYNCALL
+        if (protoP->cifP)
+            ckfree(cifP);
+#endif
         ckfree(protoP);
     }
     else
@@ -194,7 +198,7 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
         return Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
 
     CHECK(CffiPrototypeParse(ipCtxP, nameObj, objv[3], objv[4], &protoP));
-    protoP->callMode = callMode;
+    protoP->abi = callMode;
 
     heP = Tcl_CreateHashEntry(&ipCtxP->prototypes, (char *) nameObj, &new_entry);
     if (! new_entry) {

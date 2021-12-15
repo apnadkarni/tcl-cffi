@@ -12,9 +12,9 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP)
     if (ctxP->nRefs <= 1) {
         /* Note cdlP->vmCtxP is interp-specific and not to be deleted here. */
 #ifdef CFFI_USE_TCLLOAD
-        Tcl_FSUnloadFile(NULL, ctxP->dlP);
+        Tcl_FSUnloadFile(NULL, ctxP->libH);
 #else
-        dlFreeLibrary(ctxP->dlP);
+        dlFreeLibrary(ctxP->libH);
 #endif
         if (ctxP->pathObj)
             Tcl_DecrRefCount(ctxP->pathObj);
@@ -29,7 +29,7 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP)
  *
  * Parameters:
  * ip - interpreter
- * dlP - handle to the loaded library
+ * libH - handle to the loaded library
  * symbolObj - symbol name
  *
  * Note there is no way to distinguish between a symbol being
@@ -39,14 +39,14 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP)
  * Returns:
  * Returns the symbol value or *NULL* is symbol is not found.
  */
-void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle dlP, Tcl_Obj *symbolObj)
+void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj)
 {
     void *addr;
 #ifdef CFFI_USE_TCLLOAD
-    addr = Tcl_FindSymbol(ip, dlP, Tcl_GetString(symbolObj));
+    addr = Tcl_FindSymbol(ip, libH, Tcl_GetString(symbolObj));
     /* Error message already set but rewrite below for consistency */
 #else
-    addr = dlFindSymbol(dlP, Tcl_GetString(symbolObj));
+    addr = dlFindSymbol(libH, Tcl_GetString(symbolObj));
 #endif
     if (addr == NULL && ip != NULL) {
         Tclh_ErrorNotFound(ip, "Symbol", symbolObj, NULL);
@@ -113,7 +113,7 @@ CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP)
 
     ctxP          = ckalloc(sizeof(*ctxP));
     ctxP->vmCtxP  = NULL;
-    ctxP->dlP     = dlH;
+    ctxP->libH     = dlH;
     ctxP->pathObj = pathObj; /* Note ref count was already incr'ed above */
     ctxP->nRefs   = 1;
     *ctxPP        = ctxP;
@@ -141,7 +141,7 @@ Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP)
     int len;
     char buf[1024 + 1]; /* TBD - what size ? */
 
-    len = dlGetLibraryPath(ctxP->dlP, buf, sizeof(buf) / sizeof(buf[0]));
+    len = dlGetLibraryPath(ctxP->libH, buf, sizeof(buf) / sizeof(buf[0]));
     /*
      * Workarounds for bugs in dyncall 1.2 on some platforms when dcLoad was
      * called with null argument.

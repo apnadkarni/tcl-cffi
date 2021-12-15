@@ -369,7 +369,9 @@ CffiFunctionCall(ClientData cdata,
     CffiFunction *fnP     = (CffiFunction *)cdata;
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
+#ifdef CFFI_USE_DYNCALL
     DCCallVM *vmP         = fnP->vmCtxP->vmP;
+#endif
     Tcl_Obj **argObjs = NULL;
     int nArgObjs;
     Tcl_Obj *resultObj = NULL;
@@ -382,6 +384,13 @@ CffiFunctionCall(ClientData cdata,
     Tcl_WideInt sysError;  /* Error retrieved from system */
 
     CFFI_ASSERT(ip == ipCtxP->interp);
+
+#ifndef CFFI_USE_DYNCALL
+    /* protoP->cifP is lazy-initialized */
+    ret = CffiLibffiInitProtoCif(ip, protoP);
+    if (ret != TCL_OK)
+        return ret;
+#endif
 
     /* TBD - check memory executable permissions */
     if ((uintptr_t) fnP->fnAddr < 0xffff)
@@ -455,7 +464,7 @@ CffiFunctionCall(ClientData cdata,
 #define CALLFN(objfn_, dcfn_, fld_)                                            \
     do {                                                                       \
         CffiValue retval;                                                      \
-        retval.u.fld_ = dcfn_(vmP, fnP->fnAddr);                               \
+        retval.u.fld_ = dcfn_(&callCtx);                                       \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
@@ -479,8 +488,8 @@ CffiFunctionCall(ClientData cdata,
 
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
-        dcCallVoid(vmP, fnP->fnAddr);
-        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
+        CffiCallVoidFunc(&callCtx);
+        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);
         resultObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR: CALLFN(Tcl_NewIntObj, CffiCallSCharFunc, schar);
@@ -498,7 +507,7 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
-        pointer = CffiCallPointerFunc(vmP, fnP->fnAddr);
+        pointer = CffiCallPointerFunc(&callCtx);
         /* Do IMMEDIATELY so as to not lose GetLastError */
         fnCheckRet = CffiCheckPointer(
             ip, &protoP->returnType.typeAttrs, pointer, &sysError);
@@ -690,9 +699,9 @@ CffiFunctionInstanceCmd(ClientData cdata,
  *    cmdNameObj - name to give to command
  *    returnTypeObj - function return type definition
  *    paramsObj - list of parameter type definitions
- *    callMode - a dyncall call mode that overrides one specified
+ *    callMode - a calling convention that overrides one specified
  *               in the return type definition if anything other
- *               than DC_CALL_C_DEFAULT
+ *               than the default abi
  *
  * *paramsObj* is a list of alternating parameter name and
  * type definitions. The return and parameter type definitions are in the
@@ -710,7 +719,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
                       Tcl_Obj *cmdNameObj,
                       Tcl_Obj *returnTypeObj,
                       Tcl_Obj *paramsObj,
-                      int callMode)
+                      CffiABIProtocol callMode)
 {
     Tcl_Obj *fqnObj;
     CffiProto *protoP = NULL;
@@ -718,7 +727,11 @@ CffiDefineOneFunction(Tcl_Interp *ip,
 
     CHECK(CffiPrototypeParse(
         vmCtxP->ipCtxP, cmdNameObj, returnTypeObj, paramsObj, &protoP));
-    protoP->callMode = callMode;
+    /* TBD - comment in func header says only override if default */
+    protoP->abi = callMode;
+#ifndef CFFI_USE_DYNCALL
+    protoP->cifP = NULL;
+#endif
 
     fnP = ckalloc(sizeof(*fnP));
     fnP->fnAddr = fnAddr;
@@ -751,7 +764,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
  *    paramsObj - list of parameter type definitions
  *    callMode - a dyncall call mode that overrides one specified
  *               in the return type definition if anything other
- *               than DC_CALL_C_DEFAULT
+ *               than default
  *
  * *paramsObj* is a list of alternating parameter name and
  * type definitions. The return and parameter type definitions are in the
@@ -767,7 +780,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                              Tcl_Obj *nameObj,
                              Tcl_Obj *returnTypeObj,
                              Tcl_Obj *paramsObj,
-                             int callMode)
+                             CffiABIProtocol callMode)
 {
     void *fn;
     Tcl_Obj *cmdNameObj;
@@ -778,7 +791,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
     if (nNames == 0 || nNames > 2)
         return Tclh_ErrorInvalidValue(ip, nameObj, "Empty or invalid function name specification.");
 
-    fn = CffiLibFindSymbol(ip, libCtxP->dlP, nameObjs[0]);
+    fn = CffiLibFindSymbol(ip, libCtxP->libH, nameObjs[0]);
     if (fn == NULL)
         return Tclh_ErrorNotFound(ip, "Symbol", nameObjs[0], NULL);
 
@@ -825,7 +838,7 @@ CffiLibraryFunctionCmd(Tcl_Interp *ip,
     CFFI_ASSERT(objc == 5);
 
     return CffiDefineOneFunctionFromLib(
-        ip, ctxP, objv[2], objv[3], objv[4], DC_CALL_C_DEFAULT);
+        ip, ctxP, objv[2], objv[3], objv[4], CffiDefaultABI());
 }
 
 /* Function: CffiLibraryStdcallCmd
@@ -858,14 +871,7 @@ CffiLibraryStdcallCmd(Tcl_Interp *ip,
     CFFI_ASSERT(objc == 5);
 
     return CffiDefineOneFunctionFromLib(
-        ip, ctxP, objv[2], objv[3], objv[4],
-#if defined(_WIN32) && !defined(_WIN64)
-        DC_CALL_C_X86_WIN32_STD
-#else
-        DC_CALL_C_DEFAULT
-#endif
-        );
-
+        ip, ctxP, objv[2], objv[3], objv[4], CffiStdcallABI());
 }
 
 
@@ -877,9 +883,7 @@ CffiLibraryStdcallCmd(Tcl_Interp *ip,
  * ctxP - library context in which functions are being defined
  * objc - number of elements in *objv*
  * objv - array containing the function definition list
- * callMode - a dyncall call mode that overrides one specified
- *            in the return type definition if anything other
- *            than DC_CALL_C_DEFAULT
+ * callMode - the calling convention
  *
  * The *objv[2]* element contains the function definition list.
  * This is a flat list of function name, type, parameter definitions.
@@ -893,7 +897,7 @@ CffiLibraryManyFunctionsCmd(Tcl_Interp *ip,
                     int objc,
                     Tcl_Obj *const objv[],
                     CffiLibCtx *ctxP,
-                    int callMode)
+                    CffiABIProtocol callMode)
 {
     Tcl_Obj **objs;
     int nobjs;
@@ -909,7 +913,8 @@ CffiLibraryManyFunctionsCmd(Tcl_Interp *ip,
     }
 
     for (i = 0; i < nobjs; i += 3) {
-        ret = CffiDefineOneFunctionFromLib(ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
+        ret = CffiDefineOneFunctionFromLib(
+            ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
         /* TBD - if one fails, rest are not defined but prior ones are */
         if (ret != TCL_OK)
             return ret;
@@ -939,7 +944,7 @@ CffiLibraryFunctionsCmd(Tcl_Interp *ip,
                     Tcl_Obj *const objv[],
                     CffiLibCtx *ctxP)
 {
-    return CffiLibraryManyFunctionsCmd(ip, objc, objv, ctxP, DC_CALL_C_DEFAULT);
+    return CffiLibraryManyFunctionsCmd(ip, objc, objv, ctxP, CffiDefaultABI());
 }
 
 
@@ -968,7 +973,8 @@ CffiLibraryStdcallsCmd(Tcl_Interp *ip,
                     Tcl_Obj *const objv[],
                     CffiLibCtx *ctxP)
 {
-    return CffiLibraryManyFunctionsCmd(ip, objc, objv, ctxP, DC_CALL_C_X86_WIN32_STD);
+    return CffiLibraryManyFunctionsCmd(
+        ip, objc, objv, ctxP, CffiStdcallABI());
 }
 
 static CffiResult
@@ -1007,7 +1013,7 @@ CffiLibraryAddressOfCmd(Tcl_Interp *ip,
     void *addr;
 
     CFFI_ASSERT(objc == 3);
-    addr = CffiLibFindSymbol(ip, ctxP->dlP, objv[2]);
+    addr = CffiLibFindSymbol(ip, ctxP->libH, objv[2]);
     if (addr) {
         Tcl_SetObjResult(ip, Tclh_ObjFromAddress(addr));
         return TCL_OK;

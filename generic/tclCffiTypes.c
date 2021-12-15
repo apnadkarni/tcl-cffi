@@ -119,61 +119,6 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      sizeof(unsigned char)},
     {NULL}};
 
-static struct {
-    const char *modeStr;
-    DCint mode;
-} cffiCallModes[] = {{"c", DC_CALL_C_DEFAULT}, /* Assumed to be first! */
-                      {"ellipsis", DC_CALL_C_ELLIPSIS},
-                      {"ellipsis_varargs", DC_CALL_C_ELLIPSIS_VARARGS},
-#if defined(_WIN32) && !defined(_WIN64)
-                      {"stdcall", DC_CALL_C_X86_WIN32_STD},
-                      {"x86_win32_std", DC_CALL_C_X86_WIN32_STD},
-                      {"x86_win32_fast_ms", DC_CALL_C_X86_WIN32_FAST_MS},
-                      {"fastcall", DC_CALL_C_X86_WIN32_FAST_MS},
-                      {"x86_win32_fast_gnu", DC_CALL_C_X86_WIN32_FAST_GNU},
-                      {"x86_win32_this_ms", DC_CALL_C_X86_WIN32_THIS_MS},
-                      {"x86_win32_this_gnu", DC_CALL_C_X86_WIN32_THIS_GNU},
-#else
-                      {"stdcall", DC_CALL_C_DEFAULT},
-                      {"fastcall", DC_CALL_C_DEFAULT},
-#if !defined(_WIN64)
-                      {"syscall", DC_CALL_SYS_DEFAULT},
-#endif
-#endif
-
-
-#ifdef TBD /* Not really needed because default suffices? */
-                      {"x64_win64", DC_CALL_C_X64_WIN64},
-                      {"x86_cdecl", DC_CALL_C_X86_CDECL},
-                      {"x86_plan9", DC_CALL_C_X86_PLAN9},
-                      {"x64_sysv", DC_CALL_C_X64_SYSV},
-                      {"ppc32_darwin", DC_CALL_C_PPC32_DARWIN},
-                      {"ppc32_osx", DC_CALL_C_PPC32_OSX},
-                      {"ppc32_sysv", DC_CALL_C_PPC32_SYSV},
-                      {"ppc32_linux", DC_CALL_C_PPC32_LINUX},
-                      {"ppc64", DC_CALL_C_PPC64},
-                      {"ppc64_linux", DC_CALL_C_PPC64_LINUX},
-                      {"arm_arm", DC_CALL_C_ARM_ARM},
-                      {"arm_thumb", DC_CALL_C_ARM_THUMB},
-                      {"arm_arm_EABI", DC_CALL_C_ARM_ARM_EABI},
-                      {"arm_thumb_EABI", DC_CALL_C_ARM_THUMB_EABI},
-                      {"arm_armhf", DC_CALL_C_ARM_ARMHF},
-                      {"arm64", DC_CALL_C_ARM64},
-                      {"mips32_eabi", DC_CALL_C_MIPS32_EABI},
-                      {"mips32_pspsdk", DC_CALL_C_MIPS32_PSPSDK},
-                      {"mips32_o32", DC_CALL_C_MIPS32_O32},
-                      {"mips64_n64", DC_CALL_C_MIPS64_N64},
-                      {"mips64_n32", DC_CALL_C_MIPS64_N32},
-                      {"sparc32", DC_CALL_C_SPARC32},
-                      {"sparc64", DC_CALL_C_SPARC64},
-                      {"sys_x86_int80h_BSD", DC_CALL_SYS_X86_INT80H_BSD},
-                      {"sys_x86_int80h_LINUX", DC_CALL_SYS_X86_INT80H_LINUX},
-                      {"sys_x64_syscall_SYSV", DC_CALL_SYS_X64_SYSCALL_SYSV},
-                      {"sys_ppc32", DC_CALL_SYS_PPC32},
-                      {"sys_ppc64", DC_CALL_SYS_PPC64},
-#endif /* TBD */
-                      {NULL, 0}};
-
 enum cffiTypeAttrOpt {
     PARAM_IN,
     PARAM_OUT,
@@ -324,6 +269,7 @@ CffiBaseTypeInfoGet(Tcl_Interp *ip, Tcl_Obj *baseTypeObj)
         return NULL;
 }
 
+#ifdef OBSOLETE
 CffiResult
 CffiCallModeParse(Tcl_Interp *ip, Tcl_Obj *modeObj, DCint *modeP)
 {
@@ -339,6 +285,7 @@ CffiCallModeParse(Tcl_Interp *ip, Tcl_Obj *modeObj, DCint *modeP)
     *modeP = cffiCallModes[modeIndex].mode;
     return TCL_OK;
 }
+#endif
 
 int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag expected_tag)
 {

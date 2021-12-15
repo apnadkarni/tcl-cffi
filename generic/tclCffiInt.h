@@ -11,8 +11,12 @@
 #include "tclhObj.h"
 #include "tclhPointer.h"
 #include "memlifo.h"
+#ifdef CFFI_USE_DYNCALL
 #include "dynload.h"
 #include "dyncall.h"
+#else
+#include "ffi.h"
+#endif
 
 #include <stdint.h>
 
@@ -227,7 +231,9 @@ typedef struct CffiInterpCtx {
 /* Context required for making calls to a function in a DLL. */
 typedef struct CffiCallVmCtx {
     CffiInterpCtx *ipCtxP;
+#ifdef CFFI_USE_DYNCALL
     DCCallVM *vmP; /* The dyncall call context to use */
+#endif
 } CffiCallVmCtx;
 
 /* Context for dll commands. */
@@ -236,11 +242,12 @@ typedef Tcl_LoadHandle CffiLoadHandle;
 #else
 typedef DLLib *CffiLoadHandle;
 #endif
+
 typedef struct CffiLibCtx {
     CffiCallVmCtx *vmCtxP;
-    CffiLoadHandle  dlP;    /* The dyncall library context */
-    Tcl_Obj *pathObj;       /* Path to the library. May be NULL */
-    int nRefs;     /* To ensure library not released with bound functions */
+    CffiLoadHandle libH; /* The dyncall library context */
+    Tcl_Obj *pathObj;    /* Path to the library. May be NULL */
+    int nRefs; /* To ensure library not released with bound functions */
 } CffiLibCtx;
 CFFI_INLINE void CffiLibCtxRef(CffiLibCtx *libCtxP) {
     libCtxP->nRefs += 1;
@@ -258,12 +265,21 @@ typedef struct CffiParam {
     CffiTypeAndAttrs typeAttrs;
 } CffiParam;
 
+#ifdef CFFI_USE_DYNCALL
+typedef DCint CffiABIProtocol;
+#else
+typedef ffi_abi CffiABIProtocol;
+#endif
+
 /* Function prototype definition */
 typedef struct CffiProto {
     int nRefs;             /* Reference count */
     int nParams;           /* Number of params, sizeof params array */
-    DCint callMode;        /* cdecl, stdcall etc. */
+    CffiABIProtocol abi;   /* cdecl, stdcall etc. */
     CffiParam returnType;  /* Name and return type of function */
+#ifndef CFFI_USE_DYNCALL
+    ffi_cif *cifP; /* Descriptor used by cffi */
+#endif
     CffiParam params[1];   /* Real size depends on nparams which
                                may even be 0!*/
     /* !!!DO NOT ADD FIELDS HERE AT END OF STRUCT!!! */
@@ -305,7 +321,9 @@ typedef struct CffiCall {
  * Prototypes
  */
 CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
+#ifdef OBSOLETE
 CffiResult CffiCallModeParse(Tcl_Interp *ip, Tcl_Obj *modeObj, DCint *modeP);
+#endif
 
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
                                             Tcl_Obj *baseTypeObj);
@@ -422,7 +440,7 @@ void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
 CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
 
 void CffiLibCtxUnref(CffiLibCtx *ctxP);
-void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle dlP, Tcl_Obj *symbolObj);
+void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj);
 CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
 Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
 
@@ -444,59 +462,82 @@ CffiResult CffiEnumBitmask(CffiInterpCtx *ipCtxP,
 
 #ifdef CFFI_USE_DYNCALL
 
+CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
+    return DC_CALL_C_DEFAULT;
+}
+CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
+#if defined(_WIN32) && !defined(_WIN64)
+    return DC_CALL_C_X86_WIN32_STD;
+#else
+    return DC_CALL_C_DEFAULT;
+#endif
+}
+
 #define CffiLoadArg CffiDyncallLoadArg
 void CffiDyncallLoadArg(CffiCall *callP,
                         CffiArgument *argP,
                         CffiTypeAndAttrs *typeAttrsP);
-#define CffiResetCall CffiDyncallResetCall
 CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP);
+#define CffiResetCall CffiDyncallResetCall
 
-CFFI_INLINE signed char CffiCallSCharFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (signed char) dcCallInt(vmP, fnP);
+CFFI_INLINE void CffiCallVoidFunc(CffiCall *callP) {
+    dcCallVoid(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE unsigned char CffiCallUCharFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (unsigned char) dcCallInt(vmP, fnP);
+CFFI_INLINE signed char CffiCallSCharFunc(CffiCall *callP) {
+    return (signed char) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE short CffiCallShortFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (short) dcCallInt(vmP, fnP);
+CFFI_INLINE unsigned char CffiCallUCharFunc(CffiCall *callP) {
+    return (unsigned char) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE unsigned short CffiCallUShortFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (unsigned short) dcCallInt(vmP, fnP);
+CFFI_INLINE short CffiCallShortFunc(CffiCall *callP) {
+    return (short) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE int CffiCallIntFunc(DCCallVM *vmP, DCpointer fnP) {
-    return dcCallInt(vmP, fnP);
+CFFI_INLINE unsigned short CffiCallUShortFunc(CffiCall *callP) {
+    return (unsigned short) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE unsigned int CffiCallUIntFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (unsigned int) dcCallInt(vmP, fnP);
+CFFI_INLINE int CffiCallIntFunc(CffiCall *callP) {
+    return dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE long CffiCallLongFunc(DCCallVM *vmP, DCpointer fnP) {
-    return dcCallLong(vmP, fnP);
+CFFI_INLINE unsigned int CffiCallUIntFunc(CffiCall *callP) {
+    return (unsigned int) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE unsigned long CffiCallULongFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (unsigned long) dcCallLong(vmP, fnP);
+CFFI_INLINE long CffiCallLongFunc(CffiCall *callP) {
+    return dcCallLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE long long CffiCallLongLongFunc(DCCallVM *vmP, DCpointer fnP) {
-    return dcCallLongLong(vmP, fnP);
+CFFI_INLINE unsigned long CffiCallULongFunc(CffiCall *callP) {
+    return (unsigned long) dcCallLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE unsigned long long CffiCallULongLongFunc(DCCallVM *vmP, DCpointer fnP) {
-    return (unsigned long long) dcCallLongLong(vmP, fnP);
+CFFI_INLINE long long CffiCallLongLongFunc(CffiCall *callP) {
+    return dcCallLongLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE float CffiCallFloatFunc(DCCallVM *vmP, DCpointer fnP) {
-    return dcCallFloat(vmP, fnP);
+CFFI_INLINE unsigned long long CffiCallULongLongFunc(CffiCall *callP) {
+    return (unsigned long long) dcCallLongLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE double CffiCallDoubleFunc(DCCallVM *vmP, DCpointer fnP) {
-    return dcCallDouble(vmP, fnP);
+CFFI_INLINE float CffiCallFloatFunc(CffiCall *callP) {
+    return dcCallFloat(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE DCpointer CffiCallPointerFunc(DCCallVM *vmP, DCpointer fnP) {
-    return dcCallPointer(vmP, fnP);
+CFFI_INLINE double CffiCallDoubleFunc(CffiCall *callP) {
+    return dcCallDouble(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-
-
-
+CFFI_INLINE DCpointer CffiCallPointerFunc(CffiCall *callP) {
+    return dcCallPointer(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
+}
 
 #else
 
 #error Only Dyncall support implemented currently.
+
+CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
+    return FFI_DEFAULT_ABI;
+}
+CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
+#if defined(_WIN32) && !defined(_WIN64)
+    return FFI_STDCALL;
+#else
+    return FFI_DEFAULT_ABI;
+#endif
+}
+
 
 #endif
 

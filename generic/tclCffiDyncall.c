@@ -221,7 +221,7 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
     DCCallVM *vmP = callP->fnP->vmCtxP->vmP;
 
     dcReset(vmP);
-    dcMode(vmP, callP->fnP->protoP->callMode);
+    dcMode(vmP, callP->fnP->protoP->abi);
     return TCL_OK;
 }
 

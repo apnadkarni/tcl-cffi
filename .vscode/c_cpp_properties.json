@@ -4,7 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "d:/tcl/debug/x64/include"
+                "d:/tcl/debug/x64/include",
+                "D:/src/vcpkg-export/ffi/installed/AMD64/include"
             ],
             "defines": [
                 "_DEBUG",
@@ -15,7 +16,8 @@
                 "PACKAGE_NAME=\"cffi\"",
                 "PACKAGE_VERSION=\"0.1\"",
                 "TCLH_IMPL",
-                "TCLH_EMBEDDER=\"CFFI\""
+                "TCLH_EMBEDDER=\"CFFI\"",
+                "CFFI_USE_DYNCALLX"
             ],
             "windowsSdkVersion": "10.0.17763.0",
             "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Tools/MSVC/14.16.27023/bin/Hostx64/x64/cl.exe",
