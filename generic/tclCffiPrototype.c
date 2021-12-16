@@ -52,7 +52,7 @@ CffiProtoUnref(CffiProto *protoP)
         }
 #ifndef CFFI_USE_DYNCALL
         if (protoP->cifP)
-            ckfree(cifP);
+            ckfree(protoP->cifP);
 #endif
         ckfree(protoP);
     }
@@ -171,7 +171,7 @@ CffiProtoGet(CffiInterpCtx *ipCtxP,
  *  ip - interpreter
  *  objc - size of *objv*
  *  objv - *prototype* *function|stdcall* NAME RETURN PARAMS
- *  callMode - dyncall calling convention
+ *  callMode - calling convention
  *
  * Returns:
  * TCL_OK on success, TCL_ERROR on failure.
@@ -181,7 +181,7 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
                   Tcl_Interp *ip,
                   int objc,
                   Tcl_Obj *const objv[],
-                  DCint callMode)
+                  CffiABIProtocol callMode)
 {
     Tcl_HashEntry *heP;
     CffiProto *protoP;
@@ -319,13 +319,8 @@ CffiPrototypeObjCmd(ClientData cdata,
                                       ip,
                                       objc,
                                       objv,
-#if defined(_WIN32) && !defined(_WIN64)
-                                      cmdIndex == 0 ? DC_CALL_C_DEFAULT
-                                                    : DC_CALL_C_X86_WIN32_STD
-#else
-                                      DC_CALL_C_DEFAULT
-#endif
-        );
+                                      cmdIndex == 0 ? CffiDefaultABI()
+                                                    : CffiStdcallABI());
     }
     else
         return subCommands[cmdIndex].cmdFn(ipCtxP, ip, objc, objv);

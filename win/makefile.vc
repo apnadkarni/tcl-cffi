@@ -71,7 +71,7 @@ PRJ_OBJS = \
 !if $(USE_DYNCALL)
 PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiDyncall.obj
 !else
-PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiLibcffi.obj
+PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiLibffi.obj
 !endif
 
 PRJ_TEST_OBJS = $(TMP_DIR)\tclCffiTest.obj
@@ -93,7 +93,7 @@ PRJ_DEFINES = $(PRJ_DEFINES) -DCFFI_USE_DYNCALL
 PRJ_LIBS = $(EXTDIR)\lib\dyncall_s.lib $(EXTDIR)\lib\dynload_s.lib $(EXTDIR)\lib\dyncallback_s.lib
 !else
 PRJ_DEFINES = $(PRJ_DEFINES) -DCFFI_USE_TCLLOAD
-PRJ_LIBS = $(EXTDIR)\lib\libffi.a
+PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
 !endif
 
 # Define the standard targets

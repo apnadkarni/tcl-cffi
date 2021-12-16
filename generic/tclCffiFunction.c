@@ -196,7 +196,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
  * Prepares the call stack needed for a function call.
  *
  * Parameters:
- * callP - call context
+ * callP - initialized call context.
  * nArgObjs - size of argObjs
  * argObjs - function arguments passed by the script
  *
@@ -217,9 +217,11 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     CffiArgument *argsP;
     CffiProto *protoP;
     Tcl_Interp *ip;
+    CffiInterpCtx *ipCtxP;
 
     protoP = callP->fnP->protoP;
-    ip     = callP->fnP->vmCtxP->ipCtxP->interp;
+    ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    ip     = ipCtxP->interp;
 
     /* Resets the context for the call */
     if (CffiResetCall(ip, callP) != TCL_OK)
@@ -239,10 +241,14 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     if (callP->nArgs == 0)
         return TCL_OK;
     argsP = (CffiArgument *)MemLifoAlloc(
-        &callP->fnP->vmCtxP->ipCtxP->memlifo, callP->nArgs * sizeof(CffiArgument));
+        &ipCtxP->memlifo, callP->nArgs * sizeof(CffiArgument));
     callP->argsP = argsP;
     for (i = 0; i < callP->nArgs; ++i)
         argsP[i].flags = 0; /* Mark as uninitialized */
+#ifndef CFFI_USE_DYNCALL
+    callP->argValuesPP = (void **)MemLifoAlloc(
+        &ipCtxP->memlifo, callP->nArgs * sizeof(void *));
+#endif
 
     /*
      * Arguments are set up in two phases - first set up those arguments that
@@ -284,7 +290,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         if (actualCount >= 0) {
             /* This arg already been parsed successfully. Just load it. */
             CFFI_ASSERT(argsP[i].flags & CFFI_F_ARG_INITIALIZED);
-            CffiLoadArg(callP, &argsP[i], &protoP->params[i].typeAttrs);
+            CffiReloadArg(callP, &argsP[i], &protoP->params[i].typeAttrs);
             continue;
         }
         CFFI_ASSERT((argsP[i].flags & CFFI_F_ARG_INITIALIZED) == 0);
@@ -409,6 +415,10 @@ CffiFunctionCall(ClientData cdata,
     callCtx.fnP = fnP;
     callCtx.nArgs = 0;
     callCtx.argsP = NULL;
+#ifndef CFFI_USE_DYNCALL
+    callCtx.argValuesPP = NULL;
+    callCtx.retValueP   = NULL;
+#endif
 
     /* Set up arguments if any */
     if (protoP->nParams) {

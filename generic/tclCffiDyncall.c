@@ -237,7 +237,7 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
  * argP - argument value to load
  * typeAttrsP - argument type descriptor
  */
-void CffiDyncallLoadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
+void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
 {
     DCCallVM *vmP = callP->fnP->vmCtxP->vmP;
 

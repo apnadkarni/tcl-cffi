@@ -280,8 +280,10 @@ void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 {
     CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
     CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
+#ifdef CFFI_USE_DYNCALL
     if (vmCtxP->vmP)
         dcFree(vmCtxP->vmP);
+#endif
     if (ipCtxP) {
         CffiAliasesCleanup(&ipCtxP->aliases);
         CffiPrototypesCleanup(&ipCtxP->prototypes);
@@ -328,12 +330,16 @@ Cffi_Init(Tcl_Interp *ip)
 
     vmCtxP = ckalloc(sizeof(*vmCtxP));
     vmCtxP->ipCtxP = ipCtxP;
+#ifdef CFFI_USE_DYNCALL
     vmCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
+#endif
 
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::dyncall::Library", CffiLibraryObjCmd, vmCtxP, NULL);
+#ifdef CFFI_USE_DYNCALL
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::dyncall::Symbols", CffiDyncallSymbolsObjCmd, NULL, NULL);
+#endif
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Struct", CffiStructObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(

@@ -180,6 +180,9 @@ typedef struct CffiValue {
     float flt;
     double dbl;
     void *ptr;
+#ifndef CFFI_USE_DYNCALL
+    ffi_arg ffi_val;
+#endif
     } u;
     union {
         /* TBD - Tcl_DString has 200 bytes static storage. Memory wasteful? */
@@ -304,6 +307,11 @@ typedef struct CffiArgument {
     CffiValue savedValue; /* Copy of above - needed after call in some cases
                              like disposable pointers. NOT used in all cases */
     Tcl_Obj *varNameObj;  /* Name of output variable or NULL */
+#ifndef CFFI_USE_DYNCALL
+    void *valueP; /* Always points to the value field. Used for libcffi
+                     which needs an additional level of indirection for
+                     byref parameters. Only set as needed in CffiPrepareArg */
+#endif
     int actualCount;      /* For dynamic arrays, stores the actual size.
                              Always >= 0 (0 being scalar) */
     int flags;
@@ -314,6 +322,12 @@ typedef struct CffiArgument {
 typedef struct CffiCall {
     CffiFunction *fnP;         /* Function being called */
     CffiArgument *argsP;   /* Argument contexts */
+#ifndef CFFI_USE_DYNCALL
+    void **argValuesPP; /* Array of pointers into the actual value fields within
+                           argsP[] elements */
+    void *retValueP;    /* Points to storage to use for return value */
+    CffiValue retValue; /* Holds return value */
+#endif
     int nArgs;             /* Size of argsP. */
 } CffiCall;
 
@@ -473,59 +487,61 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
 #endif
 }
 
-#define CffiLoadArg CffiDyncallLoadArg
-void CffiDyncallLoadArg(CffiCall *callP,
+#define CffiReloadArg CffiDyncallLoadArg
+void CffiDyncallReloadArg(CffiCall *callP,
                         CffiArgument *argP,
                         CffiTypeAndAttrs *typeAttrsP);
 CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP);
 #define CffiResetCall CffiDyncallResetCall
 
-CFFI_INLINE void CffiCallVoidFunc(CffiCall *callP) {
+#define DEFINEFN_(type_, name_, fn_) \
+CFFI_INLINE type_ name_ (CffiCall *callP) { \
+    return fn_ (callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr); \
+}
+CFFI_INLINE void CffiCallVoidFunc (CffiCall *callP) {
     dcCallVoid(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
 }
-CFFI_INLINE signed char CffiCallSCharFunc(CffiCall *callP) {
-    return (signed char) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
+
+DEFINEFN_(signed char, CffiCallSCharFunc, dcCallInt)
+DEFINEFN_(unsigned char, CffiCallUCharFunc, dcCallInt)
+DEFINEFN_(short, CffiCallShortFunc, dcCallInt)
+DEFINEFN_(unsigned short, CffiCallUShortFunc, dcCallInt)
+DEFINEFN_(int, CffiCallIntFunc, dcCallInt)
+DEFINEFN_(unsigned int, CffiCallUIntFunc, dcCallInt)
+DEFINEFN_(long, CffiCallLongFunc, dcCallLong)
+DEFINEFN_(unsigned long, CffiCallULongFunc, dcCallLong)
+DEFINEFN_(long long, CffiCallLongLongFunc, dcCallLongLong)
+DEFINEFN_(unsigned long long, CffiCallULongLongFunc, dcCallLongLong)
+DEFINEFN_(float, CffiCallFloatFunc, dcCallFloat)
+DEFINEFN_(double, CffiCallDoubleFunc, dcCallDouble)
+DEFINEFN_(DCpointer, CffiCallPointerFunc, dcCallPointer)
+
+#undef DEFINEFN_
+
+#define STOREARGFN_(name_, type_, storefn_) \
+CFFI_INLINE void CffiStoreArg ## name_ (CffiCall *callP, int ix, type_ val) \
+{ \
+    storefn_(callP->fnP->vmCtxP->vmP, val); \
 }
-CFFI_INLINE unsigned char CffiCallUCharFunc(CffiCall *callP) {
-    return (unsigned char) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE short CffiCallShortFunc(CffiCall *callP) {
-    return (short) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE unsigned short CffiCallUShortFunc(CffiCall *callP) {
-    return (unsigned short) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE int CffiCallIntFunc(CffiCall *callP) {
-    return dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE unsigned int CffiCallUIntFunc(CffiCall *callP) {
-    return (unsigned int) dcCallInt(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE long CffiCallLongFunc(CffiCall *callP) {
-    return dcCallLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE unsigned long CffiCallULongFunc(CffiCall *callP) {
-    return (unsigned long) dcCallLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE long long CffiCallLongLongFunc(CffiCall *callP) {
-    return dcCallLongLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE unsigned long long CffiCallULongLongFunc(CffiCall *callP) {
-    return (unsigned long long) dcCallLongLong(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE float CffiCallFloatFunc(CffiCall *callP) {
-    return dcCallFloat(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE double CffiCallDoubleFunc(CffiCall *callP) {
-    return dcCallDouble(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
-CFFI_INLINE DCpointer CffiCallPointerFunc(CffiCall *callP) {
-    return dcCallPointer(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
-}
+STOREARGFN_(Pointer, void*, dcArgPointer)
+STOREARGFN_(SChar, signed char, dcArgChar)
+STOREARGFN_(UChar, unsigned char, dcArgChar)
+STOREARGFN_(Short, short, dcArgShort)
+STOREARGFN_(UShort, unsigned short, dcArgShort)
+STOREARGFN_(Int, int, dcArgInt)
+STOREARGFN_(UInt, unsigned int, dcArgInt)
+STOREARGFN_(Long, long, dcArgLong)
+STOREARGFN_(ULong, unsigned long, dcArgLong)
+STOREARGFN_(LongLong, long long, dcArgLongLong)
+STOREARGFN_(ULongLong, unsigned long long, dcArgLongLong)
+STOREARGFN_(Float, float, dcArgFloat)
+STOREARGFN_(Double, double, dcArgDouble)
+
+#undef STOREARGFN_
 
 #else
 
-#error Only Dyncall support implemented currently.
+CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP);
 
 CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
     return FFI_DEFAULT_ABI;
@@ -537,9 +553,61 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
     return FFI_DEFAULT_ABI;
 #endif
 }
+CFFI_INLINE void
+CffiReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
+{
+    /* libcffi does not need reloadinf of args once loaded */
+}
+
+CFFI_INLINE CffiResult CffiResetCall(Tcl_Interp *ip, CffiCall *callP) {
+    return TCL_OK; /* Libffi does not need to reset a call */
+}
+
+CFFI_INLINE void CffiLibffiCall(CffiCall *callP) {
+    ffi_call(callP->fnP->protoP->cifP,
+             callP->fnP->fnAddr,
+             callP->retValueP,
+             callP->argValuesPP);
+}
+
+CFFI_INLINE void CffiCallVoidFunc (CffiCall *callP) {
+    CffiLibffiCall(callP);
+}
+
+#define DEFINEFN_(type_, name_, fld_)                \
+    CFFI_INLINE type_ name_(CffiCall *callP)         \
+    {                                                \
+        CffiLibffiCall(callP);                       \
+        if (sizeof(type_) <= sizeof(ffi_arg))        \
+            return (type_)callP->retValue.u.ffi_val; \
+        else                                         \
+            return callP->retValue.u.fld_;           \
+    }
+
+DEFINEFN_(signed char, CffiCallSCharFunc, schar)
+DEFINEFN_(unsigned char, CffiCallUCharFunc, uchar)
+DEFINEFN_(short, CffiCallShortFunc, sshort)
+DEFINEFN_(unsigned short, CffiCallUShortFunc, ushort)
+DEFINEFN_(int, CffiCallIntFunc, sint)
+DEFINEFN_(unsigned int, CffiCallUIntFunc, uint)
+DEFINEFN_(long, CffiCallLongFunc, slong)
+DEFINEFN_(unsigned long, CffiCallULongFunc, ulong)
+DEFINEFN_(long long, CffiCallLongLongFunc, slonglong)
+DEFINEFN_(unsigned long long, CffiCallULongLongFunc, ulonglong)
+DEFINEFN_(void*, CffiCallPointerFunc, ptr)
+CFFI_INLINE float CffiCallFloatFunc(CffiCall *callP) {
+    CffiLibffiCall(callP);
+    return callP->retValue.u.flt;
+}
+CFFI_INLINE double CffiCallDoubleFunc(CffiCall *callP) {
+    CffiLibffiCall(callP);
+    return callP->retValue.u.dbl;
+}
+
+#undef DEFINEFN_
 
 
-#endif
+#endif /* CFFI_USE_DYNCALL */
 
 CffiResult
 CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs);
