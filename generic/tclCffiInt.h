@@ -419,7 +419,7 @@ CffiResult CffiExternalDStringToObj(Tcl_Interp *ip,
                                    Tcl_DString *dsP,
                                    Tcl_Obj **resultObjP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
-                            const CffiTypeAndAttrs *typeAttrsP,
+                            const CffiTypeAndAttrs *typeAttrsP,
                             CffiValue *valueP, Tcl_WideInt *sysErrorP);
 #ifdef OBSOLETE
 CffiResult CffiReportRequirementError(Tcl_Interp *ip,
@@ -487,7 +487,7 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
 #endif
 }
 
-#define CffiReloadArg CffiDyncallLoadArg
+#define CffiReloadArg CffiDyncallReloadArg
 void CffiDyncallReloadArg(CffiCall *callP,
                         CffiArgument *argP,
                         CffiTypeAndAttrs *typeAttrsP);

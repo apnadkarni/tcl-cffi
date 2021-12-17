@@ -225,7 +225,7 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
     return TCL_OK;
 }
 
-/* Function: CffiDyncallLoadArg
+/* Function: CffiDyncallReloadArg
  * Loads an argument value into the dyncall argument context.
  *
  * Parameters:
