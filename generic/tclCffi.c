@@ -9,6 +9,25 @@
 #define TCLH_EMBEDDER PACKAGE_NAME
 #include "tclCffiInt.h"
 
+static Tcl_Config cffiConfig[] = {
+#ifdef CFFI_USE_DYNCALL
+    {"backend", "dyncall"},
+#else
+    {"backend", "libffi"},
+#endif
+    {"version", PACKAGE_VERSION},
+#if defined(_MSC_VER)
+    {"compiler", "vc++"},
+#elif defined(__GNUC__)
+    {"compiler", "gcc"},
+#elif defined(__clang__)
+    {"compiler", "clang"},
+#else
+    {"compiler", "unknown"},
+#endif
+    {NULL, NULL}
+};
+
 
 /* Function: Tclh_SubCommandNameToIndex
  * Looks up a subcommand table and returns index of a matching entry.
@@ -364,6 +383,9 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CallWhenDeleted(ip, CffiFinit, vmCtxP);
 
     Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION);
+
+    Tcl_RegisterConfig(ip, PACKAGE_NAME, cffiConfig, "utf-8");
+
     return TCL_OK;
 }
 

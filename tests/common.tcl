@@ -26,7 +26,10 @@ namespace eval cffi::test {
     variable testDllPath [file normalize [file join [file dirname $::cffi::dll_path] cffitest[info sharedlibextension]]]
     cffi::dyncall::Library create testDll $testDllPath
     testDll function getTestStructSize int {}
-    cffi::dyncall::Symbols create testSyms $testDllPath
+    if {[cffi::pkgconfig get backend] eq "dyncall"} {
+        cffi::dyncall::Symbols create testSyms $testDllPath
+        tcltest::testConstraint dyncall
+    }
     variable testStructSize
     set testStructSize [getTestStructSize]
 

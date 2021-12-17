@@ -198,6 +198,8 @@ namespace eval ${NS}::test  {
     test dyncall-Symbols-new-0 {dyncall::Symbols new} -body {
         set dll [$symbolsClass new $testDllPath]
         list [command_exists $dll] [$dll destroy] [command_exists $dll]
+    } -constraints {
+        dyncall
     } -result [list 1 {} 0]
 
     # A normal build of tclsh does not contain an export table hence the constraint
@@ -207,18 +209,24 @@ namespace eval ${NS}::test  {
         set dll [$symbolsClass new]
         set path [$dll path]
         list [command_exists $dll] [rename $dll ""] [command_exists $dll] [file normalize $path]
+    } -constraints {
+        dyncall
     } -result [list 1 {} 0 [file normalize [info nameofexecutable]]]
 
     test dyncall-Symbols-new-error-0 {dyncall::Symbols new (invalid path)} -body {
         list [catch {
             $symbolsClass new nosuchpath
         } result] $result $::errorCode
+    } -constraints {
+        dyncall
     } -result [list 1 {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.} {cffi NOT_FOUND {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.}}]
 
     test dyncall-Symbols-new-error-1 {dyncall::Symbols new (extra args)} -body {
         list [catch {
             $symbolsClass new $testDllPath extraarg
         } result] $result $::errorCode
+    } -constraints {
+        dyncall
     } -result {1 {wrong # args: should be "cffi::dyncall::Symbols new ?DLLPATH?"} {TCL WRONGARGS}}
 
     ####
@@ -226,11 +234,15 @@ namespace eval ${NS}::test  {
     test dyncall-Symbols-create-0 {dyncall::Symbols create (current namespace)} -body {
         set dll [$symbolsClass create dll $testDllPath]
         list $dll [command_exists [namespace current]::dll] [dll destroy] [command_exists [namespace current]::dll] 
+    } -constraints {
+        dyncall
     } -result [list [namespace current]::dll 1 {} 0]
 
     test dyncall-Symbols-create-1 {dyncall::Symbols create (global namespace)} -body {
         set dll [$symbolsClass create ::dll $testDllPath]
         list $dll [command_exists ::dll] [rename ::dll ""] [command_exists ::dll]
+    } -constraints {
+        dyncall
     } -result [list ::dll 1 {} 0]
 
     test dyncall-Symbols-create-2 {dyncall::Symbols create (explicit namespace)} -setup {
@@ -241,6 +253,8 @@ namespace eval ${NS}::test  {
     } -body {
         set dll [$symbolsClass create ${ns}::dll $testDllPath]
         list $dll [command_exists $dll] [$dll destroy] [command_exists $dll]
+    } -constraints {
+        dyncall
     } -result [list ::cffi::test::ns::dll 1 {} 0]
 
     # A normal build of tclsh does not contain an export table hence the constraint
@@ -251,65 +265,87 @@ namespace eval ${NS}::test  {
         set path [dll path]
         dll destroy
         file tail $path
+    } -constraints {
+        dyncall
     } -result [file tail [info nameofexecutable]]
 
     test dyncall-Symbols-create-error-0 {dyncall::Symbols create (invalid path)} -body {
         list [catch {
             $symbolsClass create dll nosuchpath
         } result] $result $::errorCode
+    } -constraints {
+        dyncall
     } -result [list 1 {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.} {cffi NOT_FOUND {Symbols container "nosuchpath" not found or inaccessible. Could not find file or export table in file.}}]
 
     test dyncall-Symbols-create-error-1 {dyncall::Symbols create (extra args)} -body {
         list [catch {
             $symbolsClass create dll $testDllPath extraarg
         } result] $result $::errorCode
+    } -constraints {
+        dyncall
     } -result {1 {wrong # args: should be "cffi::dyncall::Symbols create OBJNAME ?DLLPATH?"} {TCL WRONGARGS}}
 
     test dyncall-Symbols-create-error-2 {dyncall::Symbols create (no args)} -body {
         list [catch {
             $symbolsClass create
         } result] $result $::errorCode
+    } -constraints {
+        dyncall
     } -result {1 {wrong # args: should be "cffi::dyncall::Symbols create OBJNAME ?DLLPATH?"} {TCL WRONGARGS}}
 
     ###
     # Symbols count
-    testnumargs dyncall-Symbols-count "testSyms count" "" ""
+    testnumargs dyncall-Symbols-count "testSyms count" "" "" -constraints dyncall
     test dyncall-Symbols-count-0 {dyncall::Symbols count} -body {
         set count [testSyms count]
         # Platform and compiler dependent - TBD
         expr {$count > 250}
+    } -constraints {
+        dyncall
     } -result 1
 
     ###
     # Symbols index
-    testnumargs dyncall-Symbols-index "testSyms index" "INDEX" ""
+    testnumargs dyncall-Symbols-index "testSyms index" "INDEX" "" -constraints dyncall
     test dyncall-Symbols-index-0 {dyncall::Symbols index} -body {
         testSyms index 1
+    } -constraints {
+        dyncall
     } -result {.+} -match regexp
     test dyncall-Symbols-index-1 {dyncall::Symbols index} -body {
         set count [testSyms count]
         # Compiler/platform dependent
         # Symbol entry may be present without an name so empty string allowed
         testSyms index [expr {[testSyms count]-1}]
+    } -constraints {
+        dyncall
     } -result ".*" -match regexp
     test dyncall-Symbols-index-error-0 "dyncall::Symbols index - out of range" -body {
         testSyms index [testSyms count]
+    } -constraints {
+        dyncall
     } -result {Symbol index "*" not found or inaccessible. No symbol at specified index.} -returnCodes error -match glob
     test dyncall-Symbols-index-error-1 "dyncall::Symbols index - negative" -body {
         testSyms index -1
+    } -constraints {
+        dyncall
     } -result {Symbol index "-1" not found or inaccessible. No symbol at specified index.} -returnCodes error
 
     ###
     # Symbols ataddress
-    testnumargs dyncall-Symbols-ataddress "testSyms ataddress" "ADDRESS" ""
+    testnumargs dyncall-Symbols-ataddress "testSyms ataddress" "ADDRESS" "" -constraints dyncall
     test dyncall-Symbols-ataddress-0 "Symbols ataddress" -body {
         # IMPORTANT: use a function that the linker cannot combine with another
         set addr [testDll addressof getTestStruct]
         testSyms ataddress $addr
+    } -constraints {
+        dyncall
     } -result getTestStruct
     test dyncall-Symbols-ataddress-error-0 "Symbols ataddress" -body {
         set addr [testDll addressof getTestStruct]
         testSyms ataddress [expr {$addr+1}]
+    } -constraints {
+        dyncall
     } -result "Address \"*\" not found or inaccessible. No symbol at specified address or library not loaded." -returnCodes error -match glob
 }
 

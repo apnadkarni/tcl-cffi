@@ -26,6 +26,28 @@ namespace eval $NS {
         #
         # Returns the value returned by the invoked C function.
     }
+
+}
+
+namespace eval ${NS}::pkgconfig {
+    proc list {} {
+        # Returns the list of keys containing information about
+        # the package configuration.
+    }
+    proc get {key} {
+        # Gets the value of a configuration key.
+        # key - one of the keys returned by [pkgconfig list] command
+        #
+        # The following keys are supported.
+        # `backend` - returns `libffi` or `dyncall` indicating the
+        #   backend FFI library in use
+        # `version` - the package version
+        # `compiler` - identifies the compiler used to build the
+        #   extension.
+        #
+    }
+    namespace export *
+    namespace ensemble create
 }
 
 namespace eval ${NS}::help {

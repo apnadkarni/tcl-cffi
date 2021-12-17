@@ -11,6 +11,20 @@ namespace eval ${NS}::test {
     test version-0 {Version check} -body {
         uplevel #0 package require cffi
     } -result 1.0b2
+
+    test pkgconfig-list-0 {pkgconfig list} -body {
+        lsort [cffi::pkgconfig list]
+    } -result {backend compiler version}
+    test pkgconfig-get-0 {pkgconfig get version} -body {
+        cffi::pkgconfig get version
+    } -result [uplevel #0 package require cffi]
+    test pkgconfig-get-1 {pkgconfig get compiler} -body {
+        catch {cffi::pkgconfig get compiler}
+    } -result 0
+    test pkgconfig-get-2 {pkgconfig get backend} -body {
+        expr {[cffi::pkgconfig get backend] in {libffi dyncall}}
+    } -result 1
+
 }
 
 ::tcltest::cleanupTests
