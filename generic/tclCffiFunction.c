@@ -5,7 +5,1117 @@
  * See the file LICENSE for license
  */
 
+#define TCLH_SHORTNAMES
 #include "tclCffiInt.h"
+
+static CffiResult CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj);
+static CffiResult CffiArgPostProcess(CffiCall *callP, int arg_index);
+static void CffiArgCleanup(CffiCall *callP, int arg_index);
+static CffiResult CffiReturnPrepare(CffiCall *callP);
+static CffiResult CffiReturnCleanup(CffiCall *callP);
+static void CffiPointerArgsDispose(Tcl_Interp *ip,
+                            CffiProto *protoP,
+                            CffiArgument *argsP,
+                            int callSucceeded);
+
+Tcl_WideInt
+CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
+                    Tcl_WideInt winError)
+{
+    Tcl_WideInt sysError = 0;
+    if (typeAttrsP->flags & CFFI_F_ATTR_ERRNO)
+        sysError = errno;
+#ifdef _WIN32
+    else if (typeAttrsP->flags & CFFI_F_ATTR_LASTERROR)
+        sysError = GetLastError();
+    else if (typeAttrsP->flags & CFFI_F_ATTR_WINERROR)
+        sysError = winError;
+#endif
+    return sysError;
+}
+
+
+/* Function: CffiPointerArgsDispose
+ * Disposes pointer arguments
+ *
+ * Parameters:
+ * ip - interpreter
+ * protoP - prototype structure with argument descriptors
+ * argsP - array of argument values
+ * callFailed - 0 if the function invocation had succeeded, else non-0
+ *
+ * The function loops through all argument values that are pointers
+ * and annotated as *dispose* or *disposeonsuccess*. Any such pointers
+ * are unregistered.
+ *
+ * Returns:
+ * Nothing.
+ */
+void
+CffiPointerArgsDispose(Tcl_Interp *ip,
+                       CffiProto *protoP,
+                       CffiArgument *argsP,
+                       int callFailed)
+{
+    int i;
+    for (i = 0; i < protoP->nParams; ++i) {
+        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
+            && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))) {
+            /*
+             * DISPOSE - always dispose of pointer
+             * DISPOSEONSUCCESS - dispose if the call had returned successfully
+             */
+            if ((typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)
+                || ((typeAttrsP->flags & CFFI_F_ATTR_DISPOSEONSUCCESS)
+                    && !callFailed)) {
+                int nptrs = argsP[i].actualCount;
+                /* Note no error checks because the CffiFunctionSetup calls
+                   above would have already done validation */
+                if (nptrs <= 1) {
+                    if (argsP[i].savedValue.u.ptr != NULL)
+                        Tclh_PointerUnregister(
+                            ip, argsP[i].savedValue.u.ptr, NULL);
+                }
+                else {
+                    int j;
+                    void **ptrArray = argsP[i].savedValue.u.ptr;
+                    CFFI_ASSERT(ptrArray);
+                    for (j = 0; j < nptrs; ++j) {
+                        if (ptrArray[j] != NULL)
+                            Tclh_PointerUnregister(ip, ptrArray[j], NULL);
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Function: CffiArgPrepareChars
+ * Initializes a CffiValue to pass a chars argument.
+ *
+ * Parameters:
+ * callP - the call context
+ * arg_index - index into argument array of call context
+ * valueObj - the value passed in from script. May be NULL for pure output.
+ * valueP - location of native value to store
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with pointer to chars in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareChars(CffiCall *callP,
+                    int arg_index,
+                    Tcl_Obj *valueObj,
+                    CffiValue *valueP)
+{
+    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiArgument *argP    = &callP->argsP[arg_index];
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
+    CFFI_ASSERT(argP->actualCount > 0);
+
+    valueP->u.ptr =
+        MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
+
+    /* If input, we need to encode appropriately */
+    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
+        return CffiCharsFromObj(ipCtxP->interp,
+                                typeAttrsP->dataType.u.tagObj,
+                                valueObj,
+                                valueP->u.ptr,
+                                argP->actualCount);
+    else {
+        /*
+         * To protect against the called C function leaving the output
+         * argument unmodified on error which would result in our
+         * processing garbage in CffiArgPostProcess, set null terminator.
+         */
+        *(char *)valueP->u.ptr = '\0';
+        /* In case encoding employs double nulls */
+        if (argP->actualCount > 1)
+            *(1 + (char *)valueP->u.ptr) = '\0';
+        return TCL_OK;
+    }
+}
+
+/* Function: CffiArgPrepareUniChars
+ * Initializes a CffiValue to pass a unichars argument.
+ *
+ * Parameters:
+ * callP - the call context
+ * arg_index - index into argument array of call context
+ * valueObj - the value passed in from script. May be NULL for pure output.
+ * valueP - location of native value to store
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with pointer to chars in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareUniChars(CffiCall *callP,
+                       int arg_index,
+                       Tcl_Obj *valueObj,
+                       CffiValue *valueP)
+{
+    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiArgument *argP    = &callP->argsP[arg_index];
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+
+    valueP->u.ptr =
+        MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount * sizeof(Tcl_UniChar));
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNICHAR_ARRAY);
+
+    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+        return CffiUniCharsFromObj(
+            ipCtxP->interp, valueObj, valueP->u.ptr, argP->actualCount);
+    }
+    else {
+        /*
+         * To protect against the called C function leaving the output
+         * argument unmodified on error which would result in our
+         * processing garbage in CffiArgPostProcess, set null terminator.
+         */
+        *(Tcl_UniChar *)valueP->u.ptr = 0;
+        return TCL_OK;
+    }
+}
+
+/* Function: CffiArgPrepareInString
+ * Initializes a CffiValue to pass a string input argument.
+ *
+ * Parameters:
+ * ip - interpreter
+ * typeAttrsP - parameter type descriptor
+ * valueObj - the Tcl_Obj containing string to pass. May be NULL for pure
+ *   output parameters
+ * valueP - location to store the argument
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with string in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareInString(Tcl_Interp *ip,
+                     const CffiTypeAndAttrs *typeAttrsP,
+                     Tcl_Obj *valueObj,
+                     CffiValue *valueP)
+{
+    int len;
+    const char *s;
+    Tcl_Encoding encoding;
+
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_ASTRING);
+    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+
+    Tcl_DStringInit(&valueP->ancillary.ds);
+    s = Tcl_GetStringFromObj(valueObj, &len);
+    /*
+     * Note this encoding step is required even for UTF8 since Tcl's
+     * internal UTF8 is not exactly UTF8
+     */
+    if (typeAttrsP->dataType.u.tagObj) {
+        CHECK(Tcl_GetEncodingFromObj(
+            ip, typeAttrsP->dataType.u.tagObj, &encoding));
+    }
+    else
+        encoding = NULL;
+    /*
+     * NOTE: UtfToExternalDString will append more than one null byte
+     * for multibyte encodings if necessary. These are NOT included
+     * in the DString length.
+     */
+    Tcl_UtfToExternalDString(encoding, s, len, &valueP->ancillary.ds);
+    if (encoding)
+        Tcl_FreeEncoding(encoding);
+    return TCL_OK;
+}
+
+/* Function: CffiArgPrepareInUniString
+ * Initializes a CffiValue to pass a input unistring argument.
+ *
+ * Parameters:
+ * ip - interpreter
+ * typeAttrsP - parameter type descriptor
+ * valueObj - the Tcl_Obj containing string to pass.
+ * valueP - location to store the argument
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with string in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareInUniString(Tcl_Interp *ip,
+                        const CffiTypeAndAttrs *typeAttrsP,
+                        Tcl_Obj *valueObj,
+                        CffiValue *valueP)
+{
+    int len = 0;
+    const Tcl_UniChar *s;
+
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNISTRING);
+    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+
+    /* TBD - why do we need valueP->ds at all? Copy straight into memlifo */
+    Tcl_DStringInit(&valueP->ancillary.ds);
+    s = Tcl_GetUnicodeFromObj(valueObj, &len);
+    /* Note we copy the terminating two-byte end of string null as well */
+    Tcl_DStringAppend(&valueP->ancillary.ds, (char *)s, (len + 1) * sizeof(*s));
+    return TCL_OK;
+}
+
+
+/* Function: CffiArgPrepareInBinary
+ * Initializes a CffiValue to pass a input byte array argument.
+ *
+ * Parameters:
+ * ip - interpreter
+ * paramP - parameter descriptor
+ * valueObj - the Tcl_Obj containing the byte array to pass. May be NULL
+ *   for pure output parameters
+ * valueP - location to store the argument
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with string in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareInBinary(Tcl_Interp *ip,
+                     const CffiTypeAndAttrs *typeAttrsP,
+                     Tcl_Obj *valueObj,
+                     CffiValue *valueP)
+{
+    Tcl_Obj *objP;
+
+    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+    /*
+     * Pure input but could still shimmer so dup it. Potential
+     * future optimizations TBD:
+     *  - dup only if shared (ref count > 1)
+     *  - use memlifo to copy bytes instead of duping
+     */
+    objP = Tcl_DuplicateObj(valueObj);
+    Tcl_IncrRefCount(objP);
+    valueP->ancillary.baObj = objP;
+
+    return TCL_OK;
+}
+
+/* Function: CffiArgPrepareBytes
+ * Initializes a CffiValue to pass a bytes argument.
+ *
+ * Parameters:
+ * callP - the call context
+ * arg_index - index into argument array of call context
+ * valueObj - the value passed in from script. May be NULL for pure output.
+ * valueP - location of native value to store
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with pointer to bytes in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareBytes(CffiCall *callP,
+                       int arg_index,
+                       Tcl_Obj *valueObj,
+                       CffiValue *valueP)
+{
+    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiArgument *argP    = &callP->argsP[arg_index];
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+
+    valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_BYTE_ARRAY);
+
+    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+        /* NOTE: because of shimmering possibility, we need to copy */
+        return CffiBytesFromObj(
+            ipCtxP->interp, valueObj, valueP->u.ptr, argP->actualCount);
+    }
+    else
+        return TCL_OK;
+}
+
+/* Function: CffiArgCleanup
+ * Releases any resources stored within a CffiValue
+ *
+ * Parameters:
+ * valueP - pointer to a value
+ */
+void CffiArgCleanup(CffiCall *callP, int arg_index)
+{
+    const CffiTypeAndAttrs *typeAttrsP;
+    CffiValue *valueP;
+
+    if ((callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED) == 0)
+        return;
+
+    typeAttrsP = &callP->fnP->protoP->params[arg_index].typeAttrs;
+    valueP = &callP->argsP[arg_index].value;
+
+    /*
+     * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
+     * and CffiArgPrepare. Any changes here should be reflected there too.
+     */
+
+    switch (typeAttrsP->dataType.baseType) {
+    case CFFI_K_TYPE_ASTRING:
+    case CFFI_K_TYPE_UNISTRING:
+        Tcl_DStringFree(&valueP->ancillary.ds);
+        break;
+    case CFFI_K_TYPE_BINARY:
+        Tclh_ObjClearPtr(&valueP->ancillary.baObj);
+        break;
+    case CFFI_K_TYPE_CHAR_ARRAY:
+    case CFFI_K_TYPE_UNICHAR_ARRAY:
+    case CFFI_K_TYPE_BYTE_ARRAY:
+        /* valueP->u.{charP,unicharP,bytesP} points to memlifo storage */
+        /* FALLTHRU */
+    default:
+        /* Scalars have no storage to deallocate */
+        break;
+    }
+}
+
+/* Function: CffiArgPrepare
+ * Prepares a argument for a DCCall
+ *
+ * Parameters:
+ * callP - function call context
+ * arg_index - the index of the argument. The corresponding slot should
+ *            have been initialized so the its flags field is 0.
+ * valueObj - the Tcl_Obj containing the value or variable name for out
+ *             parameters
+ *
+ * The function modifies the following:
+ * callP->argsP[arg_index].flags - sets CFFI_F_ARG_INITIALIZED
+ * callP->argsP[arg_index].value - the native value.
+ * callP->argsP[arg_index].savedValue - copy of above for some types only
+ * callP->argsP[arg_index].varNameObj - will store the variable name
+ *            for byref parameters. This will be valueObj[0] for byref
+ *            parameters and NULL for byval parameters. The reference
+ *            count is unchanged from what is passed in so do NOT call
+ *            an *additional* Tcl_DecrRefCount on it.
+ *
+ * In addition to storing the native value in the *value* field, the
+ * function also stores it as a function argument. The function may
+ * allocate additional dynamic storage from the call context that is the
+ * caller's responsibility to free.
+ *
+ * Returns:
+ * Returns TCL_OK on success and TCL_ERROR on failure with error message
+ * in the interpreter.
+ */
+CffiResult
+CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
+{
+    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    Tcl_Interp *ip        = ipCtxP->interp;
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+    CffiArgument *argP    = &callP->argsP[arg_index];
+    Tcl_Obj **varNameObjP = &argP->varNameObj;
+    enum CffiBaseType baseType;
+    CffiResult ret;
+    int flags;
+    char *p;
+
+    /* Expected initialization to virgin state */
+    CFFI_ASSERT(callP->argsP[arg_index].flags == 0);
+
+    /*
+     * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
+     * and CffiArgCleanup. Any changes here should be reflected there too.
+     */
+
+    flags = typeAttrsP->flags;
+    baseType = typeAttrsP->dataType.baseType;
+    if (typeAttrsP->dataType.count != 0) {
+        switch (baseType) {
+        case CFFI_K_TYPE_ASTRING:
+        case CFFI_K_TYPE_UNISTRING:
+        case CFFI_K_TYPE_BINARY:
+            return ErrorInvalidValue(ip,
+                                     NULL,
+                                     "Arrays not supported for "
+                                     "string/unistring/binary types.");
+        default:
+            break;
+        }
+    }
+
+    /*
+     * out/inout parameters are always expected to be byref. Prototype
+     * parser should have ensured that.
+     */
+    CFFI_ASSERT((typeAttrsP->flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) == 0
+                || (typeAttrsP->flags & CFFI_F_ATTR_BYREF) != 0);
+
+    /*
+     * For pure in parameters, valueObj provides the value itself. For out
+     * and inout parameters, valueObj is the variable name. If the parameter
+     * is an inout parameter, the variable must exist since the value passed
+     * to the called function is taken from there. For pure out parameters,
+     * the variable need not exist and will be created if necessary. For
+     * both in and inout, on return from the function the corresponding
+     * content is stored in that variable.
+     */
+    *varNameObjP = NULL;
+    if (flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) {
+        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        *varNameObjP = valueObj;
+        valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
+        if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
+            return ErrorInvalidValue(
+                ip,
+                *varNameObjP,
+                "Variable specified as inout argument does not exist.");
+        }
+        /* TBD - check if existing variable is an array and error out? */
+    }
+
+    /*
+     * Type parsing should have validated out/inout params specify size if
+     * not a fixed size type. Note chars/unichars/bytes are fixed size since
+     * their array size is required to be specified.
+     */
+
+    /* Non-scalars need to be passed byref. Parsing should have checked */
+    CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
+                 || (typeAttrsP->dataType.count == 0
+                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
+                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
+                     && baseType != CFFI_K_TYPE_BYTE_ARRAY
+                     && baseType != CFFI_K_TYPE_STRUCT));
+
+    /*
+     * Modulo bugs, even dynamic array sizes are supposed to be initialized
+     * before calling this function on an argument.
+     */
+    CFFI_ASSERT(argP->actualCount >= 0);
+    if (argP->actualCount < 0) {
+        /* Should not happen. Just a failsafe. */
+        return ErrorInvalidValue(
+            ip, NULL, "Variable size array parameters not implemented.");
+    }
+
+    /*
+     * STORENUM - for storing numerics only.
+     * For storing an argument, if the parameter is byval, extract the
+     * value into native form and pass it to dyncall via the specified
+     * dcfn_ function. Note byval parameter are ALWAYS in-only.
+     * For in and inout, the value is extracted into native storage.
+     * For byval parameters (can only be in, never out/inout), this
+     * value is passed in to dyncall via the argument specific function
+     * specified by dcfn_. For byref parameters, the argument is always
+     * passed via the dcArgPointer function with a pointer to the
+     * native value.
+     *
+     * NOTE: We explicitly pass in objfn_ and dcfn_ instead of using
+     * conversion functions from cffiBaseTypes as it is more efficient
+     * (compile time function binding)
+     */
+
+    /* May the programming gods forgive me for these macro */
+#define OBJTONUM(objfn_, obj_, valP_)                                         \
+    do {                                                                      \
+        /* interp NULL when we do not want errors if enum specified */                         \
+        ret = objfn_(lookup_enum ? NULL : ip, obj_, valP_);                   \
+        if (ret != TCL_OK) {                                                  \
+            Tcl_Obj *enumValueObj;                                            \
+            if (!lookup_enum)                                                 \
+                return ret;                                                   \
+            CHECK(CffiEnumFind(                                               \
+                ipCtxP, typeAttrsP->dataType.u.tagObj, obj_, &enumValueObj)); \
+            CHECK(objfn_(ip, enumValueObj, valP_));                           \
+        }                                                                     \
+    } while (0)
+
+#ifdef CFFI_USE_DYNCALL
+#define STOREARG(storefn_, fld_)                        \
+    do {                                                \
+        storefn_(callP, arg_index, argP->value.u.fld_); \
+    } while (0)
+#define STOREARGBYREF(fld_)                                         \
+    do {                                                            \
+        CffiStoreArgPointer(callP, arg_index, &argP->value.u.fld_); \
+    } while (0)
+#else
+#define STOREARG(storefn_, fld_)                             \
+    do {                                                     \
+        callP->argValuesPP[arg_index] = &argP->value.u.fld_; \
+    } while (0)
+#define STOREARGBYREF(fld_)                                  \
+    do {                                                     \
+        argP->valueP                  = &argP->value.u.fld_; \
+        callP->argValuesPP[arg_index] = &argP->valueP;       \
+    } while (0)
+
+#endif
+
+#define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
+    do {                                                                       \
+        int lookup_enum = flags & CFFI_F_ATTR_ENUM;                            \
+        CFFI_ASSERT(argP->actualCount >= 0);                                   \
+        if (argP->actualCount == 0) {                                          \
+            if (flags & CFFI_F_ATTR_BITMASK) {                                 \
+                Tcl_WideInt wide;                                              \
+                CHECK(CffiEnumBitmask(                                         \
+                    ipCtxP,                                                    \
+                    lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,        \
+                    valueObj,                                                  \
+                    &wide));                                                   \
+                argP->value.u.fld_ = (type_)wide;                              \
+            }                                                                  \
+            else {                                                             \
+                if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {            \
+                    OBJTONUM(objfn_, valueObj, &argP->value.u.fld_);           \
+                }                                                              \
+            }                                                                  \
+            if (flags & CFFI_F_ATTR_BYREF)                                     \
+                STOREARGBYREF(fld_);                                           \
+            else                                                               \
+                STOREARG(dcfn_, fld_);                                         \
+        }                                                                      \
+        else {                                                                 \
+            /* Array - has to be byref */                                      \
+            type_ *valueArray;                                                 \
+            CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                             \
+            valueArray =                                                       \
+                MemLifoAlloc(&ipCtxP->memlifo,                                 \
+                             argP->actualCount * sizeof(argP->value.u.fld_));  \
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
+                Tcl_Obj **valueObjList;                                        \
+                int i, nvalues;                                                \
+                if (Tcl_ListObjGetElements(                                    \
+                        ip, valueObj, &nvalues, &valueObjList)                 \
+                    != TCL_OK)                                                 \
+                    return TCL_ERROR;                                          \
+                /* Note - if caller has specified too few values, it's ok */   \
+                /* because perhaps the actual count is specified in another */ \
+                /* parameter. If too many, only up to array size */            \
+                if (nvalues > argP->actualCount)                               \
+                    nvalues = argP->actualCount;                               \
+                for (i = 0; i < nvalues; ++i) {                                \
+                    OBJTONUM(objfn_, valueObjList[i], &valueArray[i]);         \
+                }                                                              \
+                /* Fill additional elements with 0 */                          \
+                for (; i < argP->actualCount; ++i)                             \
+                    valueArray[i] = 0;                                         \
+            }                                                                  \
+            argP->value.u.ptr = valueArray;                                    \
+            /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */    \
+            STOREARG(CffiStoreArgPointer, ptr);                                \
+        }                                                                      \
+    } while (0)
+
+    switch (baseType) {
+    case CFFI_K_TYPE_SCHAR: STORENUM(ObjToChar, CffiStoreArgSChar, schar, signed char); break;
+    case CFFI_K_TYPE_UCHAR: STORENUM(ObjToUChar, CffiStoreArgUChar, uchar, unsigned char); break;
+    case CFFI_K_TYPE_SHORT: STORENUM(ObjToShort, CffiStoreArgShort, sshort, short); break;
+    case CFFI_K_TYPE_USHORT: STORENUM(ObjToUShort, CffiStoreArgUShort, ushort, unsigned short); break;
+    case CFFI_K_TYPE_INT: STORENUM(ObjToInt, CffiStoreArgInt, sint, int); break;
+    case CFFI_K_TYPE_UINT: STORENUM(ObjToUInt, CffiStoreArgUInt, uint, unsigned int); break;
+    case CFFI_K_TYPE_LONG: STORENUM(ObjToLong, CffiStoreArgLong, slong, long); break;
+    case CFFI_K_TYPE_ULONG: STORENUM(ObjToULong, CffiStoreArgULong, ulong, unsigned long); break;
+    case CFFI_K_TYPE_LONGLONG: STORENUM(ObjToLongLong, CffiStoreArgLongLong, slonglong, signed long long); break;
+        /*  TBD - unsigned 64-bit is broken */
+    case CFFI_K_TYPE_ULONGLONG: STORENUM(ObjToULongLong, CffiStoreArgULongLong, ulonglong, unsigned long long); break;
+    case CFFI_K_TYPE_FLOAT: STORENUM(ObjToFloat, CffiStoreArgFloat, flt, float); break;
+    case CFFI_K_TYPE_DOUBLE: STORENUM(ObjToDouble, CffiStoreArgDouble, dbl, double); break;
+    case CFFI_K_TYPE_STRUCT:
+        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        CFFI_ASSERT(argP->actualCount >= 0);
+        if (argP->actualCount == 0) {
+            /* Single struct */
+            if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
+                int dict_size;
+                CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+                CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
+                if (dict_size == 0) {
+                    /* Empty dictionary AND NULLIFEMPTY set */
+                    argP->value.u.ptr = NULL;
+                    /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+                    STOREARG(CffiStoreArgPointer, ptr);
+                    break;
+                }
+                /* NULLIFEMPTY but dictionary has elements */
+            }
+            argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo,
+                                         typeAttrsP->dataType.u.structP->size);
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
+                CHECK(CffiStructFromObj(ip,
+                                        typeAttrsP->dataType.u.structP,
+                                        valueObj,
+                                        argP->value.u.ptr));
+            }
+        }
+        else {
+            /* Array of structs */
+            char *valueArray;
+            char *toP;
+            int struct_size = typeAttrsP->dataType.u.structP->size;
+            CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            valueArray =
+                MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount * struct_size);
+            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+                /* IN or INOUT */
+                Tcl_Obj **valueObjList;
+                int i, nvalues;
+                CHECK(Tcl_ListObjGetElements(
+                    ip, valueObj, &nvalues, &valueObjList));
+                if (nvalues > argP->actualCount)
+                    nvalues = argP->actualCount;
+                for (toP = valueArray, i = 0; i < nvalues;
+                     toP += struct_size, ++i) {
+                    CHECK(CffiStructFromObj(ip,
+                                            typeAttrsP->dataType.u.structP,
+                                            valueObjList[i],
+                                            toP));
+                }
+                if (i < argP->actualCount) {
+                    /* Fill uninitialized with 0 */
+                    memset(toP, 0, (argP->actualCount - i) * struct_size);
+                }
+            }
+            argP->value.u.ptr = valueArray;
+        }
+        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        STOREARG(CffiStoreArgPointer, ptr);
+        break;
+
+    case CFFI_K_TYPE_POINTER:
+        /* TBD - can we just use STORENUM here ? */
+        CFFI_ASSERT(argP->actualCount >= 0);
+        if (argP->actualCount == 0) {
+            if (flags & CFFI_F_ATTR_OUT)
+                argP->value.u.ptr = NULL;
+            else {
+                CHECK(
+                    CffiPointerFromObj(ip, typeAttrsP, valueObj, &argP->value.u.ptr));
+                if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS))
+                    argP->savedValue.u.ptr = argP->value.u.ptr;
+            }
+            if (flags & CFFI_F_ATTR_BYREF)
+                STOREARGBYREF(ptr);
+            else
+                STOREARG(CffiStoreArgPointer, ptr);
+        } else {
+            void **valueArray;
+            CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            valueArray = MemLifoAlloc(&ipCtxP->memlifo,
+                                      argP->actualCount * sizeof(void *));
+            if (flags & CFFI_F_ATTR_OUT)
+                argP->value.u.ptr = valueArray;
+            else {
+                Tcl_Obj **valueObjList;
+                int i, nvalues;
+                CHECK(Tcl_ListObjGetElements(
+                    ip, valueObj, &nvalues, &valueObjList));
+                if (nvalues > argP->actualCount)
+                    nvalues = argP->actualCount;
+                for (i = 0; i < nvalues; ++i) {
+                    CHECK(CffiPointerFromObj(
+                        ip, typeAttrsP, valueObjList[i], &valueArray[i]));
+                }
+                CFFI_ASSERT(i == nvalues);
+                for ( ; i < argP->actualCount; ++i)
+                    valueArray[i] = NULL;/* Fill additional elements */
+                argP->value.u.ptr = valueArray;
+                if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS)) {
+                    /* Save pointers to dispose after call completion */
+                    void **savedValueArray;
+                    savedValueArray = MemLifoAlloc(
+                        &ipCtxP->memlifo, argP->actualCount * sizeof(void *));
+                    for (i = 0; i < argP->actualCount; ++i)
+                        savedValueArray[i] = valueArray[i];
+                    argP->savedValue.u.ptr = savedValueArray;
+                }
+            }
+            /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+            STOREARG(CffiStoreArgPointer, ptr);
+        }
+        break;
+
+    case CFFI_K_TYPE_CHAR_ARRAY:
+        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        CHECK(CffiArgPrepareChars(callP, arg_index, valueObj, &argP->value));
+        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        STOREARG(CffiStoreArgPointer, ptr);
+        break;
+
+    case CFFI_K_TYPE_ASTRING:
+        CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
+        if (flags & CFFI_F_ATTR_OUT) {
+            CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            argP->value.u.ptr = NULL;
+            STOREARGBYREF(ptr);
+        }
+        else {
+            CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
+            CHECK(CffiArgPrepareInString(ip, typeAttrsP, valueObj, &argP->value));
+            if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                    == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+                && Tcl_DStringLength(&argP->value.ancillary.ds) == 0) {
+                argP->value.u.ptr = NULL; /* Null if empty */
+            }
+            else
+                argP->value.u.ptr = Tcl_DStringValue(&argP->value.ancillary.ds);
+            if (flags & CFFI_F_ATTR_BYREF)
+                STOREARGBYREF(ptr);
+            else
+                STOREARG(CffiStoreArgPointer, ptr);
+        }
+        break;
+
+    case CFFI_K_TYPE_UNISTRING:
+        CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
+        /*
+         * Code below is written to support OUT and BYREF (not INOUT) despite
+         * the asserts above which are maintained in the type declaration
+         * parsing code.
+         */
+        if (flags & CFFI_F_ATTR_OUT) {
+            CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            argP->value.u.ptr = NULL;
+            STOREARGBYREF(ptr);
+        }
+        else {
+            CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
+            CHECK(CffiArgPrepareInUniString(ip, typeAttrsP, valueObj, &argP->value));
+            p = Tcl_DStringValue(&argP->value.ancillary.ds);
+            if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                    == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+                && p[0] == 0 && p[1] == 0) {
+                p = NULL; /* Null if empty */
+            }
+            argP->value.u.ptr = p;
+            if (flags & CFFI_F_ATTR_BYREF)
+                STOREARGBYREF(ptr);
+            else
+                STOREARG(CffiStoreArgPointer, ptr);
+        }
+        break;
+
+    case CFFI_K_TYPE_UNICHAR_ARRAY:
+        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        CHECK(CffiArgPrepareUniChars(callP, arg_index, valueObj, &argP->value));
+        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        STOREARG(CffiStoreArgPointer, ptr);
+        break;
+
+    case CFFI_K_TYPE_BINARY:
+        CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+        CHECK(CffiArgPrepareInBinary(ip, typeAttrsP, valueObj, &argP->value));
+        argP->value.u.ptr = Tcl_GetByteArrayFromObj(argP->value.ancillary.baObj, NULL);
+        if (flags & CFFI_F_ATTR_BYREF)
+            STOREARGBYREF(ptr);
+        else
+            STOREARG(CffiStoreArgPointer, ptr);
+        break;
+
+    case CFFI_K_TYPE_BYTE_ARRAY:
+        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        CHECK(CffiArgPrepareBytes(callP, arg_index, valueObj, &argP->value));
+        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        STOREARG(CffiStoreArgPointer, ptr);
+        break;
+
+    default:
+        return ErrorInvalidValue( ip, NULL, "Unsupported type.");
+    }
+
+    callP->argsP[arg_index].flags |= CFFI_F_ARG_INITIALIZED;
+
+    return TCL_OK;
+
+#undef STORENUM
+#undef STOREARG
+#undef STOREARGBYREF
+#undef OBJTONUM
+}
+
+/* Function: CffiArgPostProcess
+ * Does the post processing of an argument after a call
+ *
+ * Post processing of the argument consists of checking if the parameter
+ * was an *out* or *inout* parameter and storing it in the output Tcl variable.
+ * Note no cleanup of argument storage is done.
+ *
+ * Parameters:
+ * callP - the call context
+ * arg_index - index of argument to do post processing
+ *
+ * Returns:
+ * *TCL_OK* on success,
+ * *TCL_ERROR* on error with message stored in the interpreter.
+ */
+CffiResult
+CffiArgPostProcess(CffiCall *callP, int arg_index)
+{
+    Tcl_Interp *ip = callP->fnP->vmCtxP->ipCtxP->interp;
+    const CffiTypeAndAttrs *typeAttrsP =
+        &callP->fnP->protoP->params[arg_index].typeAttrs;
+    CffiArgument *argP = &callP->argsP[arg_index];
+    CffiValue *valueP = &argP->value;
+    Tcl_Obj *varObjP  = argP->varNameObj;
+    int ret;
+    Tcl_Obj *valueObj;
+
+    CFFI_ASSERT(callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED);
+    CFFI_ASSERT(argP->actualCount >= 0); /* Array size known */
+
+    if (typeAttrsP->flags & CFFI_F_ATTR_IN)
+        return TCL_OK;
+
+    /*
+     * There are three categories:
+     *  - scalar values are directly stored in *valueP
+     *  - structs and arrays of scalars are stored in at the location
+     *    pointed to by valueP->u.ptr
+     *  - strings/unistring/binary are stored in *valueP but not as
+     *    native C values.
+     */
+    switch (typeAttrsP->dataType.baseType) {
+    case CFFI_K_TYPE_SCHAR:
+    case CFFI_K_TYPE_UCHAR:
+    case CFFI_K_TYPE_SHORT:
+    case CFFI_K_TYPE_USHORT:
+    case CFFI_K_TYPE_INT:
+    case CFFI_K_TYPE_UINT:
+    case CFFI_K_TYPE_LONG:
+    case CFFI_K_TYPE_ULONG:
+    case CFFI_K_TYPE_LONGLONG:
+    case CFFI_K_TYPE_ULONGLONG:
+    case CFFI_K_TYPE_FLOAT:
+    case CFFI_K_TYPE_DOUBLE:
+    case CFFI_K_TYPE_POINTER:
+        /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
+        if (argP->actualCount == 0)
+            ret = CffiNativeValueToObj(
+                ip, typeAttrsP, valueP, argP->actualCount, &valueObj);
+        else
+            ret = CffiNativeValueToObj(
+                ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
+        break;
+
+    case CFFI_K_TYPE_CHAR_ARRAY:
+    case CFFI_K_TYPE_UNICHAR_ARRAY:
+    case CFFI_K_TYPE_BYTE_ARRAY:
+        ret = CffiNativeValueToObj(
+            ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
+        break;
+
+    case CFFI_K_TYPE_STRUCT:
+        /* Arrays not supported for struct currently */
+        ret = CffiNativeValueToObj(
+            ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
+        break;
+
+    case CFFI_K_TYPE_ASTRING:
+        ret = CffiExternalCharsToObj(
+            ip, typeAttrsP, valueP->u.ptr, &valueObj);
+        break;
+
+    case CFFI_K_TYPE_UNISTRING:
+        if (valueP->u.ptr)
+            valueObj = Tcl_NewUnicodeObj((Tcl_UniChar *)valueP->u.ptr, -1);
+        else
+            valueObj = Tcl_NewObj();
+        ret = TCL_OK;
+        break;
+
+    case CFFI_K_TYPE_BINARY:
+    default:
+        /* Should not happen */
+        ret = Tclh_ErrorInvalidValue(ip, NULL, "Unsupported argument type");
+        break;
+    }
+
+    if (ret != TCL_OK)
+        return ret;
+
+    /*
+     * Check if value is to be converted to a enum name. This is slightly
+     * inefficient since we have to convert back from a Tcl_Obj to an
+     * integer but currently the required context is not being passed down
+     * to the lower level functions that extract scalar values.
+     */
+    if ((typeAttrsP->flags & CFFI_F_ATTR_ENUM)
+        && typeAttrsP->dataType.u.tagObj) {
+        Tcl_WideInt wide;
+        if (typeAttrsP->dataType.count == 0) {
+            /* Note on error, keep the value */
+            if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
+                Tcl_DecrRefCount(valueObj);
+                CffiEnumFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                                    typeAttrsP->dataType.u.tagObj,
+                                    wide,
+                                    0,
+                                    &valueObj);
+            }
+        }
+        else {
+            /* Array of integers */
+            Tcl_Obj **elemObjs;
+            int nelems;
+            /* Note on error, keep the value */
+            if (Tcl_ListObjGetElements(NULL, valueObj, &nelems, &elemObjs)
+                == TCL_OK) {
+                Tcl_Obj *enumValuesObj;
+                Tcl_Obj *enumValueObj;
+                int i;
+                enumValuesObj = Tcl_NewListObj(nelems, NULL);
+                for (i = 0; i < nelems; ++i) {
+                    if (Tcl_GetWideIntFromObj(NULL, elemObjs[i], &wide)
+                        != TCL_OK) {
+                        break;
+                    }
+                    CffiEnumFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                                        typeAttrsP->dataType.u.tagObj,
+                                        wide,
+                                        0,
+                                        &enumValueObj);
+                    Tcl_ListObjAppendElement(NULL, enumValuesObj, enumValueObj);
+                }
+                if (i == nelems) {
+                    /* All converted successfully */
+                    Tcl_DecrRefCount(valueObj);
+                    valueObj = enumValuesObj;
+                }
+                else {
+                    /* Keep original */
+                    Tcl_DecrRefCount(enumValuesObj);
+                }
+            }
+        }
+    }
+
+    /*
+     * Tcl_ObjSetVar2 will release valueObj if its ref count is 0
+     * preventing us from trying again after deleting the array so
+     * preserve the value obj.
+     */
+    Tcl_IncrRefCount(valueObj);
+    if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, 0) == NULL) {
+        /* Perhaps it is an array in which case we need to delete first */
+        Tcl_UnsetVar(ip, Tcl_GetString(varObjP), 0);
+        /* Retry */
+        if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, TCL_LEAVE_ERR_MSG)
+            == NULL) {
+            Tcl_DecrRefCount(valueObj);
+            return TCL_ERROR;
+        }
+    }
+    Tcl_DecrRefCount(valueObj);
+    return TCL_OK;
+}
+
+/* Function: CffiReturnPrepare
+ * Prepares storage for DCCall function return value
+ *
+ * Parameters:
+ * callP - call context
+ *
+ * The function may allocate additional dynamic storage from
+ * *ipContextP->memlifo* that is the caller's responsibility to free.
+ *
+ * Returns:
+ * Returns TCL_OK on success and TCL_ERROR on failure with error message
+ * in the interpreter.
+ */
+CffiResult
+CffiReturnPrepare(CffiCall *callP)
+{
+#ifdef CFFI_USE_DYNCALL
+    /*
+     * Nothing to do as no allocations needed.
+     *  arrays, struct, chars[], unichars[], bytes and anything that requires
+     * non-scalar storage is either not supported by C or by dyncall.
+     */
+#else
+
+    /*
+     * For *integer* types, libffi has a quirk in how it returns values
+     * via promotion. Values small enough to fit in a register (ffi_arg)
+     * are promoted to ffi_arg.
+     * * TBD - not clear this is really needed since in any case the
+     * target is a union of all possible types. and effectively, the
+     * resulting pointer value is the same.
+     */
+#define INITRETPTR(type_, fld_) \
+    do { \
+        if (sizeof(type_) <= sizeof(ffi_arg)) { \
+            callP->retValueP = &callP->retValue.u.ffi_val; \
+        } else { \
+            callP->retValueP = &callP->retValue.u.fld_; \
+        } \
+    } while (0)
+
+    /* Set up the pointer for the return storage.  */
+    switch (callP->fnP->protoP->returnType.typeAttrs.dataType.baseType) {
+    case CFFI_K_TYPE_VOID: callP->retValueP = NULL; break;
+    case CFFI_K_TYPE_SCHAR: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_UCHAR: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_SHORT: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_USHORT: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_INT: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_UINT: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_LONG: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_ULONG: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_LONGLONG: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_ULONGLONG: INITRETPTR(signed char, schar); break;
+    case CFFI_K_TYPE_FLOAT: callP->retValueP = &callP->retValue.u.flt; break;
+    case CFFI_K_TYPE_DOUBLE: callP->retValueP = &callP->retValue.u.dbl; break;
+    case CFFI_K_TYPE_ASTRING: /* Fallthru - treat as pointer */
+    case CFFI_K_TYPE_UNISTRING: /* Fallthru - treat as pointer */
+    case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
+    case CFFI_K_TYPE_STRUCT: /* TBD - fallthru */
+    default:
+        Tcl_SetResult(callP->fnP->vmCtxP->ipCtxP->interp,
+                      "Invalid return type.",
+                      TCL_STATIC);
+        return TCL_ERROR;
+    }
+#undef INITRETPTR
+#endif
+
+    return TCL_OK;
+}
+
+CffiResult CffiReturnCleanup(CffiCall *callP)
+{
+    /*
+     * No clean up needed for any types. Any type that needs non-scalar
+     * storage is not allowed for a return type.
+     */
+    return TCL_OK;
+}
+
+
 
 /* Function: CffiFunctionCleanup
  * Releases resources associated with a function definition.

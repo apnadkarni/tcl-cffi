@@ -335,9 +335,6 @@ typedef struct CffiCall {
  * Prototypes
  */
 CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
-#ifdef OBSOLETE
-CffiResult CffiCallModeParse(Tcl_Interp *ip, Tcl_Obj *modeObj, DCint *modeP);
-#endif
 
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
                                             Tcl_Obj *baseTypeObj);
@@ -359,11 +356,6 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
-CffiResult CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj);
-CffiResult CffiArgPostProcess(CffiCall *callP, int arg_index);
-void CffiArgCleanup(CffiCall *callP, int arg_index);
-CffiResult CffiReturnPrepare(CffiCall *callP);
-CffiResult CffiReturnCleanup(CffiCall *callP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult
@@ -393,10 +385,6 @@ CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 void *valueP,
                                 int count,
                                 Tcl_Obj **valueObjP);
-void CffiPointerArgsDispose(Tcl_Interp *ip,
-                            CffiProto *protoP,
-                            CffiArgument *argsP,
-                            int callSucceeded);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);
@@ -419,16 +407,9 @@ CffiResult CffiExternalDStringToObj(Tcl_Interp *ip,
                                    Tcl_DString *dsP,
                                    Tcl_Obj **resultObjP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
-                            const CffiTypeAndAttrs *typeAttrsP,
+                            const CffiTypeAndAttrs *typeAttrsP,
+
                             CffiValue *valueP, Tcl_WideInt *sysErrorP);
-#ifdef OBSOLETE
-CffiResult CffiReportRequirementError(Tcl_Interp *ip,
-                                      const CffiTypeAndAttrs *typeAttrsP,
-                                      Tcl_WideInt value,
-                                      Tcl_Obj *valueObj,
-                                      Tcl_WideInt sysError,
-                                      const char *message);
-#endif
 Tcl_WideInt CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
                                 Tcl_WideInt winError);
 Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);
