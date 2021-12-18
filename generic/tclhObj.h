@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <ctype.h>
+#include "tclTomMath.h"
 
 /* Section: Tcl_Obj convenience functions
  *
@@ -204,6 +205,16 @@ int Tclh_ObjToLongLong(Tcl_Interp *interp, Tcl_Obj *obj, long long *ptr);
  */
 int Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *obj, unsigned long long *ptr);
 
+/* Function: Tclh_ObjFromULongLong
+ * Returns a Tcl_Obj wrapping a *unsigned long long*
+ *
+ * Parameters:
+ *  ull - unsigned long long value to be wrapped
+ *
+ * Returns:
+ * A pointer to a Tcl_Obj with a zero reference count.
+ */
+Tcl_Obj *Tclh_ObjFromULongLong(unsigned long long ull);
 
 /* Function: Tclh_ObjToWideInt
  * Unwraps a Tcl_Obj into a C *Tcl_WideInt* value type.
@@ -438,7 +449,7 @@ int Tclh_ObjToLongLong(Tcl_Interp *interp, Tcl_Obj *objP, signed long long *llP)
 }
 
 int
-Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
+Tclh_ObjToULongLongAlternative(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
 {
     Tcl_WideInt wide;
     /*
@@ -492,8 +503,7 @@ Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
         interp, objP, "Value is not a unsigned long long.");
 }
 
-#if 0
-int TBDTclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
+int Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
 {
     Tcl_WideInt wide;
 
@@ -539,7 +549,6 @@ int TBDTclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long
     *ullP = (unsigned long long)wide;
     return TCL_OK;
 }
-#endif
 
 Tcl_Obj *Tclh_ObjFromULongLong(unsigned long long ull)
 {

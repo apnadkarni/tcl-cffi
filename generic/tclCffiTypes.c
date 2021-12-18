@@ -1134,7 +1134,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
         valueObj = Tcl_NewWideIntObj(*(signed long long *)valueP);
         break;
     case CFFI_K_TYPE_ULONGLONG: /* TBD - 64 bit signedness? */
-        valueObj = Tcl_NewWideIntObj(*(unsigned long long *)valueP);
+        valueObj = Tclh_ObjFromULongLong(*(unsigned long long *)valueP);
         break;
     case CFFI_K_TYPE_FLOAT:
         valueObj = Tcl_NewDoubleObj(*(float *)valueP);
