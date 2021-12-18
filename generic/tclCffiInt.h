@@ -11,12 +11,38 @@
 #include "tclhObj.h"
 #include "tclhPointer.h"
 #include "memlifo.h"
+
 #ifdef CFFI_USE_DYNCALL
+
 #include "dynload.h"
 #include "dyncall.h"
+
 #else
-#include "ffi.h"
+
+/* Libffi does not have its own load */
+#define CFFI_USE_TCLLOAD
+
+/*
+ * When statically linking libffi, we need to define FFI_BUILDING before
+ * including ffi.h. This is done on the command
+ * line depending on the build option chosen. However, the vcpkg distribution
+ * of libffi hard codes FFI_BUILDING in the ffi.h header file as a patch
+ * leading to "C4005" macro redefinition warnings. Thus we need to disable
+ * the warning. (Note the standard libffi does NOT hardcode it so we do
+ * need to define it ourselves)
+ */
+
+#ifdef _MSC_VER
+#pragma warning(push )
+#pragma warning(disable:4005 )
 #endif
+#include "ffi.h"
+#ifdef _MSC_VER
+#pragma warning(default:4005 )
+#pragma warning(pop)
+#endif
+
+#endif /* CFFI_USE_DYNCALL */
 
 #include <stdint.h>
 

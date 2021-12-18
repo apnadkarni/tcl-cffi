@@ -71,11 +71,10 @@ TEA_SETUP_COMPILER
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiAlias.c \
-                     generic/tclCffiDyncall.c \
                      generic/tclCffiEnum.c \
+                     generic/tclCffiFunction.c \
                      generic/tclCffiHelp.c \
                      generic/tclCffiLoad.c \
                      generic/tclCffiMemory.c \
@@ -86,10 +85,9 @@ TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/memlifo.c])
 TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([-I${srcdir}/generic])
-TEA_ADD_LIBS([${DYNCALL_LIBS}])
-TEA_ADD_CFLAGS([])
 TEA_ADD_STUB_SOURCES([])
 TEA_ADD_TCL_SOURCES([])
+
 
 #--------------------------------------------------------------------
 # __CHANGE__
@@ -103,15 +101,14 @@ TEA_ADD_TCL_SOURCES([])
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-#CLEANFILES="$CLEANFILES pkgIndex.tcl"
 if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses
-    :
+    CLEANFILES="$CLEANFILES pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
     #TEA_ADD_SOURCES([win/winFile.c])
     #TEA_ADD_INCLUDES([-I\"$(${CYGPATH} ${srcdir}/win)\"])
 else
     # Ensure no empty else clauses
-    :
+    CLEANFILES="$CLEANFILES pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
     #TEA_ADD_LIBS([-lsuperfly])
 fi
@@ -131,6 +128,41 @@ TEA_PUBLIC_TCL_HEADERS
 #TEA_PUBLIC_TK_HEADERS
 #TEA_PRIVATE_TK_HEADERS
 #TEA_PATH_X
+
+#--------------------------------------------------------------------
+# cffi specific configuration
+#--------------------------------------------------------------------
+
+AC_MSG_CHECKING([which library to use for foreign function calls])
+
+AC_ARG_WITH([libffi],
+            AS_HELP_STRING([--with-libffi],
+                           [use libffi for foreign function calls [--with-libffi=yes]]),
+            [], [with_libffi=default])
+
+AC_ARG_ENABLE([staticffi],
+              AS_HELP_STRING([--disable-staticffi],
+                             [statically link ffi library [--enable-staticffi]]),
+	      [], [enable_staticffi=yes])
+
+AC_ARG_WITH([dyncall],
+            AS_HELP_STRING([--with-dyncall],
+                           [use dyncall for foreign function calls [--with-dyncall=no]]),
+            [], [with_dyncall=default])
+
+
+# Either of libffi or dyncall might be used.
+AS_CASE([$with_libffi,$with_dyncall],
+        [no,no],[AC_MSG_ERROR([Please, enable exactly one of --with-libffi or --with-dyncall.])],
+        [default,default],[AS_VAR_SET([with_libffi], [yes])],
+        [no,default],[AS_VAR_SET([with_dyncall], [yes])],
+        [default,no],[AS_VAR_SET([with_libffi], [yes])],
+        [default,yes],[], dnl continue
+        [yes,default],[], dnl continue
+        [no,yes],[], dnl continue
+        [yes,no],[], dnl continue
+        [AC_MSG_ERROR([Please, enable exactly one of --with-libffi or --with-libffcall.])])
+
 
 #--------------------------------------------------------------------
 # Check whether --enable-threads or --disable-threads was given.
@@ -153,6 +185,39 @@ TEA_ENABLE_SHARED
 #--------------------------------------------------------------------
 
 TEA_CONFIG_CFLAGS
+
+AC_CONFIG_COMMANDS_PRE(
+    [# Must define -DFFI_BUILDING when linking statically, see commentary of FFI_API
+     # in ffi.h for details.
+     AS_VAR_IF([with_libffi], [yes],
+        [AS_VAR_IF([enable_staticffi], [yes],
+            [AS_VAR_APPEND([DEFS], [" -DFFI_BUILDING=static"])])])])
+
+AS_VAR_IF([with_libffi], [yes],
+    [AC_DEFINE([CFFI_USE_LIBFFI], 1, [Use libffi for foreign function calls])
+     dnl Do not try to guess static linking absolute path if LIBFFI_LIBS was
+     dnl explicitely given.
+     AS_VAR_SET_IF([LIBFFI_LIBS], [],
+                   [AS_VAR_IF([enable_staticffi], [yes],
+                              [AS_VAR_SET([LIBFFI_LIBS], ["-Wl,-Bstatic -lffi -Wl,-Bdynamic"])],
+                              [AS_VAR_SET([LIBFFI_LIBS], ["-lffi"])]
+                             )
+                   ])
+     TEA_ADD_INCLUDES([$LIBFFI_CFLAGS])
+     TEA_ADD_SOURCES([generic/tclCffiLibffi.c])
+     TEA_ADD_LIBS([$LIBFFI_LIBS])])
+
+dnl See with_libffi comments above.
+AS_VAR_IF([with_dyncall], [yes],
+    [AC_DEFINE([CFFI_USE_DYNCALL], 1, [Use dyncalls for foreign function calls])
+     dnl When DYNCALL_LIBS
+     TEA_ADD_CFLAGS([-DCFFI_USE_DYNCALL])
+     TEA_ADD_INCLUDES([$DYNCALL_CFLAGS])
+     TEA_ADD_SOURCES([generic/tclCffiDyncall.c])
+     TEA_ADD_LIBS([-ldynload_s -ldyncall_s])])
+
+
+
 
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols option.

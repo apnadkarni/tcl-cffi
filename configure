@@ -765,6 +765,9 @@ ac_user_opts='
 enable_option_checking
 with_tcl
 with_tclinclude
+with_libffi
+enable_staticffi
+with_dyncall
 enable_threads
 enable_shared
 enable_stubs
@@ -1400,6 +1403,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --disable-staticffi     statically link ffi library [--enable-staticffi]
   --enable-threads        build with threads (default: on)
   --enable-shared         build and link with shared libraries (default: on)
   --enable-stubs          build and link with stub libraries. Always true for
@@ -1415,6 +1419,10 @@ Optional Packages:
   --with-tcl              directory containing tcl configuration
                           (tclConfig.sh)
   --with-tclinclude       directory containing the public Tcl header files
+  --with-libffi           use libffi for foreign function calls
+                          [--with-libffi=yes]
+  --with-dyncall          use dyncall for foreign function calls
+                          [--with-dyncall=no]
 
 Some influential environment variables:
   CC          C compiler command
@@ -5329,12 +5337,11 @@ printf "%s\n" "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 # and PKG_TCL_SOURCES.
 #-----------------------------------------------------------------------
 
-DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 
     vars="generic/tclCffi.c \
                      generic/tclCffiAlias.c \
-                     generic/tclCffiDyncall.c \
                      generic/tclCffiEnum.c \
+                     generic/tclCffiFunction.c \
                      generic/tclCffiHelp.c \
                      generic/tclCffiLoad.c \
                      generic/tclCffiMemory.c \
@@ -5395,21 +5402,6 @@ DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 
 
 
-    vars="${DYNCALL_LIBS}"
-    for i in $vars; do
-	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
-	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
-	    i=`echo "$i" | sed -e 's/^\([^-].*\)\.[lL][iI][bB]$/-l\1/'`
-	fi
-	PKG_LIBS="$PKG_LIBS $i"
-    done
-
-
-
-    PKG_CFLAGS="$PKG_CFLAGS "
-
-
-
     vars=""
     for i in $vars; do
 	# check for existence - allows for generic/win/unix VPATH
@@ -5445,6 +5437,7 @@ DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 
 
 
+
 #--------------------------------------------------------------------
 # __CHANGE__
 #
@@ -5457,15 +5450,14 @@ DYNCALL_LIBS="-ldynload_s -ldyncall_s"
 # TEA_ADD_* any platform specific compiler/build info here.
 #--------------------------------------------------------------------
 
-#CLEANFILES="$CLEANFILES pkgIndex.tcl"
 if test "${TEA_PLATFORM}" = "windows" ; then
     # Ensure no empty if clauses
-    :
+    CLEANFILES="$CLEANFILES pkgIndex.tcl *.lib *.dll *.exp *.ilk *.pdb vc*.pch"
     #TEA_ADD_SOURCES([win/winFile.c])
     #TEA_ADD_INCLUDES([-I\"$(${CYGPATH} ${srcdir}/win)\"])
 else
     # Ensure no empty else clauses
-    :
+    CLEANFILES="$CLEANFILES pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
     #TEA_ADD_LIBS([-lsuperfly])
 fi
@@ -5570,6 +5562,66 @@ printf "%s\n" "${ac_cv_c_tclh}" >&6; }
 #TEA_PUBLIC_TK_HEADERS
 #TEA_PRIVATE_TK_HEADERS
 #TEA_PATH_X
+
+#--------------------------------------------------------------------
+# cffi specific configuration
+#--------------------------------------------------------------------
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking which library to use for foreign function calls" >&5
+printf %s "checking which library to use for foreign function calls... " >&6; }
+
+
+# Check whether --with-libffi was given.
+if test ${with_libffi+y}
+then :
+  withval=$with_libffi;
+else $as_nop
+  with_libffi=default
+fi
+
+
+# Check whether --enable-staticffi was given.
+if test ${enable_staticffi+y}
+then :
+  enableval=$enable_staticffi;
+else $as_nop
+  enable_staticffi=yes
+fi
+
+
+
+# Check whether --with-dyncall was given.
+if test ${with_dyncall+y}
+then :
+  withval=$with_dyncall;
+else $as_nop
+  with_dyncall=default
+fi
+
+
+
+# Either of libffi or dyncall might be used.
+case $with_libffi,$with_dyncall in #(
+  no,no) :
+    as_fn_error $? "Please, enable exactly one of --with-libffi or --with-dyncall." "$LINENO" 5 ;; #(
+  default,default) :
+    with_libffi=yes ;; #(
+  no,default) :
+    with_dyncall=yes ;; #(
+  default,no) :
+    with_libffi=yes ;; #(
+  default,yes) :
+     ;; #(
+          yes,default) :
+     ;; #(
+          no,yes) :
+     ;; #(
+          yes,no) :
+     ;; #(
+  *) :
+            as_fn_error $? "Please, enable exactly one of --with-libffi or --with-libffcall." "$LINENO" 5 ;;
+esac
+
 
 #--------------------------------------------------------------------
 # Check whether --enable-threads or --disable-threads was given.
@@ -8500,6 +8552,148 @@ printf "%s\n" "no" >&6; }
 
 
 
+
+
+if test "x$with_libffi" = xyes
+then :
+
+printf "%s\n" "#define CFFI_USE_LIBFFI 1" >>confdefs.h
+
+               if test ${LIBFFI_LIBS+y}
+then :
+
+else $as_nop
+  if test "x$enable_staticffi" = xyes
+then :
+  LIBFFI_LIBS="-Wl,-Bstatic -lffi -Wl,-Bdynamic"
+else $as_nop
+  LIBFFI_LIBS="-lffi"
+
+fi
+
+fi
+
+    vars="$LIBFFI_CFLAGS"
+    for i in $vars; do
+	PKG_INCLUDES="$PKG_INCLUDES $i"
+    done
+
+
+
+    vars="generic/tclCffiLibffi.c"
+    for i in $vars; do
+	case $i in
+	    \$*)
+		# allow $-var names
+		PKG_SOURCES="$PKG_SOURCES $i"
+		PKG_OBJECTS="$PKG_OBJECTS $i"
+		;;
+	    *)
+		# check for existence - allows for generic/win/unix VPATH
+		# To add more dirs here (like 'src'), you have to update VPATH
+		# in Makefile.in as well
+		if test ! -f "${srcdir}/$i" -a ! -f "${srcdir}/generic/$i" \
+		    -a ! -f "${srcdir}/win/$i" -a ! -f "${srcdir}/unix/$i" \
+		    -a ! -f "${srcdir}/macosx/$i" \
+		    ; then
+		    as_fn_error $? "could not find source file '$i'" "$LINENO" 5
+		fi
+		PKG_SOURCES="$PKG_SOURCES $i"
+		# this assumes it is in a VPATH dir
+		i=`basename $i`
+		# handle user calling this before or after TEA_SETUP_COMPILER
+		if test x"${OBJEXT}" != x ; then
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.${OBJEXT}"
+		else
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.\${OBJEXT}"
+		fi
+		PKG_OBJECTS="$PKG_OBJECTS $j"
+		;;
+	esac
+    done
+
+
+
+
+    vars="$LIBFFI_LIBS"
+    for i in $vars; do
+	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
+	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
+	    i=`echo "$i" | sed -e 's/^\([^-].*\)\.[lL][iI][bB]$/-l\1/'`
+	fi
+	PKG_LIBS="$PKG_LIBS $i"
+    done
+
+
+fi
+
+if test "x$with_dyncall" = xyes
+then :
+
+printf "%s\n" "#define CFFI_USE_DYNCALL 1" >>confdefs.h
+
+
+    PKG_CFLAGS="$PKG_CFLAGS -DCFFI_USE_DYNCALL"
+
+
+
+    vars="$DYNCALL_CFLAGS"
+    for i in $vars; do
+	PKG_INCLUDES="$PKG_INCLUDES $i"
+    done
+
+
+
+    vars="generic/tclCffiDyncall.c"
+    for i in $vars; do
+	case $i in
+	    \$*)
+		# allow $-var names
+		PKG_SOURCES="$PKG_SOURCES $i"
+		PKG_OBJECTS="$PKG_OBJECTS $i"
+		;;
+	    *)
+		# check for existence - allows for generic/win/unix VPATH
+		# To add more dirs here (like 'src'), you have to update VPATH
+		# in Makefile.in as well
+		if test ! -f "${srcdir}/$i" -a ! -f "${srcdir}/generic/$i" \
+		    -a ! -f "${srcdir}/win/$i" -a ! -f "${srcdir}/unix/$i" \
+		    -a ! -f "${srcdir}/macosx/$i" \
+		    ; then
+		    as_fn_error $? "could not find source file '$i'" "$LINENO" 5
+		fi
+		PKG_SOURCES="$PKG_SOURCES $i"
+		# this assumes it is in a VPATH dir
+		i=`basename $i`
+		# handle user calling this before or after TEA_SETUP_COMPILER
+		if test x"${OBJEXT}" != x ; then
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.${OBJEXT}"
+		else
+		    j="`echo $i | sed -e 's/\.[^.]*$//'`.\${OBJEXT}"
+		fi
+		PKG_OBJECTS="$PKG_OBJECTS $j"
+		;;
+	esac
+    done
+
+
+
+
+    vars="-ldynload_s -ldyncall_s"
+    for i in $vars; do
+	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
+	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
+	    i=`echo "$i" | sed -e 's/^\([^-].*\)\.[lL][iI][bB]$/-l\1/'`
+	fi
+	PKG_LIBS="$PKG_LIBS $i"
+    done
+
+
+fi
+
+
+
+
 #--------------------------------------------------------------------
 # Set the default compiler switches based on the --enable-symbols option.
 #--------------------------------------------------------------------
@@ -9026,6 +9220,15 @@ LTLIBOBJS=$ac_ltlibobjs
 
 
 CFLAGS="${CFLAGS} ${CPPFLAGS}"; CPPFLAGS=""
+# Must define -DFFI_BUILDING when linking statically, see commentary of FFI_API
+     # in ffi.h for details.
+     if test "x$with_libffi" = xyes
+then :
+  if test "x$enable_staticffi" = xyes
+then :
+  as_fn_append DEFS " -DFFI_BUILDING=static"
+fi
+fi
 
 : "${CONFIG_STATUS=./config.status}"
 ac_write_fail=0

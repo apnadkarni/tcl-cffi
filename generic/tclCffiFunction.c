@@ -1485,9 +1485,6 @@ CffiFunctionCall(ClientData cdata,
     CffiFunction *fnP     = (CffiFunction *)cdata;
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
-#ifdef CFFI_USE_DYNCALL
-    DCCallVM *vmP         = fnP->vmCtxP->vmP;
-#endif
     Tcl_Obj **argObjs = NULL;
     int nArgObjs;
     Tcl_Obj *resultObj = NULL;
