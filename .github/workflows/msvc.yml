@@ -73,14 +73,23 @@ jobs:
         cmake --build build-msvc-${{ matrix.arch }} --config Release
         cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
 
+    - name: Installing vcpkg and libffi
+      run: |
+        cd ..
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        .\vcpkg.exe install libffi:x86-windows-static-md
+        .\vcpkg.exe install libffi:x64-windows-static-md
+
     - name: Make
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} DYNCALLDIR=c:\dyncall\msvc\${{ matrix.arch }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
     - name: Test
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} DYNCALLDIR=c:\dyncall\msvc\${{ matrix.arch }} test
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
