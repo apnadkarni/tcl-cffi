@@ -12,10 +12,10 @@ jobs:
     - name: Checkout tcl-cffi  
       uses: actions/checkout@v2
 
-    - name: Install Tcl
+    - name: Install Tcl and libffi
       run: |
         brew update
-        brew install tcl-tk || true
+        brew install tcl-tk libffi || true
 
     - name: Install dyncall
       run: |
@@ -28,18 +28,34 @@ jobs:
         make
         make install
 
-    - name: Configure
+    - name: Configure with dyncall
       run: |
-        mkdir build
-        cd build
-        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include
+        mkdir build-dyncall
+        cd build-dyncall
+        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include --with-dyncall
 
-    - name: Make
+    - name: Make with dyncall
       run: |
-        cd build
+        cd build-dyncall
         make
 
-    - name: Test
+    - name: Test with dyncall
       run: |
-        cd build
+        cd build-dyncall
+        make test
+
+    - name: Configure with libffi
+      run: |
+        mkdir build-libffi
+        cd build-libffi
+        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib
+
+    - name: Make with libffi
+      run: |
+        cd build-libffi
+        make
+
+    - name: Test with libffi
+      run: |
+        cd build-libffi
         make test

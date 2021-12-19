@@ -79,18 +79,38 @@ jobs:
         make
         make install
 
-    - name: Configure tcl-cffi
+    - name: Install libffi
+      run: |
+        pacman --sync --refresh --needed --noconfirm  ${MINGW_PACKAGE_PREFIX}-libffi
+
+    - name: Configure with dyncall
       run: |
         mkdir build
         cd build
-        ../configure --with-tcl=/c/tcl/lib LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include
+        ../configure --with-tcl=/c/tcl/lib LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include --with-dyncall
 
-    - name: Make
+    - name: Make with dyncall
       run: |
         cd build
         make
 
-    - name: Test
+    - name: Test with dyncall
+      run: |
+        cd build
+        make test
+
+    - name: Configure with libffi
+      run: |
+        mkdir build
+        cd build
+        ../configure --with-tcl=/c/tcl/lib
+
+    - name: Make with libffi
+      run: |
+        cd build
+        make
+
+    - name: Test with libffi
       run: |
         cd build
         make test

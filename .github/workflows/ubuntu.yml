@@ -27,18 +27,34 @@ jobs:
         make
         make install
 
-    - name: Configure
+    - name: Configure with dyncall
       run: |
-        mkdir build
-        cd build
-        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include
+        mkdir build-dyncall
+        cd build-dyncall
+        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall
 
-    - name: Make
+    - name: Make with dyncall
       run: |
-        cd build
+        cd build-dyncall
         make
 
-    - name: Test
+    - name: Test with dyncall
       run: |
-        cd build
+        cd build-dyncall
+        make test
+
+    - name: Configure with libffi
+      run: |
+        mkdir build-libffi
+        cd build-libffi
+        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit
+
+    - name: Make with libffi
+      run: |
+        cd build-libffi
+        make
+
+    - name: Test with libffi
+      run: |
+        cd build-libffi
         make test
