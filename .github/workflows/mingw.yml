@@ -85,32 +85,32 @@ jobs:
 
     - name: Configure with dyncall
       run: |
-        mkdir build
-        cd build
+        mkdir build-dyncall
+        cd build-dyncall
         ../configure --with-tcl=/c/tcl/lib LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include --with-dyncall
 
     - name: Make with dyncall
       run: |
-        cd build
+        cd build-dyncall
         make
 
     - name: Test with dyncall
       run: |
-        cd build
+        cd build-dyncall
         make test
 
     - name: Configure with libffi
       run: |
-        mkdir build
-        cd build
+        mkdir build-libffi
+        cd build-libffi
         ../configure --with-tcl=/c/tcl/lib
 
     - name: Make with libffi
       run: |
-        cd build
+        cd build-libffi
         make
 
     - name: Test with libffi
       run: |
-        cd build
+        cd build-libffi
         make test
