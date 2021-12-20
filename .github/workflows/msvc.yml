@@ -76,6 +76,7 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..
         cd ..
         cmake --build build-msvc-${{ matrix.arch }} --config Release
+        cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
 
     - name: Make with libffi
       shell: cmd
