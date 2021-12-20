@@ -16,8 +16,8 @@ jobs:
     strategy:
       matrix:
         arch:
-          - amd64
-          - amd64_x86
+          - x64
+          - x86
 
     steps:
     # Note msvc defaults to 64-bit
@@ -71,25 +71,22 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..
         cd ..
         cmake --build build-msvc-${{ matrix.arch }} --config Release
-        cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
 
-    - name: Installing vcpkg and libffi
-      run: |
-        cd ..
-        git clone https://github.com/Microsoft/vcpkg.git
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-        .\vcpkg.exe install libffi:x86-windows-static-md
-        .\vcpkg.exe install libffi:x64-windows-static-md
-
-    - name: Make
+    - name: Make with dyncall
       shell: cmd
       run: |
         cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
-    - name: Test
+    - name: Test with dyncall 
       shell: cmd
       run: |
         cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
+
+    - name: Install libffi
+      shell: cmd
+      run: |
+        cd %VCPKG_INSTALL_ROOT%
+        .\vcpkg.exe install libffi:${arch}-windows-static-md
+

@@ -17,32 +17,32 @@ jobs:
         brew update
         brew install tcl-tk libffi || true
 
-    # - name: Install dyncall
-    #   run: |
-    #     wget https://dyncall.org/r1.2/dyncall-1.2.tar.gz
-    #     tar xf dyncall-1.2.tar.gz
-    #     cd dyncall-1.2
-    #     mkdir build
-    #     cd build
-    #     ../configure --prefix=$GITHUB_WORKSPACE/external-libs/macos
-    #     make
-    #     make install
+    - name: Install dyncall
+      run: |
+        wget https://dyncall.org/r1.2/dyncall-1.2.tar.gz
+        tar xf dyncall-1.2.tar.gz
+        cd dyncall-1.2
+        mkdir build
+        cd build
+        ../configure --prefix=$GITHUB_WORKSPACE/external-libs/macos
+        make
+        make install
 
-    # - name: Configure with dyncall
-    #   run: |
-    #     mkdir build-dyncall
-    #     cd build-dyncall
-    #     ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include --with-dyncall
+    - name: Configure with dyncall
+      run: |
+        mkdir build-dyncall
+        cd build-dyncall
+        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include --with-dyncall
 
-    # - name: Make with dyncall
-    #   run: |
-    #     cd build-dyncall
-    #     make
+    - name: Make with dyncall
+      run: |
+        cd build-dyncall
+        make
 
-    # - name: Test with dyncall
-    #   run: |
-    #     cd build-dyncall
-    #     make test
+    - name: Test with dyncall
+      run: |
+        cd build-dyncall
+        make test
 
     - name: Configure with libffi
       run: |
