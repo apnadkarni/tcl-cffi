@@ -68,22 +68,13 @@ jobs:
       if: steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
-        echo Downloading dyncall
         curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
-        echo Extracing dyncall
         7z x dyncall-1.2.zip
-        dir
-        echo cd-ing to dyncall-1.2
         cd dyncall-1.2
-        echo creating build-msvc-${{ matrix.arch }}
         mkdir build-msvc-${{ matrix.arch }}
-        echo cd-ing build-msvc-${{ matrix.arch }}
         cd build-msvc-${{ matrix.arch }}
-        echo invoking cmake
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..
         cd ..
-        cd
-        echo Invoking cmake build
         cmake --build build-msvc-${{ matrix.arch }} --config Release
 
     - name: Make with libffi
@@ -92,14 +83,19 @@ jobs:
         cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md realclean
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
+
+    - name: Test with libffi
+      shell: cmd
+      run: |
+        cd win
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
 
     - name: Make with dyncall
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
+        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
+        nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
     - name: Test with dyncall 
       shell: cmd
