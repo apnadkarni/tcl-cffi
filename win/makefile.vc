@@ -46,7 +46,7 @@ PRJ_DEFINES = $(PRJ_DEFINES)
 EXTDIR = $(ROOT)\external-libs\win\$(BUILDDIRTOP)
 !endif
 !if exist("$(EXTDIR)\include\$(KEYFILE)")
-!message *** Using dyncall library in $(DYNCALLDIR)
+!message *** Using dyncall library in $(EXTDIR)
 !else
 !message *** Could not locate $(KEYFILE) in $(EXTDIR).
 !message *** Please check path or see instructions in makefile.vc

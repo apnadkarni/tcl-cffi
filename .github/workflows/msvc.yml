@@ -72,6 +72,12 @@ jobs:
         cd ..
         cmake --build build-msvc-${{ matrix.arch }} --config Release
 
+    - name: Install libffi
+      shell: cmd
+      run: |
+        cd %VCPKG_INSTALL_ROOT%
+        .\vcpkg.exe install libffi:${arch}-windows-static-md
+
     - name: Make with dyncall
       shell: cmd
       run: |
@@ -82,11 +88,6 @@ jobs:
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
+        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
 
-    - name: Install libffi
-      shell: cmd
-      run: |
-        cd %VCPKG_INSTALL_ROOT%
-        .\vcpkg.exe install libffi:${arch}-windows-static-md
 
