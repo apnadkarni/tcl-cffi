@@ -75,13 +75,22 @@ jobs:
     - name: Install libffi
       shell: cmd
       run: |
-        cd %VCPKG_INSTALL_ROOT%
+        echo VCPKG is under %VCPKG_INSTALLATION_ROOT%
         .\vcpkg.exe install libffi:${arch}-windows-static-md
+
+    - name: Make with libffi
+      shell: cmd
+      run: |
+        cd win
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\vcpkg\installed\${{ matrix.arch }}-windows-static-md realclean
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\vcpkg\installed\${{ matrix.arch }}-windows-static-md
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\vcpkg\installed\${{ matrix.arch }}-windows-static-md test
 
     - name: Make with dyncall
       shell: cmd
       run: |
         cd win
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
     - name: Test with dyncall 
