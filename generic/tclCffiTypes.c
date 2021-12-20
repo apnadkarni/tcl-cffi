@@ -1126,8 +1126,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
         valueObj = Tcl_NewLongObj(*(signed long *)valueP);
         break;
     case CFFI_K_TYPE_ULONG:
-        /* TBD - incorrect when sizeof(long) == sizeof(Tcl_WideInt) */
-        valueObj = Tcl_NewWideIntObj(*(unsigned long *)valueP);
+        valueObj = Tclh_ObjFromULong(*(unsigned long *)valueP);
         break;
     case CFFI_K_TYPE_LONGLONG:
         CFFI_ASSERT(sizeof(signed long long) == sizeof(Tcl_WideInt));

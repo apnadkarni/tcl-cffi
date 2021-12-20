@@ -175,6 +175,17 @@ int Tclh_ObjToLong(Tcl_Interp *interp, Tcl_Obj *obj, long *ptr);
  */
 int Tclh_ObjToULong(Tcl_Interp *interp, Tcl_Obj *obj, unsigned long *ptr);
 
+/* Function: Tclh_ObjFromULong
+ * Returns a Tcl_Obj wrapping a *unsigned long*
+ *
+ * Parameters:
+ *  ull - unsigned long value to be wrapped
+ *
+ * Returns:
+ * A pointer to a Tcl_Obj with a zero reference count.
+ */
+Tcl_Obj *Tclh_ObjFromULong(unsigned long ull);
+
 /* Function: Tclh_ObjToLongLong
  * Unwraps a Tcl_Obj into a C *long long* value type.
  *
@@ -429,6 +440,15 @@ int Tclh_ObjToULong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long *valP)
         return Tclh_ObjToULongLong(interp, objP, (unsigned long long *) valP);
     }
 }
+
+Tcl_Obj *Tclh_ObjFromULong(unsigned long ul)
+{
+    if (sizeof(unsigned long) < sizeof(Tcl_WideInt))
+        return Tcl_NewWideIntObj(ul);
+    else
+        return Tclh_ObjFromULongLong(ul);
+}
+
 
 int Tclh_ObjToBoolean(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 {

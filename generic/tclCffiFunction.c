@@ -1616,7 +1616,7 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_INT: CALLFN(Tcl_NewIntObj, CffiCallIntFunc, sint);
     case CFFI_K_TYPE_UINT: CALLFN(Tcl_NewWideIntObj, CffiCallUIntFunc, uint);
     case CFFI_K_TYPE_LONG: CALLFN(Tcl_NewLongObj, CffiCallLongFunc, slong);
-    case CFFI_K_TYPE_ULONG: CALLFN(Tcl_NewWideIntObj, CffiCallULongFunc, ulong);
+    case CFFI_K_TYPE_ULONG: CALLFN(Tclh_ObjFromULong, CffiCallULongFunc, ulong);
     case CFFI_K_TYPE_LONGLONG: CALLFN(Tcl_NewWideIntObj, CffiCallLongLongFunc, slonglong);
     case CFFI_K_TYPE_ULONGLONG: CALLFN(Tclh_ObjFromULongLong, CffiCallULongLongFunc, ulonglong);
     case CFFI_K_TYPE_FLOAT: CALLFN(Tcl_NewDoubleObj, CffiCallFloatFunc, flt);
