@@ -52,6 +52,11 @@ jobs:
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} install
 
+    - name: Install libffi
+      shell: cmd
+      run: |
+        %VCPKG_INSTALLATION_ROOT%\vcpkg install libffi:${{ matrix.arch }}-windows-static-md
+
     - name: Cache dyncall
       id: dyncall-msvc-cache
       uses: actions/cache@v2
@@ -63,19 +68,23 @@ jobs:
       if: steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
+        echo Downloading dyncall
         curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
+        echo Extracing dyncall
         7z x dyncall-1.2.zip
+        dir
+        echo cd-ing to dyncall-1.2
         cd dyncall-1.2
+        echo creating build-msvc-${{ matrix.arch }}
         mkdir build-msvc-${{ matrix.arch }}
+        echo cd-ing build-msvc-${{ matrix.arch }}
         cd build-msvc-${{ matrix.arch }}
+        echo invoking cmake
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..
         cd ..
+        cd
+        echo Invoking cmake build
         cmake --build build-msvc-${{ matrix.arch }} --config Release
-
-    - name: Install libffi
-      shell: cmd
-      run: |
-        %VCPKG_INSTALLATION_ROOT%\vcpkg install libffi:${arch}-windows-static-md
 
     - name: Make with libffi
       shell: cmd
