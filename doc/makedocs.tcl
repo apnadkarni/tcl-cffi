@@ -8,6 +8,7 @@ set NS cffi
 source cffi.ruff
 source start.ruff
 source concepts.ruff
+source wrapper.ruff
 source dyncall.ruff
 source memory.ruff
 source struct.ruff
@@ -28,4 +29,3 @@ ruff::document [list Concepts $NS ${NS}::dyncall] \
     -product cffi \
     -version 1.0b1 \
     -copyright "Ashok P. Nadkarni" {*}$::argv
-

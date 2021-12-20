@@ -15,7 +15,7 @@ set start_page {
     interchangeably) using `cffi` involves
 
     - First loading the library into the process by instantiating a
-      [::cffi::dyncall::Library] object.
+      [::cffi::Wrapper] object.
 
     - Then defining function prototypes for the C functions of interest in that
     library through method calls on that object.
@@ -65,7 +65,7 @@ set start_page {
     ````
     % package require cffi
     1.0a7
-    % cffi::dyncall::Library create user32 [file join $env(windir) system32 user32.dll]
+    % cffi::Wrapper create user32 [file join $env(windir) system32 user32.dll]
     ::user32
     ````
 
@@ -84,8 +84,8 @@ set start_page {
     where `HWND` is actually a C pointer typedef.
 
     To call this function from Tcl we first have to define a prototype for it.
-    Prototypes can be defined with either the [function][::cffi::dyncall::Library.function] or
-    [stdcall][::cffi::dyncall::Library.stdcall] methods on the shared library object that implements
+    Prototypes can be defined with either the [function][::cffi::Wrapper.function] or
+    [stdcall][::cffi::Wrapper.stdcall] methods on the shared library object that implements
     the function. The two commands are identical on all
     platforms except **32-bit** Windows where `function` is used to call functions
     that use the C calling convention while `stdcall` is used to call functions
@@ -188,7 +188,7 @@ set start_page {
     The following fragment illustrates their use.
 
     ```
-    % cffi::dyncall::Library create kernel kernel32.dll
+    % cffi::Wrapper create kernel kernel32.dll
     ::kernel
     % kernel stdcalls {
         GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
@@ -479,7 +479,7 @@ set start_page {
     mandated.
 
     ```
-    % cffi::dyncall::Library create myprocess
+    % cffi::Wrapper create myprocess
     ::myprocess
     % myprocess function fopen {pointer.SOMETHING nonzero errno} {path string mode string}
     % myprocess function fclose int {file {pointer.SOMETHING dispose}}

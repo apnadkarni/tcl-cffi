@@ -11,7 +11,7 @@ namespace eval ${NS}::prototype {
         #  parameters - List of alternating parameter name and type definitions
         #
         # The $fntype and $parameters take the same form and have the same
-        # semantics as described for the [::cffi::dyncall::Library.function] method
+        # semantics as described for the [::cffi::Wrapper.function] method
         # for defining functions. However, unlike that method, this command
         # does not create a command for invoking a C function. It only defines
         # a prototype that can then be used in conjunction with a C function
@@ -19,7 +19,7 @@ namespace eval ${NS}::prototype {
         #
         # See [Prototypes and function pointers] for more details.
         #
-        # See also:  [::cffi::dyncall::Library.function]
+        # See also:  [::cffi::Wrapper.function]
     }
     proc stdcall {name fntype parameters} {
         # Defines a function prototype for calling a function using the stdcall
@@ -30,7 +30,7 @@ namespace eval ${NS}::prototype {
         #  parameters - List of alternating parameter name and type definitions
         #
         # The $fntype and $parameters take the same form and have the same
-        # semantics as described for the [::cffi::dyncall::Library.stdcall] method
+        # semantics as described for the [::cffi::Wrapper.stdcall] method
         # for defining functions. However, unlike that method, this command
         # does not create a command for invoking a C function. It only defines
         # a prototype that can then be used in conjunction with a C function
@@ -38,7 +38,7 @@ namespace eval ${NS}::prototype {
         #
         # See [Prototypes and function pointers] for more details.
         #
-        # See also: [::cffi::dyncall::Library.stdcall]
+        # See also: [::cffi::Wrapper.stdcall]
     }
     proc list {{pattern *}} {
         # Returns a list of prototypes matching the specified pattern.

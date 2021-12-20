@@ -628,10 +628,17 @@ CffiResult CffiFunctionInstanceCmd(ClientData cdata,
                                    int objc,
                                    Tcl_Obj *const objv[]);
 void CffiFunctionCleanup(CffiFunction *fnP);
+CffiResult
+CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
+                             CffiLibCtx *libCtxP,
+                             Tcl_Obj *nameObj,
+                             Tcl_Obj *returnTypeObj,
+                             Tcl_Obj *paramsObj,
+                             CffiABIProtocol callMode);
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiEnumObjCmd;
-Tcl_ObjCmdProc CffiLibraryObjCmd;
+Tcl_ObjCmdProc CffiWrapperObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
 Tcl_ObjCmdProc CffiHelpObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;

@@ -24,7 +24,7 @@ if {[catch {package require $NS}]} {
 namespace eval cffi::test {
     namespace import ::tcltest::test
     variable testDllPath [file normalize [file join [file dirname $::cffi::dll_path] cffitest[info sharedlibextension]]]
-    cffi::dyncall::Library create testDll $testDllPath
+    cffi::Wrapper create testDll $testDllPath
     testDll function getTestStructSize int {}
     if {[cffi::pkgconfig get backend] eq "dyncall"} {
         cffi::dyncall::Symbols create testSyms $testDllPath

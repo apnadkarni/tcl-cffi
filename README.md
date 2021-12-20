@@ -40,16 +40,28 @@ Limitations in the current version include
 - No support for callbacks from C code
 - No support for passing structs by value
 
+## Changes in 1.0b3
+
+- Added support for the `libffi` library backend as an alternative to `dyncall`.
+The selection is made at build time. See `Build.md` in the source distribution.
+
+- **Incompatibility** `cffi::dyncall::Library` class renamed to 
+`cffi::Wrapper` as it is no longer specific to `dyncall`.
+
+
 ## Changes in 1.0b1
 
 - **Incompatibility** Null pointers will now raise a Tcl exception when passed
 as arguments or returned from functions unless the `nullok` annotation is present.
 Related to this, the `nonzero` annotation can no longer be applied to pointers.
+
 - **Incompatibility** The format of arguments passed to `onerror` handler
 has changed.
+
 - The `onerror`, `lasterror` and `errno` annotations can be included on
 parameter definitions and are ignored. This permits common type aliases for 
 return values and paramters.
+
 - The `alias define` command now allows multiple alias definitions to be passed.
 
 ## Changes in 1.0b0

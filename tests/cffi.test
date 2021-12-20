@@ -1,12 +1,10 @@
 # (c) 2021 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
-# This file contains tests for all cffi::dyncall::Library functionality except the
-# function method which has its own file
+# This file contains basic version and configuration tests
 
 source [file join [file dirname [info script]] common.tcl]
 
-# Library tests
 namespace eval ${NS}::test {
     test version-0 {Version check} -body {
         uplevel #0 package require cffi

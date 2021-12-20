@@ -162,7 +162,7 @@ namespace eval Concepts {
         below illustrates this.
 
         ```
-        % cffi::dyncall::Library create crtl
+        % cffi::Wrapper create crtl
         ::crtl
         % crtl function dlopen {pointer counted} {path string flags int}
         % crtl function dlclose int {dlptr {pointer dispose}}
@@ -420,9 +420,9 @@ namespace eval Concepts {
         ## Functions
 
         To invoke a function in a DLL or shared library, the library must first
-        be loaded through the creation of a [::cffi::dyncall::Library] object.
-        The [::cffi::dyncall::Library.function] and
-        [::cffi::dyncall::Library.stdcall] methods of the object can then be
+        be loaded through the creation of a [::cffi::Wrapper] object.
+        The [::cffi::Wrapper.function] and
+        [::cffi::Wrapper.stdcall] methods of the object can then be
         used to create Tcl commands that wrap individual functions implemented
         in the library.
 
@@ -434,9 +434,9 @@ namespace eval Concepts {
         terms of parameter and stack management and it is crucial that the
         correct convention be used when defining the corresponding FFI.
 
-        * The [::cffi::dyncall::Library.function] method should be used for declaring
+        * The [::cffi::Wrapper.function] method should be used for declaring
         C functions that use the default C calling convention.
-        * The [::cffi::dyncall::Library.stdcall] method should be used for declaring
+        * The [::cffi::Wrapper.stdcall] method should be used for declaring
         C functions that use the stdcall calling convention.
 
         Other than use of the two separate methods for definition, there is
@@ -450,8 +450,8 @@ namespace eval Concepts {
         ### Function wrappers
 
         The function wrapping methods
-        [function][::cffi::dyncall::Library.function] and
-        [stdcall][::cffi::dyncall::Library.stdcall] have the following syntax:
+        [function][::cffi::Wrapper.function] and
+        [stdcall][::cffi::Wrapper.stdcall] have the following syntax:
 
         ```
         DLLOBJ function FNNAME RETTYPE PARAMS
@@ -704,8 +704,8 @@ namespace eval Concepts {
         ### Prototypes and function pointers
 
         The function wrapping methods
-        [function][::cffi::dyncall::Library.function] and
-        [stdcall][::cffi::dyncall::Library.stdcall] described earlier bind a
+        [function][::cffi::Wrapper.function] and
+        [stdcall][::cffi::Wrapper.stdcall] described earlier bind a
         function type definition consisting of the return type and parameters
         with the address of a function as specified by its name. For some uses,
         it is useful to be able to independently specify the function type

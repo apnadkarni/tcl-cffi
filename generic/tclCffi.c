@@ -354,7 +354,7 @@ Cffi_Init(Tcl_Interp *ip)
 #endif
 
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::dyncall::Library", CffiLibraryObjCmd, vmCtxP, NULL);
+        ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, vmCtxP, NULL);
 #ifdef CFFI_USE_DYNCALL
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::dyncall::Symbols", CffiDyncallSymbolsObjCmd, NULL, NULL);
