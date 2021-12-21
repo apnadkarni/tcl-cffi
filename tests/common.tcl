@@ -29,6 +29,8 @@ namespace eval cffi::test {
     if {[cffi::pkgconfig get backend] eq "dyncall"} {
         cffi::dyncall::Symbols create testSyms $testDllPath
         tcltest::testConstraint dyncall 1
+    } else {
+        tcltest::testConstraint libffi 1
     }
     variable testStructSize
     set testStructSize [getTestStructSize]

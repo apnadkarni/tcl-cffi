@@ -52,8 +52,6 @@ CffiLibffiTranslateStruct(Tcl_Interp *ip,
                                  &structP->fields[i].fieldType,
                                  &libffiStructP->ffiFieldTypes[i]) != TCL_OK) {
             ckfree(libffiStructP);
-            Tcl_SetResult(
-                ip, "Could not translate structure definition.", TCL_STATIC);
             return TCL_ERROR;
         }
     }
@@ -73,6 +71,13 @@ CffiTypeToLibffiType(Tcl_Interp *ip,
     if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
         *ffiTypePP = &ffi_type_pointer;
         return TCL_OK;
+    }
+    if (typeAttrsP->dataType.count != 0) {
+        return Tclh_ErrorGeneric(
+            ip,
+            NULL,
+            "The libffi backend does not support arrays by value. Define as "
+            "struct with corresponding number of fields as a workaround.");
     }
     switch (typeAttrsP->dataType.baseType) {
     case CFFI_K_TYPE_VOID:

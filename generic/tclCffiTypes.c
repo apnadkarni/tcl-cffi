@@ -958,16 +958,23 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     flags |=
                         CFFI_F_ATTR_BYREF; /* Arrays always by reference */
                     break;
-#ifdef CFFI_USE_DYNCALL
                 case CFFI_K_TYPE_STRUCT:
                     if ((flags & CFFI_F_ATTR_BYREF) == 0) {
+#ifdef CFFI_USE_DYNCALL
                         message = "Passing of structs by value is not "
                                   "supported. Annotate with \"byref\" to pass by "
                                   "reference if function expects a pointer.";
                         goto invalid_format;
+#else
+                        if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
+                            message =
+                                "Structs cannot have nullifempty attribute "
+                                "when passed as an argument by value.";
+                            goto invalid_format;
+                        }
+#endif
                     }
                     break;
-#endif
                 default:
                     break;
                 }

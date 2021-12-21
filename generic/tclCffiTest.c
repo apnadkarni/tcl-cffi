@@ -586,6 +586,11 @@ EXTERN int getTestStruct(TestStruct *tsP)
     tsP->d       = off; /* Two step because direct assign causes MSVC 15.9.20 to crash */
     return sizeof(*tsP);
 }
+EXTERN TestStruct  returnTestStruct() {
+    struct TestStruct ts;
+    getTestStruct(&ts);
+    return ts;
+}
 
 /* Increments every field value by 1 */
 EXTERN void incrTestStruct(TestStruct *tsP)
@@ -640,23 +645,26 @@ EXTERN void incrTestStruct(TestStruct *tsP)
 
     SET(d);
 }
-EXTERN TestStruct incrTestStructByVal(TestStruct ts)
-{
-    incrTestStruct(&ts);
-    return ts;
-}
 
 struct SimpleStruct {
     unsigned char c;
     long long ll;
     short s;
 };
-EXTERN struct SimpleStruct incrSimpleStructByVal(struct SimpleStruct ts)
+struct SimpleOuterStruct {
+    float f;
+    struct SimpleStruct s;
+    char *p;
+};
+
+EXTERN struct SimpleOuterStruct incrSimpleOuterStructByVal(struct SimpleOuterStruct outer)
 {
-    ts.c++;
-    ts.ll++;
-    ts.s++;
-    return ts;
+    outer.f++;
+    outer.s.c++;
+    outer.s.ll++;
+    outer.s.s++;
+    outer.p++;
+    return outer;
 }
 
 EXTERN int structArrayFill (int n, struct SimpleStruct *out)
@@ -669,6 +677,10 @@ EXTERN int structArrayFill (int n, struct SimpleStruct *out)
         out[i].s  = ++val;
     }
     return val;
+}
+EXTERN int structCheckByVal(struct SimpleStruct in, signed char c, long long ll, short s)
+{
+    return in.c == c && in.ll == ll && in.s == s;
 }
 EXTERN int structCheck(struct SimpleStruct *in, signed char c, long long ll, short s)
 {

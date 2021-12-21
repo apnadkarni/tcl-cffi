@@ -942,10 +942,6 @@ namespace eval ${NS}::test {
     }
 
     ## Parameter - struct
-    test function-struct-byval-0 "Param struct by value - error" -body {
-        testDll function getTestStruct int {s struct.TestStruct}
-    } -result "Invalid value \"struct.TestStruct\". $errorMessages(structbyref)" -returnCodes error
-
     test function-struct-out-0 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
     } -body {
@@ -956,6 +952,7 @@ namespace eval ${NS}::test {
     test function-struct-out-crash-bug#39 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
         proc crash {} {
+            # Output is a procedure-local that does not exist
             getTestStruct s
             checkTestStruct $s
         }
@@ -963,26 +960,40 @@ namespace eval ${NS}::test {
         crash
     } -result [list ]
 
-    test function-struct-in-0 "Param struct in" -setup {
+    test function-struct-in-0 "Param struct in" -constraints libffi -setup {
+        cffi::Struct create ::S {c uchar ll longlong s short}
+        testDll function structCheckByVal int {s struct.::S c uchar ll longlong s short}
+    } -body {
+        set ll 0x7fffffffffff
+        structCheckByVal [list c 1 ll $ll s 2] 1 $ll 2
+    } -result 1
+    test function-struct-in-error-0 "Param struct by value - error" -constraints {
+        dyncall
+    } -body {
+        testDll function getTestStruct int {s struct.TestStruct}
+    } -result "Invalid value \"struct.TestStruct\". $errorMessages(structbyref)" -returnCodes error
+
+
+    test function-struct-in-byref-0 "Param struct in byref" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
     } -body {
         set ll 0x7fffffffffff
         structCheck [list c 1 ll $ll s 2] 1 $ll 2
     } -result 1
-    test function-struct-in-1 "Param struct in - null if empty" -setup {
+    test function-struct-in-byref-1 "Param struct in byref - null if empty" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function pointer_to_pointer {pointer unsafe nullok} {s {struct.::S byref in nullifempty}}
     } -body {
         pointer_to_pointer {}
     } -result [makeptr 0]
-    test function-struct-in-2 "Param struct in - null if empty, override" -setup {
+    test function-struct-in-byref-2 "Param struct in byref - null if empty, override" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function pointer_to_pointer {pointer unsafe} {s {struct.::S byref in nullifempty}}
     } -body {
         cffi::pointer isnull [pointer_to_pointer {c 0 ll 0 s 0}]
     } -result 0
-    test function-struct-in-3 "Pass struct with pointer array in and out" -setup {
+    test function-struct-in-byref-3 "Pass struct with pointer array in and out" -setup {
         catch {struct_with_pointer_array destroy}
         cffi::Struct create struct_with_pointer_array {ptrs {pointer[3] counted}}
         testDll function struct_pointer_array_exchange void {from {struct.struct_with_pointer_array in byref} to {struct.struct_with_pointer_array out}}
@@ -995,21 +1006,21 @@ namespace eval ${NS}::test {
         list $from $to
     } -result [list [list ptrs [make_unsafe_pointers 1 2 3]] [list ptrs [make_unsafe_pointers 1 2 3]]]
 
-    test function-struct-in-error-0 "Param struct in - empty dictionary" -setup {
+    test function-struct-in-byref-error-0 "Param struct in byref - empty dictionary" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
     } -body {
         set ll 0x7fffffffffff
         structCheck [list ] 1 $ll 2
     } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
-    test function-struct-in-error-1 "Param struct in missing field" -setup {
+    test function-struct-in-byref-error-1 "Param struct in byref missing field" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
     } -body {
         set ll 0x7fffffffffff
         structCheck [list c 1 ll $ll] 1 $ll 2
     } -result {Struct field "s" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
-    test function-struct-in-error-2 "Param struct in missing field - with nullempty" -setup {
+    test function-struct-in-byref-error-2 "Param struct in byref missing field - with nullempty" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref nullifempty} c uchar ll longlong s short}
     } -body {
@@ -1445,6 +1456,33 @@ namespace eval ${NS}::test {
         unistring_return
     } -result "\xe0\xe1\xe2"
 
+    # Return type - struct
+    test function-struct-return-0 "Return struct with input struct" -constraints {
+        libffi
+    } -setup {
+        cffi::Struct create ::Inner {c schar ll longlong s short}
+        cffi::Struct create ::Outer {f float s struct.::Inner p {pointer unsafe}}
+        testDll function {incrSimpleOuterStructByVal f} struct.::Outer {s struct.::Outer}
+    } -body {
+        set inner {c 0 ll 1 s 2}
+        set outer [list f 10 s $inner p [makeptr 1]]
+        f $outer
+    } -result [list f 11.0 s [list c 1 ll 2 s 3] p [makeptr 2]]
+    test function-struct-return-error-0 "Return type struct - error " -constraints {
+        dyncall
+    } -body {
+        # Prototype does not match C. Does not have to!
+        testDll function getTestStruct struct.TestStruct {}
+    } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode)" -returnCodes error
+
+    test function-struct-return-error-1 "Return struct containing array" -constraints {
+        libffi
+    } -setup {
+        testDll function returnTestStruct struct.TestStruct {}
+    } -body {
+        set s [returnTestStruct]
+    } -result {The libffi backend does not support arrays by value. Define as struct with corresponding number of fields as a workaround.} -returnCodes error
+
     ## Error attributes for strings
 
     # Other return types are not permitted - test here. Note it does not
@@ -1462,11 +1500,6 @@ namespace eval ${NS}::test {
             testDll function string_out ${type}\[2\] {}
         } -result "Invalid value \"$type\[2\]\". $errorMessages(typeparsemode)" -returnCodes error
     }
-    test function-return-struct-0 "Return type struct" -body {
-        # Prototype does not match C. Does not have to!
-        testDll function getTestStruct struct.TestStruct {}
-    } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode)" -returnCodes error
-
 
     ###
     # Tests for defaults
