@@ -7,8 +7,65 @@
 
 #include "tclCffiInt.h"
 
+static CffiResult CffiTypeToLibffiType(Tcl_Interp *ip,
+                                       CffiABIProtocol abi,
+                                       CffiTypeParseMode parseMode,
+                                       CffiTypeAndAttrs *typeAttrsP,
+                                       ffi_type **ffiTypePP);
+static CffiResult
+CffiLibffiTranslateStruct(Tcl_Interp *ip,
+                          CffiABIProtocol abi,
+                          CffiTypeParseMode parseMode,
+                          CffiStruct *structP,
+                          ffi_type **ffiTypePP)
+{
+    CffiLibffiStruct *libffiStructP;
+    int i;
+
+    /* See if we have already translated the struct for this ABI. */
+    for (libffiStructP = structP->libffiTypes; libffiStructP;
+         libffiStructP = libffiStructP->nextP) {
+        if (libffiStructP->abi == abi) {
+            *ffiTypePP = &libffiStructP->ffiType;
+            return TCL_OK;
+        }
+    }
+    /*
+     * Do not have a translated struct. Construct one. We allocate
+     * additional space to hold the array of element pointers for the type.
+     * The size of this array is equal to number of parameters plus a slot
+     * for the terminating NULL. Note the struct definition itself already
+     * holds one slot so just allocate extra space corresponding to the
+     * parameter count.
+     */
+    libffiStructP = ckalloc(sizeof(*libffiStructP)
+                            + (structP->nFields * sizeof(ffi_type *)));
+    libffiStructP->ffiType.size = 0;
+    libffiStructP->ffiType.alignment = 0;
+    libffiStructP->ffiType.type = FFI_TYPE_STRUCT;
+    libffiStructP->ffiType.elements = libffiStructP->ffiFieldTypes;
+
+    for (i = 0; i < structP->nFields; ++i) {
+        if (CffiTypeToLibffiType(ip,
+                                 abi,
+                                 parseMode,
+                                 &structP->fields[i].fieldType,
+                                 &libffiStructP->ffiFieldTypes[i]) != TCL_OK) {
+            ckfree(libffiStructP);
+            Tcl_SetResult(
+                ip, "Could not translate structure definition.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
+    libffiStructP->ffiFieldTypes[structP->nFields] = NULL; /* Terminator */
+
+    *ffiTypePP = &libffiStructP->ffiType;
+    return TCL_OK;
+}
+
 static CffiResult
 CffiTypeToLibffiType(Tcl_Interp *ip,
+                     CffiABIProtocol abi,
                      CffiTypeParseMode parseMode,
                      CffiTypeAndAttrs *typeAttrsP,
                      ffi_type **ffiTypePP)
@@ -52,9 +109,15 @@ CffiTypeToLibffiType(Tcl_Interp *ip,
     case CFFI_K_TYPE_ASTRING: /* Fallthru - treated as pointer */
     case CFFI_K_TYPE_UNISTRING: /* Fallthru - treated as pointer */
     case CFFI_K_TYPE_BINARY: /* Fallthru - treated as pointer */
-    case CFFI_K_TYPE_POINTER: *ffiTypePP = &ffi_type_pointer; return TCL_OK;
+    case CFFI_K_TYPE_POINTER: *ffiTypePP = &ffi_type_pointer; break;
     case CFFI_K_TYPE_STRUCT:
-        /* TBD - pass by value not supported yet. BYREF handled earlier */
+#ifndef CFFI_USE_DYNCALL
+        if (CffiLibffiTranslateStruct(
+                ip, abi, parseMode, typeAttrsP->dataType.u.structP, ffiTypePP)
+            != TCL_OK)
+            return TCL_ERROR;
+#endif
+        break;
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
@@ -89,6 +152,7 @@ CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP)
     ffiTypePP = (ffi_type **)(cifP + 1);
     for (i = 0; i < protoP->nParams; ++i) {
         ret = CffiTypeToLibffiType(ip,
+                                   protoP->abi,
                                    CFFI_F_TYPE_PARSE_PARAM,
                                    &protoP->params[i].typeAttrs,
                                    &ffiTypePP[i]);
@@ -97,6 +161,7 @@ CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP)
     }
     /* Ditto for the return type */
     ret = CffiTypeToLibffiType(ip,
+                               protoP->abi,
                                CFFI_F_TYPE_PARSE_RETURN,
                                &protoP->returnType.typeAttrs,
                                &ffiTypePP[protoP->nParams]);

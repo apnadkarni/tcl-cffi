@@ -647,13 +647,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_FLOAT: STORENUM(ObjToFloat, CffiStoreArgFloat, flt, float); break;
     case CFFI_K_TYPE_DOUBLE: STORENUM(ObjToDouble, CffiStoreArgDouble, dbl, double); break;
     case CFFI_K_TYPE_STRUCT:
-        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         CFFI_ASSERT(argP->actualCount >= 0);
         if (argP->actualCount == 0) {
             /* Single struct */
+            void *structValueP;
             if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
                 int dict_size;
-                CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
+                CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
                 CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
                 if (dict_size == 0) {
                     /* Empty dictionary AND NULLIFEMPTY set */
@@ -664,13 +664,26 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 }
                 /* NULLIFEMPTY but dictionary has elements */
             }
-            argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo,
-                                         typeAttrsP->dataType.u.structP->size);
+            /* TBD - check out struct size matches Libffi's */
+            structValueP = MemLifoAlloc(&ipCtxP->memlifo,
+                                        typeAttrsP->dataType.u.structP->size);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 CHECK(CffiStructFromObj(ip,
                                         typeAttrsP->dataType.u.structP,
                                         valueObj,
-                                        argP->value.u.ptr));
+                                        structValueP));
+            }
+            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
+                argP->value.u.ptr = structValueP;
+                /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+                STOREARG(CffiStoreArgPointer, ptr);
+            } else {
+#ifdef CFFI_USE_DYNCALL
+                CFFI_ASSERT(0); /* Should not reach here for dyncall */
+#else
+                argP->value.u.ptr             = NULL;/* Not used */
+                callP->argValuesPP[arg_index] = structValueP;
+#endif
             }
         }
         else {
@@ -702,9 +715,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 }
             }
             argP->value.u.ptr = valueArray;
+            STOREARG(CffiStoreArgPointer, ptr);
         }
-        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
-        STOREARG(CffiStoreArgPointer, ptr);
         break;
 
     case CFFI_K_TYPE_POINTER:
@@ -1093,7 +1105,11 @@ CffiReturnPrepare(CffiCall *callP)
     case CFFI_K_TYPE_ASTRING: /* Fallthru - treat as pointer */
     case CFFI_K_TYPE_UNISTRING: /* Fallthru - treat as pointer */
     case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
-    case CFFI_K_TYPE_STRUCT: /* TBD - fallthru */
+    case CFFI_K_TYPE_STRUCT:
+        callP->retValueP = MemLifoAlloc(
+            &callP->fnP->libCtxP->vmCtxP->ipCtxP->memlifo,
+            callP->fnP->protoP->returnType.typeAttrs.dataType.u.structP->size);
+        break;
     default:
         Tcl_SetResult(callP->fnP->vmCtxP->ipCtxP->interp,
                       "Invalid return type.",
@@ -1651,6 +1667,17 @@ CffiFunctionCall(ClientData cdata,
         }
         break;
     case CFFI_K_TYPE_STRUCT:
+#ifdef CFFI_USE_DYNCALL
+        /* Should not happen. If asserts disabled fallthru to error */
+        CFFI_ASSERT(0);
+#else
+        CffiLibffiCall(&callCtx);
+        ret = CffiStructToObj(ip,
+                              protoP->returnType.typeAttrs.dataType.u.structP,
+                              callCtx.retValueP,
+                              &resultObj);
+        break;
+#endif
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:

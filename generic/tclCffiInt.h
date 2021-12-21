@@ -188,6 +188,16 @@ typedef struct CffiTypeAndAttrs {
     (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_WINERROR \
      | CFFI_F_ATTR_ONERROR)
 
+
+/*
+ * Calling protocol type
+ */
+#ifdef CFFI_USE_DYNCALL
+typedef DCint CffiABIProtocol;
+#else
+typedef ffi_abi CffiABIProtocol;
+#endif
+
 /*
  * Union of value types supported by dyncall
  */
@@ -222,16 +232,31 @@ typedef struct CffiValue {
 /*
  * C struct and struct field descriptors
  */
+#ifndef CFFI_USE_DYNCALL
+/*
+ * Libffi needs a type descriptor for structures - one per ABI.
+ */
+typedef struct CffiLibffiStruct {
+    CffiABIProtocol abi;             /* ABI this layout pertains to */
+    struct CffiLibffiStruct *nextP; /* Link to struct for next ABI */
+    ffi_type ffiType;
+    ffi_type *ffiFieldTypes[1]; /* Actually variable size */
+} CffiLibffiStruct;
+#endif
+
 typedef struct CffiStruct CffiStruct;
 typedef struct CffiField {
-    Tcl_Obj *nameObj;        /* Field name */
-    CffiTypeAndAttrs field; /* base type, cardinality, tag etc. */
-    unsigned int offset;     /* Field offset from beginning of struct */
-    unsigned int size;       /* Size of the field */
+    Tcl_Obj *nameObj;           /* Field name */
+    CffiTypeAndAttrs fieldType; /* base type, cardinality, tag etc. */
+    unsigned int offset;        /* Field offset from beginning of struct */
+    unsigned int size;          /* Size of the field */
 } CffiField;
 
 struct CffiStruct {
     Tcl_Obj *name;              /* Struct type name */
+#ifndef CFFI_USE_DYNCALL
+    CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
+#endif
     int nRefs;                  /* Shared, so need ref count */
     unsigned int size;          /* Size of struct */
     unsigned int alignment;     /* Alignment required for struct */
@@ -293,12 +318,6 @@ typedef struct CffiParam {
     Tcl_Obj *nameObj;           /* Parameter name */
     CffiTypeAndAttrs typeAttrs;
 } CffiParam;
-
-#ifdef CFFI_USE_DYNCALL
-typedef DCint CffiABIProtocol;
-#else
-typedef ffi_abi CffiABIProtocol;
-#endif
 
 /* Function prototype definition */
 typedef struct CffiProto {

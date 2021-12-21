@@ -958,6 +958,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     flags |=
                         CFFI_F_ATTR_BYREF; /* Arrays always by reference */
                     break;
+#ifdef CFFI_USE_DYNCALL
                 case CFFI_K_TYPE_STRUCT:
                     if ((flags & CFFI_F_ATTR_BYREF) == 0) {
                         message = "Passing of structs by value is not "
@@ -966,6 +967,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                         goto invalid_format;
                     }
                     break;
+#endif
                 default:
                     break;
                 }
@@ -976,11 +978,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         /* Return - parameter-mode flags should not be set */
         CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_MASK) == 0);
         switch (baseType) {
-        case CFFI_K_TYPE_STRUCT:
         case CFFI_K_TYPE_BINARY:
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
+#ifdef CFFI_USE_DYNCALL
+        case CFFI_K_TYPE_STRUCT:
+#endif
             /* return type not allowed even byref */
             message = typeInvalidForContextMsg;
             goto invalid_format;

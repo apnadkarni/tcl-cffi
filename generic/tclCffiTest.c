@@ -640,12 +640,25 @@ EXTERN void incrTestStruct(TestStruct *tsP)
 
     SET(d);
 }
+EXTERN TestStruct incrTestStructByVal(TestStruct ts)
+{
+    incrTestStruct(&ts);
+    return ts;
+}
 
 struct SimpleStruct {
     unsigned char c;
     long long ll;
     short s;
 };
+EXTERN struct SimpleStruct incrSimpleStructByVal(struct SimpleStruct ts)
+{
+    ts.c++;
+    ts.ll++;
+    ts.s++;
+    return ts;
+}
+
 EXTERN int structArrayFill (int n, struct SimpleStruct *out)
 {
     int i;
