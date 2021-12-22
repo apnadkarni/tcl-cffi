@@ -194,15 +194,15 @@ namespace eval Concepts {
         verified if present.
 
         The literal `NULL` can be used to represent a null pointer. By default,
-        a function result is a null pointer, it is treated as an error and
+        a function result that is a null pointer is treated as an error and
         triggers the function's error handling mechanisms. Similarly, an attempt
         to pass a null pointer to a function or store it as a field value
         in a C struct will raise an exception. This can be overridden by
         including the `nullok` annotation on the function return, parameter
         or structure fields type definition.
 
-        Note that when returned as as output parameters from function,
-        either directly or embedded as struct fields, null pointers are
+        Note that when returned as as output parameters from a function,
+        either directly or embedded as struct field, null pointers are
         permitted even without the `nullok` annotation.
 
         #### Memory operations
@@ -213,12 +213,11 @@ namespace eval Concepts {
         but there are times when direct access to the memory content addressed
         by pointers is desired.
 
-        A set of commands grouped as the `memory` command ensemble provide
-        such functionality. The commands [::cffi::memory allocate] and
-        [::cffi::memory free] provide memory management facilities.
-        Access to the content is available through [::cffi::memory tobinary]
-        and [::cffi::memory frombinary] commands which convert to and from
-        Tcl binary strings.
+        The `memory` command ensemble provides such functionality. The commands
+        [::cffi::memory allocate] and [::cffi::memory free] provide memory management
+        facilities. Access to the content is available through
+        [::cffi::memory tobinary] and [::cffi::memory frombinary] commands which
+        convert to and from Tcl binary strings.
 
         ### Strings
         
@@ -270,7 +269,7 @@ namespace eval Concepts {
         (for example) `chars[nchars]` where `nchars` is the name of the
         parameter containing the buffer size.
 
-        - Function output parameters that stored by the called function as
+        - Function output parameters that are stored by the called function as
         pointer to strings can be declared as `out` parameters of type `string`
         or `unistring` in the limited case where the stored pointer does not
         need to be disposed of (e.g. a pointer to a statically allocated string
@@ -320,10 +319,15 @@ namespace eval Concepts {
         C struct values are generally represented as Tcl dictionaries with the
         struct field names as dictionary keys. C function parameter declarations
         that take pointers to structs can be declared as `struct.STRUCTNAME
-        byref`, for example `struct.Point byref`. The [byref][Parameters] is
-        required as structs can currently only be passed by reference. The
-        corresponding input argument for the parameter when the function is
-        called should be the dictionary value. Conversely, output parameter
+        byref`, for example `struct.Point byref`. The [byref][Parameters]
+        indicates the struct is being passed by reference (via a pointer).
+        Leaving it off indicates that the structure is passed by value. Passing
+        structures by value and returning them as values from functions is only
+        supported by the `libffi` back end. The `dyncall` back end only supports
+        passing structures by reference.
+
+        The input argument for the parameter when the function is
+        called should be a dictionary value. Conversely, output parameter
         results are returned as a dictionary of the same form.
 
         Alternatively, structs can also be manipulated using raw pointers and

@@ -3,13 +3,14 @@
 
 package require ruff
 
+
 set NS cffi
 
 source cffi.ruff
 source start.ruff
 source concepts.ruff
 source wrapper.ruff
-source dyncall.ruff
+# source dyncall.ruff
 source memory.ruff
 source struct.ruff
 source type.ruff
@@ -18,7 +19,7 @@ source enum.ruff
 source pointer.ruff
 source prototype.ruff
 
-ruff::document [list Concepts $NS ${NS}::dyncall] \
+ruff::document [list Concepts $NS] \
     -outfile $NS.html \
     -outdir [file join [file dirname [info script]] html] \
     -sortnamespaces false \

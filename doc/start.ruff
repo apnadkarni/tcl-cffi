@@ -1,9 +1,7 @@
 set start_page {
     # Getting started
 
-    This package implements a *foreign function interface* (FFI) for Tcl
-    based on the cross-platform C library, [dyncall](https://dyncall.org) from
-    Daniel Adler and Tassilo Philipp.
+    This package implements a *foreign function interface* (FFI) for Tcl.
 
     ## Overview
 
@@ -14,13 +12,13 @@ set start_page {
     Calling a C function from a shared library (or DLL, using the term
     interchangeably) using `cffi` involves
 
-    - First loading the library into the process by instantiating a
-      [::cffi::Wrapper] object.
+    - Loading the library into the process by instantiating a [::cffi::Wrapper]
+      object.
 
-    - Then defining function prototypes for the C functions of interest in that
-    library through method calls on that object.
+    - Defining commands that wrap the C functions of interest through method
+    calls on the [Wrapper][::cffi::Wrapper] object.
 
-    The created commands thus created can then be invoked as any other Tcl commands.
+    - Invoking the wrapped commands as any other Tcl commands.
 
     This page provides an introduction to the package. Details are described
     in
@@ -29,14 +27,11 @@ set start_page {
     are translated to the Tcl script level; for example, type definitions,
     memory management, pointers etc.
 
-    - The [::cffi] page which contains reference documentation for the above
+    - The [::cffi] page which contains reference documentation for the package.
 
-    - The [::cffi::dyncall] page which contains reference documentation for
-    loading shared libraries using the `dyncall` library and declaring function
-    prototypes.
-
-    - Some tutorial material is available at [magicsplat](https://www.magicsplat.com/blog/tags/cffi/)
-    and the [samples directory](https://github.com/apnadkarni/tcl-cffi/tree/main/examples).
+    Some tutorial material is available at [magicsplat](https://www.magicsplat.com/blog/tags/cffi/)
+    and the [examples](https://github.com/apnadkarni/tcl-cffi/tree/main/examples)
+    directory in the repository.
 
     ## Downloads
 
@@ -48,8 +43,15 @@ set start_page {
     Binary distributions can be extracted into any directory present in
     Tcl's `auto_path` variable.
 
-    To install from source, please see the `BUILD.md` file in the source
-    distribution.
+    For instructions on building and installing from source, see the `BUILD.md`
+    file in the source distribution. The package can be built with one of two
+    back end libraries that implement FFI functionality:
+
+    - [`libffi`](http://sourceware.org/libffi/)
+    - [`dyncall`](https://dyncall.org)
+
+    The selection of the back end library to use is made at build time as described
+    in the build instructions.
 
     ## Quick start
 
@@ -64,34 +66,33 @@ set start_page {
 
     ````
     % package require cffi
-    1.0a7
+    1.0b3
     % cffi::Wrapper create user32 [file join $env(windir) system32 user32.dll]
     ::user32
     ````
 
     This creates a shared library object that can then be used for defining
     functions implemented within the library. It is recommended to always pass a
-    full path to the shared library though that is not strictly required on
-    Windows.
+    full path to the shared library though that is not strictly required.
 
     The next step is to define the prototype for the function to get a handle
     to the desktop window. In C, this would look like
 
     ````
-    HWND GetDesktopWindow()
+    HWND GetDesktopWindow();
     ````
 
     where `HWND` is actually a C pointer typedef.
 
-    To call this function from Tcl we first have to define a prototype for it.
-    Prototypes can be defined with either the [function][::cffi::Wrapper.function] or
-    [stdcall][::cffi::Wrapper.stdcall] methods on the shared library object that implements
-    the function. The two commands are identical on all
-    platforms except **32-bit** Windows where `function` is used to call functions
-    that use the C calling convention while `stdcall` is used to call functions
-    using the stdcall calling convention. On all other platforms, including
-    64-bit Windows, the two are identical. Since we are demonstrating using
-    Windows, the `stdcall` command is used in some of the examples.
+    To call this function from Tcl we first have to define a wrapper for it.
+    Wrappers can be defined with either the [function][::cffi::Wrapper.function]
+    or [stdcall][::cffi::Wrapper.stdcall] methods on the shared library object
+    that implements the function. The two commands are identical on all
+    platforms except 32-bit Windows where `function` is used to call
+    functions that use the C calling convention while `stdcall` is used to call
+    functions using the stdcall calling convention. On all other platforms,
+    including 64-bit Windows, the two are identical. Since we are demonstrating
+    using Windows, the `stdcall` command is used in some of the examples.
 
     The prototype for the above Windows function can then be defined as:
 
@@ -138,7 +139,7 @@ set start_page {
     is a `Struct` object which can be used in function declarations, memory
     allocations and other places.
 
-    The `GetWindowRect` is defined using this struct definition.
+    The `GetWindowRect` function is wrapped using this struct definition.
 
     ````
     % user32 stdcall GetWindowRect int {hwnd pointer.HWND rect {struct.RECT out}}
@@ -146,16 +147,15 @@ set start_page {
 
     The parameter list for a function follows the same form as for structs,
     an alternating list of parameter names and type declarations. The name
-    of the parameter is irrelevant for invocation but requiring parameter
-    names makes for more informative error messages.
+    of the parameter is irrelevant for invocation but important for error handling.
 
     Note how the type for the second parameter, `rect`, is specified. In
     general, type declarations consist of a type optionally followed by a list
-    of annotations that serve multiple purposes as we will see below. In this
-    case `struct.RECT` specifies the data type while `out` is an annotation that
-    indicates it is an output parameter for the function and thus to be passed
-    by reference. At the script level, the parameter must then be a **variable
-    name**, and not a **value**, into which the output can be stored.
+    of annotations that serve multiple purposes. In this case `struct.RECT`
+    specifies the data type while `out` is an annotation that indicates it is an
+    output parameter for the function and thus to be passed by reference. At the
+    script level, the parameter must then be a **variable name**, and not a
+    **value**, into which the output can be stored.
 
     The function is called as:
 
@@ -231,7 +231,7 @@ set start_page {
     were defined using `string.jis0208` or `chars[512].jis0208`, the JIS0208
     encoding would be used to transform the strings in both directions.
 
-    The package has other related types that server a similar purpose.
+    The package has other related types that serve a similar purpose.
 
     - The `unistring` and `unichars` type are analogous to `string` and `chars`
     except they assume the encoding is that of the `Tcl_UniChar` C type and
@@ -279,7 +279,7 @@ set start_page {
 
     ```
     % SetCurrentDirectoryA "nosuchdir"
-    Invalid value "0". Function returned zero.
+    Invalid value "0". Function returned an error value.
     ```
 
     Note however, that the error message is generic and only indicates
@@ -297,10 +297,10 @@ set start_page {
 
     With the inclusion `lasterror` in the type declaration, the error message is much
     clearer. This also eliminates the second issue mentioned above with the
-    error detail being lost before the call to retrieve it is made.
+    error detail being lost before the function to retrieve it is called.
 
     While `lasterror` implies `GetLastError` as the retrieval
-    mechanism and is specific to Windows, other annotation for error retrieval
+    mechanism and is specific to Windows, other annotations for error retrieval
     are also available. For example, the `errno` annotation serves a similar
     purpose except it retrieves the error based on the `errno` facility which
     is cross-platform and commonly applicable to both the C runtime as well
@@ -308,7 +308,7 @@ set start_page {
 
     For cases where the error is library-specific and not derived from the system,
     the `onerror` annotation can be used to customize the handling of error
-    conditions.
+    conditions. See the [`examples`](https://github.com/apnadkarni/tcl-cffi/tree/main/examples) in the source repository.
 
     ### Pointers and memory
 
@@ -320,7 +320,7 @@ set start_page {
     `pointer` type provides this access while also attempting to guard against
     some common errors through multiple mechanisms:
 
-    - pointers can be optionally tagged so a pointer to the wrong resource type
+    - Pointers can be optionally tagged so a pointer to the wrong resource type
     is not inadvertently passed where a different one is expected.
 
     - Pointers are marked as *safe* by default when returned from a
@@ -328,11 +328,16 @@ set start_page {
     whenever a pointer is accessed. It is sometimes necessary to bypass this
     check and the `unsafe` attribute is provided for the purpose.
 
+    - Null pointers passed as parameters or returned from functions will raise a
+    Tcl exception by default. The `nullok` annotation provides for cases where
+    NULL pointers can be legitimately used.
+
+
     Note a pointer tag is **not** the same as a data type. For example, you may
     have a single C structure type `XY` containing two numerical fields. You can
     choose to tag pointers to the structure with two different tags, `Point` and
     `Dimensions` depending on whether it is used as co-ordinates of a point or
-    as width/height dimensions. The two tags will be treated as different.
+    as width and height dimensions. The two tags will be treated as different.
 
     The examples below repeat the previous ones, but this time using pointers
     in place of structs and strings.
@@ -369,7 +374,7 @@ set start_page {
     It is not even strictly necessary to even define a structure at all. Below
     is yet another way to get dimensions without making use of the `RECT`
     struct and using direct memory allocation.
-    
+
     ````
     % set praw [cffi::memory allocate 16 RECT]
     0x000001E53EAB8F90^RECT
@@ -441,7 +446,7 @@ set start_page {
     ```
 
     The above C prototypes use Windows type definitions. Rather than translate
-    them into appropriate (32- or 64-bit) native C types, the `cffi::alias`
+    them into appropriate (32- or 64-bit) native C types, the [::cffi::alias define]
     command, detailed later, allows platform-specific type definitions to be
     predefined.
 
@@ -450,7 +455,7 @@ set start_page {
     ```
 
     On Windows, this will define common types like `DWORD` etc. so the
-    functions can be defined as
+    above functions can be wrapped as
 
     ```
     kernel stdcall HeapCreate pointer.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
@@ -479,10 +484,10 @@ set start_page {
     mandated.
 
     ```
-    % cffi::Wrapper create myprocess
-    ::myprocess
-    % myprocess function fopen {pointer.SOMETHING nonzero errno} {path string mode string}
-    % myprocess function fclose int {file {pointer.SOMETHING dispose}}
+    % cffi::Wrapper create libc libc.so.6
+    ::libc
+    % libc function fopen {pointer.SOMETHING errno} {path string mode string}
+    % libc function fclose int {file {pointer.SOMETHING dispose}}
     % set fileptr [fopen test.txt w]
     0x55a273bf32e0^SOMETHING
     % fclose $fileptr
@@ -491,7 +496,17 @@ set start_page {
     Pointer 0x55a273bf32e0^SOMETHING is not registered.
     ```
 
-    There are a couple of situations where this pointer registration mechanism
+    As an aside, note the use of the `errno` annotation above. An attempt
+    to open a non-existent file for reading will return a NULL pointer which
+    by default causes `cffi` to raise an exception. The `errno` annotation
+    retrieves the system error for a more readable error message.
+
+    ```
+    % set fileptr [fopen nosuchfile.txt r]
+    No such file or directory
+    ```
+
+    There are a couple of situations where the pointer registration mechanism
     is a hindrance.
 
     - One is when the pointer is acquired by some means other than through a
@@ -514,7 +529,7 @@ set start_page {
     ```
 
     Note that unsafe pointers only bypass registration checks; the pointer
-    tags are still verified.
+    tags are still verified if present.
 
     The second case has to do with API calls like `LoadLibrary` which we can
     prototype as
@@ -596,14 +611,14 @@ set start_page {
 
     ```
     if {$tcl_platform(pointerSize) == 8} {
-        cffi::type SIZE_T ulonglong
+        cffi::alias define SIZE_T ulonglong
     } else {
-        cffi::type SIZE_T ulonglong
+        cffi::alias define SIZE_T uint
     }
     kernel stdcalls {
         HeapCreate pointer.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
         HeapDestroy LASTERROR {heapPtr {pointer.HEAP dispose}}
-        HeapAlloc {pointer nonzero} {heapPtr pointer.HEAP flags uint size SIZE_T}
+        HeapAlloc pointer {heapPtr pointer.HEAP flags uint size SIZE_T}
     }
     ```
 
@@ -633,7 +648,8 @@ set start_page {
 
     The current version has the following limitations:
 
-    - Structs cannot be passed or returned by value, only by reference.
+    - Structs cannot be passed or returned by value, only by reference, if using
+    the `dyncall` back end. The `libffi` back end does not have this limitation.
     - Callbacks into Tcl from C functions are not implemented.
     - C functions with a variable number of arguments are not implemented.
 }
