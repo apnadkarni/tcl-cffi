@@ -940,7 +940,8 @@ namespace eval cffi::test {
             } {
                 teststruct "struct.TestStruct $attrs" param $expected
             }
-            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.}
+            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.} -constraints libffi
+            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode $errorMessages(structbyref) -constraints dyncall
         } else {
             foreach attr {in out inout} {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrparsemode)

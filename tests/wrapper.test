@@ -1,0 +1,153 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains tests for all cffi::Wrapper functionality except the
+# function method which has its own file
+
+source [file join [file dirname [info script]] common.tcl]
+
+# Wrapper tests
+namespace eval ${NS}::test {
+    set libraryClass ${NS}::Wrapper
+
+    testsubcmd $libraryClass
+
+    test Wrapper-new-0 {Wrapper new} -body {
+        set dll [$libraryClass new $testDllPath]
+        set path [$dll path]
+        list [command_exists $dll] [$dll destroy] [command_exists $dll] [file normalize $path]
+    } -result [list 1 {} 0 $testDllPath]
+
+    test Wrapper-new-error-0 {Wrapper new (no argument)} -body {
+        set dll [$libraryClass new]
+    } -result {wrong # args: should be "cffi::Wrapper new DLLPATH"} -returnCodes error
+
+    test Wrapper-new-error-1 {Wrapper new (invalid path)} -body {
+        list [catch {
+            $libraryClass new nosuchpath
+        } result] $result $::errorCode
+    } -result [list 1 {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.} {cffi NOT_FOUND {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.}}]
+
+    test Wrapper-new-error-2 {Wrapper new (extra args)} -body {
+        list [catch {
+            $libraryClass new $testDllPath extraarg
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::Wrapper new DLLPATH"} {TCL WRONGARGS}}
+
+    ####
+
+    test Wrapper-create-0 {Wrapper create (current namespace)} -body {
+        set dll [$libraryClass create dll $testDllPath]
+        set path [dll path]
+        list $dll [command_exists [namespace current]::dll] [dll destroy] [command_exists [namespace current]::dll] [file normalize $path]
+    } -result [list [namespace current]::dll 1 {} 0 $testDllPath]
+
+    test Wrapper-create-1 {Wrapper create (global namespace)} -body {
+        set dll [$libraryClass create ::dll $testDllPath]
+        set path [::dll path]
+        list $dll [command_exists ::dll] [rename ::dll ""] [command_exists ::dll] [file normalize $path]
+    } -result [list ::dll 1 {} 0 $testDllPath]
+
+    test Wrapper-create-2 {Wrapper create (explicit namespace)} -setup {
+        set ns ::cffi::test::ns
+        namespace eval $ns {}
+    } -cleanup {
+        namespace delete $ns
+    } -body {
+        set dll [$libraryClass create ${ns}::dll $testDllPath]
+        set path [${ns}::dll path]
+        list $dll [command_exists $dll] [$dll destroy] [command_exists $dll] [file normalize $path]
+    } -result [list ::cffi::test::ns::dll 1 {} 0 $testDllPath]
+
+    test Wrapper-create-error-0 {Wrapper create (no path argument)} -body {
+        set dll [$libraryClass create dll]
+    } -result {wrong # args: should be "cffi::Wrapper create OBJNAME DLLPATH"} -returnCodes error
+
+    test Wrapper-create-error-1 {Wrapper create (invalid path)} -body {
+        list [catch {
+            $libraryClass create dll nosuchpath
+        } result] $result $::errorCode
+    } -result [list 1 {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.} {cffi NOT_FOUND {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.}}]
+
+    test Wrapper-create-error-2 {Wrapper create (extra args)} -body {
+        list [catch {
+            $libraryClass create dll $testDllPath extraarg
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::Wrapper create OBJNAME DLLPATH"} {TCL WRONGARGS}}
+
+    test Wrapper-create-error-3 {Wrapper create (no args)} -body {
+        list [catch {
+            $libraryClass create
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "cffi::Wrapper create OBJNAME DLLPATH"} {TCL WRONGARGS}}
+
+    ####
+
+    test Wrapper-path-0 {Wrapper path} -setup {
+        $libraryClass create dll $testDllPath
+    } -cleanup {
+        dll destroy
+    } -body {
+        file normalize [dll path]
+    } -result $testDllPath
+
+    ###
+
+    test Wrapper-addressof-0 {Wrapper addressof} -setup {
+        $libraryClass create dll $testDllPath
+    } -cleanup {
+        dll destroy
+    } -body {
+        dll addressof schar_to_schar
+    } -result {^0x[[:xdigit:]]{8,16}$} -match regexp
+
+    test Wrapper-addressof-error-0 {Wrapper addressof (invalid symbol)} -setup {
+        $libraryClass create dll $testDllPath
+    } -cleanup {
+        dll destroy
+    } -body {
+        list [catch {
+            dll addressof nosuchsym
+        } result] $result $::errorCode
+    } -result {1 {Symbol "nosuchsym" not found or inaccessible. } {cffi NOT_FOUND {Symbol "nosuchsym" not found or inaccessible. }}}
+
+    test Wrapper-addressof-error-1 {Wrapper addressof (no args)} -setup {
+        $libraryClass create dll $testDllPath
+    } -cleanup {
+        dll destroy
+    } -body {
+        list [catch {
+            dll addressof
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "dll addressof SYMBOL"} {TCL WRONGARGS}}
+
+    test Wrapper-addressof-error-2 {Wrapper addressof (extra args)} -setup {
+        $libraryClass create dll $testDllPath
+    } -cleanup {
+        dll destroy
+    } -body {
+        list [catch {
+            dll addressof schar_to_schar extra
+        } result] $result $::errorCode
+    } -result {1 {wrong # args: should be "dll addressof SYMBOL"} {TCL WRONGARGS}}
+
+    # NOTE THIS TEST WILL CRASH IN PRESENCE OF THE BUG
+    test Wrapper-bug59 {Bug 59 - Wrapper released with bound function} -setup {
+        # Create a copy of the test dll since we are testing premature
+        # unloading and do not want other tests that load the dll interfering
+        set dllCopyPath [file join [tcltest::temporaryDirectory] testdllcopy[info sharedlibextension]]
+        file copy -force $testDllPath $dllCopyPath
+        $libraryClass create dllcopy $dllCopyPath
+    } -cleanup {
+        file delete $dllCopyPath
+    } -body {
+        dllcopy function int_to_int int {i int}
+        dllcopy destroy
+        # This also tests that DLL is released if function is also deleted.
+        # Otherwise the cleanup fragment above would error out
+        list [int_to_int 42] [rename int_to_int {}]
+    } -result [list 42 {}]
+}
+
+::tcltest::cleanupTests
+namespace delete cffi::test

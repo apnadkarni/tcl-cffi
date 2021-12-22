@@ -141,6 +141,11 @@ namespace eval cffi::test {
     }
 }
 
+proc cffi::test::command_exists {cmd} {
+    return [expr {[uplevel #0 namespace which $cmd] eq $cmd}]
+}
+
+
 proc cffi::test::makeptr {p {tag {}}} {
     set width [expr {$::tcl_platform(pointerSize) * 2}]
     return [format "0x%.${width}lx" $p]^$tag
