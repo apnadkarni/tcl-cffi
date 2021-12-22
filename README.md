@@ -38,15 +38,19 @@ Limitations in the current version include
 
 - No support of functions taking variable number of arguments
 - No support for callbacks from C code
-- No support for passing structs by value
 
 ## Changes in 1.0b3
 
-- Added support for the `libffi` library backend as an alternative to `dyncall`.
+- Added support for the `libffi` library back end as an alternative to `dyncall`.
 The selection is made at build time. See `Build.md` in the source distribution.
+
+- C structs can be returned from functions and passed by value if the `libffi`
+back end is being used. This is still not supported with `dyncall` library.
 
 - **Incompatibility** `cffi::dyncall::Library` class renamed to 
 `cffi::Wrapper` as it is no longer specific to `dyncall`.
+
+- **Incompatibility** The `cffi::dyncall::Symbols` class has been removed.
 
 
 ## Changes in 1.0b1

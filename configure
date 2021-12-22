@@ -5620,9 +5620,17 @@ case $with_libffi,$with_dyncall in #(
           yes,no) :
      ;; #(
   *) :
-            as_fn_error $? "Please, enable exactly one of --with-libffi or --with-libffcall." "$LINENO" 5 ;;
+            as_fn_error $? "Please, enable exactly one of --with-libffi or --with-dyncall." "$LINENO" 5 ;;
 esac
 
+if test "x$with_libffi" = xyes
+then :
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: libffi" >&5
+printf "%s\n" "libffi" >&6; }
+else $as_nop
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: dyncall" >&5
+printf "%s\n" "dyncall" >&6; }
+fi
 
 #--------------------------------------------------------------------
 # Check whether --enable-threads or --disable-threads was given.

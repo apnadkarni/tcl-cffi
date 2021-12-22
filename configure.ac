@@ -162,8 +162,9 @@ AS_CASE([$with_libffi,$with_dyncall],
         [yes,default],[], dnl continue
         [no,yes],[], dnl continue
         [yes,no],[], dnl continue
-        [AC_MSG_ERROR([Please, enable exactly one of --with-libffi or --with-libffcall.])])
+        [AC_MSG_ERROR([Please, enable exactly one of --with-libffi or --with-dyncall.])])
 
+AS_VAR_IF([with_libffi], [yes], [AC_MSG_RESULT([libffi])], [AC_MSG_RESULT([dyncall])])
 
 #--------------------------------------------------------------------
 # Check whether --enable-threads or --disable-threads was given.
