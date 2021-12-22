@@ -50,7 +50,7 @@ CffiProtoUnref(CffiProto *protoP)
         for (i = 0; i < protoP->nParams; ++i) {
             CffiParamCleanup(&protoP->params[i]);
         }
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
         if (protoP->cifP)
             ckfree(protoP->cifP);
 #endif

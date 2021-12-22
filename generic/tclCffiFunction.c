@@ -563,7 +563,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     do {                                                            \
         CffiStoreArgPointer(callP, arg_index, &argP->value.u.fld_); \
     } while (0)
-#else
+#endif /*  CFFI_USE_DYNCALL */
+
+#ifdef CFFI_USE_LIBFFI
 #define STOREARG(storefn_, fld_)                             \
     do {                                                     \
         callP->argValuesPP[arg_index] = &argP->value.u.fld_; \
@@ -574,7 +576,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         callP->argValuesPP[arg_index] = &argP->valueP;       \
     } while (0)
 
-#endif
+#endif /* CFFI_USE_LIBFFI */
 
 #define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
     do {                                                                       \
@@ -680,7 +682,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             } else {
 #ifdef CFFI_USE_DYNCALL
                 CFFI_ASSERT(0); /* Should not reach here for dyncall */
-#else
+#endif
+#ifdef CFFI_USE_LIBFFI
                 argP->value.u.ptr             = NULL;/* Not used */
                 callP->argValuesPP[arg_index] = structValueP;
 #endif
@@ -1068,8 +1071,9 @@ CffiReturnPrepare(CffiCall *callP)
      *  arrays, struct, chars[], unichars[], bytes and anything that requires
      * non-scalar storage is either not supported by C or by dyncall.
      */
-#else
+#endif /* CFFI_USE_DYNCALL */
 
+#ifdef CFFI_USE_LIBFFI
     /*
      * For *integer* types, libffi has a quirk in how it returns values
      * via promotion. Values small enough to fit in a register (ffi_arg)
@@ -1117,7 +1121,7 @@ CffiReturnPrepare(CffiCall *callP)
         return TCL_ERROR;
     }
 #undef INITRETPTR
-#endif
+#endif /* CFFI_USE_LIBFFI */
 
     return TCL_OK;
 }
@@ -1371,7 +1375,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     callP->argsP = argsP;
     for (i = 0; i < callP->nArgs; ++i)
         argsP[i].flags = 0; /* Mark as uninitialized */
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     callP->argValuesPP = (void **)MemLifoAlloc(
         &ipCtxP->memlifo, callP->nArgs * sizeof(void *));
 #endif
@@ -1514,7 +1518,7 @@ CffiFunctionCall(ClientData cdata,
 
     CFFI_ASSERT(ip == ipCtxP->interp);
 
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     /* protoP->cifP is lazy-initialized */
     ret = CffiLibffiInitProtoCif(ip, protoP);
     if (ret != TCL_OK)
@@ -1538,7 +1542,7 @@ CffiFunctionCall(ClientData cdata,
     callCtx.fnP = fnP;
     callCtx.nArgs = 0;
     callCtx.argsP = NULL;
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     callCtx.argValuesPP = NULL;
     callCtx.retValueP   = NULL;
 #endif
@@ -1670,7 +1674,8 @@ CffiFunctionCall(ClientData cdata,
 #ifdef CFFI_USE_DYNCALL
         /* Should not happen. If asserts disabled fallthru to error */
         CFFI_ASSERT(0);
-#else
+#endif
+#ifdef CFFI_USE_LIBFFI
         CffiLibffiCall(&callCtx);
         ret = CffiStructToObj(ip,
                               protoP->returnType.typeAttrs.dataType.u.structP,
@@ -1873,7 +1878,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
         vmCtxP->ipCtxP, cmdNameObj, returnTypeObj, paramsObj, &protoP));
     /* TBD - comment in func header says only override if default */
     protoP->abi = callMode;
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     protoP->cifP = NULL;
 #endif
 

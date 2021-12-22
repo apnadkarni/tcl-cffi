@@ -24,7 +24,7 @@ CffiStructUnref(CffiStruct *structP)
 {
     if (structP->nRefs <= 1) {
         int i;
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
         CffiLibffiStruct *nextP = structP->libffiTypes;
         while (nextP) {
             CffiLibffiStruct *nextNextP = nextP->nextP;
@@ -150,7 +150,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
 
     Tcl_IncrRefCount(nameObj);
     structP->name      = nameObj;
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     structP->libffiTypes = NULL;
 #endif
     structP->nRefs     = 0;

@@ -12,15 +12,26 @@
 #include "tclhPointer.h"
 #include "memlifo.h"
 
+/*
+ * Which back end system are we using? Currently only two supported. At most
+ * one must be defined with libffi as default.
+ */
+#if !(defined(CFFI_USE_DYNCALL) || defined(CFFI_USE_LIBFFI))
+# define CFFI_USE_LIBFFI
+#endif
+
 #ifdef CFFI_USE_DYNCALL
 
-#include "dynload.h"
-#include "dyncall.h"
+# ifdef CFFI_USE_LIBFFI
+#  error At most one of CFFI_USE_DYNCALL and CFFI_USE_LIBFFI must be defined.
+# endif
 
-#else
+# include "dynload.h"
+# include "dyncall.h"
 
-/* Libffi does not have its own load */
-#define CFFI_USE_TCLLOAD
+#endif /* CFFI_USE_DYNCALL */
+
+#ifdef CFFI_USE_LIBFFI
 
 /*
  * When statically linking libffi, we need to define FFI_BUILDING before
@@ -32,17 +43,24 @@
  * need to define it ourselves)
  */
 
-#ifdef _MSC_VER
-#pragma warning(push )
-#pragma warning(disable:4005 )
-#endif
-#include "ffi.h"
-#ifdef _MSC_VER
-#pragma warning(default:4005 )
-#pragma warning(pop)
-#endif
+# ifdef _MSC_VER
+#  pragma warning(push )
+#  pragma warning(disable:4005 )
+# endif
+# include "ffi.h"
+# ifdef _MSC_VER
+#  pragma warning(default:4005 )
+#  pragma warning(pop)
+# endif
 
-#endif /* CFFI_USE_DYNCALL */
+#endif /* CFFI_USE_LIBFFI */
+
+/*
+ * Libffi does not have its own load. For consistency, always use Tcl_Load even for
+ * dyncall.
+ */
+#define CFFI_USE_TCLLOAD
+
 
 #include <stdint.h>
 
@@ -194,7 +212,8 @@ typedef struct CffiTypeAndAttrs {
  */
 #ifdef CFFI_USE_DYNCALL
 typedef DCint CffiABIProtocol;
-#else
+#endif
+#ifdef CFFI_USE_LIBFFI
 typedef ffi_abi CffiABIProtocol;
 #endif
 
@@ -216,7 +235,7 @@ typedef struct CffiValue {
     float flt;
     double dbl;
     void *ptr;
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     ffi_arg ffi_val;
 #endif
     } u;
@@ -232,7 +251,7 @@ typedef struct CffiValue {
 /*
  * C struct and struct field descriptors
  */
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
 /*
  * Libffi needs a type descriptor for structures - one per ABI.
  */
@@ -254,7 +273,7 @@ typedef struct CffiField {
 
 struct CffiStruct {
     Tcl_Obj *name;              /* Struct type name */
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
     int nRefs;                  /* Shared, so need ref count */
@@ -325,7 +344,7 @@ typedef struct CffiProto {
     int nParams;           /* Number of params, sizeof params array */
     CffiABIProtocol abi;   /* cdecl, stdcall etc. */
     CffiParam returnType;  /* Name and return type of function */
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     ffi_cif *cifP; /* Descriptor used by cffi */
 #endif
     CffiParam params[1];   /* Real size depends on nparams which
@@ -352,7 +371,7 @@ typedef struct CffiArgument {
     CffiValue savedValue; /* Copy of above - needed after call in some cases
                              like disposable pointers. NOT used in all cases */
     Tcl_Obj *varNameObj;  /* Name of output variable or NULL */
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     void *valueP; /* Always points to the value field. Used for libcffi
                      which needs an additional level of indirection for
                      byref parameters. Only set as needed in CffiPrepareArg */
@@ -367,7 +386,7 @@ typedef struct CffiArgument {
 typedef struct CffiCall {
     CffiFunction *fnP;         /* Function being called */
     CffiArgument *argsP;   /* Argument contexts */
-#ifndef CFFI_USE_DYNCALL
+#ifdef CFFI_USE_LIBFFI
     void **argValuesPP; /* Array of pointers into the actual value fields within
                            argsP[] elements */
     void *retValueP;    /* Points to storage to use for return value */

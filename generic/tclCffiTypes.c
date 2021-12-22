@@ -965,7 +965,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                   "supported. Annotate with \"byref\" to pass by "
                                   "reference if function expects a pointer.";
                         goto invalid_format;
-#else
+#endif
+#ifdef CFFI_USE_LIBFFI
                         if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
                             message =
                                 "Structs cannot have nullifempty attribute "

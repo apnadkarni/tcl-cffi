@@ -10,10 +10,12 @@
 #include "tclCffiInt.h"
 
 static Tcl_Config cffiConfig[] = {
-#ifdef CFFI_USE_DYNCALL
+#if defined(CFFI_USE_DYNCALL)
     {"backend", "dyncall"},
-#else
+#elif defined(CFFI_USE_LIBFFI)
     {"backend", "libffi"},
+#else
+# error Back end library not defined.
 #endif
     {"version", PACKAGE_VERSION},
 #if defined(_MSC_VER)

@@ -116,12 +116,10 @@ CffiTypeToLibffiType(Tcl_Interp *ip,
     case CFFI_K_TYPE_BINARY: /* Fallthru - treated as pointer */
     case CFFI_K_TYPE_POINTER: *ffiTypePP = &ffi_type_pointer; break;
     case CFFI_K_TYPE_STRUCT:
-#ifndef CFFI_USE_DYNCALL
         if (CffiLibffiTranslateStruct(
                 ip, abi, parseMode, typeAttrsP->dataType.u.structP, ffiTypePP)
             != TCL_OK)
             return TCL_ERROR;
-#endif
         break;
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:

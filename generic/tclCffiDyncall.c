@@ -123,8 +123,8 @@ CffiDyncallSymbolsObjCmd(ClientData cdata,
     Tcl_Obj *nameObj;
     Tcl_Obj *pathObj;
     static const Tclh_SubCommand subCommands[] = {
-        {"new", 0, 1, "?DLLPATH?", NULL},
-        {"create", 1, 2, "OBJNAME ?DLLPATH?", NULL},
+        {"new", 1, 1, "?DLLPATH?", NULL},
+        {"create", 2, 2, "OBJNAME ?DLLPATH?", NULL},
         {NULL}
     };
     int cmdIndex;
