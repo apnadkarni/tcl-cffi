@@ -1,12 +1,12 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"/>
-<title>Cffi</title>
+<title>Tcl CFFI package</title>
 <link rel='stylesheet' type='text/css' href='assets/ruff-min.css' />
 <script type='text/javascript' src='assets/ruff-min.js'></script>
 </head>
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Cffi (v1.0b1)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0b3)</a>
 
 
             <div id="ruffButtonBar">
@@ -32,23 +32,19 @@
             </div>
         
 <ul id='indexUL'>
-<li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::addressof'>addressof</a><span class='ruff-tiptext'>Returns the address of a symbol from the loaded library.
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::alias body'>alias body</a><span class='ruff-tiptext'>Returns the resolved body of an alias.
+<li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::addressof'>addressof</a><span class='ruff-tiptext'>Returns the address of a symbol from the loaded library.
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::alias body'>alias body</a><span class='ruff-tiptext'>Returns the resolved body of an alias.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::alias define'>alias define</a><span class='ruff-tiptext'>Defines one or more type aliases.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::alias delete'>alias delete</a><span class='ruff-tiptext'>Deletes type aliases matching a pattern.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::alias list'>alias list</a><span class='ruff-tiptext'>Returns a list of aliases matching the specified pattern.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::alias load'>alias load</a><span class='ruff-tiptext'>Loads predefined type aliases.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::allocate'>allocate</a><span class='ruff-tiptext'>Allocates memory for one or more C structs.
-</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::ataddress'>ataddress</a><span class='ruff-tiptext'>Returns the name of the symbol at a specified address.
-</span> ::cffi::dyncall::Symbols</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::call'>call</a><span class='ruff-tiptext'>Invokes a C function through a function pointer.
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::call'>call</a><span class='ruff-tiptext'>Invokes a C function through a function pointer.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::constructor'>constructor</a><span class='ruff-tiptext'>Constructs a script level object that maps to a C struct definition.
-</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL, loading it in the process.
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL to allow access to its symbols.
-</span> ::cffi::dyncall::Symbols</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::count'>count</a><span class='ruff-tiptext'>Returns the number of symbols defined in the library.
-</span> ::cffi::dyncall::Symbols</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::describe'>describe</a><span class='ruff-tiptext'>Returns a human-readable description of the C struct definition.
-</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object and releases internal resources.
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object.
-</span> ::cffi::dyncall::Symbols</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum define'>enum define</a><span class='ruff-tiptext'>Defines a new enumeration.
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL, loading it in the process.
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::describe'>describe</a><span class='ruff-tiptext'>Returns a human-readable description of the C struct definition.
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::destructor'>destructor</a><span class='ruff-tiptext'>Destroys the object and releases internal resources.
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum define'>enum define</a><span class='ruff-tiptext'>Defines a new enumeration.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum delete'>enum delete</a><span class='ruff-tiptext'>Deletes enumerations.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum list'>enum list</a><span class='ruff-tiptext'>Lists enumerations.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum members'>enum members</a><span class='ruff-tiptext'>Returns a dictionary containing the definitions in an enumerations.
@@ -58,13 +54,12 @@
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::free'>free</a><span class='ruff-tiptext'>Frees memory that was allocated for a native C struct.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::frombinary'>frombinary</a><span class='ruff-tiptext'>Decodes a Tcl binary string containing a native C struct into a Tcl dictionary.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fromnative'>fromnative</a><span class='ruff-tiptext'>Decodes native C struct(s) in memory into a Tcl dictionary.
-</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::function'>function</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function in the loaded library.
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::functions'>functions</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library.
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::help function'>help function</a><span class='ruff-tiptext'>Returns a string describing the syntax for a CFFI wrapped function
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::function'>function</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function in the loaded library.
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::functions'>functions</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library.
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::help function'>help function</a><span class='ruff-tiptext'>Returns a string describing the syntax for a CFFI wrapped function
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::help functions'>help functions</a><span class='ruff-tiptext'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code>
-</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols::index'>index</a><span class='ruff-tiptext'>Returns the name of the symbol at a specified index.
-</span> ::cffi::dyncall::Symbols</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::info'>info</a><span class='ruff-tiptext'>Returns a dictionary containing information about the struct layout
-</span> ::cffi::Struct</li><li><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library'>Library</a> ::cffi::dyncall</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory allocate'>memory allocate</a><span class='ruff-tiptext'>Allocates memory of the specified size
+</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::info'>info</a><span class='ruff-tiptext'>Returns a dictionary containing information about the struct layout
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory allocate'>memory allocate</a><span class='ruff-tiptext'>Allocates memory of the specified size
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory free'>memory free</a><span class='ruff-tiptext'>Frees the memory referenced by the passed pointer
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory frombinary'>memory frombinary</a><span class='ruff-tiptext'>Allocates memory and copied the passed Tcl binary string into it.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory fromstring'>memory fromstring</a><span class='ruff-tiptext'>Allocates memory and stores a Tcl string in it in the specified encoding.
@@ -74,8 +69,10 @@
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring'>memory tostring</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl string.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring!'>memory tostring!</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl string.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::name'>name</a><span class='ruff-tiptext'>Returns the name of the struct.
-</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::path'>path</a><span class='ruff-tiptext'>Returns the file system path for the wrapped library or image wrapped by the object.
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer address'>pointer address</a><span class='ruff-tiptext'>Returns the address component of the pointer.
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::path'>path</a><span class='ruff-tiptext'>Returns the file system path for the wrapped library or image wrapped by the object.
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig get'>pkgconfig get</a><span class='ruff-tiptext'>Gets the value of a configuration key.
+</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig list'>pkgconfig list</a><span class='ruff-tiptext'>Returns the list of keys containing information about the package configuration.
+</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer address'>pointer address</a><span class='ruff-tiptext'>Returns the address component of the pointer.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer check'>pointer check</a><span class='ruff-tiptext'>Validates a pointer and raise an exception if invalid.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer counted'>pointer counted</a><span class='ruff-tiptext'>Registers a pointer as a counted pointer
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer dispose'>pointer dispose</a><span class='ruff-tiptext'>Unregisters a safe or counted pointer
@@ -88,14 +85,14 @@
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::prototype function'>prototype function</a><span class='ruff-tiptext'>Defines a function prototype for calling a function using the default C calling convention.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::prototype list'>prototype list</a><span class='ruff-tiptext'>Returns a list of prototypes matching the specified pattern.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::prototype stdcall'>prototype stdcall</a><span class='ruff-tiptext'>Defines a function prototype for calling a function using the stdcall calling convention.
-</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcall'>stdcall</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
-</span> ::cffi::dyncall::Library</li><li class='ruff-tip'><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Library::stdcalls'>stdcalls</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
-</span> ::cffi::dyncall::Library</li><li><a href='cffi-cffi.html#::cffi::Struct'>Struct</a> ::cffi</li><li><a href='cffi-cffi-dyncall.html#::cffi::dyncall::Symbols'>Symbols</a> ::cffi::dyncall</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tobinary'>tobinary</a><span class='ruff-tiptext'>Encodes the Tcl representation of a C struct value into a Tcl binary string.
+</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcall'>stdcall</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
+</span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcalls'>stdcalls</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
+</span> ::cffi::Wrapper</li><li><a href='cffi-cffi.html#::cffi::Struct'>Struct</a> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tobinary'>tobinary</a><span class='ruff-tiptext'>Encodes the Tcl representation of a C struct value into a Tcl binary string.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tonative'>tonative</a><span class='ruff-tiptext'>Writes the Tcl dictionary representation of a C struc value to memory in native form.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::type count'>type count</a><span class='ruff-tiptext'>Returns the count of elements in an array type
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::type info'>type info</a><span class='ruff-tiptext'>Returns a dictionary containing various information about a type declaration
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::type size'>type size</a><span class='ruff-tiptext'>Returns the size of a type in terms of the number of bytes of memory occupied by that type.
-</span> ::cffi</li>
+</span> ::cffi</li><li><a href='cffi-cffi.html#::cffi::Wrapper'>Wrapper</a> ::cffi</li>
 </ul>
 </div><script>function myIndexInit(){var single,nvisible,urltext,a;filterElement=document.getElementById("filterText");urltext=myGetUrlParameter("lookup");if(urltext==""){urltext=myGetUrlParameter("search")}if(urltext!=""){filterElement.value=urltext;myRunFilter()}filterElement.focus()}function myGetUrlParameter(name){name=name.replace(/[\[]/,"\\[").replace(/[\]]/,"\\]");var regex=new RegExp("[\\?&]"+name+"=([^&#]*)");var results=regex.exec(location.search);return results===null?"":decodeURIComponent(results[1].replace(/\+/g," "))}var myDebounceDelay;var myUserAgent=navigator.userAgent.toUpperCase();if(myUserAgent.indexOf("MSIE")!=-1||myUserAgent.indexOf("TRIDENT")!=-1){myDebounceDelay=300}else if(myUserAgent.indexOf("EDGE")!=-1){myDebounceDelay=300}else{myDebounceDelay=100}function myDebounce(func,wait,immediate){var timeout;return function(){var context=this,args=arguments;var later=function(){timeout=null;if(!immediate)func.apply(context,args)};var callNow=immediate&&!timeout;clearTimeout(timeout);timeout=setTimeout(later,wait);if(callNow)func.apply(context,args)}}function mySetStatus(text){var status;status=document.getElementById("indexStatus");status.innerText=text}function myResetStatus(){var status;status=document.getElementById("indexStatus");status.innerText=" "}function myRunFilter(){var input,filter,filter0,ul,li,a,i,txtValue,matchSeen,firstMatch;input=document.getElementById("filterText");filter=input.value.toUpperCase();filter0=filter.charAt(0);ul=document.getElementById("indexUL");li=ul.getElementsByTagName("li");if(filter==""){myResetStatus();for(i=0;i<li.length;i++){li[i].style.display=""}}else{matchSeen=0;firstMatch=-1;for(i=0;i<li.length;i++){a=li[i].getElementsByTagName("a")[0];txtValue=a.textContent||a.innerText;txtValue=txtValue.toUpperCase();if(txtValue.charAt(0)==filter0&&txtValue.startsWith(filter)){if(myLastKey==13){myResetStatus();document.location.href=a.href;return}else{li[i].style.display="";matchSeen++;if(firstMatch==-1)firstMatch=i}}else{if(matchSeen){break}li[i].style.display="none"}}for(;i<li.length;i++){li[i].style.display="none"}myResetStatus();if(matchSeen==1){}}}var myFilterFunction=myDebounce(myRunFilter,myDebounceDelay);var myLastKey=0;function myFilterHook(){myLastKey=event.keyCode;mySetStatus("Searching...");myFilterFunction()}</script>
 <script>
@@ -105,6 +102,5 @@ myIndexInit();</script>
 <hr>
 <li class='ruff-toc1'><a href='cffi-Concepts.html'>Concepts</a></li>
 <li class='ruff-toc1'><a href='cffi-cffi.html'>cffi</a></li>
-<li class='ruff-toc1'><a href='cffi-cffi-dyncall.html'>cffi::dyncall</a></li>
 <hr></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>

@@ -1,8 +1,8 @@
 # Tcl cffi package
 
 This is the source code for the Tcl `cffi` package which permits calling C
-functions in shared libraries from within Tcl scripts. It is based on the
-`dyncall` library available from https://dyncall.org.
+functions in shared libraries from within Tcl scripts via either the `libffi` or
+`dyncall` open source libraries.
 
 The package source repository is at https://github.com/apnadkarni/tcl-cffi.
 
@@ -15,23 +15,20 @@ downloaded from https://sourceforge.net/projects/magicsplat/files/cffi.
 
 ## Building
 
-To build the package from the source, see the BUILD.md file in the repository
+To build the package from the source, see the `BUILD.md` file in the repository
 or source distribution.
 
 ## About the package
 
 Distinguishing features of the package are
 
-- Automatic conversion of numerics, strings, structures and arrays to and from
-the corresponding Tcl script values
-- Safety mechanisms to protect against pointer errors like double frees,
-mismatched types
-- Support for automatic encoding of string values passed and returned from
-C functions
-- Exception generation based on error annotations
+- Implicit conversions of numerics, strings, structs and arrays
+- Safety mechanisms for pointers
+- Automatic encoding of string values passed and returned from C functions
+- Exception generation based on C function return values
 - Proc-like argument processing with defaults, error messages etc.
 - Utilities for managing memory and conversion to native formats
-- Extensible type aliases for common system definitions
+- Extensible type aliases and enums
 - Introspection
 
 Limitations in the current version include
@@ -42,7 +39,7 @@ Limitations in the current version include
 ## Changes in 1.0b3
 
 - Added support for the `libffi` library back end as an alternative to `dyncall`.
-The selection is made at build time. See `Build.md` in the source distribution.
+The selection is made at build time. See `BUILD.md` in the source distribution.
 
 - C structs can be returned from functions and passed by value if the `libffi`
 back end is being used. This is still not supported with `dyncall` library.

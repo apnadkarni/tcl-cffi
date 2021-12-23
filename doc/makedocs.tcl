@@ -19,14 +19,36 @@ source enum.ruff
 source pointer.ruff
 source prototype.ruff
 
-ruff::document [list Concepts $NS] \
-    -outfile $NS.html \
-    -outdir [file join [file dirname [info script]] html] \
-    -sortnamespaces false \
-    -preamble $start_page \
-    -pagesplit namespace \
-    -autopunctuate true \
-    -hidenamespace $NS \
-    -product cffi \
-    -version 1.0b1 \
-    -copyright "Ashok P. Nadkarni" {*}$::argv
+set title "Tcl CFFI package"
+
+if {[llength $argv] == 0 || "html" in $argv} {
+    ruff::document [list Concepts $NS] \
+        -format html \
+        -outfile $NS.html \
+        -outdir [file join [file dirname [info script]] html] \
+        -title $title \
+        -sortnamespaces false \
+        -preamble $start_page \
+        -pagesplit namespace \
+        -autopunctuate true \
+        -hidenamespace $NS \
+        -product cffi \
+        -version 1.0b3 \
+        -copyright "Ashok P. Nadkarni" {*}$::argv
+}
+
+if {[llength $argv] == 0 || "nroff" in $argv} {
+    ruff::document [list Concepts $NS] \
+        -format nroff \
+        -outfile $NS.man \
+        -outdir [file join [file dirname [info script]] man] \
+        -title $title \
+        -sortnamespaces false \
+        -preamble $start_page \
+        -pagesplit namespace \
+        -autopunctuate true \
+        -hidenamespace $NS \
+        -product cffi \
+        -version 1.0b3 \
+        -copyright "Ashok P. Nadkarni" {*}$::argv
+}
