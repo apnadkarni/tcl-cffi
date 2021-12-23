@@ -1866,7 +1866,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror error}} \
         out \
-        [list 1 {In {inparam 0x0000000000000000^} Out {} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect} 0]
+        [list 1 [list In [list inparam [makeptr 0]] Out {} Result [makeptr 0] Command ::cffi::test::pointer_reflect] 0]
 
     ###
     # storealways
@@ -1906,7 +1906,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror error}} \
         [list out storealways] \
-        [list 1 {In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect} [makeptr 0]]
+        [list 1 [list In [list inparam [makeptr 0]] Out [list outparam [makeptr 0]] Result [makeptr 0] Command ::cffi::test::pointer_reflect] [makeptr 0]]
 
 
     ###
@@ -1933,7 +1933,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror {list}}} \
         [list out storeonerror] \
-        [list 0 {{In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect}} 0x0000000000000000^]
+        [list 0 [list [list In [list inparam [makeptr 0]] Out [list outparam [makeptr 0]] Result [makeptr 0] Command ::cffi::test::pointer_reflect]] [makeptr 0]]
     testexcepts function-storeonerror-onerror-raise-0 "Storeonerror - Success with onerror onerror_raise" \
         [list nonzero {onerror onerror_raise}] \
         [list out storeonerror] \
@@ -1946,7 +1946,7 @@ namespace eval ${NS}::test {
         [makeptr 0] \
         {{onerror error}} \
         [list out storeonerror] \
-        [list 1 {In {inparam 0x0000000000000000^} Out {outparam 0x0000000000000000^} Result 0x0000000000000000^ Command ::cffi::test::pointer_reflect} [makeptr 0]]
+        [list 1 [list In [list inparam [makeptr 0]] Out [list outparam [makeptr 0]] Result [makeptr 0] Command ::cffi::test::pointer_reflect] [makeptr 0]]
 
     ###
     # enum tests

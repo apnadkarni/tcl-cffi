@@ -507,7 +507,7 @@ namespace eval libzip {
                 }
             }
         }
-        ::cffi::dyncall::Library create libzip $path
+        ::cffi::Wrapper create libzip $path
         InitTypes
         InitFunctions $lazy
 

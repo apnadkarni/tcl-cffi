@@ -3,10 +3,10 @@
 
 package require cffi
 
-cffi::dyncall::Library create HPDF libhpdf[info sharedlibextension]
+cffi::Wrapper create HPDF libhpdf[info sharedlibextension]
 
 # Define some aliases. Note aliases are never necessary. They're there only
-# to improve readability and reduce typing. 
+# to improve readability and reduce typing.
 cffi::alias define HPDF_REAL   float
 cffi::alias define HPDF_Doc    pointer.HPDF_Doc
 
