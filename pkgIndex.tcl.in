@@ -18,6 +18,9 @@ package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
         } else {
             set @PACKAGE_NAME@::dll_path [file join $dir "@PKG_LIB_FILE@"]
         }
-        load $@PACKAGE_NAME@::dll_path
+        # Following is split across two lines because of an nmakehlp bug that
+        # only substitutes a token (PACKAGE_NAME) once on a line. Blech!
+        uplevel #0 load $@PACKAGE_NAME@::dll_path \
+            @PACKAGE_NAME@
     }] $dir]
 

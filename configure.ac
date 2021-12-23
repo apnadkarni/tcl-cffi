@@ -20,6 +20,7 @@ dnl	to configure the system for the local environment.
 #-----------------------------------------------------------------------
 
 AC_INIT([cffi],[1.0b3])
+PACKAGE_LIB_PREFIX=tcl
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -252,7 +253,6 @@ TEA_PROG_TCLSH
 
 #TEA_EXPORT_CONFIG([sample])
 #AC_SUBST(SAMPLE_VAR)
-
 
 #--------------------------------------------------------------------
 # Needed for test DLL suffix depending on platform

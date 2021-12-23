@@ -2457,6 +2457,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+PACKAGE_LIB_PREFIX=tcl
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -9061,7 +9062,6 @@ printf "%s\n" "${TCLSH_PROG}" >&6; }
 
 #TEA_EXPORT_CONFIG([sample])
 #AC_SUBST(SAMPLE_VAR)
-
 
 #--------------------------------------------------------------------
 # Needed for test DLL suffix depending on platform
