@@ -17,17 +17,20 @@ Tag release
 ## Windows binaries
 
 From MINGW64 shell (note --enable-64bit required for correct installation into 
-architecture-specific subdirectory)
+architecture-specific subdirectory). This builds the *libffi* version.
 
 ```
 cd build-mingw-x64
 rm *
-../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include  --prefix=/d/tcl --exec-prefix=/d/tcl --enable-64bit
+../configure --with-tcl=/d/tcl/mingw-8610/x64/lib --prefix=/d/tcl --exec-prefix=/d/tcl --enable-64bit
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b3/AMD64/cffi10b3.dll
+strip -s /d/tcl/lib/cffi1.0b3/AMD64/tclcffi10b3.dll
+ldd tclcffi10b3.dll
 ```
+
+Ensure the ldd output does not show dependency on libffi.dll
 
 From MINGW32 shell
 
@@ -38,8 +41,11 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b3/x86/cffi10b3.dll
+strip -s /d/tcl/lib/cffi1.0b3/x86/tclcffi10b3.dll
+ldd tclcffi10b3.dll
 ```
+
+Ensure the ldd output does not show dependency on libffi.dll
 
 Test the distribution with Tcl 8.6 built with VC++ 6
 
@@ -50,7 +56,7 @@ d:\tcl\archive\868-vc6\x64\bin\tclsh86t.exe all.tcl
 d:\tcl\archive\868-vc6\x86\bin\tclsh86t.exe all.tcl
 ```
 
-Copy RELEASE.md and LICENSE into distribution directory.
+Copy README.md and LICENSE into distribution directory.
 
 Zip up the distribution from d:\tcl\lib\cffi1.0b3
 
