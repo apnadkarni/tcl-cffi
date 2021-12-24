@@ -424,10 +424,18 @@ CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult
 CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
-CffiResult
-CffiUniCharsFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
+CffiResult CffiUniCharsFromObj(Tcl_Interp *ip,
+                               Tcl_Obj *fromObj,
+                               Tcl_UniChar *toP,
+                               int toSize);
 CffiResult CffiCharsFromObj(
     Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize);
+CffiResult CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
+                                     Tcl_Obj *encObj,
+                                     Tcl_Obj *fromObj,
+                                     MemLifo *memlifoP,
+                                     char **outPP);
+
 CffiResult CffiCharsToObj(Tcl_Interp *ip,
                           const CffiTypeAndAttrs *typeAttrsP,
                           char *srcP,
@@ -439,7 +447,8 @@ CffiResult CffiUniStringToObj(Tcl_Interp *ip,
 CffiResult CffiStructFromObj(Tcl_Interp *ip,
                              const CffiStruct *structP,
                              Tcl_Obj *structValueObj,
-                             void *resultP);
+                             void *resultP,
+                             MemLifo *memlifoP);
 CffiResult CffiStructToObj(Tcl_Interp *ip,
                            const CffiStruct *structP,
                            void *valueP,

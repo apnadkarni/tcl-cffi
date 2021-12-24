@@ -454,25 +454,25 @@ EXTERN void struct_pointer_array_exchange(struct struct_with_pointer_array *a, s
     pointer_array_exchange(a->ptrs, b->ptrs, 3);
 }
 
+static unsigned char utf8_test_string[] = {0xc3,0xa0,0xc3,0xa1,0xc3,0xa2, 0};
+static unsigned char jis_test_string[]  = {'8', 'c', 0, 0};
+static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 
 FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
     return "abc";
 }
 EXTERN const unsigned char *utf8_return() {
-    static unsigned char utf8[] = {0xe0, 0xe1, 0xe2, 0};
-    return utf8;
+    return utf8_test_string;
 }
 EXTERN const unsigned char *jis0208_return() {
-    static unsigned char jis[] = {'8', 'c', '8', 'c', 0, 0};
-    return jis;
+    return jis_test_string;
 }
 EXTERN void string_param_out(char **strPP) {
     *strPP = "abc";
 }
 
 FNSTRINGS(unistring, Tcl_UniChar)
-static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 EXTERN const Tcl_UniChar *unistring_return() {
     return unichar_test_string;
 }
@@ -657,7 +657,8 @@ struct SimpleOuterStruct {
     char *p;
 };
 
-EXTERN struct SimpleOuterStruct incrSimpleOuterStructByVal(struct SimpleOuterStruct outer)
+EXTERN struct SimpleOuterStruct
+incrSimpleOuterStructByVal(struct SimpleOuterStruct outer)
 {
     outer.f++;
     outer.s.c++;
@@ -736,6 +737,50 @@ getStructWithFunc(unsigned char c, void *in, struct StructWithFunc *out)
     out->c  = c;
     return in;
 }
+
+struct StructWithStrings {
+    char *s;
+    char *utf8;
+    char *jis;
+    Tcl_UniChar *uni;
+};
+
+EXTERN int checkStructWithStrings(struct StructWithStrings *structP)
+{
+    int i;
+    if (strcmp(structP->s, "abc"))
+        return 1;
+    if (strcmp(structP->utf8, utf8_test_string))
+        return 2;
+    /* Shift-jis is double null terminated */
+    for (i = 0; i < sizeof(jis_test_string); ++i) {
+        if (structP->jis[i] != jis_test_string[i])
+            return 3;
+    }
+    for (i = 0;
+         i < (sizeof(unichar_test_string) / sizeof(unichar_test_string[0]));
+         ++i) {
+        if (structP->uni[i] != unichar_test_string[i])
+            return 4;
+    }
+    return 0;
+}
+EXTERN int checkStructWithStringsByVal(struct StructWithStrings s)
+{
+    return checkStructWithStrings(&s);
+}
+EXTERN void getStructWithStrings(struct StructWithStrings *sP) {
+    sP->s = "abc";
+    sP->utf8 = utf8_test_string;
+    sP->jis  = jis_test_string;
+    sP->uni  = unichar_test_string;
+}
+EXTERN struct StructWithStrings returnStructWithStrings() {
+    struct StructWithStrings s = {
+        "abc", utf8_test_string, jis_test_string, unichar_test_string};
+    return s;
+}
+
 
 EXTERN void getEinvalString(char *bufP)
 {

@@ -673,7 +673,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 CHECK(CffiStructFromObj(ip,
                                         typeAttrsP->dataType.u.structP,
                                         valueObj,
-                                        structValueP));
+                                        structValueP, &ipCtxP->memlifo));
             }
             if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
                 argP->value.u.ptr = structValueP;
@@ -710,7 +710,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     CHECK(CffiStructFromObj(ip,
                                             typeAttrsP->dataType.u.structP,
                                             valueObjList[i],
-                                            toP));
+                                            toP, &ipCtxP->memlifo));
                 }
                 if (i < argP->actualCount) {
                     /* Fill uninitialized with 0 */

@@ -344,7 +344,7 @@ namespace eval ${NS}::test {
 
 
     ## Parameter tests - string, unistring
-    foreach {type val} [list string abc unistring "\xe0\xe1\xe2"] {
+    foreach {type val} [list string $testStrings(ascii) unistring $testStrings(unicode)] {
         set len [string length $val]
         set repeat 100000
         set largelen [expr {[string length $val] * $repeat}]
@@ -425,15 +425,14 @@ namespace eval ${NS}::test {
     # string.encoding
     # Note: do not include ascii for jis0208 encoding tests.
     # See https://core.tcl-lang.org/tcl/tktview/9bad909c6ed4691bcad1886d710a923791a524a2
-    set val \u543e
-    set encoded 8c
+    set val $testStrings(jis0208)
     set bufsize 100000
     testDll function jis0208_in int [list x string.jis0208]
     test function-string-encoding-in-0 "string encoding in" -body {
-        jis0208_in \u543e
+        jis0208_in $testStrings(jis0208)
     } -result 1
     test function-string-encoding-in-1 "string encoding in large" -body {
-        jis0208_in [string repeat \u543e [expr {$bufsize/2 - 1}]]
+        jis0208_in [string repeat $testStrings(jis0208) [expr {$bufsize/2 - 1}]]
     } -result [expr {$bufsize/2 - 1}]
     test function-string-encoding-in-error-1 "string bad encoding" -body {
         testDll function jis0208_in int [list x string.nosuchencoding]
@@ -441,7 +440,8 @@ namespace eval ${NS}::test {
 
 
     ## Parameter tests - chars, unichars
-    foreach {type val} [list chars abc chars.utf-8 abc unichars "\xe0\xe1\xe2"] {
+    # NOTE:  use only ascii for utf8 test here because of the buflen calculation
+    foreach {type val} [list chars $testStrings(ascii) chars.utf-8 abc unichars $testStrings(unicode)] {
         set len [string length $val]
         set buflen [expr {$len+1}]
         set repeat 100000
@@ -524,18 +524,17 @@ namespace eval ${NS}::test {
     }
 
     # chars.encoding
-    set val \u543e
-    set encoded 8c
+    set val $testStrings(jis0208)
     set bufsize 100000
     testDll function jis0208_in int [list x chars.jis0208\[$bufsize\]]
     test function-chars-encoding-in-0 "chars encoding in" -body {
-        jis0208_in \u543e
+        jis0208_in $testStrings(jis0208)
     } -result 1
     test function-chars-encoding-in-1 "chars encoding in large" -body {
-        jis0208_in [string repeat \u543e [expr {$bufsize/2 - 1}]]
+        jis0208_in [string repeat $testStrings(jis0208) [expr {$bufsize/2 - 1}]]
     } -result [expr {$bufsize/2 - 1}]
     test function-chars-encoding-in-error-0 "chars encoding in large overflow" -body {
-        jis0208_in [string repeat \u543e [expr {$bufsize/2}]]
+        jis0208_in [string repeat $testStrings(jis0208) [expr {$bufsize/2}]]
     } -result "Invalid value*String length is greater than specified maximum buffer size." -returnCodes error -match glob
     test function-chars-encoding-in-error-1 "chars bad encoding" -body {
         testDll function jis0208_in int [list x chars.nosuchencoding\[10\]]
@@ -560,7 +559,7 @@ namespace eval ${NS}::test {
 
     ## Parameter tests - bytes
 
-    set val \x01\x02\x03
+    set val $testStrings(bytes)
     set len [string length $val]
     set largeval [string repeat $val $repeat]
     set largelen [string length $largeval]
@@ -948,6 +947,11 @@ namespace eval ${NS}::test {
         getTestStruct s
         checkTestStruct $s
     } -result [list ]
+    test function-struct-out-1 "Param out - struct with strings" -constraints libffi -body {
+        testDll function getStructWithStrings void {s {struct.StructWithStrings out}}
+        getStructWithStrings s
+        set s
+    } -result [makeStructWithStrings]
 
     test function-struct-out-crash-bug#39 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
@@ -967,6 +971,16 @@ namespace eval ${NS}::test {
         set ll 0x7fffffffffff
         structCheckByVal [list c 1 ll $ll s 2] 1 $ll 2
     } -result 1
+
+    test function-struct-in-1 "Param in byref - struct with strings" -constraints libffi -body {
+        testDll function checkStructWithStrings int {s {struct.StructWithStrings byref}}
+        checkStructWithStrings [makeStructWithStrings]
+    } -result 0
+    test function-struct-in-2 "Param in - struct with strings" -constraints libffi -body {
+        testDll function checkStructWithStringsByVal int {s struct.StructWithStrings}
+        checkStructWithStringsByVal [makeStructWithStrings]
+    } -result 0
+
     test function-struct-in-error-0 "Param struct by value - error" -constraints {
         dyncall
     } -body {
@@ -1439,7 +1453,7 @@ namespace eval ${NS}::test {
         testDll function jis0208_return string.jis0208 {}
     } -body {
         jis0208_return
-    } -result "\u543e\u543e"
+    } -result "\u543e"
     test function-return-string-4 "return string ascii - nullok" -setup {
         testDll function ascii_return {string nullok} {}
     } -body {
@@ -1468,6 +1482,12 @@ namespace eval ${NS}::test {
         set outer [list f 10 s $inner p [makeptr 1]]
         f $outer
     } -result [list f 11.0 s [list c 1 ll 2 s 3] p [makeptr 2]]
+
+    test function-struct-return-1 "return struct with strings" -constraints libffi -body {
+        testDll function returnStructWithStrings struct.StructWithStrings {}
+        returnStructWithStrings
+    } -result [makeStructWithStrings]
+
     test function-struct-return-error-0 "Return type struct - error " -constraints {
         dyncall
     } -body {

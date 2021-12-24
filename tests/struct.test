@@ -58,24 +58,29 @@ namespace eval cffi::test {
                 S info
             } -result [list size [expr {2*$size}] alignment $alignment fields [list fld [list size $size offset 0 definition $type] c [list size 1 offset $size definition uchar] ]] -match dict
         }
-        test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
-            S destroy
-        } -body {
-            cffi::Struct create S "c schar fld $type\[2\] c2 schar"
-            S info
-        } -result [list \
-                       size [expr {4*$size}] \
-                       alignment $alignment \
-                       fields [list \
-                                   c [list size 1 offset 0 definition schar] \
-                                   fld [list size [expr {2*$size}] offset $size definition [list "$type\[2\]"]] \
-                                   c2 [list size 1 offset [expr {3*$size}] definition schar]]]
-
+        if {$type ni {string unistring}} {
+            test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Struct create S "c schar fld $type\[2\] c2 schar"
+                S info
+            } -result [list \
+                           size [expr {4*$size}] \
+                           alignment $alignment \
+                           fields [list \
+                                       c [list size 1 offset 0 definition schar] \
+                                       fld [list size [expr {2*$size}] offset $size definition [list "$type\[2\]"]] \
+                                       c2 [list size 1 offset [expr {3*$size}] definition schar]]]
+        } else {
+            test struct-$type-3 "struct create {schar $type\[2\]}" -body {
+                cffi::Struct create S "c schar fld $type\[2\] c2 schar"
+            } -result "Invalid value \"$type\[2\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
+        }
     }
 
     # Struct size, offset and alignment tests
     foreach type $baseTypes {
-        if {$type in {void string unistring binary}} {
+        if {$type in {void binary}} {
             test struct-$type-error-0 "struct create $type" -body {
                 cffi::Struct create S "fld $type"
             } -returnCodes error -result "Invalid value \"$type\". $errorMessages(typeparsemode)"
@@ -341,6 +346,12 @@ namespace eval cffi::test {
         S tonative $p {c abcd}
     } -result {Invalid value. Byte array length is greater than specified maximum buffer size.} -returnCodes error
 
+    test struct-tonative-error-8 "struct tonative - struct with strings" -body {
+        set p [StructWithStrings allocate]
+        StructWithStrings tonative $p [makeStructWithStrings]
+    } -result {Invalid value. string type not supported in this struct context.} -returnCodes error
+
+
     ###
     # struct describe
     # Hardcoded - fix TBD
@@ -411,6 +422,10 @@ namespace eval cffi::test {
     } -body {
         S tobinary {x 0}
     } -result {Struct field "y" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+
+    test struct-tobinary-error-1 "struct tobinary - struct with strings" -body {
+        StructWithStrings tobinary [makeStructWithStrings]
+    } -result {Invalid value. string type not supported in this struct context.} -returnCodes error
 
     test struct-frombinary-error-0 "struct frombinary truncated" -setup {
         catch {::S destroy}

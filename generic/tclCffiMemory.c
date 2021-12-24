@@ -9,7 +9,7 @@
 
 
 /* Function: CffiMemoryAllocateCmd
- * Implements the *pointer allocate* script level command.
+ * Implements the *memory allocate* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -45,7 +45,7 @@ CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags
 }
 
 /* Function: CffiMemoryFreeCmd
- * Implements the *pointer free* script level command.
+ * Implements the *memory free* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -79,7 +79,7 @@ CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
 }
 
 /* Function: CffiMemoryFromBinaryCmd
- * Implements the *pointer frombinary* script level command.
+ * Implements the *memory frombinary* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -117,7 +117,7 @@ CffiMemoryFromBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int fla
 }
 
 /* Function: CffiMemoryToBinaryCmd
- * Implements the *pointer tobinary* script level command.
+ * Implements the *memory tobinary* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -158,7 +158,7 @@ CffiMemoryToBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags
 }
 
 /* Function: CffiMemoryFromStringCmd
- * Implements the *pointer fromstring* script level command.
+ * Implements the *memory fromstring* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -205,6 +205,7 @@ CffiMemoryFromStringCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int fla
     memmove(p, Tcl_DStringValue(&ds), len);
     p[len]     = 0;
     p[len + 1] = 0;
+    Tcl_DStringFree(&ds);
 
     ret = Tclh_PointerRegister(ip, p, NULL, &ptrObj);
     if (ret == TCL_OK)
@@ -216,7 +217,7 @@ CffiMemoryFromStringCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int fla
 
 
 /* Function: CffiMemoryToStringCmd
- * Implements the *pointer tostring* script level command.
+ * Implements the *memory tostring* script level command.
  *
  * Parameters:
  * ip - interpreter

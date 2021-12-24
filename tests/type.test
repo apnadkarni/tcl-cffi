@@ -847,11 +847,10 @@ namespace eval cffi::test {
         }
 
         ## field mode
-        testinvalidattr "$type" field $errorMessages(typeparsemode)
+        teststring "$type" field ""
         foreach attr {in out nullifempty } {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
-        testinvalidattr "$type nullok" field $errorMessages(typeparsemode)
         foreach attr {inout} {
             testinvalidattr "$type $attr" field $errorMessages(attrtype)
         }

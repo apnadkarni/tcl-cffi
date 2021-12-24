@@ -77,6 +77,12 @@ namespace eval cffi::test {
     variable errorAttrs [concat $requirementAttrs $errorHandlerAttrs]
     variable typeAttrs [concat $paramAttrs $pointerAttrs $errorAttrs]
 
+    # Test strings to be used for various encodings
+    set testStrings(ascii) "abc"
+    set testStrings(jis0208) \u543e
+    set testStrings(unicode) \u00e0\u00e1\u00e2
+    set testStrings(bytes) \x01\x02\x03
+
     # Error messages
     variable errorMessages
     array set errorMessages {
@@ -96,6 +102,16 @@ namespace eval cffi::test {
         fieldvararray {Fields cannot be arrays of variable size.}
     }
 
+    cffi::Struct create ::StructWithStrings {
+        s string
+        utf8 string.utf-8
+        jis string.jis0208
+        uni unistring
+    }
+    proc makeStructWithStrings {} {
+        variable testStrings
+        return [list s $testStrings(ascii) utf8 $testStrings(unicode) jis $testStrings(jis0208) uni $testStrings(unicode)]
+    }
     cffi::Struct create ::cffi::test::InnerTestStruct {
         c chars[15]
     }

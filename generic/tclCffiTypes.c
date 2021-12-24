@@ -1019,8 +1019,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_MASK) == 0);
         switch (baseType) {
         case CFFI_K_TYPE_VOID:
-        case CFFI_K_TYPE_ASTRING:
-        case CFFI_K_TYPE_UNISTRING:
         case CFFI_K_TYPE_BINARY:
             /* Struct/string/bytes return type not allowed even byref */
             message = typeInvalidForContextMsg;
@@ -1158,12 +1156,18 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
         if (ret != TCL_OK)
             return ret;
         break;
+    case CFFI_K_TYPE_ASTRING:
+        ret = CffiCharsToObj(ip, typeAttrsP, *(char **)valueP, &valueObj);
+        if (ret != TCL_OK)
+            return ret;
+        break;
+    case CFFI_K_TYPE_UNISTRING:
+        valueObj = Tcl_NewUnicodeObj(*(Tcl_UniChar **)valueP, -1);
+        break;
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
-    case CFFI_K_TYPE_ASTRING:
-    case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_BINARY:
         /* FALLTHRU - this function should not have been called for these */
     default:
@@ -1179,8 +1183,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
  *
  * Parameters:
  * ip - Interpreter
- * typeP - type descriptor for the binary value. Should not be one of
- *   astring/unistring/binary.
+ * typeP - type descriptor for the binary value. Should not be of type binary
  * valueP - pointer to C binary value to wrap
  * count - number of values pointed to by valueP. *0* indicates a scalar
  *         positive number (even *1*) is size of array. Negative number
@@ -1205,9 +1208,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
     CffiBaseType baseType = typeAttrsP->dataType.baseType;
 
     CFFI_ASSERT(count >= 0);
-    CFFI_ASSERT(baseType != CFFI_K_TYPE_ASTRING
-                && baseType != CFFI_K_TYPE_UNISTRING
-                && baseType != CFFI_K_TYPE_BINARY);
+    CFFI_ASSERT(baseType != CFFI_K_TYPE_BINARY);
 
     switch (baseType) {
     case CFFI_K_TYPE_STRUCT:
@@ -1409,7 +1410,7 @@ CffiPointerFromObj(Tcl_Interp *ip,
 }
 
 
-/* Function: CffiExternalCharPToObj
+/* Function: CffiExternalCharsToObj
  * Wraps an encoded string/chars passed as a char* into a Tcl_Obj
  *
  * Parameters:
@@ -1657,6 +1658,65 @@ CffiCharsFromObj(
     return TCL_OK;
 }
 
+/* Function: CffiCharsInMemlifoFromObj
+ * Encodes a Tcl_Obj to a character array in a *MemLifo* based on a type
+ * encoding.
+ *
+ * Parameters:
+ * ip - interpreter
+ * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * fromObj - *Tcl_Obj* containing value to be stored
+ * memlifoP - *MemLifo* to allocate memory from
+ * outPP - location to store pointer to encoded string in MemLifo
+ *
+ * Returns:
+ * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
+ * in the interpreter.
+ */
+CffiResult
+CffiCharsInMemlifoFromObj(
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, MemLifo *memlifoP, char **outPP)
+{
+    Tcl_DString ds;
+    Tcl_Encoding encoding;
+    char *fromP;
+    char *p;
+    int len;
+
+    /*
+     * Note this encoding step is required even for UTF8 since Tcl's
+     * internal UTF8 is not exactly UTF8
+     */
+    if (encObj) {
+        /* Should not really fail since check should have happened at
+         * prototype parsing time */
+        CHECK(CffiGetEncodingFromObj(ip, encObj, &encoding));
+    }
+    else
+        encoding = NULL;
+
+    fromP = Tcl_UtfToExternalDString(encoding, Tcl_GetString(fromObj), -1, &ds);
+    if (encoding)
+        Tcl_FreeEncoding(encoding);
+    len = Tcl_DStringLength(&ds);
+
+    /*
+     * The encoded string in ds may be terminated by one or two nulls
+     * depending on the encoding. We do not know which. Moreover,
+     * Tcl_DStringLength does not tell us either. So we just tack on an
+     * extra two null bytes;
+     */
+    p = MemLifoAlloc(memlifoP, len+2);
+    memmove(p, Tcl_DStringValue(&ds), len);
+    p[len]     = 0;
+    p[len + 1] = 0;
+    *outPP = p;
+
+    Tcl_DStringFree(&ds);
+    return TCL_OK;
+}
+
+
 /* Function: CffiCharsToObj
  * Wraps an encoded chars into a Tcl_Obj
  *
@@ -1682,7 +1742,8 @@ CffiCharsToObj(Tcl_Interp *ip,
     Tcl_DString dsDecoded;
     Tcl_Encoding encoding;
 
-    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY
+                || typeAttrsP->dataType.baseType == CFFI_K_TYPE_ASTRING);
 
     Tcl_DStringInit(&dsDecoded);
 
@@ -1718,7 +1779,7 @@ CffiCharsToObj(Tcl_Interp *ip,
  */
 CffiResult
 CffiUniCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize)
+    Tcl_Interp *ip, Tcl_Obj *fromObj, Tcl_UniChar *toP, int toSize)
 {
     int fromLen;
     Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(fromObj, &fromLen);
@@ -1733,6 +1794,8 @@ CffiUniCharsFromObj(
     memmove(toP, fromP, fromLen * sizeof(Tcl_UniChar));
     return TCL_OK;
 }
+
+
 
 /* Function: CffiBytesFromObj
  * Encodes a Tcl_Obj to a C array of bytes

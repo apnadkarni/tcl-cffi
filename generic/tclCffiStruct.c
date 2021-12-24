@@ -300,8 +300,12 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * structP - pointer to the struct definition internal form
  * structValueObj - the *Tcl_Obj* containing the script level struct value
  * resultP - the location where the struct is to be constructed. Caller
- *            has to ensure size is large enough (as per *structP->size*)
- *
+ *           has to ensure size is large enough (as per *structP->size*)
+ * memlifoP - the memory allocator for fields that are typed as *string*
+ *            or *unistring*. If *NULL*, fields of these types will
+ *            result in an error being raised. Caller is responsible
+ *            for ensuring the memory allocated from *memlifoP* stays
+ *            allocated for the lifetime of the constructed struct.
  * Returns:
  * *TCL_OK* on success with a pointer to the structure stored in *structPP* or
  * *TCL_ERROR* on error with message stored in the interpreter.
@@ -310,17 +314,18 @@ CffiResult
 CffiStructFromObj(Tcl_Interp *ip,
                    const CffiStruct *structP,
                    Tcl_Obj    *structValueObj,
-                   void       *resultP)
+                   void       *resultP,
+                   MemLifo    *memlifoP
+                   )
 {
     int i;
     void *pv;
     CffiResult ret;
 
-
 #define STOREFIELD(objfn_, type_)                                             \
     do {                                                                      \
         int indx;                                                             \
-        type_ *valueP = (type_ *)(fieldP->offset + (char *)resultP);          \
+        type_ *valueP = (type_ *)fieldResultP;                                \
         if (count == 0) {                                                     \
             if ((ret = objfn_(ip, valueObj, valueP)) != TCL_OK)               \
                 return ret;                                                   \
@@ -354,6 +359,7 @@ CffiStructFromObj(Tcl_Interp *ip,
     for (i = 0; i < structP->nFields; ++i) {
         Tcl_Obj *valueObj;
         const CffiField *fieldP = &structP->fields[i];
+        void *fieldResultP      = fieldP->offset + (char *)resultP;
         int count               = fieldP->fieldType.dataType.count;
 
         CFFI_ASSERT(count >= 0);/* No dynamic size arrays in structs */
@@ -406,11 +412,11 @@ CffiStructFromObj(Tcl_Interp *ip,
             break;
         case CFFI_K_TYPE_STRUCT:
             if (count == 0) {
-                ret = CffiStructFromObj(
-                    ip,
-                    fieldP->fieldType.dataType.u.structP,
-                    valueObj,
-                    (void *)(fieldP->offset + (char *)resultP));
+                ret = CffiStructFromObj(ip,
+                                        fieldP->fieldType.dataType.u.structP,
+                                        valueObj,
+                                        fieldResultP,
+                                        memlifoP);
             }
             else {
                 /* Nested array of structs */
@@ -423,14 +429,14 @@ CffiStructFromObj(Tcl_Interp *ip,
                         ip, valueObj, &nvalues, &valueObjList)
                     != TCL_OK)
                     return TCL_ERROR;
-                valueP = fieldP->offset + (char *)resultP;
+                valueP = (char *)fieldResultP;
                 if (nvalues > count)
                     nvalues = count;
                 for (indx = 0; indx < nvalues; ++indx, valueP += struct_size) {
                     ret = CffiStructFromObj(ip,
                                             fieldP->fieldType.dataType.u.structP,
                                             valueObjList[indx],
-                                            valueP);
+                                            valueP, memlifoP);
                     if (ret != TCL_OK)
                         return ret;
                 }
@@ -448,7 +454,7 @@ CffiStructFromObj(Tcl_Interp *ip,
                     ip, &structP->fields[i].fieldType, valueObj, &pv);
                 if (ret != TCL_OK)
                     return ret;
-                *(void **)(fieldP->offset + (char *)resultP) = pv;
+                *(void **)fieldResultP = pv;
             }
             else {
                 void **valueP;
@@ -459,12 +465,14 @@ CffiStructFromObj(Tcl_Interp *ip,
                         ip, valueObj, &nvalues, &valueObjList)
                     != TCL_OK)
                     return TCL_ERROR;
-                valueP = (void **)(fieldP->offset + (char *)resultP);
+                valueP = (void **)fieldResultP;
                 if (nvalues > count)
                     nvalues = count;
                 for (indx = 0; indx < nvalues; ++indx) {
-                    ret = CffiPointerFromObj(
-                        ip, &structP->fields[i].fieldType, valueObjList[indx], &valueP[indx]);
+                    ret = CffiPointerFromObj(ip,
+                                             &structP->fields[i].fieldType,
+                                             valueObjList[indx],
+                                             &valueP[indx]);
                     if (ret != TCL_OK)
                         return ret;
                 }
@@ -475,27 +483,58 @@ CffiStructFromObj(Tcl_Interp *ip,
             break;
         case CFFI_K_TYPE_CHAR_ARRAY:
             CFFI_ASSERT(count > 0);
-            ret = CffiCharsFromObj(ip,
-                                   structP->fields[i].fieldType.dataType.u.tagObj,
-                                   valueObj,
-                                   fieldP->offset + (char *)resultP,
-                                   count);
+            ret =
+                CffiCharsFromObj(ip,
+                                 structP->fields[i].fieldType.dataType.u.tagObj,
+                                 valueObj,
+                                 (char *)fieldResultP,
+                                 count);
             if (ret != TCL_OK)
                 return ret;
             break;
         case CFFI_K_TYPE_UNICHAR_ARRAY:
             CFFI_ASSERT(count > 0);
             ret = CffiUniCharsFromObj(
-                ip, valueObj, fieldP->offset + (char *)resultP, count);
+                ip, valueObj, (Tcl_UniChar *)fieldResultP, count);
             if (ret != TCL_OK)
                 return ret;
             break;
         case CFFI_K_TYPE_BYTE_ARRAY:
             CFFI_ASSERT(count > 0);
             ret = CffiBytesFromObj(
-                ip, valueObj, fieldP->offset + (char *)resultP, count);
+                ip, valueObj, fieldResultP, count);
             if (ret != TCL_OK)
                 return ret;
+            break;
+        case CFFI_K_TYPE_ASTRING:
+            if (memlifoP == NULL) {
+                return ErrorInvalidValue(
+                    ip,
+                    NULL,
+                    "string type not supported in this struct context.");
+            }
+            ret = CffiCharsInMemlifoFromObj(
+                ip,
+                structP->fields[i].fieldType.dataType.u.tagObj,
+                valueObj,
+                memlifoP,
+                (char **)fieldResultP);
+            if (ret != TCL_OK)
+                return ret;
+            break;
+        case CFFI_K_TYPE_UNISTRING:
+            if (memlifoP) {
+                int space;
+                Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(valueObj, &space);
+                Tcl_UniChar *toP;
+                space = sizeof(Tcl_UniChar) * (space + 1);
+                toP   = MemLifoAlloc(memlifoP, space);
+                memcpy(toP, fromP, space);
+                *(Tcl_UniChar **)fieldResultP = toP;
+            }
+            else {
+                return ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
+            }
             break;
         default:
             return ErrorInvalidValue(
@@ -694,7 +733,7 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
 
     /* TBD - check addition does not cause valueP to overflow */
     CHECK(CffiStructFromObj(
-        ip, structP, objv[3], (index * structP->size) + (char *)valueP));
+        ip, structP, objv[3], (index * structP->size) + (char *)valueP, NULL));
 
     return TCL_OK;
 }
@@ -761,7 +800,7 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
 
     resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
     valueP    = Tcl_GetByteArrayFromObj(resultObj, NULL);
-    ret       = CffiStructFromObj(ip, structP, objv[2], valueP);
+    ret       = CffiStructFromObj(ip, structP, objv[2], valueP, NULL);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     else
