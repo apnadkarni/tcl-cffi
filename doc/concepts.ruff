@@ -311,13 +311,27 @@ namespace eval Concepts {
         }
         ```
 
+        As for function parameters, field types can have associated annotations.
+        For example, the above definition may be changed to assign default
+        values to fields.
+
+        ```
+        ::cffi::Struct create Point {
+            x {int {default 0}}
+            y {int {default 0}}
+        }
+        ```
+
         Once defined, structs can be referenced in function prototypes and
         in other structs as `struct.STRUCTNAME`, for example `struct.Point`.
         Note that the struct name is the name of the object without the
         any leading `::` global namespace prefix.
 
         C struct values are generally represented as Tcl dictionaries with the
-        struct field names as dictionary keys. C function parameter declarations
+        struct field names as dictionary keys. All fields must be present except
+        for the ones with `default` annotations.
+
+        C function parameter declarations
         that take pointers to structs can be declared as `struct.STRUCTNAME
         byref`, for example `struct.Point byref`. The [byref][Parameters]
         indicates the struct is being passed by reference (via a pointer).

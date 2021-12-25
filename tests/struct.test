@@ -485,6 +485,23 @@ namespace eval cffi::test {
 
 
     ###
+    # struct field defaults
+    # Note: struct tobinary does not support string/unistring. Those will have
+    # to be covered in function.test
+    foreach {type val} {
+        schar -1 uchar 1 short -2 ushort 2 int -3 uint 3 long -4 ulong 4
+        longlong -5 ulonglong 5 float 0.5 double 1.5
+        chars[3] ab unichars[3] de
+    } {
+        test struct-field-default-$type-0 "$type field with default" -body {
+            set s [cffi::Struct new [list fld [list $type [list default $val]]]]
+            $s frombinary [$s tobinary {}]
+        } -cleanup {
+            $s destroy
+        } -result [list fld $val]
+    }
+
+    ###
     # Bug fixes
 
     test struct-bug-53-0 "Check that command is actually a struct" -body {

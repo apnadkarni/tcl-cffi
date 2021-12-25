@@ -1169,7 +1169,41 @@ namespace eval ${NS}::test {
         set sout
     } -result [list p [makeptr 0]]
 
-    # Note -  tests for invalid attrs are done in type.test
+    # Tests for default field values in structs passed
+    test function-struct-field-defaults-0 "field defaults in passed struct" -body {
+        cffi::Struct create SimpleWithDefaults {c {uchar {default 0}} ll {longlong {default 1}} s {short {default 2}}}
+        cffi::Struct create OuterWithDefaults {f {float {default 3}} s {struct.SimpleWithDefaults {default {}}} p {pointer unsafe nullok {default NULL}}}
+        testDll function {incrSimpleOuterStructByVal fn} struct.OuterWithDefaults {s {struct.OuterWithDefaults {default {}}}}
+        fn
+    } -cleanup {
+        rename fn {}
+        SimpleWithDefaults destroy
+        OuterWithDefaults destroy
+    } -result {f 4.0 s {c 1 ll 2 s 3} p 0x0000000000000001^}
+
+    test function-struct-field-defaults-1 "field defaults of type string/unistring" -body {
+        cffi::Struct create X [list \
+                                   s [list string [list default $testStrings(ascii)]] \
+                                   utf8 [list string.utf-8 [list default $testStrings(unicode)]] \
+                                   jis [list string.jis0208 [list default $testStrings(jis0208)]] \
+                                   uni [list unistring [list default $testStrings(unicode)]] \
+                                  ]
+        testDll function checkStructWithStrings int {s {struct.X byref}}
+        checkStructWithStrings {}
+    } -result 0
+
+    test function-struct-field-defaults-error-0 "field invalid defaults in passed struct" -body {
+        cffi::Struct create SimpleWithDefaults {c {uchar {default -1}} ll {longlong {default 1}} s {short {default 2}}}
+        cffi::Struct create OuterWithDefaults {f {float {default 3}} s {struct.SimpleWithDefaults {default {}}} p {pointer unsafe nullok {default NULL}}}
+        testDll function {incrSimpleOuterStructByVal fn} struct.OuterWithDefaults {s {struct.OuterWithDefaults {default {}}}}
+        fn
+    } -cleanup {
+        rename fn {}
+        SimpleWithDefaults destroy
+        OuterWithDefaults destroy
+    } -result {Value -1 not in range. Must be within [0,255].} -returnCodes error
+
+    # Note -  tests for invalid parameter attrs are done in type.test
 
     ###
     # Return type tests

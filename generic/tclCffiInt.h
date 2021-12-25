@@ -157,7 +157,8 @@ typedef struct CffiType {
  * Function parameter descriptor
  */
 typedef struct CffiTypeAndAttrs {
-    Tcl_Obj *parseModeSpecificObj; /* Parameter parse - Default for parameter,
+    Tcl_Obj *parseModeSpecificObj; /* Parameter - Default for parameter,
+                                      Field - Default for field
                                       Return parse - error handler */
     CffiType dataType;         /* Data type */
     int flags;

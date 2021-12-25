@@ -366,6 +366,8 @@ CffiStructFromObj(Tcl_Interp *ip,
 
         if (Tcl_DictObjGet(ip,structValueObj, fieldP->nameObj, &valueObj) != TCL_OK)
             return TCL_ERROR;
+        if (fieldP->fieldType.parseModeSpecificObj)
+            valueObj = fieldP->fieldType.parseModeSpecificObj;/* Default */
         if (valueObj == NULL) {
             return Tclh_ErrorNotFound(
                 ip,

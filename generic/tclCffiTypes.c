@@ -203,7 +203,7 @@ static CffiAttrs cffiAttrs[] = {
          | CFFI_F_TYPE_PARSE_RETURN,
      1},
 #endif
-    {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM, 2},
+    {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM|CFFI_F_TYPE_PARSE_FIELD, 2},
     {"nullifempty",
      NULLIFEMPTY,
      CFFI_F_ATTR_NULLIFEMPTY,
@@ -765,7 +765,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format; /* Duplicate def */
             /* Need next check because DEFAULT is not an attribute and
                thus not part of the table based check below this switch */
-            if (!(parseMode & CFFI_F_TYPE_PARSE_PARAM)) {
+            if (!(parseMode
+                  & (CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD))) {
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
             }
