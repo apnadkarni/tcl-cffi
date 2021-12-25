@@ -780,7 +780,12 @@ EXTERN struct StructWithStrings returnStructWithStrings() {
         "abc", utf8_test_string, jis_test_string, unichar_test_string};
     return s;
 }
-
+EXTERN void getStructWithNullStrings(struct StructWithStrings *sP) {
+    sP->s    = NULL;
+    sP->utf8 = NULL;
+    sP->jis  = NULL;
+    sP->uni  = NULL;
+}
 
 EXTERN void getEinvalString(char *bufP)
 {

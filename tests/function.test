@@ -952,6 +952,11 @@ namespace eval ${NS}::test {
         getStructWithStrings s
         set s
     } -result [makeStructWithStrings]
+    test function-struct-out-2 "Param out - struct with null strings" -constraints libffi -body {
+        testDll function getStructWithNullStrings void {s {struct.StructWithStrings out}}
+        getStructWithNullStrings s
+        set s
+    } -result {s {} utf8 {} jis {} uni {}}
 
     test function-struct-out-crash-bug#39 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}

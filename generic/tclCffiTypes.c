@@ -1410,55 +1410,6 @@ CffiPointerFromObj(Tcl_Interp *ip,
 }
 
 
-/* Function: CffiExternalCharsToObj
- * Wraps an encoded string/chars passed as a char* into a Tcl_Obj
- *
- * Parameters:
- * ip - interpreter
- * typeAttrsP - descriptor for type and encoding
- * srcP - points to null terminated encoded string to wrap. NULL is treated
- *        as an empty string.
- * resultObjP - location to store pointer to Tcl_Obj wrapping the string
- *
- * The string is converted to Tcl's internal form before
- * storing into the returned Tcl_Obj.
- *
- * Returns:
- * *TCL_OK* on success with wrapped pointer in *resultObjP* or *TCL_ERROR*
- * on failure with error message in the interpreter.
- */
-CffiResult
-CffiExternalCharsToObj(Tcl_Interp *ip,
-                       const CffiTypeAndAttrs *typeAttrsP,
-                       const char *srcP,
-                       Tcl_Obj **resultObjP)
-{
-    Tcl_Encoding encoding;
-    Tcl_DString ds;
-
-    if (srcP == NULL) {
-        *resultObjP = Tcl_NewObj();
-        return TCL_OK;
-    }
-
-    if (typeAttrsP && typeAttrsP->dataType.u.tagObj) {
-        CHECK(Tcl_GetEncodingFromObj(
-            ip, typeAttrsP->dataType.u.tagObj, &encoding));
-    }
-    else
-        encoding = NULL;
-
-    Tcl_ExternalToUtfDString(encoding, srcP, -1, &ds);
-    if (encoding)
-        Tcl_FreeEncoding(encoding);
-
-    /* Should optimize this by direct transfer of ds storage - See TclDStringToObj */
-    *resultObjP = Tcl_NewStringObj(Tcl_DStringValue(&ds),
-                                   Tcl_DStringLength(&ds));
-    Tcl_DStringFree(&ds);
-    return TCL_OK;
-}
-
 /* Function: CffiExternalDStringToObj
  * Wraps an encoded string/chars into a Tcl_Obj
  *
@@ -1490,7 +1441,7 @@ CffiExternalDStringToObj(Tcl_Interp *ip,
         TCLH_PANIC("Buffer for output argument overrun.");
     }
 
-    return CffiExternalCharsToObj(ip, typeAttrsP, srcP, resultObjP);
+    return CffiCharsToObj(ip, typeAttrsP, srcP, resultObjP);
 }
 
 /* Function: CffiUniStringToObj
@@ -1736,7 +1687,7 @@ CffiCharsInMemlifoFromObj(
 CffiResult
 CffiCharsToObj(Tcl_Interp *ip,
                const CffiTypeAndAttrs *typeAttrsP,
-               char *srcP,
+               const char *srcP,
                Tcl_Obj **resultObjP)
 {
     Tcl_DString dsDecoded;
@@ -1744,6 +1695,11 @@ CffiCharsToObj(Tcl_Interp *ip,
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY
                 || typeAttrsP->dataType.baseType == CFFI_K_TYPE_ASTRING);
+
+    if (srcP == NULL) {
+        *resultObjP = Tcl_NewObj();
+        return TCL_OK;
+    }
 
     Tcl_DStringInit(&dsDecoded);
 

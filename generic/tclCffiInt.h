@@ -438,7 +438,7 @@ CffiResult CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
 
 CffiResult CffiCharsToObj(Tcl_Interp *ip,
                           const CffiTypeAndAttrs *typeAttrsP,
-                          char *srcP,
+                          const char *srcP,
                           Tcl_Obj **resultObjP);
 CffiResult CffiUniStringToObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
@@ -471,10 +471,6 @@ CffiResult CffiPointerFromObj(Tcl_Interp *ip,
                               void **pointerP);
 CffiResult
 CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP);
-CffiResult CffiExternalCharsToObj(Tcl_Interp *ip,
-                                  const CffiTypeAndAttrs *typeAttrsP,
-                                  const char *srcP,
-                                  Tcl_Obj **resultObjP);
 CffiResult CffiExternalDStringToObj(Tcl_Interp *ip,
                                    const CffiTypeAndAttrs *typeAttrsP,
                                    Tcl_DString *dsP,

@@ -951,7 +951,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         break;
 
     case CFFI_K_TYPE_ASTRING:
-        ret = CffiExternalCharsToObj(
+        ret = CffiCharsToObj(
             ip, typeAttrsP, valueP->u.ptr, &valueObj);
         break;
 
@@ -1655,7 +1655,7 @@ CffiFunctionCall(ClientData cdata,
                     ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
                 break;
             case CFFI_K_TYPE_ASTRING:
-                ret = CffiExternalCharsToObj(
+                ret = CffiCharsToObj(
                     ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
                 break;
             case CFFI_K_TYPE_UNISTRING:
