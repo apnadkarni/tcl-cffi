@@ -1203,6 +1203,18 @@ namespace eval ${NS}::test {
         OuterWithDefaults destroy
     } -result {Value -1 not in range. Must be within [0,255].} -returnCodes error
 
+    ###
+    # structsize
+    test function-struct-field-structsize-0 "field structsize" -body {
+        cffi::Struct create SimpleWithStructSize {c {uchar structsize} ll {longlong structsize} s {short {default 43}}}
+        testDll function {structCheckByVal fn} int {s struct.SimpleWithStructSize c schar ll longlong s short}
+        set size [dict get [SimpleWithStructSize info] size]
+        fn {ll 42} $size 42 43
+    } -cleanup {
+        rename fn {}
+        SimpleWithStructSize destroy
+    } -result 1
+
     # Note -  tests for invalid parameter attrs are done in type.test
 
     ###

@@ -365,9 +365,48 @@ CffiStructFromObj(Tcl_Interp *ip,
         CFFI_ASSERT(count >= 0);/* No dynamic size arrays in structs */
 
         if (Tcl_DictObjGet(ip,structValueObj, fieldP->nameObj, &valueObj) != TCL_OK)
-            return TCL_ERROR;
-        if (fieldP->fieldType.parseModeSpecificObj)
+            return TCL_ERROR; /* Invalid dictionary. Note TCL_OK does not mean found */
+        if (valueObj == NULL) {
+            if (fieldP->fieldType.flags & CFFI_F_ATTR_STRUCTSIZE) {
+                /* Fill in struct size */
+                switch (fieldP->fieldType.dataType.baseType) {
+                case CFFI_K_TYPE_SCHAR:
+                    *(signed char *)fieldResultP = (signed char)structP->size;
+                    continue;
+                case CFFI_K_TYPE_UCHAR:
+                    *(unsigned char *)fieldResultP = (unsigned char)structP->size;
+                    continue;
+                case CFFI_K_TYPE_SHORT:
+                    *(short *)fieldResultP = (short)structP->size;
+                    continue;
+                case CFFI_K_TYPE_USHORT:
+                    *(unsigned short *)fieldResultP = (unsigned short)structP->size;
+                    continue;
+                case CFFI_K_TYPE_INT:
+                    *(int *)fieldResultP = (int)structP->size;
+                    continue;
+                case CFFI_K_TYPE_UINT:
+                    *(unsigned int *)fieldResultP = (unsigned int)structP->size;
+                    continue;
+                case CFFI_K_TYPE_LONG:
+                    *(long *)fieldResultP = (long)structP->size;
+                    continue;
+                case CFFI_K_TYPE_ULONG:
+                    *(unsigned long *)fieldResultP = (unsigned long)structP->size;
+                    continue;
+                case CFFI_K_TYPE_LONGLONG:
+                    *(long long *)fieldResultP = (long long)structP->size;
+                    continue;
+                case CFFI_K_TYPE_ULONGLONG:
+                    *(unsigned long long *)fieldResultP = (unsigned long long)structP->size;
+                    continue;
+                default:
+                    break; /* Just fall thru looking for default */
+                }
+            }
+
             valueObj = fieldP->fieldType.parseModeSpecificObj;/* Default */
+        }
         if (valueObj == NULL) {
             return Tclh_ErrorNotFound(
                 ip,

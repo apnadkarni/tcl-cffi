@@ -322,6 +322,10 @@ namespace eval Concepts {
         }
         ```
 
+        Struct field integer types may have the annotation `structsize` in
+        which case they are automatically initialized to the size of the struct
+        if no value is supplied in the dictionary value for the struct.
+
         Once defined, structs can be referenced in function prototypes and
         in other structs as `struct.STRUCTNAME`, for example `struct.Point`.
         Note that the struct name is the name of the object without the

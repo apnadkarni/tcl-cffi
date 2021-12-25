@@ -188,6 +188,8 @@ typedef struct CffiTypeAndAttrs {
 #define CFFI_F_ATTR_BITMASK     0x2000000 /* Treat as a bitmask */
 #define CFFI_F_ATTR_NULLIFEMPTY 0x4000000 /* Empty value -> null pointer */
 #define CFFI_F_ATTR_NULLOK      0x8000000 /* Null pointers permissible */
+
+#define CFFI_F_ATTR_STRUCTSIZE 0x10000000 /* Field contains size of struct */
 } CffiTypeAndAttrs;
 
 /* Attributes allowed on a parameter declaration */

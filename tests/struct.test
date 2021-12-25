@@ -499,6 +499,31 @@ namespace eval cffi::test {
         } -cleanup {
             $s destroy
         } -result [list fld $val]
+
+        test struct-field-default-$type-0 "$type field with default -arg supplied" -body {
+            set s [cffi::Struct new [list fld [list $type [list default $val]]]]
+            $s frombinary [$s tobinary {fld 42}]
+        } -cleanup {
+            $s destroy
+        } -result [list fld [expr {$type in $realTypes ? 42.0 : 42}]]
+    }
+
+    ###
+    # Struct field structsize annotation
+    foreach {type val} {
+        schar uchar short ushort int uint long ulong longlong ulonglong
+    } {
+        test struct-field-structsize-$type-0 "$type field structsize" -body {
+            set s [cffi::Struct new [list fld [list $type structsize]]]
+            $s frombinary [$s tobinary {}]
+        } -cleanup {
+            $s destroy
+        } -result [list fld [dict get [cffi::type info $type] size]]
+    }
+    foreach type {float double pointer chars[2] unichars[2] string unistring binary struct.::TestStruct} {
+        test struct-field-structsize-$type-error-0 "$type field structsize" -body {
+            cffi::Struct new [list fld [list $type structsize]]
+        } -result "Invalid value \"[list $type] structsize\". $errorMessages(attrtype)" -returnCodes error
     }
 
     ###

@@ -396,6 +396,11 @@ namespace eval cffi::test {
                 testinvalidattr "$type\[2\] $attr" param $errorMessages(attrparsemode)
             }
         }
+        if {$type in $intTypes} {
+            testinvalidattr "$type structsize" param $errorMessages(attrparsemode)
+        } else {
+            testinvalidattr "$type structsize" param $errorMessages(attrtype)
+        }
 
         # array invalid count spec failure
         set l {[0] [-2] [] [2x] \[2 [2]x}
@@ -440,10 +445,12 @@ namespace eval cffi::test {
             testinvalidattr "$type {onerror foo}" return {"onerror" requires an error checking annotation.}
             testinvalidattr "$type onerror" return {A type annotation has the wrong number of fields.}
             testinvalidattr "$type bitmask" return $errorMessages(attrparsemode)
+            testinvalidattr "$type structsize" param $errorMessages(attrparsemode)
         } else {
             testinvalidattr "$type {onerror foo}" return $errorMessages(attrtype)
             testinvalidattr "$type bitmask" return $errorMessages(attrtype)
             testinvalidattr "$type {enum E}" return $errorMessages(attrtype)
+            testinvalidattr "$type structsize" param $errorMessages(attrtype)
         }
 
         # Failure tests - invalid attributes for type
@@ -481,6 +488,7 @@ namespace eval cffi::test {
             "winerror" "" "-constraints win"
             "errno" "" ""
             "{onerror handler}" "" ""
+            "structsize" "structsize" ""
         } {
             if {$type in $intTypes} {
                 testnumeric "$type $attr" field $expected {*}$constraints
@@ -604,7 +612,7 @@ namespace eval cffi::test {
         }
 
         # Scalar tests - invalid attributes for type
-        foreach attr [list {*}$errorAttrs {*}$requirementAttrs nullifempty bitmask {enum E}] {
+        foreach attr [list {*}$errorAttrs {*}$requirementAttrs structsize nullifempty bitmask {enum E}] {
             if {$attr ni $pointer_valid_error_attrs} {
                 testinvalidattr [list $type $attr] param $errorMessages(attrtype)
             }
@@ -632,7 +640,7 @@ namespace eval cffi::test {
         testinvalidattr "$type counted unsafe" return $errorMessages(attrconflict)
 
         # Failure tests - invalid attribute for type
-        foreach attr [list {*}$errorAttrs nullifempty bitmask {enum E}] {
+        foreach attr [list {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
             if {$attr ni $pointer_valid_error_attrs} {
                 testinvalidattr [list $type $attr] return $errorMessages(attrtype)
             }
@@ -672,7 +680,7 @@ namespace eval cffi::test {
         testinvalidattr "$type counted unsafe" field $errorMessages(attrconflict)
 
         # Failure tests - invalid attribute for type
-        foreach attr [list {*}$errorAttrs nullifempty bitmask {enum E}] {
+        foreach attr [list {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
             if {$attr ni $pointer_valid_error_attrs} {
                 testinvalidattr [list $type $attr] field $errorMessages(attrtype)
             }
@@ -760,7 +768,7 @@ namespace eval cffi::test {
             testinvalidattr $type $parse_mode $errorMessages(scalarchars)
 
             # Invalid attributes for type
-            foreach attr [list {*}$pointerAttrs {*}$errorAttrs nullifempty bitmask {enum E}] {
+            foreach attr [list {*}$pointerAttrs {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
                 testinvalidattr [list $type\[2\] $attr] $parse_mode $errorMessages(attrtype)
             }
 
@@ -857,7 +865,7 @@ namespace eval cffi::test {
         ## For all parse modes
         foreach parse_mode {param return field} {
             # Scalar tests - invalid attributes for type
-            foreach attr [list {*}$pointerAttrs {*}$requirementAttrs winerror bitmask {{enum E}}] {
+            foreach attr [list {*}$pointerAttrs {*}$requirementAttrs structsize winerror bitmask {{enum E}}] {
                 if {$attr ne "nullok"} {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
                 }
@@ -897,7 +905,7 @@ namespace eval cffi::test {
         teststring "binary $attr" param $expected
     }
     # out and inout params not allowed for binary
-    foreach attr {out inout {out byref} {inout byref} {nullifempty} {in nullifempty} bitmask {{enum E}}} {
+    foreach attr {out inout {out byref} {inout byref} {nullifempty} {in nullifempty} structsize bitmask {{enum E}}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
 
@@ -958,7 +966,7 @@ namespace eval cffi::test {
             }
         }
         # Scalar tests - invalid attributes for type
-        foreach attr [list {*}$pointerAttrs {*}$errorAttrs bitmask {{enum E}}] {
+        foreach attr [list {*}$pointerAttrs {*}$errorAttrs structsize bitmask {{enum E}}] {
             testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
         }
 

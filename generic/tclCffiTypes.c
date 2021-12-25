@@ -14,9 +14,10 @@
  * Basic type meta information. The order *MUST* match the order in
  * cffiTypeId.
  */
-#define CFFI_VALID_INTEGER_ATTRS                           \
-    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK \
-     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK)
+#define CFFI_VALID_INTEGER_ATTRS                                       \
+    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK             \
+     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
+     | CFFI_F_ATTR_STRUCTSIZE)
 
 #define TOKENANDLEN(t) # t , sizeof(#t) - 1
 
@@ -143,6 +144,7 @@ enum cffiTypeAttrOpt {
     BITMASK,
     ONERROR,
     NULLOK,
+    STRUCTSIZE,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -203,7 +205,11 @@ static CffiAttrs cffiAttrs[] = {
          | CFFI_F_TYPE_PARSE_RETURN,
      1},
 #endif
-    {"default", DEFAULT, -1, CFFI_F_TYPE_PARSE_PARAM|CFFI_F_TYPE_PARSE_FIELD, 2},
+    {"default",
+     DEFAULT,
+     -1,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD,
+     2},
     {"nullifempty",
      NULLIFEMPTY,
      CFFI_F_ATTR_NULLIFEMPTY,
@@ -236,6 +242,11 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_ATTR_NULLOK,
      CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM
          | CFFI_F_TYPE_PARSE_FIELD,
+     1},
+    {"structsize",
+     STRUCTSIZE,
+     CFFI_F_ATTR_STRUCTSIZE,
+     CFFI_F_TYPE_PARSE_FIELD,
      1},
     {NULL}};
 
@@ -884,6 +895,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case NULLOK:
             flags |= CFFI_F_ATTR_NULLOK;
             break;
+        case STRUCTSIZE:
+            if (typeAttrP->dataType.count != 0) {
+                message = "\"structsize\" annotation not valid for arrays.";
+                goto invalid_format;
+            }
+            flags |= CFFI_F_ATTR_STRUCTSIZE;
+            break;
         }
     }
 
@@ -906,6 +924,11 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         }
     }
 
+    if ((flags & CFFI_F_ATTR_STRUCTSIZE) && typeAttrP->parseModeSpecificObj) {
+        /* Conflicting annotation */
+        goto invalid_format;
+    }
+
     /* winerror only makes sense for the zero requirement */
     if (flags & CFFI_F_ATTR_WINERROR) {
         int requirements_flags = flags & CFFI_F_ATTR_REQUIREMENT_MASK;
@@ -919,7 +942,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             message = typeInvalidForContextMsg;
             goto invalid_format;
         }
-        /* For parameters at least one of IN, OUT, INOUT should be set */
         if (flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT)) {
             if (typeAttrP->parseModeSpecificObj) {
                 message = defaultNotAllowedMsg;
