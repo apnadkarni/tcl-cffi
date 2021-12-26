@@ -449,7 +449,7 @@ CffiResult CffiUniStringToObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_DString *dsP,
                               Tcl_Obj **resultObjP);
-CffiResult CffiStructFromObj(Tcl_Interp *ip,
+CffiResult CffiStructFromObj(CffiInterpCtx *ipCtxP,
                              const CffiStruct *structP,
                              Tcl_Obj *structValueObj,
                              void *resultP,
@@ -528,6 +528,10 @@ CffiResult CffiEnumBitmask(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *enumObj,
                            Tcl_Obj *valueListObj,
                            Tcl_WideInt *maskP);
+CffiResult CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
+                               const CffiTypeAndAttrs *typeAttrsP,
+                               Tcl_Obj *valueObj,
+                               Tcl_WideInt *valueP);
 
 #ifdef CFFI_USE_DYNCALL
 

@@ -439,7 +439,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     CffiArgument *argP    = &callP->argsP[arg_index];
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
-    CffiResult ret;
     int flags;
     char *p;
 
@@ -540,19 +539,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      */
 
     /* May the programming gods forgive me for these macro */
-#define OBJTONUM(objfn_, obj_, valP_)                                         \
-    do {                                                                      \
-        /* interp NULL when we do not want errors if enum specified */                         \
-        ret = objfn_(lookup_enum ? NULL : ip, obj_, valP_);                   \
-        if (ret != TCL_OK) {                                                  \
-            Tcl_Obj *enumValueObj;                                            \
-            if (!lookup_enum)                                                 \
-                return ret;                                                   \
-            CHECK(CffiEnumFind(                                               \
-                ipCtxP, typeAttrsP->dataType.u.tagObj, obj_, &enumValueObj)); \
-            CHECK(objfn_(ip, enumValueObj, valP_));                           \
-        }                                                                     \
-    } while (0)
 
 #ifdef CFFI_USE_DYNCALL
 #define STOREARG(storefn_, fld_)                        \
@@ -580,21 +566,17 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
 #define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
     do {                                                                       \
-        int lookup_enum = flags & CFFI_F_ATTR_ENUM;                            \
         CFFI_ASSERT(argP->actualCount >= 0);                                   \
         if (argP->actualCount == 0) {                                          \
-            if (flags & CFFI_F_ATTR_BITMASK) {                                 \
-                Tcl_WideInt wide;                                              \
-                CHECK(CffiEnumBitmask(                                         \
-                    ipCtxP,                                                    \
-                    lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,        \
-                    valueObj,                                                  \
-                    &wide));                                                   \
-                argP->value.u.fld_ = (type_)wide;                              \
-            }                                                                  \
-            else {                                                             \
-                if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {            \
-                    OBJTONUM(objfn_, valueObj, &argP->value.u.fld_);           \
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
+                if (flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {        \
+                    Tcl_WideInt wide;                                          \
+                    CHECK(CffiIntValueFromObj(                                 \
+                        ipCtxP, typeAttrsP, valueObj, &wide));                 \
+                    argP->value.u.fld_ = (type_)wide;                          \
+                }                                                              \
+                else {                                                         \
+                    CHECK(objfn_(ip, valueObj, &argP->value.u.fld_));          \
                 }                                                              \
             }                                                                  \
             if (flags & CFFI_F_ATTR_BYREF)                                     \
@@ -621,8 +603,18 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 /* parameter. If too many, only up to array size */            \
                 if (nvalues > argP->actualCount)                               \
                     nvalues = argP->actualCount;                               \
-                for (i = 0; i < nvalues; ++i) {                                \
-                    OBJTONUM(objfn_, valueObjList[i], &valueArray[i]);         \
+                if (flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {        \
+                    for (i = 0; i < nvalues; ++i) {                            \
+                        Tcl_WideInt wide;                                      \
+                        CHECK(CffiIntValueFromObj(                             \
+                            ipCtxP, typeAttrsP, valueObjList[i], &wide));      \
+                        valueArray[i] = (type_)wide;                           \
+                    }                                                          \
+                }                                                              \
+                else {                                                         \
+                    for (i = 0; i < nvalues; ++i) {                            \
+                        CHECK(objfn_(ip, valueObjList[i], &valueArray[i]));    \
+                    }                                                          \
                 }                                                              \
                 /* Fill additional elements with 0 */                          \
                 for (; i < argP->actualCount; ++i)                             \
@@ -670,7 +662,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             structValueP = MemLifoAlloc(&ipCtxP->memlifo,
                                         typeAttrsP->dataType.u.structP->size);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
-                CHECK(CffiStructFromObj(ip,
+                CHECK(CffiStructFromObj(ipCtxP,
                                         typeAttrsP->dataType.u.structP,
                                         valueObj,
                                         structValueP, &ipCtxP->memlifo));
@@ -707,7 +699,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     nvalues = argP->actualCount;
                 for (toP = valueArray, i = 0; i < nvalues;
                      toP += struct_size, ++i) {
-                    CHECK(CffiStructFromObj(ip,
+                    CHECK(CffiStructFromObj(ipCtxP,
                                             typeAttrsP->dataType.u.structP,
                                             valueObjList[i],
                                             toP, &ipCtxP->memlifo));
@@ -870,7 +862,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 #undef STORENUM
 #undef STOREARG
 #undef STOREARGBYREF
-#undef OBJTONUM
 }
 
 /* Function: CffiArgPostProcess

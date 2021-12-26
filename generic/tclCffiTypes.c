@@ -228,9 +228,14 @@ static CffiAttrs cffiAttrs[] = {
     {"enum",
      ENUM,
      CFFI_F_ATTR_ENUM,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
+         | CFFI_F_TYPE_PARSE_RETURN,
      2},
-    {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_PARAM, 1},
+    {"bitmask",
+     BITMASK,
+     CFFI_F_ATTR_BITMASK,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD,
+     1},
     {"onerror",
      ONERROR,
      CFFI_F_ATTR_ONERROR,
@@ -1103,6 +1108,68 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
 }
 
 
+/* Function: CffiObjToInteger
+ * Converts a *Tcl_Obj* to an integer with support for enums and bitmasks
+ *
+ * Parameters:
+ * ipCtxP - the interpreter context
+ * typeAttrsP - the type attributes. May be NULL.
+ * valueObj - the *Tcl_Obj* to unwrap
+ * valueP - location to store the result
+ *
+ * The unwrapping takes into account the enum and bitmask settings as
+ * per the *typeAttrsP* argument.
+ *
+ * Returns:
+ * *TCL_OK* on success with the integer value stored in the location *valueP*
+ * *TCL_ERROR* on error with message stored in the interpreter.
+ */
+CffiResult
+CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
+                    const CffiTypeAndAttrs *typeAttrsP,
+                    Tcl_Obj *valueObj,
+                    Tcl_WideInt *valueP)
+{
+    Tcl_WideInt value;
+    CffiResult ret;
+    int flags       = typeAttrsP ? typeAttrsP->flags : 0;
+    int lookup_enum = flags & CFFI_F_ATTR_ENUM;
+
+    /* TBD - fix for Tcl_WideInt? */
+    if (flags & CFFI_F_ATTR_BITMASK) {
+        ret =
+            CffiEnumBitmask(ipCtxP,
+                            lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,
+                            valueObj,
+                            &value);
+    }
+    else {
+        if (lookup_enum) {
+            ret = Tcl_GetWideIntFromObj(NULL, valueObj, &value);
+            if (ret != TCL_OK) {
+                /* Not an integer value, check if enum */
+                Tcl_Obj *enumValueObj;
+                if (lookup_enum) {
+                    ret = CffiEnumFind(ipCtxP,
+                                       typeAttrsP->dataType.u.tagObj,
+                                       valueObj,
+                                       &enumValueObj);
+                    if (ret == TCL_OK) {
+                        ret = Tcl_GetWideIntFromObj(
+                            ipCtxP->interp, enumValueObj, &value);
+                    }
+                }
+            }
+        }
+        else {
+            ret = Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value);
+        }
+    }
+    if (ret == TCL_OK)
+        *valueP = value;
+    return ret;
+}
+
 /* Function: CffiNativeScalarToObj
  * Wraps a scalar C binary value into a Tcl_Obj.
  *
@@ -1120,7 +1187,6 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
  * Returns:
  * *TCL_OK* on success with a pointer to the *Tcl_Obj* stored in *valueObjP*
  * *TCL_ERROR* on error with message stored in the interpreter.
- *
  */
 static CffiResult
 CffiNativeScalarToObj(Tcl_Interp *ip,

@@ -489,6 +489,8 @@ namespace eval cffi::test {
             "errno" "" ""
             "{onerror handler}" "" ""
             "structsize" "structsize" ""
+            "bitmask" "bitmask" ""
+            "{enum E}" "{enum E}" ""
         } {
             if {$type in $intTypes} {
                 testnumeric "$type $attr" field $expected {*}$constraints
@@ -508,10 +510,6 @@ namespace eval cffi::test {
         if {$type ni $intTypes} {
             foreach attr [list {*}$errorAttrs {onerror foo} bitmask {enum E}] {
                 testinvalidattr [list $type $attr] field $errorMessages(attrtype)
-            }
-        } else {
-            foreach attr {bitmask {enum E}} {
-                testinvalidattr [list $type $attr] field $errorMessages(attrparsemode)
             }
         }
 

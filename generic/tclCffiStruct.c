@@ -300,7 +300,7 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * Constructs a C struct from a *Tcl_Obj* wrapper.
  *
  * Parameters:
- * ip - Interpreter
+ * ipCtxP - Interpreter context
  * structP - pointer to the struct definition internal form
  * structValueObj - the *Tcl_Obj* containing the script level struct value
  * resultP - the location where the struct is to be constructed. Caller
@@ -315,45 +315,54 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiStructFromObj(Tcl_Interp *ip,
-                   const CffiStruct *structP,
-                   Tcl_Obj    *structValueObj,
-                   void       *resultP,
-                   MemLifo    *memlifoP
-                   )
+CffiStructFromObj(CffiInterpCtx *ipCtxP,
+                  const CffiStruct *structP,
+                  Tcl_Obj *structValueObj,
+                  void *resultP,
+                  MemLifo *memlifoP)
 {
     int i;
     void *pv;
     CffiResult ret;
+    Tcl_Interp *ip = ipCtxP->interp;
 
-#define STOREFIELD(objfn_, type_)                                             \
-    do {                                                                      \
-        int indx;                                                             \
-        type_ *valueP = (type_ *)fieldResultP;                                \
-        if (count == 0) {                                                     \
-            if ((ret = objfn_(ip, valueObj, valueP)) != TCL_OK)               \
-                return ret;                                                   \
-        }                                                                     \
-        else {                                                                \
-            Tcl_Obj **valueObjList;                                           \
-            int nvalues;                                                      \
-            if (Tcl_ListObjGetElements(ip, valueObj, &nvalues, &valueObjList) \
-                != TCL_OK)                                                    \
-                return TCL_ERROR;                                             \
-            /* Note - if caller has specified too few values, it's ok         \
-             * because perhaps the actual count is specified in another       \
-             * parameter. If too many, only up to array size */               \
-            if (nvalues > count)                                              \
-                nvalues = count;                                              \
-            for (indx = 0; indx < nvalues; ++indx) {                          \
-                ret = objfn_(ip, valueObjList[indx], &valueP[indx]);          \
-                if (ret != TCL_OK)                                            \
-                    return ret;                                               \
-            }                                                                 \
-            /* Fill additional unspecified elements with 0 */                 \
-            for (indx = nvalues; indx < count; ++indx)                        \
-                valueP[indx] = 0;                                             \
-        }                                                                     \
+#define STOREFIELD(objfn_, type_)                                              \
+    do {                                                                       \
+        int indx;                                                              \
+        type_ *valueP                = (type_ *)fieldResultP;                  \
+        const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;                     \
+        CFFI_ASSERT(count >= 0);                                               \
+        if (count == 0) {                                                      \
+            if (typeAttrsP->flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {            \
+                Tcl_WideInt wide;                                              \
+                CHECK(                                                         \
+                    CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide)); \
+                *valueP = (type_)wide;                                         \
+            }                                                                  \
+            else {                                                             \
+                CHECK(objfn_(ip, valueObj, valueP));                           \
+            }                                                                  \
+        }                                                                      \
+        else {                                                                 \
+            Tcl_Obj **valueObjList;                                            \
+            int nvalues;                                                       \
+            if (Tcl_ListObjGetElements(ip, valueObj, &nvalues, &valueObjList)  \
+                != TCL_OK)                                                     \
+                return TCL_ERROR;                                              \
+            /* Note - if caller has specified too few values, it's ok          \
+             * because perhaps the actual count is specified in another        \
+             * parameter. If too many, only up to array size */                \
+            if (nvalues > count)                                               \
+                nvalues = count;                                               \
+            for (indx = 0; indx < nvalues; ++indx) {                           \
+                ret = objfn_(ip, valueObjList[indx], &valueP[indx]);           \
+                if (ret != TCL_OK)                                             \
+                    return ret;                                                \
+            }                                                                  \
+            /* Fill additional unspecified elements with 0 */                  \
+            for (indx = nvalues; indx < count; ++indx)                         \
+                valueP[indx] = 0;                                              \
+        }                                                                      \
     } while (0)
 
     if (structP->flags & CFFI_F_STRUCT_CLEAR)
@@ -466,7 +475,7 @@ CffiStructFromObj(Tcl_Interp *ip,
             break;
         case CFFI_K_TYPE_STRUCT:
             if (count == 0) {
-                ret = CffiStructFromObj(ip,
+                ret = CffiStructFromObj(ipCtxP,
                                         fieldP->fieldType.dataType.u.structP,
                                         valueObj,
                                         fieldResultP,
@@ -487,7 +496,7 @@ CffiStructFromObj(Tcl_Interp *ip,
                 if (nvalues > count)
                     nvalues = count;
                 for (indx = 0; indx < nvalues; ++indx, valueP += struct_size) {
-                    ret = CffiStructFromObj(ip,
+                    ret = CffiStructFromObj(ipCtxP,
                                             fieldP->fieldType.dataType.u.structP,
                                             valueObjList[indx],
                                             valueP, memlifoP);
@@ -505,7 +514,7 @@ CffiStructFromObj(Tcl_Interp *ip,
         case CFFI_K_TYPE_POINTER:
             if (count == 0) {
                 ret = CffiPointerFromObj(
-                    ip, &structP->fields[i].fieldType, valueObj, &pv);
+                    ip, &fieldP->fieldType, valueObj, &pv);
                 if (ret != TCL_OK)
                     return ret;
                 *(void **)fieldResultP = pv;
@@ -524,7 +533,7 @@ CffiStructFromObj(Tcl_Interp *ip,
                     nvalues = count;
                 for (indx = 0; indx < nvalues; ++indx) {
                     ret = CffiPointerFromObj(ip,
-                                             &structP->fields[i].fieldType,
+                                             &fieldP->fieldType,
                                              valueObjList[indx],
                                              &valueP[indx]);
                     if (ret != TCL_OK)
@@ -539,7 +548,7 @@ CffiStructFromObj(Tcl_Interp *ip,
             CFFI_ASSERT(count > 0);
             ret =
                 CffiCharsFromObj(ip,
-                                 structP->fields[i].fieldType.dataType.u.tagObj,
+                                 fieldP->fieldType.dataType.u.tagObj,
                                  valueObj,
                                  (char *)fieldResultP,
                                  count);
@@ -569,13 +578,13 @@ CffiStructFromObj(Tcl_Interp *ip,
             }
             ret = CffiCharsInMemlifoFromObj(
                 ip,
-                structP->fields[i].fieldType.dataType.u.tagObj,
+                fieldP->fieldType.dataType.u.tagObj,
                 valueObj,
                 memlifoP,
                 (char **)fieldResultP);
             if (ret != TCL_OK)
                 return ret;
-            if ((structP->fields[i].fieldType.flags & CFFI_F_ATTR_NULLIFEMPTY)
+            if ((fieldP->fieldType.flags & CFFI_F_ATTR_NULLIFEMPTY)
                 && (*(*(char **)fieldResultP) == 0)) {
                 *(char **)fieldResultP = 0;
             }
@@ -586,7 +595,7 @@ CffiStructFromObj(Tcl_Interp *ip,
                 Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(valueObj, &space);
                 Tcl_UniChar *toP;
                 if (space == 0
-                    && (structP->fields[i].fieldType.flags
+                    && (fieldP->fieldType.flags
                         & CFFI_F_ATTR_NULLIFEMPTY)) {
                     *(Tcl_UniChar **)fieldResultP = NULL;
                 }
@@ -797,8 +806,11 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
         index = 0;
 
     /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructFromObj(
-        ip, structP, objv[3], (index * structP->size) + (char *)valueP, NULL));
+    CHECK(CffiStructFromObj(structCtxP->ipCtxP,
+                            structP,
+                            objv[3],
+                            (index * structP->size) + (char *)valueP,
+                            NULL));
 
     return TCL_OK;
 }
@@ -865,7 +877,7 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
 
     resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
     valueP    = Tcl_GetByteArrayFromObj(resultObj, NULL);
-    ret       = CffiStructFromObj(ip, structP, objv[2], valueP, NULL);
+    ret = CffiStructFromObj(structCtxP->ipCtxP, structP, objv[2], valueP, NULL);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     else
