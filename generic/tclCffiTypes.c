@@ -213,7 +213,7 @@ static CffiAttrs cffiAttrs[] = {
     {"nullifempty",
      NULLIFEMPTY,
      CFFI_F_ATTR_NULLIFEMPTY,
-     CFFI_F_TYPE_PARSE_PARAM,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD,
      1},
     {"storeonerror",
      STOREONERROR,

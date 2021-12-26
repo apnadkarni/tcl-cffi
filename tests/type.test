@@ -855,7 +855,8 @@ namespace eval cffi::test {
 
         ## field mode
         teststring "$type" field ""
-        foreach attr {in out nullifempty } {
+        teststring "$type nullifempty" field "nullifempty"
+        foreach attr {in out} {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
         foreach attr {inout} {
@@ -976,7 +977,6 @@ namespace eval cffi::test {
             teststruct {struct.TestStruct out} param "out byref" 2
         }
         if {$parse_mode eq "field"} {
-            testinvalidattr "struct.TestStruct nullifempty" $parse_mode $errorMessages(attrparsemode)
             testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(fieldvararray)
         }
         if {$parse_mode eq "return"} {

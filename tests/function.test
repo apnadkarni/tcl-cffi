@@ -419,6 +419,24 @@ namespace eval ${NS}::test {
         } -body {
             ${type}_len abc
         } -result 3
+        test function-$type-nullifempty-2 "$type struct field nullifempty" -setup {
+            cffi::Struct create S { s {string nullifempty}}
+            testDll function {extractStructWithPointer fn} {pointer nullok} {s {struct.S byref}}
+        } -cleanup {
+            rename fn {}
+            S destroy
+        } -body {
+            fn {s {}}
+        } -result [makeptr 0]
+        test function-$type-nullifempty-3 "$type struct field nullifempty - non-empty" -setup {
+            cffi::Struct create S { s {string nullifempty}}
+            testDll function {extractStructWithPointer fn} {pointer unsafe nullok} {s {struct.S byref}}
+        } -cleanup {
+            rename fn {}
+            S destroy
+        } -body {
+            string equal [fn {s {abc}}] [makeptr 0]
+        } -result 0
     }
 
 

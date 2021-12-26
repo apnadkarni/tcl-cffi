@@ -326,6 +326,9 @@ namespace eval Concepts {
         which case they are automatically initialized to the size of the struct
         if no value is supplied in the dictionary value for the struct.
 
+        The `nullifempty` annotation may be used for fields of type `string`
+        and `unistring` and has the same effect as described in [Parameters].
+
         Once defined, structs can be referenced in function prototypes and
         in other structs as `struct.STRUCTNAME`, for example `struct.Point`.
         Note that the struct name is the name of the object without the

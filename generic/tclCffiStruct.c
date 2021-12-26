@@ -562,16 +562,27 @@ CffiStructFromObj(Tcl_Interp *ip,
                 (char **)fieldResultP);
             if (ret != TCL_OK)
                 return ret;
+            if ((structP->fields[i].fieldType.flags & CFFI_F_ATTR_NULLIFEMPTY)
+                && (*(*(char **)fieldResultP) == 0)) {
+                *(char **)fieldResultP = 0;
+            }
             break;
         case CFFI_K_TYPE_UNISTRING:
             if (memlifoP) {
                 int space;
                 Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(valueObj, &space);
                 Tcl_UniChar *toP;
-                space = sizeof(Tcl_UniChar) * (space + 1);
-                toP   = MemLifoAlloc(memlifoP, space);
-                memcpy(toP, fromP, space);
-                *(Tcl_UniChar **)fieldResultP = toP;
+                if (space == 0
+                    && (structP->fields[i].fieldType.flags
+                        & CFFI_F_ATTR_NULLIFEMPTY)) {
+                    *(Tcl_UniChar **)fieldResultP = NULL;
+                }
+                else {
+                    space = sizeof(Tcl_UniChar) * (space + 1);
+                    toP   = MemLifoAlloc(memlifoP, space);
+                    memcpy(toP, fromP, space);
+                    *(Tcl_UniChar **)fieldResultP = toP;
+                }
             }
             else {
                 return ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
