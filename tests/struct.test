@@ -548,6 +548,27 @@ namespace eval cffi::test {
     } -result {i 0 j 1 k 0}
 
     ###
+    # enum and bitmask
+    test struct-enum-0 "struct field enum" -setup {
+        cffi::enum define E {A 1 B 42}
+    } -body {
+        cffi::Struct create S {i {int {enum E}}}
+        S frombinary [S tobinary {i B}]
+    } -cleanup {
+        cffi::enum delete E
+        S destroy
+    } -result {i 42}
+    test struct-enum-0 "struct field enum with bitmask" -setup {
+        cffi::enum define E {A 1 B 2}
+    } -body {
+        cffi::Struct create S {i {int {enum E} bitmask}}
+        S frombinary [S tobinary {i {A B 4}}]
+    } -cleanup {
+        cffi::enum delete E
+        S destroy
+    } -result {i 7}
+
+    ###
     # Bug fixes
 
     test struct-bug-53-0 "Check that command is actually a struct" -body {

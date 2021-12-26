@@ -1210,7 +1210,6 @@ namespace eval ${NS}::test {
         SimpleWithDefaults destroy
     } -result 1
 
-
     test function-struct-field-defaults-2 "field defaults of type string/unistring" -body {
         cffi::Struct create X [list \
                                    s [list string [list default $testStrings(ascii)]] \
@@ -1242,6 +1241,38 @@ namespace eval ${NS}::test {
         rename fn {}
         SimpleWithStructSize destroy
     } -result 1
+
+    ###
+    # struct enum
+    test function-struct-field-enum-0 "field enum" -setup {
+        cffi::enum define E {A 1 B 2}
+    } -body {
+        cffi::Struct create SimpleWithStructSize {c uchar ll {longlong {enum E}} s {short {enum E} {default B}}}
+        testDll function {structCheck fn} int {s {struct.SimpleWithStructSize byref} c schar ll longlong s short}
+        set size [dict get [SimpleWithStructSize info] size]
+        fn {c 0 ll A} 0 1 2
+    } -cleanup {
+        cffi::enum delete E
+        rename fn {}
+        SimpleWithStructSize destroy
+    } -result 1
+
+    ###
+    # struct bitmask
+    test function-struct-field-bitmask-0 "field bitmask" -setup {
+        cffi::enum define E {A 1 B 2}
+    } -body {
+        cffi::Struct create SimpleWithStructSize {c {uchar bitmask} ll {longlong bitmask {enum E}} s {short {enum E} {default 1}}}
+        testDll function {structCheck fn} int {s {struct.SimpleWithStructSize byref} c schar ll longlong s short}
+        set size [dict get [SimpleWithStructSize info] size]
+        fn {c {1 2} ll {A 4}} 3 5 1
+    } -cleanup {
+        cffi::enum delete E
+        rename fn {}
+        SimpleWithStructSize destroy
+    } -result 1
+
+
 
     # Note -  tests for invalid parameter attrs are done in type.test
 
