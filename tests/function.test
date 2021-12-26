@@ -1199,7 +1199,7 @@ namespace eval ${NS}::test {
         rename fn {}
         SimpleWithDefaults destroy
         OuterWithDefaults destroy
-    } -result {f 4.0 s {c 1 ll 2 s 3} p 0x0000000000000001^}
+    } -result [list f 4.0 s {c 1 ll 2 s 3} p [makeptr 1]]
 
     test function-struct-field-defaults-1 "field defaults in passed struct by ref" -body {
         cffi::Struct create SimpleWithDefaults {c {uchar {default 0}} ll {longlong {default 1}} s {short {default 2}}}

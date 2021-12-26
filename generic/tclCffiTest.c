@@ -454,18 +454,18 @@ EXTERN void struct_pointer_array_exchange(struct struct_with_pointer_array *a, s
     pointer_array_exchange(a->ptrs, b->ptrs, 3);
 }
 
-static unsigned char utf8_test_string[] = {0xc3,0xa0,0xc3,0xa1,0xc3,0xa2, 0};
-static unsigned char jis_test_string[]  = {'8', 'c', 0, 0};
+static char utf8_test_string[] = {0xc3,0xa0,0xc3,0xa1,0xc3,0xa2, 0};
+static char jis_test_string[]  = {'8', 'c', 0, 0};
 static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 
 FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
     return "abc";
 }
-EXTERN const unsigned char *utf8_return() {
+EXTERN const char *utf8_return() {
     return utf8_test_string;
 }
-EXTERN const unsigned char *jis0208_return() {
+EXTERN const char *jis0208_return() {
     return jis_test_string;
 }
 EXTERN void string_param_out(char **strPP) {
