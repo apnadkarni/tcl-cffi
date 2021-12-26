@@ -2,9 +2,10 @@
 # See LICENSE for license terms.
 
 oo::class create ${NS}::Struct {
-    constructor {definition} {
+    constructor {definition args} {
         # Constructs a script level object that maps to a C struct definition.
         #  definition - defines the layout and type of the C struct fields
+        #  args - options. Currently the only option is `-clear`
         # The created object can be used to pass arguments to and from
         # functions, allocate memory, encode and decode native C structs
         # in memory etc.
@@ -18,6 +19,11 @@ oo::class create ${NS}::Struct {
         # This name can be retrieved with the [name] method and is used to
         # identify the struct when tagging pointers and for typing function
         # parameters and nested struct fields.
+        #
+        # If the `-clear` option is present, the memory of structures of this
+        # type is cleared before the field values are initialized. In this case,
+        # missing field values in a struct value will not result in an error
+        # being raised even if no default annotation is included for the field.
         #
     }
     method allocate {{count 1}} {

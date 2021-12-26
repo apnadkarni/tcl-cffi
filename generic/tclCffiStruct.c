@@ -156,6 +156,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     structP->nRefs     = 0;
     structP->alignment = struct_alignment;
     structP->size      = (offset + struct_alignment - 1) & ~(struct_alignment - 1);
+    structP->flags     = 0;
     *structPP          = structP;
     return TCL_OK;
 }
@@ -180,11 +181,12 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
     int i;
     CffiStruct *structP = structCtxP->structP;
     Tcl_Obj *objP =
-        Tcl_ObjPrintf("Struct %s nRefs=%d size=%d alignment=%d nFields=%d",
+        Tcl_ObjPrintf("Struct %s nRefs=%d size=%d alignment=%d flags=%d nFields=%d",
                       Tcl_GetString(structP->name),
                       structP->nRefs,
                       structP->size,
                       structP->alignment,
+                      structP->flags,
                       structP->nFields);
     for (i = 0; i < structP->nFields; ++i) {
         CffiField *fieldP = &structP->fields[i];
@@ -239,7 +241,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
 
 
 
-/* Function: CffiStructInfo
+/* Function: CffiStructInfoCmd
  * Returns a dictionary describing the structure as the interp result.
  *
  * Parameters:
@@ -265,14 +267,16 @@ CffiStructInfoCmd(Tcl_Interp *ip,
 {
     int i;
     CffiStruct *structP = structCtxP->structP;
-    Tcl_Obj *objs[6];
+    Tcl_Obj *objs[8];
 
     objs[0] = Tcl_NewStringObj("size", 4);
     objs[1] = Tcl_NewLongObj(structP->size);
     objs[2] = Tcl_NewStringObj("alignment", 9);
     objs[3] = Tcl_NewLongObj(structP->alignment);
-    objs[4] = Tcl_NewStringObj("fields", 6);
-    objs[5] = Tcl_NewListObj(structP->nFields, NULL);
+    objs[4] = Tcl_NewStringObj("flags", 5);
+    objs[5] = Tcl_NewLongObj(structP->flags);
+    objs[6] = Tcl_NewStringObj("fields", 6);
+    objs[7] = Tcl_NewListObj(structP->nFields, NULL);
 
     for (i = 0; i < structP->nFields; ++i) {
         CffiField *fieldP = &structP->fields[i];
@@ -283,11 +287,11 @@ CffiStructInfoCmd(Tcl_Interp *ip,
         attrObjs[3] = Tcl_NewLongObj(fieldP->offset);
         attrObjs[4] = Tcl_NewStringObj("definition", 10);
         attrObjs[5] = CffiTypeAndAttrsUnparse(&fieldP->fieldType);
-        Tcl_ListObjAppendElement(NULL, objs[5], fieldP->nameObj);
-        Tcl_ListObjAppendElement(NULL, objs[5], Tcl_NewListObj(6, attrObjs));
+        Tcl_ListObjAppendElement(NULL, objs[7], fieldP->nameObj);
+        Tcl_ListObjAppendElement(NULL, objs[7], Tcl_NewListObj(6, attrObjs));
     }
 
-    Tcl_SetObjResult(ip, Tcl_NewListObj(6, objs));
+    Tcl_SetObjResult(ip, Tcl_NewListObj(8, objs));
 
     return TCL_OK;
 }
@@ -352,6 +356,9 @@ CffiStructFromObj(Tcl_Interp *ip,
         }                                                                     \
     } while (0)
 
+    if (structP->flags & CFFI_F_STRUCT_CLEAR)
+        memset(resultP, 0, structP->size);
+
     /*
      * NOTE: On failure, we can just return as there are no allocations
      * for any fields that need to be cleaned up.
@@ -408,6 +415,12 @@ CffiStructFromObj(Tcl_Interp *ip,
             valueObj = fieldP->fieldType.parseModeSpecificObj;/* Default */
         }
         if (valueObj == NULL) {
+            /*
+             * If still NULL, error unless the CLEAR bit is set which
+             * indicates zeroing suffices
+             */
+            if (structP->flags & CFFI_F_STRUCT_CLEAR)
+                continue;/* Move on to next field leaving this cleared */
             return Tclh_ErrorNotFound(
                 ip,
                 "Struct field",
@@ -1047,14 +1060,16 @@ CffiStructObjCmd(ClientData cdata,
     CffiStruct *structP;
     CffiStructCtx *structCtxP;
     static const Tclh_SubCommand subCommands[] = {
-        {"new", 1, 1, "STRUCTDEF", NULL},
-        {"create", 2, 2, "OBJNAME STRUCTDEF", NULL},
+        {"new", 1, 2, "STRUCTDEF ?-clear?", NULL},
+        {"create", 2, 3, "OBJNAME STRUCTDEF ?-clear?", NULL},
         {NULL}
     };
     Tcl_Obj *structNameObj;
     Tcl_Obj *cmdNameObj;
     Tcl_Obj *defObj;
     int cmdIndex;
+    int optIndex;
+    int clear;
     int ret;
     static unsigned int name_generator; /* No worries about thread safety as
                                            generated names are interp-local */
@@ -1065,12 +1080,27 @@ CffiStructObjCmd(ClientData cdata,
         /* new */
         cmdNameObj = Tcl_ObjPrintf("::" CFFI_NAMESPACE "::struct%u", ++name_generator);
         defObj  = objv[2];
+        optIndex = 3;
     }
     else {
         /* create */
         cmdNameObj = CffiQualifyName(ip, objv[2]);
         defObj  = objv[3];
+        optIndex = 4;
     }
+
+    /* See if an option is specified */
+    clear = 0;
+    if (optIndex < objc) {
+        const char *optStr = Tcl_GetString(objv[optIndex]);
+        if (strcmp("-clear", optStr)) {
+            Tcl_SetObjResult(
+                ip, Tcl_ObjPrintf("bad option \"%s\": must be -clear", optStr));
+            return TCL_ERROR;
+        }
+        clear = 1;
+    }
+
     Tcl_IncrRefCount(cmdNameObj);
     /* struct name does not have preceding :: for cosmetic reasons. */
     structNameObj = Tcl_ObjPrintf("%s", 2 + Tcl_GetString(cmdNameObj));
@@ -1078,6 +1108,8 @@ CffiStructObjCmd(ClientData cdata,
 
     ret = CffiStructParse(ipCtxP, structNameObj, defObj, &structP);
     if (ret == TCL_OK) {
+        if (clear)
+            structP->flags |= CFFI_F_STRUCT_CLEAR;
         structCtxP          = ckalloc(sizeof(*structCtxP));
         structCtxP->ipCtxP  = ipCtxP;
         CffiStructRef(structP);

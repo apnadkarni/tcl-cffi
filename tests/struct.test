@@ -10,7 +10,7 @@ namespace eval cffi::test {
 
     test struct-error-0 {Missing argument} -body {
         list [catch {Struct new} result] $result $::errorCode
-    } -result {1 {wrong # args: should be "Struct new STRUCTDEF"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "Struct new STRUCTDEF ?-clear?"} {TCL WRONGARGS}}
 
     test struct-error-1 {Empty struct definition} -body {
         list [catch {Struct new {}} result] $result $::errorCode
@@ -23,6 +23,11 @@ namespace eval cffi::test {
     test struct-error-3 {Duplicate field names} -body {
         list [catch {cffi::Struct new {i int i int}} result] $result $::errorCode
     } -result {1 {Field "i" already exists. Field names in a struct must be unique.} {cffi EXISTS {Field "i" already exists. Field names in a struct must be unique.}}}
+
+    test struct-error-4 {Bad option argument} -body {
+        list [catch {Struct new {s int} -foo} result] $result
+    } -result {1 {bad option "-foo": must be -clear}}
+
 
     proc teststruct {type} {
         variable errorMessages
@@ -42,21 +47,21 @@ namespace eval cffi::test {
             } -body {
                 set s [cffi::Struct new "fld $type"]
                 $s info
-            } -result [list size $size alignment $alignment fields [list fld [list size $size offset 0 definition $type]]] -match dict
+            } -result [list size $size alignment $alignment flags 0 fields [list fld [list size $size offset 0 definition $type]]] -match dict
 
             test struct-$type-1 "struct create {schar $type}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "c schar fld $type"
                 S info
-            } -result [list size [expr {2*$size}] alignment $alignment fields [list c [list size 1 offset 0 definition schar] fld [list size $size offset $size definition $type]]] -match dict
+            } -result [list size [expr {2*$size}] alignment $alignment flags 0 fields [list c [list size 1 offset 0 definition schar] fld [list size $size offset $size definition $type]]] -match dict
 
             test struct-$type-2 "struct create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "fld $type c uchar"
                 S info
-            } -result [list size [expr {2*$size}] alignment $alignment fields [list fld [list size $size offset 0 definition $type] c [list size 1 offset $size definition uchar] ]] -match dict
+            } -result [list size [expr {2*$size}] alignment $alignment flags 0 fields [list fld [list size $size offset 0 definition $type] c [list size 1 offset $size definition uchar] ]] -match dict
         }
         if {$type ni {string unistring}} {
             test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
@@ -67,7 +72,7 @@ namespace eval cffi::test {
             } -result [list \
                            size [expr {4*$size}] \
                            alignment $alignment \
-                           fields [list \
+                           flags 0 fields [list \
                                        c [list size 1 offset 0 definition schar] \
                                        fld [list size [expr {2*$size}] offset $size definition [list "$type\[2\]"]] \
                                        c2 [list size 1 offset [expr {3*$size}] definition schar]]]
@@ -455,14 +460,14 @@ namespace eval cffi::test {
         cffi::Struct create S {x int p Pointer}
     } -body {
         S info
-    } -result "size [expr {2*$::tcl_platform(pointerSize)}] alignment $::tcl_platform(pointerSize) fields {x {size 4 offset 0 definition int} p {size $::tcl_platform(pointerSize) offset $::tcl_platform(pointerSize) definition {pointer unsafe}}}"
+    } -result "size [expr {2*$::tcl_platform(pointerSize)}] alignment $::tcl_platform(pointerSize) flags 0 fields {x {size 4 offset 0 definition int} p {size $::tcl_platform(pointerSize) offset $::tcl_platform(pointerSize) definition {pointer unsafe}}}"
 
     test struct-alias-1 "struct field array alias" -setup {
         cffi::alias define Array {int[4]}
         cffi::Struct create S {x schar a Array}
     } -body {
         S info
-    } -result {size 20 alignment 4 fields {x {size 1 offset 0 definition schar} a {size 16 offset 4 definition {{int[4]}}}}}
+    } -result {size 20 alignment 4 flags 0 fields {x {size 1 offset 0 definition schar} a {size 16 offset 4 definition {{int[4]}}}}}
 
 
     ###
@@ -525,6 +530,22 @@ namespace eval cffi::test {
             cffi::Struct new [list fld [list $type structsize]]
         } -result "Invalid value \"[list $type] structsize\". $errorMessages(attrtype)" -returnCodes error
     }
+
+    ###
+    # -clear option
+    test struct-clear-0 "struct create -clear" -body {
+        cffi::Struct create S {i int j int k {int {default 2}}} -clear
+        S frombinary [S tobinary {j 1}]
+    } -cleanup {
+        S destroy
+    } -result {i 0 j 1 k 2}
+
+    test struct-clear-1 "struct new -clear" -body {
+        set s [cffi::Struct new {i int j {int {default 1}} k int} -clear]
+        $s frombinary [$s tobinary {}]
+    } -cleanup {
+        $s destroy
+    } -result {i 0 j 1 k 0}
 
     ###
     # Bug fixes

@@ -279,16 +279,18 @@ struct CffiStruct {
 #ifdef CFFI_USE_LIBFFI
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
-    int nRefs;                  /* Shared, so need ref count */
-    unsigned int size;          /* Size of struct */
-    unsigned int alignment;     /* Alignment required for struct */
-    int nFields;                /* Cardinality of fields[] */
-    CffiField fields[1];       /* Actual size given by nFields */
+    int nRefs;                /* Shared, so need ref count */
+    unsigned int size;        /* Size of struct */
+    unsigned short alignment; /* Alignment required for struct */
+    unsigned short flags;     /* Misc CFFI_F_STRUCT_ flags */
+    int nFields;              /* Cardinality of fields[] */
+    CffiField fields[1];      /* Actual size given by nFields */
     /* !!!DO NOT ADD FIELDS HERE!!! */
 };
 CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
     structP->nRefs += 1;
 }
+#define CFFI_F_STRUCT_CLEAR 0x0001
 
 /*
  * Interpreter along with common structures specific to the interpreter.

@@ -2146,6 +2146,17 @@ namespace eval ${NS}::test {
             list [$fn param] $param
         } -result {9 8}
     }
+
+    ###
+    # struct -clear
+    test function-struct-clear-0 "Call function with struct -clear" -body {
+        cffi::Struct create S {c uchar ll longlong s {short {default 2}}} -clear
+        testDll function {structCheck fn} int {s struct.S c schar ll longlong s short}
+        fn {c 1} 1 0 2
+    } -cleanup {
+        rename fn {}
+        S destroy
+    } -result 1
 }
 
 ${NS}::test::testDll destroy
