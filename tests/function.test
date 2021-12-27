@@ -2186,6 +2186,16 @@ namespace eval ${NS}::test {
             set param {4 b a}
             list [$fn param] $param
         } -result {9 8}
+        test function-bitmask-$type-3 "function bitmask $type array inout" -setup {
+            cffi::enum delete *
+            cffi::enum define E {a 1 b 2 c 4}
+        } -body {
+            testDll function ${type}_array_inout void [list n int arr [list $type\[3\] {enum E} inout bitmask]]
+            set var {a 3 {b 8 c}}
+            ${type}_array_inout 3 var
+            set var
+        } -result {b c 15}
+
     }
 
     ###

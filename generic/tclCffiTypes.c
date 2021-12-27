@@ -879,10 +879,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             typeAttrP->dataType.u.tagObj = fieldObjs[1];
             break;
         case BITMASK:
-            if (typeAttrP->dataType.count != 0) {
-                message = "\"bitmask\" annotation not valid for arrays.";
-                goto invalid_format;
-            }
             flags |= CFFI_F_ATTR_BITMASK;
             break;
         case ONERROR:

@@ -329,11 +329,12 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
 #define STOREFIELD(objfn_, type_)                                              \
     do {                                                                       \
         int indx;                                                              \
-        type_ *valueP                = (type_ *)fieldResultP;                  \
-        const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;                     \
+        type_ *valueP                      = (type_ *)fieldResultP;            \
+        const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;               \
         CFFI_ASSERT(count >= 0);                                               \
         if (count == 0) {                                                      \
-            if (typeAttrsP->flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {            \
+            if (typeAttrsP->flags                                              \
+                & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {                  \
                 Tcl_WideInt wide;                                              \
                 CHECK(                                                         \
                     CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide)); \
@@ -354,10 +355,21 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
              * parameter. If too many, only up to array size */                \
             if (nvalues > count)                                               \
                 nvalues = count;                                               \
-            for (indx = 0; indx < nvalues; ++indx) {                           \
-                ret = objfn_(ip, valueObjList[indx], &valueP[indx]);           \
-                if (ret != TCL_OK)                                             \
-                    return ret;                                                \
+            if (typeAttrsP->flags                                              \
+                & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {                  \
+                for (indx = 0; indx < nvalues; ++indx) {                       \
+                    Tcl_WideInt wide;                                          \
+                    CHECK(CffiIntValueFromObj(                                 \
+                        ipCtxP, typeAttrsP, valueObjList[indx], &wide));       \
+                    valueP[indx] = (type_)wide;                                \
+                }                                                              \
+            }                                                                  \
+            else {                                                             \
+                for (indx = 0; indx < nvalues; ++indx) {                       \
+                    CHECK(objfn_(ip, valueObjList[indx], &valueP[indx]));      \
+                    if (ret != TCL_OK)                                         \
+                        return ret;                                            \
+                }                                                              \
             }                                                                  \
             /* Fill additional unspecified elements with 0 */                  \
             for (indx = nvalues; indx < count; ++indx)                         \

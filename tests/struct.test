@@ -558,7 +558,7 @@ namespace eval cffi::test {
         cffi::enum delete E
         S destroy
     } -result {i 42}
-    test struct-enum-0 "struct field enum with bitmask" -setup {
+    test struct-enum-1 "struct field enum with bitmask" -setup {
         cffi::enum define E {A 1 B 2}
     } -body {
         cffi::Struct create S {i {int {enum E} bitmask}}
@@ -567,6 +567,15 @@ namespace eval cffi::test {
         cffi::enum delete E
         S destroy
     } -result {i 7}
+    test struct-enum-2 "struct field enum array with bitmask" -setup {
+        cffi::enum define E {A 1 B 2 C 4}
+    } -body {
+        cffi::Struct create S {i {int[3] {enum E} bitmask}}
+        S frombinary [S tobinary {i {A {B C} {A 8}}}]
+    } -cleanup {
+        cffi::enum delete E
+        S destroy
+    } -result {i {1 6 9}}
 
     ###
     # Bug fixes
