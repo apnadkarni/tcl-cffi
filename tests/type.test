@@ -155,7 +155,6 @@ namespace eval cffi::test {
         set typeattrs [lassign $typedecl type]
         lassign $typeInfo($type) size alignment
         set testlabel type-info-[join $typedecl -]
-
         # Scalar test for each parse mode
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
@@ -307,7 +306,10 @@ namespace eval cffi::test {
             "out" "out byref"
         } {
             if {$type in $intTypes} {
-                testnumeric "$type $attr {enum E}" param "$expected {enum E}"
+                testnumeric "$type $attr {enum E}" param "$expected {enum E}" -setup {
+                    cffi::enum delete *
+                    cffi::enum define E {}
+                }
             } else {
                 testinvalidattr "$type $attr {enum E}" param $errorMessages(attrtype)
             }

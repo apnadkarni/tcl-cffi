@@ -8,6 +8,39 @@
 #include "tclCffiInt.h"
 #include <sys/types.h>
 
+/* Function: CffiEnumGetMap
+ * Gets the hash table containing mappings for an enum.
+ *
+ * Parameters:
+ * ipCtxP - context in which enum is defined
+ * enumObj - name of the enum
+ * flags - bitmask of CFFI_F_ENUM_* values
+ * mapObjP - location to store the dictionary holding the mapping. May be
+ *   *NULL* if only existence is being checked
+ *
+ * Returns:
+ * *TCL_OK* on success, *TCL_ERROR* on failure.
+ */
+CffiResult
+CffiEnumGetMap(CffiInterpCtx *ipCtxP,
+               Tcl_Obj *enumObj,
+               int flags,
+               Tcl_Obj **mapObjP)
+{
+    Tcl_HashEntry *heP;
+    heP = Tcl_FindHashEntry(&ipCtxP->enums, enumObj);
+    if (heP == NULL) {
+        if ((flags & CFFI_F_ENUM_SKIP_STORE_ERROR) == 0)
+            Tclh_ErrorNotFound(ipCtxP->interp, "Enum", enumObj, NULL);
+        return TCL_ERROR;
+    }
+    else {
+        if (mapObjP)
+            *mapObjP = Tcl_GetHashValue(heP);
+        return TCL_OK;
+    }
+}
+
 /* Function: CffiEnumFind
  * Returns the value of an enum member.
  *
@@ -15,7 +48,9 @@
  * ipCtxP - context in which the enum is defined
  * enumObj - name of the enum
  * nameObj - name of the member
- * valueObjP - location to store the value of the member
+ * flags - bitmask of CFFI_F_ENUM_* values
+ * valueObjP - location to store the value of the member. If *NULL*,
+ *   only a check is made as to existence.
  *
  * The reference count on the Tcl_Obj returned in valueObjP is NOT incremented.
  *
@@ -26,23 +61,23 @@ CffiResult
 CffiEnumFind(CffiInterpCtx *ipCtxP,
              Tcl_Obj *enumObj,
              Tcl_Obj *nameObj,
+             int flags,
              Tcl_Obj **valueObjP)
 {
-    Tcl_HashEntry *heP;
     Tcl_Obj *valueObj;
+    Tcl_Obj *entries;
 
-    heP = Tcl_FindHashEntry(&ipCtxP->enums, enumObj);
-    if (heP == NULL)
-        return Tclh_ErrorNotFound(ipCtxP->interp, "Enum", enumObj, NULL);
-    else {
-        Tcl_Obj *entries = Tcl_GetHashValue(heP);
-        CHECK(Tcl_DictObjGet(ipCtxP->interp, entries, nameObj, &valueObj));
-        if (valueObj == NULL)
-            return Tclh_ErrorNotFound(
+    CHECK(CffiEnumGetMap(ipCtxP, enumObj, flags, &entries));
+    if (Tcl_DictObjGet(NULL, entries, nameObj, &valueObj) != TCL_OK
+        || valueObj == NULL) {
+        if ((flags & CFFI_F_ENUM_SKIP_STORE_ERROR) == 0)
+            Tclh_ErrorNotFound(
                 ipCtxP->interp, "Enum member name", nameObj, NULL);
-        *valueObjP = valueObj;
-        return TCL_OK;
+        return TCL_ERROR;
     }
+    if (valueObjP)
+        *valueObjP = valueObj;
+    return TCL_OK;
 }
 
 /* Function: CffiEnumFindReverse
@@ -140,7 +175,7 @@ CffiEnumBitmask(CffiInterpCtx *ipCtxP,
         if (ret != TCL_OK) {
             if (enumObj == NULL)
                 return ret;
-            CHECK(CffiEnumFind(ipCtxP, enumObj, objs[i], &wideObj));
+            CHECK(CffiEnumFind(ipCtxP, enumObj, objs[i], 0, &wideObj));
             CHECK(Tcl_GetWideIntFromObj(ip, wideObj, &wide));
         }
         mask |= wide;
@@ -190,7 +225,7 @@ CffiEnumValueCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *valueObj;
     CFFI_ASSERT(objc == 4);
 
-    CHECK(CffiEnumFind(ipCtxP, objv[2], objv[3], &valueObj));
+    CHECK(CffiEnumFind(ipCtxP, objv[2], objv[3], 0, &valueObj));
     Tcl_SetObjResult(ipCtxP->interp, valueObj);
     return TCL_OK;
 }
@@ -250,15 +285,12 @@ CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 static CffiResult
 CffiEnumMembersCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
+    Tcl_Obj *entries;
 
     CFFI_ASSERT(objc == 3);
 
-    heP = Tcl_FindHashEntry(&ipCtxP->enums, objv[2]);
-    if (heP == NULL)
-        return Tclh_ErrorNotFound(ipCtxP->interp, "Enum", objv[2], NULL);
-
-    Tcl_SetObjResult(ipCtxP->interp, Tcl_GetHashValue(heP));
+    CHECK(CffiEnumGetMap(ipCtxP, objv[2], 0, &entries));
+    Tcl_SetObjResult(ipCtxP->interp, entries);
     return TCL_OK;
 }
 

@@ -513,11 +513,18 @@ void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj)
 CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
 Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
 
+/* Flags for CffiEnum* calls */
+#define CFFI_F_ENUM_SKIP_STORE_ERROR 0x1
 
+CffiResult CffiEnumGetMap(CffiInterpCtx *ipCtxP,
+                          Tcl_Obj *enumObj,
+                          int flags,
+                          Tcl_Obj **mapObjP);
 void CffiEnumsCleanup(Tcl_HashTable *enumsTableP);
 CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *enumObj,
                         Tcl_Obj *nameObj,
+                        int flags,
                         Tcl_Obj **valueObjP);
 CffiResult CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
                                Tcl_Obj *enumObj,

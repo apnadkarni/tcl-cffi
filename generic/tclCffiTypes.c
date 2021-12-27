@@ -866,14 +866,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_STOREALWAYS;
             break;
         case ENUM:
+            if (CffiEnumGetMap(ipCtxP, fieldObjs[1], 0, NULL) != TCL_OK)
+                goto error_exit; /* Enum does not exist */
             if (typeAttrP->dataType.u.tagObj)
                 goto invalid_format; /* Something already using the slot? */
-#if 0
-            if (typeAttrP->dataType.count != 0) {
-                message = "\"enum\" annotation not valid for arrays.";
-                goto invalid_format;
-            }
-#endif
             flags |= CFFI_F_ATTR_ENUM;
             Tcl_IncrRefCount(fieldObjs[1]);
             typeAttrP->dataType.u.tagObj = fieldObjs[1];
@@ -1083,6 +1079,7 @@ invalid_format:
         ip,
         typeAttrObj,
         message);
+error_exit: /* interp must already contain error message */
     CffiTypeAndAttrsCleanup(typeAttrP);
     return TCL_ERROR;
 }
@@ -1133,33 +1130,30 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
 
     /* TBD - fix for Tcl_WideInt? */
     if (flags & CFFI_F_ATTR_BITMASK) {
-        ret =
+        return
             CffiEnumBitmask(ipCtxP,
                             lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,
                             valueObj,
-                            &value);
+                            valueP);
     }
-    else {
-        if (lookup_enum) {
-            ret = Tcl_GetWideIntFromObj(NULL, valueObj, &value);
-            if (ret != TCL_OK) {
-                /* Not an integer value, check if enum */
-                Tcl_Obj *enumValueObj;
-                if (lookup_enum) {
-                    ret = CffiEnumFind(ipCtxP,
-                                       typeAttrsP->dataType.u.tagObj,
-                                       valueObj,
-                                       &enumValueObj);
-                    if (ret == TCL_OK) {
-                        ret = Tcl_GetWideIntFromObj(
-                            ipCtxP->interp, enumValueObj, &value);
-                    }
-                }
+    if (lookup_enum) {
+        ret = Tcl_GetWideIntFromObj(NULL, valueObj, &value);
+        if (ret != TCL_OK) {
+            /* Not an integer value, check if enum */
+            Tcl_Obj *enumValueObj;
+            ret = CffiEnumFind(ipCtxP,
+                               typeAttrsP->dataType.u.tagObj,
+                               valueObj,
+                               0,
+                               &enumValueObj);
+            if (ret == TCL_OK) {
+                ret =
+                    Tcl_GetWideIntFromObj(ipCtxP->interp, enumValueObj, &value);
             }
         }
-        else {
-            ret = Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value);
-        }
+    }
+    else {
+        ret = Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value);
     }
     if (ret == TCL_OK)
         *valueP = value;

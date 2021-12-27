@@ -2146,7 +2146,6 @@ namespace eval ${NS}::test {
         } -body {
             set fn ${type}_to_$type
             testDll function $fn $type [list inparam [list $type {enum E}]]
-            $fn a
         } -result {Enum "E" not found or inaccessible. } -returnCodes error
         test function-enum-$type-error-1 "function enum $type - missing enum entry" -setup {
             cffi::enum delete *

@@ -576,6 +576,17 @@ namespace eval cffi::test {
         cffi::enum delete E
         S destroy
     } -result {i {1 6 9}}
+    test struct-enum-error-0 "struct field num with unknown enum" -body {
+        cffi::Struct create S {i {int {enum NOSUCHENUM}}}
+    } -result {Enum "NOSUCHENUM" not found or inaccessible. } -returnCodes error
+    test struct-enum-error-1 "struct field num with unknown enum value" -body {
+        cffi::enum define E {A 1 B 2 C 4}
+        cffi::Struct create S {i {int {enum E}}}
+        S frombinary [S tobinary {i X}]
+    } -cleanup {
+        cffi::enum delete E
+        S destroy
+    } -result {Enum member name "X" not found or inaccessible. } -returnCodes error
 
     ###
     # Bug fixes
