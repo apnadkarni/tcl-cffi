@@ -331,17 +331,33 @@ namespace eval ${NS}::test {
 
     # Limit tests for integer types
     foreach type $intTypes {
+        # Input param and return value
+        set fn ${type}_to_$type
+        testDll function $fn $type [list inparam $type]
+        test function-$type-limit-0 "$type max" -body {
+            $fn $intMax($type)
+        } -result $intMax($type)
+        test function-$type-limit-1 "$type min" -body {
+            $fn $intMin($type)
+        } -result $intMin($type)
+        test function-$type-limit-error-0 "$type max+1 error" -body {
+            $fn [expr {$intMax($type)+1}]
+        } -result "not in range|too large" -returnCodes error -match regexp
+        test function-$type-limit-error-1 "$type min-1 error" -body {
+            $fn [expr {$intMin($type)-1}]
+        } -result "not in range|too large" -returnCodes error -match regexp
+
+        # Output parameter
         set fn ${type}_out
         testDll function $fn $type [list inparam [list $type in] outparam [list $type out]]
         set val $intMax($type)
         incr val -2
-        test function-$type-limit-0 "$type range limit" -body {
+        test function-$type-limit-2 "$type range limit" -body {
             unset -nocomplain out
             list [$fn $val out] $out
         } -result [list [expr {2+$val}] [expr {1+$val}]]
 
     }
-
 
     ## Parameter tests - string, unistring
     foreach {type val} [list string $testStrings(ascii) unistring $testStrings(unicode)] {
@@ -2154,7 +2170,7 @@ namespace eval ${NS}::test {
             set fn ${type}_to_$type
             testDll function $fn $type [list inparam [list $type {enum E}]]
             $fn z
-        } -result {Enum member name "z" not found or inaccessible. } -returnCodes error
+        } -result {expected integer but got "z"} -returnCodes error
     }
 
     ###

@@ -1124,12 +1124,11 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
                     Tcl_WideInt *valueP)
 {
     Tcl_WideInt value;
-    CffiResult ret;
     int flags       = typeAttrsP ? typeAttrsP->flags : 0;
     int lookup_enum = flags & CFFI_F_ATTR_ENUM;
 
-    /* TBD - fix for Tcl_WideInt? */
     if (flags & CFFI_F_ATTR_BITMASK) {
+        /* TBD - Does not handle size truncation */
         return
             CffiEnumBitmask(ipCtxP,
                             lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,
@@ -1137,27 +1136,20 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
                             valueP);
     }
     if (lookup_enum) {
-        ret = Tcl_GetWideIntFromObj(NULL, valueObj, &value);
-        if (ret != TCL_OK) {
-            /* Not an integer value, check if enum */
-            Tcl_Obj *enumValueObj;
-            ret = CffiEnumFind(ipCtxP,
-                               typeAttrsP->dataType.u.tagObj,
-                               valueObj,
-                               0,
-                               &enumValueObj);
-            if (ret == TCL_OK) {
-                ret =
-                    Tcl_GetWideIntFromObj(ipCtxP->interp, enumValueObj, &value);
-            }
-        }
+        Tcl_Obj *enumValueObj;
+        if (CffiEnumFind(ipCtxP,
+                           typeAttrsP->dataType.u.tagObj,
+                           valueObj,
+                           CFFI_F_ENUM_SKIP_STORE_ERROR,
+                           &enumValueObj) == TCL_OK)
+            valueObj = enumValueObj;
     }
-    else {
-        ret = Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value);
-    }
-    if (ret == TCL_OK)
+    if (Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value) == TCL_OK) {
         *valueP = value;
-    return ret;
+        return TCL_OK;
+    }
+    else
+        return TCL_ERROR;
 }
 
 /* Function: CffiNativeScalarToObj

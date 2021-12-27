@@ -406,7 +406,12 @@ int Tclh_ObjToUShort(Tcl_Interp *interp, Tcl_Obj *obj, unsigned short *ushortP)
 
 int Tclh_ObjToInt(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 {
-    return Tcl_GetIntFromObj(interp, objP, valP);
+    Tcl_WideInt wide = 0; /* Init to keep gcc happy */
+
+    if (Tclh_ObjToRangedInt(interp, objP, INT_MIN, INT_MAX, &wide) != TCL_OK)
+        return TCL_ERROR;
+    *valP = (int) wide;
+    return TCL_OK;
 }
 
 int Tclh_ObjToUInt(Tcl_Interp *interp, Tcl_Obj *obj, unsigned int *uiP)
@@ -421,7 +426,17 @@ int Tclh_ObjToUInt(Tcl_Interp *interp, Tcl_Obj *obj, unsigned int *uiP)
 
 int Tclh_ObjToLong(Tcl_Interp *interp, Tcl_Obj *objP, long *valP)
 {
-    return Tcl_GetLongFromObj(interp, objP, valP);
+    if (sizeof(long) < sizeof(Tcl_WideInt)) {
+        Tcl_WideInt wide = 0; /* Init to keep gcc happy */
+        if (Tclh_ObjToRangedInt(interp, objP, LONG_MIN, LONG_MAX, &wide) != TCL_OK)
+            return TCL_ERROR;
+        *valP = (long)wide;
+        return TCL_OK;
+    }
+    else {
+        TCLH_ASSERT(sizeof(long long) == sizeof(long));
+        return Tclh_ObjToLongLong(interp, objP, (long long *) valP);
+    }
 }
 
 int Tclh_ObjToULong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long *valP)
@@ -429,7 +444,7 @@ int Tclh_ObjToULong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long *valP)
 
     if (sizeof(unsigned long) < sizeof(Tcl_WideInt)) {
         Tcl_WideInt wide = 0; /* Init to keep gcc happy */
-        if (Tclh_ObjToRangedInt(interp, objP, 0, UINT_MAX, &wide) != TCL_OK)
+        if (Tclh_ObjToRangedInt(interp, objP, 0, ULONG_MAX, &wide) != TCL_OK)
             return TCL_ERROR;
         *valP = (unsigned long)wide;
         return TCL_OK;

@@ -50,20 +50,38 @@ namespace eval cffi::test {
     variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes]
 
     variable intMax
+    variable intMin
     array set intMax {
-        schar 0x7f uchar 0xff short 0x7fff ushort 0xffff
-        int 0x7fffffff
-        uint 0xffffffff
+        schar 127
+        uchar 255
+        short 32767
+        ushort 65535
+        int 2147483647
+        uint 4294967295
+        longlong   9223372036854775807
+        ulonglong 18446744073709551615
+    }
+    array set intMin {
+        schar -128
+        uchar 0
+        short -32768
+        ushort 0
+        int -2147483648
+        uint 0
+        longlong -9223372036854775808
+        ulonglong 0
     }
     if {$::tcl_platform(wordSize) == 8} {
-        set intMax(long) 0x7fffffffffffffff
-        set intMax(ulong) 0xffffffffffffffff
+        set intMax(long)   $intMax(longlong)
+        set intMax(ulong) $intMax(ulonglong)
+        set intMin(long)   $intMin(longlong)
+        set intMin(ulong) $intMin(ulonglong)
     } else {
-        set intMax(long) 0x7fffffff
-        set intMax(ulong) 0xffffffff
+        set intMax(long)   $intMax(int)
+        set intMax(ulong) $intMax(uint)
+        set intMin(long)   $intMin(int)
+        set intMin(ulong) $intMin(uint)
     }
-    set intMax(longlong) 0x7fffffffffffffff
-    set intMax(ulonglong) 0xffffffffffffffff
 
     variable paramAttrs {in out inout byref}
     variable pointerAttrs {nullok unsafe dispose counted}

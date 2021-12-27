@@ -586,7 +586,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {Enum member name "X" not found or inaccessible. } -returnCodes error
+    } -result {expected integer but got "X"} -returnCodes error
 
     ###
     # Bug fixes
