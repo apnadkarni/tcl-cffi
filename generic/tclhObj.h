@@ -16,6 +16,20 @@
  * indirection through the stubs table.
  */
 
+/* Function: Tclh_ObjLibInit
+ * Must be called to initialize the Obj module before any of
+ * the other functions in the module.
+ *
+ * Parameters:
+ * interp - Tcl interpreter in which to initialize.
+ *
+ * Returns:
+ * TCL_OK    - Library was successfully initialized.
+ * TCL_ERROR - Initialization failed. Library functions must not be called.
+ *             An error message is left in the interpreter result.
+ */
+int Tclh_ObjLibInit(Tcl_Interp *interp);
+
 /* Function: Tclh_ObjClearPtr
  * Releases a pointer to a *Tcl_Obj* and clears it.
  *
@@ -186,6 +200,21 @@ int Tclh_ObjToULong(Tcl_Interp *interp, Tcl_Obj *obj, unsigned long *ptr);
  */
 Tcl_Obj *Tclh_ObjFromULong(unsigned long ull);
 
+/* Function: Tclh_ObjToWideInt
+ * Unwraps a Tcl_Obj into a C *Tcl_WideInt* value type.
+ *
+ * Parameters:
+ * interp - Interpreter
+ * obj - Tcl_Obj from which to extract the number
+ * ptr - location to store extracted number
+ *
+ * Returns:
+ * Returns TCL_OK and stores the value in location pointed to by *ptr* if the
+ * passed Tcl_Obj contains an integer that fits in a C *Tcl_WideInt* type. Otherwise
+ * returns TCL_ERROR with an error message in the interpreter.
+ */
+int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *obj, Tcl_WideInt *ptr);
+
 /* Function: Tclh_ObjToLongLong
  * Unwraps a Tcl_Obj into a C *long long* value type.
  *
@@ -199,7 +228,14 @@ Tcl_Obj *Tclh_ObjFromULong(unsigned long ull);
  * passed Tcl_Obj contains an integer that fits in a C *long* type. Otherwise
  * returns TCL_ERROR with an error message in the interpreter.
  */
-int Tclh_ObjToLongLong(Tcl_Interp *interp, Tcl_Obj *obj, long long *ptr);
+TCLH_INLINE int
+Tclh_ObjToLongLong(Tcl_Interp *interp, Tcl_Obj *objP, signed long long *llP)
+{
+    /* TBD - does not check for positive overflow etc. */
+    TCLH_ASSERT(sizeof(Tcl_WideInt) == sizeof(signed long long));
+    return Tclh_ObjToWideInt(interp, objP, (Tcl_WideInt *)llP);
+}
+
 
 /* Function: Tclh_ObjToULongLong
  * Unwraps a Tcl_Obj into a C *unsigned long long* value type.
@@ -227,20 +263,6 @@ int Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *obj, unsigned long long *pt
  */
 Tcl_Obj *Tclh_ObjFromULongLong(unsigned long long ull);
 
-/* Function: Tclh_ObjToWideInt
- * Unwraps a Tcl_Obj into a C *Tcl_WideInt* value type.
- *
- * Parameters:
- * interp - Interpreter
- * obj - Tcl_Obj from which to extract the number
- * ptr - location to store extracted number
- *
- * Returns:
- * Returns TCL_OK and stores the value in location pointed to by *ptr* if the
- * passed Tcl_Obj contains an integer that fits in a C *Tcl_WideInt* type. Otherwise
- * returns TCL_ERROR with an error message in the interpreter.
- */
-int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *obj, Tcl_WideInt *ptr);
 
 /* Function: Tclh_ObjToFloat
  * Unwraps a Tcl_Obj into a C *float* value type.
@@ -342,6 +364,23 @@ TCLH_INLINE void Tclh_ObjArrayDecrRefs(int objc, Tcl_Obj * const *objv) {
 # define TCLH_TCL_OBJ_IMPL
 #endif
 #ifdef TCLH_TCL_OBJ_IMPL
+
+static const Tcl_ObjType *gTclIntType;
+static const Tcl_ObjType *gTclWideIntType;
+static const Tcl_ObjType *gTclBooleanType;
+static const Tcl_ObjType *gTclDoubleType;
+static const Tcl_ObjType *gTclBignumType;
+
+int Tclh_ObjLibInit(Tcl_Interp *interp)
+{
+    gTclIntType = Tcl_GetObjType("int");
+    gTclWideIntType = Tcl_GetObjType("wideInt");
+    gTclBooleanType = Tcl_GetObjType("boolean");
+    gTclDoubleType = Tcl_GetObjType("double");
+    gTclBignumType = Tcl_GetObjType("bignum"); /* Likely NULL as it is not registered */
+
+    return TCL_OK;
+}
 
 int
 Tclh_ObjToRangedInt(Tcl_Interp * interp,
@@ -472,73 +511,119 @@ int Tclh_ObjToBoolean(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 
 int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *objP, Tcl_WideInt *wideP)
 {
-    /* TBD - does not check for positive overflow etc. */
-    return Tcl_GetWideIntFromObj(interp, objP, wideP);
-}
-
-int Tclh_ObjToLongLong(Tcl_Interp *interp, Tcl_Obj *objP, signed long long *llP)
-{
-    /* TBD - does not check for positive overflow etc. */
-    TCLH_ASSERT(sizeof(Tcl_WideInt) == sizeof(signed long long));
-    return Tcl_GetWideIntFromObj(interp, objP, (Tcl_WideInt *)llP);
-}
-
-int
-Tclh_ObjToULongLongAlternative(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
-{
+    int ret;
     Tcl_WideInt wide;
+    ret = Tcl_GetWideIntFromObj(interp, objP, &wide);
+    if (ret != TCL_OK)
+        return ret;
     /*
      * Tcl_GetWideIntFromObj has several issues:
-     * - it ignores whitespace
      * - it will happily accept negative numbers in strings that will
      *   then show up as positive when retrieved. For example,
      *   Tcl_GWIFO(Tcl_NewStringObj(-18446744073709551615, -1)) will
      *   return a value of 1.
+     *   Similarly -9223372036854775809 -> large positive number
      * - It will also happily accept valid positive numbers in the range
      *   LLONG_MAX - ULLONG_MAX but return them as negative numbers which we
      *   cannot distinguish from genuine negative numbers
-     * For these reasons, we parse the number from the string representation
-     * if one is already present. If it is not present however, we use
-     * Tcl_GWIFO directly because generating a string would not help - it
-     * would be generated from the Tcl_WideInt value any way and we have
-     * no way of knowing if it was negative or originally positive.
+     * So we check the internal rep. If it is an integer type other than
+     * bignum, fine. Otherwise, we check for possibility of overflow by
+     * comparing sign of retrieved wide int with the sign stored in the
+     * bignum representation.
      */
-    if (objP->bytes) {
-        unsigned long long ull;
-        char *end;
-        /* Could have white space. Note unsigned char for isascii */
-        const char *s = objP->bytes;
-        while (isspace(*(unsigned char *)s))
-            ++s; /* Ignores unicode spaces *shrug* */
-        /* strtoull et all accept negative numbers. What a crock */
-        if (*s != '-') {
-            /*
-             * At least VC++ does not reset errno so need to reset it
-             * otherwise when return value is ULLONG_MAX successfully cannot
-             * distinguish from error case.
-             */
-            errno = 0;
-            ull   = strtoull(s, &end, 0);
-            if (s != end && *end == '\0'
-                && ((ull != ULLONG_MAX && ull != 0) || errno == 0)) {
-                *ullP = ull;
-                return TCL_OK;
+
+    if (objP->typePtr != gTclIntType && objP->typePtr != gTclWideIntType
+        && objP->typePtr != gTclBooleanType
+        && objP->typePtr != gTclDoubleType) {
+        /* Was it an integer overflow */
+        mp_int temp;
+        ret = Tcl_GetBignumFromObj(interp, objP, &temp);
+        if (ret == TCL_OK) {
+            if ((wide >= 0 && temp.sign == MP_NEG)
+                || (wide < 0 && temp.sign != MP_NEG)) {
+                Tcl_SetResult(interp,
+                              "Integer magnitude too large to represent.",
+                              TCL_STATIC);
+                ret = TCL_ERROR;
             }
+            mp_clear(&temp);
         }
     }
-    /* No string rep, get the stored integer value */
-    if (Tcl_GetWideIntFromObj(interp, objP, &wide) != TCL_OK)
-        return TCL_ERROR; /* Not an integer at all */
-    if (wide >= 0) {
-        *ullP = (unsigned long long)wide;
-        return TCL_OK;
-    }
-    /* Assume it was originally negative and not a +ve reinterpretation */
-    return Tclh_ErrorInvalidValue(
-        interp, objP, "Value is not a unsigned long long.");
+
+    if (ret == TCL_OK)
+        *wideP = wide;
+    return ret;
 }
 
-int Tclh_ObjToULongLong(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
+int
+Tclh_ObjToULongLong(Tcl_Interp *interp,
+                    Tcl_Obj *objP,
+                    unsigned long long *ullP)
+{
+    int ret;
+    Tcl_WideInt wide;
+
+    TCLH_ASSERT(sizeof(unsigned long long) == sizeof(Tcl_WideInt));
+
+    /* Tcl_GetWideInt will happily return overflows as negative numbers */
+    ret = Tcl_GetWideIntFromObj(interp, objP, &wide);
+    if (ret != TCL_OK)
+        return ret;
+
+    /*
+     * We have to check for two things.
+     *   1. an overflow condition in Tcl_GWIFO where
+     *     (a) a large positive number that fits in the width is returned
+     *         as negative e.g. 18446744073709551615 is returned as -1
+     *     (b) an negative overflow is returned as a positive number,
+     *         e.g. -18446744073709551615 is returned as 1.
+     *   2. Once we have retrieved a valid number, reject it if negative.
+     *
+     * So we check the internal rep. If it is an integer type other than
+     * bignum, fine (no overflow). Otherwise, we check for possibility of
+     * overflow by comparing sign of retrieved wide int with the sign stored
+     * in the bignum representation.
+     */
+
+    if (objP->typePtr == gTclIntType || objP->typePtr == gTclWideIntType
+        || objP->typePtr == gTclBooleanType
+        || objP->typePtr == gTclDoubleType) {
+        /* No need for an overflow check (1) but still need to check (2) */
+        if (wide < 0)
+            goto negative_error;
+        *ullP = (unsigned long long)wide;
+    }
+    else {
+        /* Was it an integer overflow */
+        mp_int temp;
+        ret = Tcl_GetBignumFromObj(interp, objP, &temp);
+        if (ret == TCL_OK) {
+            int sign = temp.sign;
+            mp_clear(&temp);
+            if (sign == MP_NEG)
+                goto negative_error;
+            /*
+             * Note Tcl_Tcl_GWIFO already takes care of overflows that do not
+             * fit in Tcl_WideInt width. So we need not worry about that.
+             * The overflow case is where a positive value is returned as
+             * negative by Tcl_GWIFO; that is also taken care of by the
+             * assignment below.
+             */
+            *ullP = (unsigned long long)wide;
+        }
+    }
+
+    return ret;
+
+negative_error:
+    return TclhRecordError(
+        interp,
+        "RANGE",
+        Tcl_NewStringObj("Negative values are not in range for unsigned types.", -1));
+}
+
+
+int Tclh_ObjToULongLongOBSOLETE(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
 {
     Tcl_WideInt wide;
 

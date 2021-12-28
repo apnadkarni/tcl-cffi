@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "tcl.h"
+#include "tclTomMath.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -379,6 +380,11 @@ Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *me
 
 int Tclh_BaseLibInit(Tcl_Interp *interp)
 {
+#ifdef USE_TCL_STUBS
+    if (Tcl_TomMath_InitStubs(interp, 0) == NULL) {
+        return TCL_ERROR;
+    }
+#endif
     return TCL_OK;
 }
 

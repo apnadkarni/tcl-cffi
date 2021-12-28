@@ -48,8 +48,8 @@ typedef Tcl_Obj *Tclh_PointerTypeTag;
  */
 
 /* Function: Tclh_PointerLibInit
- * Must be called to initialize the Tcl Helper library before any of
- * the other functions in the library.
+ * Must be called to initialize the Pointer module before any of
+ * the other functions in the module.
  *
  * Parameters:
  * interp - Tcl interpreter in which to initialize.

@@ -367,6 +367,15 @@ CffiSandboxObjCmd(ClientData cdata,
                   Tcl_Obj *const objv[])
 {
     CffiResult ret = TCL_OK;
+
+    Tcl_WideInt wide;
+    #if 0
+    ret = Tclh_ObjToWideInt(ip, objv[1], &wide);
+    #else
+    ret = Tcl_GetWideIntFromObj(ip, objv[1], &wide);
+    #endif
+    if (!ret)
+        Tcl_SetObjResult(ip, Tcl_NewWideIntObj(wide));
 #if 0
     unsigned long long ull;
     mp_int big;
@@ -445,6 +454,8 @@ Cffi_Init(Tcl_Interp *ip)
 #endif
 
     if (Tclh_BaseLibInit(ip) != TCL_OK)
+        return TCL_ERROR;
+    if (Tclh_ObjLibInit(ip) != TCL_OK)
         return TCL_ERROR;
     if (Tclh_PointerLibInit(ip) != TCL_OK)
         return TCL_ERROR;
