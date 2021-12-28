@@ -268,13 +268,124 @@ CffiCallObjCmd(ClientData cdata,
 }
 
 static CffiResult
+CffiLimitsObjCmd(ClientData cdata,
+                  Tcl_Interp *ip,
+                  int objc,
+                  Tcl_Obj *const objv[])
+{
+    const CffiBaseTypeInfo *typeP;
+    int width;
+    const char *minStr = NULL;
+    const char *maxStr = NULL;
+
+    CHECK_NARGS(ip, 2, 2, "TYPE");
+
+    typeP = CffiBaseTypeInfoGet(ip, objv[1]);
+    if (typeP == NULL)
+        return TCL_ERROR;
+
+    /*
+     * Note we do not use LONG_MAX etc. for a couple of reasons. We use
+     * this routine for testing purposes where we specifically want the string
+     * representation. In addition, Tcl_NewWideIntObj (and Tcl_NewLongObj on
+     * some platforms) do not support unsigned values at the upper limit.
+     */
+    width = typeP->size;
+    switch (typeP->baseType) {
+        case CFFI_K_TYPE_SCHAR:
+        case CFFI_K_TYPE_SHORT:
+        case CFFI_K_TYPE_INT:
+        case CFFI_K_TYPE_LONG:
+        case CFFI_K_TYPE_LONGLONG:
+            switch (width) {
+                case 1:
+                    minStr = "-128";
+                    maxStr = "127";
+                    break;
+                case 2:
+                    minStr = "-32768";
+                    maxStr = "32767";
+                    break;
+                case 4:
+                    minStr = "-2147483648";
+                    maxStr = "2147483647";
+                    break;
+                case 8:
+                    minStr = "-9223372036854775808";
+                    maxStr = "9223372036854775807";
+                    break;
+            }
+            break;
+        case CFFI_K_TYPE_UCHAR:
+        case CFFI_K_TYPE_USHORT:
+        case CFFI_K_TYPE_UINT:
+        case CFFI_K_TYPE_ULONG:
+        case CFFI_K_TYPE_ULONGLONG:
+            minStr = "0";
+            switch (width) {
+                case 1:
+                    maxStr = "255";
+                    break;
+                case 2:
+                    maxStr = "65535";
+                    break;
+                case 4:
+                    maxStr = "4294967295";
+                    break;
+                case 8:
+                    maxStr = "18446744073709551615";
+                    break;
+            }
+            break;
+        default:
+            Tcl_SetResult(
+                ip, "Invalid or non-integral type specified.", TCL_STATIC);
+            return TCL_ERROR;
+    }
+
+    /* Protect in case some platforms have larger widths */
+    if (minStr && maxStr) {
+        Tcl_Obj *objs[2];
+        objs[0] = Tcl_NewStringObj(minStr, -1);
+        objs[1] = Tcl_NewStringObj(maxStr, -1);
+        Tcl_SetObjResult(ip, Tcl_NewListObj(2, objs));
+        return TCL_OK;
+    }
+    else {
+        Tcl_SetResult(ip,
+                      "Internal error: integer type width not supported for "
+                      "this platform.",
+                      TCL_STATIC);
+        return TCL_ERROR;
+    }
+}
+
+static CffiResult
 CffiSandboxObjCmd(ClientData cdata,
                   Tcl_Interp *ip,
                   int objc,
                   Tcl_Obj *const objv[])
 {
+    CffiResult ret = TCL_OK;
+#if 0
     unsigned long long ull;
+    mp_int big;
+    Tcl_WideInt wide;
+    ret = Tcl_GetWideIntFromObj(ip, objv[1], &wide);
+    if (ret == TCL_OK) {
+        ret = Tcl_GetBignumFromObj(ip, objv[1], &big);
+        if (ret == TCL_OK) {
+            Tcl_SetObjResult(ip, Tcl_NewBignumObj(&big));
+        }
+        int ival;
+        ret = Tcl_GetIntFromObj(ip, objv[1], &ival);
+        if (ret == TCL_OK)
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(ival));
+    }
 
+    // ret = Tcl_GetBignumFromObj(ip, objv[1], &big);
+#endif
+#if 0
     if (Tclh_ObjToULongLong(ip, objv[1], &ull) != TCL_OK)
         return TCL_ERROR;
     else {
@@ -287,6 +398,8 @@ CffiSandboxObjCmd(ClientData cdata,
         Tcl_SetResult(ip, buf, TCL_VOLATILE);
         return TCL_OK;
     }
+#endif
+    return ret;
 }
 
 /* Function: CffiFinit
@@ -379,6 +492,8 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::pointer", CffiPointerObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::help", CffiHelpObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::limits", CffiLimitsObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::sandbox", CffiSandboxObjCmd, NULL, NULL);
 

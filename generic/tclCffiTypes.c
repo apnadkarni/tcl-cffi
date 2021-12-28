@@ -335,8 +335,8 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
 /* Function: CffiTypeParse
  * Parses a type definition into an internal form.
  *
- * A type definition is a list of the form
- *    BASETYPE ?TAG? ?COUNT?
+ * A type definition is of the form
+ *    BASETYPE?.TAG??[COUNT]?
  * where *COUNT* defaults to 0 indicating a scalar. *TAG* is valid only
  * for types *struct*, *pointer* and *string* and mandatory for them.
  * It specifies the structure type, pointer target type and string

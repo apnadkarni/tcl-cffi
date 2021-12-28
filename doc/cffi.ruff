@@ -27,6 +27,12 @@ namespace eval $NS {
         # Returns the value returned by the invoked C function.
     }
 
+    proc limits {type} {
+        # Get the lower and upper limits for an integral base type
+        #   type - the base type
+        # Returns a pair containing the minimum and maximum values
+        # for the specified type.
+    }
 }
 
 namespace eval ${NS}::pkgconfig {
