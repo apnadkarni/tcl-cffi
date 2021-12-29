@@ -391,7 +391,7 @@ Tclh_ObjToRangedInt(Tcl_Interp * interp,
 {
     Tcl_WideInt wide;
 
-    if (Tcl_GetWideIntFromObj(interp, obj, &wide) != TCL_OK)
+    if (Tclh_ObjToWideInt(interp, obj, &wide) != TCL_OK)
         return TCL_ERROR;
 
     if (wide < low || wide > high)
@@ -445,12 +445,18 @@ int Tclh_ObjToUShort(Tcl_Interp *interp, Tcl_Obj *obj, unsigned short *ushortP)
 
 int Tclh_ObjToInt(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 {
+#if 0
+    /* BAD - returns 2147483648 as -2147483648 and
+       -2147483649 as 2147483647 instead of error */
+    return Tcl_GetIntFromObj(interp, objP, valP);
+#else
     Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
     if (Tclh_ObjToRangedInt(interp, objP, INT_MIN, INT_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
     *valP = (int) wide;
     return TCL_OK;
+#endif
 }
 
 int Tclh_ObjToUInt(Tcl_Interp *interp, Tcl_Obj *obj, unsigned int *uiP)

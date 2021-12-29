@@ -332,21 +332,85 @@ namespace eval ${NS}::test {
     # Limit tests for integer types
     foreach type $intTypes {
         # Input param and return value
+        # Need to test in both string and numeric form.
+        set max $intMax($type)
+        set min $intMin($type)
+        set maxincr [expr {$max+1}]
+        set maxdecr [expr {$max-1}]
+        set minincr [expr {$min+1}]
+        set mindecr [expr {$min-1}]
+        set goodnumbers [list $max $min $maxdecr $minincr]
+        set badnumbers [list $maxincr $mindecr]
+
+        foreach type2 [array names intMax] {
+            if {$intMax($type2) > $intMax($type)} {
+                lappend badnumbers $intMax($type2)
+            }
+            if {$intMin($type2) < $intMin($type)} {
+                lappend badnumbers $intMin($type2)
+            }
+        }
+        set goodandbad [concat $goodnumbers $badnumbers]
+
+        # switch -exact -- $type {
+        #     int -
+        #     uint -
+        #     long -
+        #     ulong {
+        #         # On some platforms long and longlong are same. So check for dups
+        #         # before adding.
+        #         foreach type2 {longlong ulonglong} {
+        #             if {$intMax($type2) ni $goodandbad} {
+        #                 lappend badnumbers $intMax($type2)
+        #             }
+        #             if {$intMin($type2) ni $goodandbad} {
+        #                 lappend badnumbers $intMin($type2)
+        #             }
+        #         }
+        #     }
+        #     longlong {lappend badnumbers $intMax(ulonglong)}
+        #     ulonglong {
+        #         lappend goodnumbers $intMax(longlong)
+        #         lappend badnumbers $intMin(longlong)
+        #     }
+        #     default {
+        #         foreach type2 {int uint long ulong longlong ulonglong} {
+        #             lappend badnumbers $intMax($type2)
+        #             lappend badnumbers $intMin($type2)
+        #         }
+        #     }
+        # }
+
         set fn ${type}_to_$type
         testDll function $fn $type [list inparam $type]
-        test function-$type-limit-0 "$type max" -body {
-            $fn $intMax($type)
-        } -result $intMax($type)
-        test function-$type-limit-1 "$type min" -body {
-            $fn $intMin($type)
-        } -result $intMin($type)
-        test function-$type-limit-error-0 "$type max+1 error" -body {
-            $fn [expr {$intMax($type)+1}]
-        } -result "not in range|too large" -returnCodes error -match regexp
-        test function-$type-limit-error-1 "$type min-1 error" -body {
-            $fn [expr {$intMin($type)-1}]
-        } -result "not in range|too large" -returnCodes error -match regexp
 
+        set testnum -1
+        foreach good $goodnumbers {
+            test function-$type-limit-number-[incr testnum] "$type = $good (number)" -body {
+                $fn [incr good 0]
+            } -result $good
+            test function-$type-limit-string-$testnum "$type = $good (string)" -body {
+                $fn [format %lld $good]
+            } -result [format %lld $good]
+            test function-$type-limit-hexstring-$testnum "$type = $good (hex string)" -body {
+                $fn [if {$good >= 0} {format 0x%llx $good} else {format -0x%llx [expr {- $good}]}]
+            } -result [format %lld $good]
+        }
+
+        set testnum -1
+        foreach bad $badnumbers {
+            test function-$type-limit-number-error-[incr testnum] "$type = $bad error (number)" -body {
+                $fn $bad
+            } -result "not in range|too large" -returnCodes error -match regexp
+            test function-$type-limit-string-error-$testnum "$type = $bad error (string)" -body {
+                $fn [format %lld $bad]
+            } -result "not in range|too large" -returnCodes error -match regexp
+            test function-$type-limit-hexstring-error-$testnum "$type = $bad error (hex string)" -body {
+                $fn [if {$bad >= 0} {format 0x%llx $bad} else {format -0x%llx [expr {- $bad}]}]
+            } -result "not in range|too large" -returnCodes error -match regexp
+        }
+
+        #
         # Output parameter
         set fn ${type}_out
         testDll function $fn $type [list inparam [list $type in] outparam [list $type out]]
