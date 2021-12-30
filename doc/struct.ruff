@@ -60,7 +60,21 @@ oo::class create ${NS}::Struct {
         # The decoded dictionary or dictionaries are keyed by the field
         # names of the struct.
         #
-        # See also: tonative, frombinary
+        # See also: fromnative! tonative, frombinary
+        #
+        # Returns a dictionary of the decoded struct.
+    }
+    method fromnative! {pointer {index 0}} {
+        # Decodes native C struct(s) in memory into a Tcl dictionary.
+        #  pointer - unsafe pointer to the C struct or array of structs in memory
+        #  index - the index position at which the struct is to be written.
+        #    Note this interpreted as an **index** into an array of structs, not as
+        #    a byte offset into memory.
+        #
+        # The decoded dictionary or dictionaries are keyed by the field
+        # names of the struct.
+        #
+        # See also: fromnative, tonative, frombinary
         #
         # Returns a dictionary of the decoded struct.
     }

@@ -725,6 +725,71 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+static CffiResult
+CffiStructFromNativePointer(Tcl_Interp *ip,
+                        int objc,
+                        Tcl_Obj *const objv[],
+                        CffiStructCtx *structCtxP,
+                        int safe
+                        )
+{
+    CffiStruct *structP = structCtxP->structP;
+    int index;
+    void *valueP;
+    Tcl_Obj *resultObj;
+
+    if (safe)
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
+    else
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &valueP, structP->name));
+
+    /* TBD - check alignment of valueP */
+
+    if (objc == 4) {
+        Tcl_WideInt wide;
+        CHECK(Tclh_ObjToRangedInt(ip, objv[3], 0, INT_MAX, &wide));
+        index = (int) wide;
+    }
+    else
+        index = 0;
+
+    /* TBD - check addition does not cause valueP to overflow */
+    CHECK(CffiStructToObj(
+        ip, structP, (index * structP->size) + (char *)valueP, &resultObj));
+
+    Tcl_SetObjResult(ip, resultObj);
+    return TCL_OK;
+}
+
+/* Function: CffiStructFromNativeUnsafeCmd
+ * Returns a Tcl dictionary value from a C struct referencecd by an unsafe
+ * pointer.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 3-4 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * scructCtxP - unsafe pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - pointer to memory
+ * objv[3] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with the dictionary value as interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructFromNativeUnsafeCmd(Tcl_Interp *ip,
+                        int objc,
+                        Tcl_Obj *const objv[],
+                        CffiStructCtx *structCtxP)
+{
+    return CffiStructFromNativePointer(ip, objc, objv, structCtxP, 0);
+}
+
 /* Function: CffiStructFromNativeCmd
  * Returns a Tcl dictionary value from a C struct in memory.
  *
@@ -750,30 +815,9 @@ CffiStructFromNativeCmd(Tcl_Interp *ip,
                         Tcl_Obj *const objv[],
                         CffiStructCtx *structCtxP)
 {
-    CffiStruct *structP = structCtxP->structP;
-    void *valueP;
-    int index;
-    Tcl_Obj *resultObj;
-
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
-
-    /* TBD - check alignment of valueP */
-
-    if (objc == 4) {
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[3], 0, INT_MAX, &wide));
-        index = (int) wide;
-    }
-    else
-        index = 0;
-
-    /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructToObj(
-        ip, structP, (index * structP->size) + (char *)valueP, &resultObj));
-
-    Tcl_SetObjResult(ip, resultObj);
-    return TCL_OK;
+    return CffiStructFromNativePointer(ip, objc, objv, structCtxP, 1);
 }
+
 
 /* Function: CffiStructToNativeCmd
  * Initializes memory as a C struct from a Tcl dictionary representation.
@@ -1007,6 +1051,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"allocate", 0, 1, "?COUNT?", CffiStructAllocateCmd}, /* Same command as Encode */
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
         {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},
+        {"fromnative!", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeUnsafeCmd},
         {"describe", 0, 0, "", CffiStructDescribeCmd},
         {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
