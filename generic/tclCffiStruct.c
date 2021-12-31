@@ -176,7 +176,7 @@ static CffiResult
 CffiStructDescribeCmd(Tcl_Interp *ip,
                       int objc,
                       Tcl_Obj *const objv[],
-                      CffiStructCtx *structCtxP)
+                      CffiStructCmdCtx *structCtxP)
 {
     int i;
     CffiStruct *structP = structCtxP->structP;
@@ -263,7 +263,7 @@ static CffiResult
 CffiStructInfoCmd(Tcl_Interp *ip,
                   int objc,
                   Tcl_Obj *const objv[],
-                  CffiStructCtx *structCtxP)
+                  CffiStructCmdCtx *structCtxP)
 {
     int i;
     CffiStruct *structP = structCtxP->structP;
@@ -700,7 +700,7 @@ static CffiResult
 CffiStructAllocateCmd(Tcl_Interp *ip,
                int objc,
                Tcl_Obj *const objv[],
-               CffiStructCtx *structCtxP)
+               CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
     Tcl_Obj *resultObj;
@@ -729,7 +729,7 @@ static CffiResult
 CffiStructFromNativePointer(Tcl_Interp *ip,
                         int objc,
                         Tcl_Obj *const objv[],
-                        CffiStructCtx *structCtxP,
+                        CffiStructCmdCtx *structCtxP,
                         int safe
                         )
 {
@@ -785,7 +785,7 @@ static CffiResult
 CffiStructFromNativeUnsafeCmd(Tcl_Interp *ip,
                         int objc,
                         Tcl_Obj *const objv[],
-                        CffiStructCtx *structCtxP)
+                        CffiStructCmdCtx *structCtxP)
 {
     return CffiStructFromNativePointer(ip, objc, objv, structCtxP, 0);
 }
@@ -813,7 +813,7 @@ static CffiResult
 CffiStructFromNativeCmd(Tcl_Interp *ip,
                         int objc,
                         Tcl_Obj *const objv[],
-                        CffiStructCtx *structCtxP)
+                        CffiStructCmdCtx *structCtxP)
 {
     return CffiStructFromNativePointer(ip, objc, objv, structCtxP, 1);
 }
@@ -843,7 +843,7 @@ static CffiResult
 CffiStructToNativeCmd(Tcl_Interp *ip,
                       int objc,
                       Tcl_Obj *const objv[],
-                      CffiStructCtx *structCtxP)
+                      CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
     void *valueP;
@@ -892,7 +892,7 @@ static CffiResult
 CffiStructFreeCmd(Tcl_Interp *ip,
                    int objc,
                    Tcl_Obj *const objv[],
-                   CffiStructCtx *structCtxP)
+                   CffiStructCmdCtx *structCtxP)
 {
     void *valueP;
     CffiResult ret;
@@ -924,7 +924,7 @@ static CffiResult
 CffiStructToBinaryCmd(Tcl_Interp *ip,
                        int objc,
                        Tcl_Obj *const objv[],
-                       CffiStructCtx *structCtxP)
+                       CffiStructCmdCtx *structCtxP)
 {
     void *valueP;
     CffiResult ret;
@@ -962,7 +962,7 @@ static CffiResult
 CffiStructFromBinaryCmd(Tcl_Interp *ip,
                          int objc,
                          Tcl_Obj *const objv[],
-                         CffiStructCtx *structCtxP)
+                         CffiStructCmdCtx *structCtxP)
 {
     unsigned char *valueP;
     int len;
@@ -1006,7 +1006,7 @@ static CffiResult
 CffiStructNameCmd(Tcl_Interp *ip,
                    int objc,
                    Tcl_Obj *const objv[],
-                   CffiStructCtx *structCtxP)
+                   CffiStructCmdCtx *structCtxP)
 {
     Tcl_SetObjResult(ip, structCtxP->structP->name);
     return TCL_OK;
@@ -1016,7 +1016,7 @@ static CffiResult
 CffiStructDestroyCmd(Tcl_Interp *ip,
                       int objc,
                       Tcl_Obj *const objv[],
-                      CffiStructCtx *structCtxP)
+                      CffiStructCmdCtx *structCtxP)
 {
     /*
     * objv[0] is the command name for the struct instance. Deleteing
@@ -1046,7 +1046,7 @@ CffiStructInstanceCmd(ClientData cdata,
                         int objc,
                         Tcl_Obj *const objv[])
 {
-    CffiStructCtx *structCtxP = (CffiStructCtx *)cdata;
+    CffiStructCmdCtx *structCtxP = (CffiStructCmdCtx *)cdata;
     static const Tclh_SubCommand subCommands[] = {
         {"allocate", 0, 1, "?COUNT?", CffiStructAllocateCmd}, /* Same command as Encode */
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
@@ -1070,7 +1070,7 @@ CffiStructInstanceCmd(ClientData cdata,
 static void
 CffiStructInstanceDeleter(ClientData cdata)
 {
-    CffiStructCtx *ctxP = (CffiStructCtx *)cdata;
+    CffiStructCmdCtx *ctxP = (CffiStructCmdCtx *)cdata;
     if (ctxP->structP)
         CffiStructUnref(ctxP->structP);
     /* Note ctxP->ipCtxP is interp-wide and not to be freed here */
@@ -1100,9 +1100,9 @@ CffiResult CffiStructResolve (Tcl_Interp *ip, const char *nameP, CffiStruct **st
 
     found = Tcl_GetCommandInfo(ip, nameP, &tci);
     if (found && tci.objProc == CffiStructInstanceCmd) {
-        CffiStructCtx *structCtxP;
+        CffiStructCmdCtx *structCtxP;
         CFFI_ASSERT(tci.clientData);
-        structCtxP = (CffiStructCtx *)tci.objClientData;
+        structCtxP = (CffiStructCmdCtx *)tci.objClientData;
         *structPP  = structCtxP->structP;
         return TCL_OK;
     }
@@ -1127,7 +1127,7 @@ CffiStructObjCmd(ClientData cdata,
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiStruct *structP;
-    CffiStructCtx *structCtxP;
+    CffiStructCmdCtx *structCtxP;
     static const Tclh_SubCommand subCommands[] = {
         {"new", 1, 2, "STRUCTDEF ?-clear?", NULL},
         {"create", 2, 3, "OBJNAME STRUCTDEF ?-clear?", NULL},

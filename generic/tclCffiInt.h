@@ -266,6 +266,9 @@ typedef struct CffiLibffiStruct {
 } CffiLibffiStruct;
 #endif
 
+/* Struct: CffiField
+ * Descriptor for fields within a struct definition.
+ */
 typedef struct CffiStruct CffiStruct;
 typedef struct CffiField {
     Tcl_Obj *nameObj;           /* Field name */
@@ -274,6 +277,12 @@ typedef struct CffiField {
     unsigned int size;          /* Size of the field */
 } CffiField;
 
+/* Struct: CffiStruct
+ * Descriptor for a struct layout.
+ *
+ * Note this is not a fixed size structure. The *fields* array at the
+ * end of the structure is variable sized.
+ */
 struct CffiStruct {
     Tcl_Obj *name;              /* Struct type name */
 #ifdef CFFI_USE_LIBFFI
@@ -292,8 +301,13 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
 }
 #define CFFI_F_STRUCT_CLEAR 0x0001
 
-/*
- * Interpreter along with common structures specific to the interpreter.
+/* Struct: CffiInterpCtx
+ * Holds the CFFI related context for an interpreter.
+ *
+ * The structure is allocated when the extension is loaded into an
+ * interpreter and deleted when the interpreter is deleted. It is not
+ * reference counted because nothing should be referencing it once the
+ * interpreter is itself deleted.
  */
 typedef struct CffiInterpCtx {
     Tcl_Interp *interp;     /* The interpreter in which the DL is registered.
@@ -306,7 +320,9 @@ typedef struct CffiInterpCtx {
     MemLifo memlifo;        /* Software stack */
 } CffiInterpCtx;
 
-/* Context required for making calls to a function in a DLL. */
+/* Struct: CffiCallVmCtx
+ * Context required for making calls to a function in a DLL.
+ */
 typedef struct CffiCallVmCtx {
     CffiInterpCtx *ipCtxP;
 #ifdef CFFI_USE_DYNCALL
@@ -331,19 +347,27 @@ CFFI_INLINE void CffiLibCtxRef(CffiLibCtx *libCtxP) {
     libCtxP->nRefs += 1;
 }
 
-/* Context for struct command functions */
-typedef struct CffiStructCtx {
+/* Struct: CffiStrutCmdCtx
+ * Holds the context for a *Struct* command.
+ */
+typedef struct CffiStructCmdCtx {
     CffiInterpCtx *ipCtxP;
     CffiStruct *structP;
-} CffiStructCtx;
+} CffiStructCmdCtx;
 
-/* Function parameter definition */
+/* Struct: CffiParam
+ * Descriptor for a function parameter
+ */
 typedef struct CffiParam {
     Tcl_Obj *nameObj;           /* Parameter name */
     CffiTypeAndAttrs typeAttrs;
 } CffiParam;
 
-/* Function prototype definition */
+/* Struct: CffiProto
+ * Descriptor for a function prototype including parameters and return
+ * types. Note this is a variable size structure as the number of
+ * parameters is variable.
+ */
 typedef struct CffiProto {
     int nRefs;             /* Reference count */
     int nParams;           /* Number of params, sizeof params array */
@@ -360,7 +384,10 @@ CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
     protoP->nRefs += 1;
 }
 
-/* Function definition */
+/* Struct: CffiFunction
+ * Descriptor for a callable function including its address, prototype
+ * and other optional information
+ */
 typedef struct CffiFunction {
     CffiCallVmCtx *vmCtxP; /* Context for the call */
     void *fnAddr;          /* Pointer to the function to call */
@@ -370,7 +397,9 @@ typedef struct CffiFunction {
     Tcl_Obj *cmdNameObj; /* Name of Tcl command. May be NULL */
 } CffiFunction;
 
-/* Used to store argument context when preparing to call a function */
+/* Struct: CffiArgument
+ * Storage for argument values for a function call.
+ */
 typedef struct CffiArgument {
     CffiValue value;      /* Native value being constructed. */
     CffiValue savedValue; /* Copy of above - needed after call in some cases
@@ -387,10 +416,11 @@ typedef struct CffiArgument {
 #define CFFI_F_ARG_INITIALIZED 0x1
 } CffiArgument;
 
-/* Complete context for a call invocation */
+/* Struct: CffiCall
+ * Complete context for a call invocation */
 typedef struct CffiCall {
     CffiFunction *fnP;         /* Function being called */
-    CffiArgument *argsP;   /* Argument contexts */
+    CffiArgument *argsP;   /* Arguments */
 #ifdef CFFI_USE_LIBFFI
     void **argValuesPP; /* Array of pointers into the actual value fields within
                            argsP[] elements */
