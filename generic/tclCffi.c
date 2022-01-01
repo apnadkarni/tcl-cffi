@@ -424,9 +424,12 @@ void CffiFinit(ClientData cdata, Tcl_Interp *ip)
     CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
     CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
     if (ipCtxP) {
-        CffiAliasesCleanup(&ipCtxP->aliases);
         CffiPrototypesCleanup(&ipCtxP->prototypes);
+        CffiScopesCleanup(&ipCtxP->scopes);
+#ifdef OBSOLETE
+        CffiAliasesCleanup(&ipCtxP->aliases);
         CffiEnumsCleanup(&ipCtxP->enums);
+#endif
         MemLifoClose(&ipCtxP->memlifo);
 #ifdef CFFI_USE_DYNCALL
     if (ipCtxP->vmP)
@@ -462,12 +465,21 @@ Cffi_Init(Tcl_Interp *ip)
 
     ipCtxP = ckalloc(sizeof(*ipCtxP));
     ipCtxP->interp = ip;
-    Tcl_InitObjHashTable(&ipCtxP->aliases);
     Tcl_InitObjHashTable(&ipCtxP->prototypes);
+    Tcl_InitHashTable(&ipCtxP->scopes, TCL_STRING_KEYS);
+    ipCtxP->globalScopeP = NULL;
+#ifdef OBSOLETE
+    Tcl_InitObjHashTable(&ipCtxP->aliases);
     Tcl_InitObjHashTable(&ipCtxP->enums);
+#endif
+
 #ifdef CFFI_USE_DYNCALL
     ipCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
 #endif
+
+    /* Initialize the global scope */
+    ipCtxP->globalScopeP = CffiScopeGet(ipCtxP, "::");
+    CffiScopeRef(ipCtxP->globalScopeP);
 
     /* TBD - size 16000 too much? */
     if (MemLifoInit(

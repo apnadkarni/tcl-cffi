@@ -789,6 +789,10 @@ namespace eval Concepts {
         set fnptr [function_returning_adder]
         cffi::call $fnptr 1 2
         ```
+
+        ## Scopes
+
+        TBD
     }
 }
 

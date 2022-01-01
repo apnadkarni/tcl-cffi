@@ -54,6 +54,7 @@ CffiStructUnref(CffiStruct *structP)
  *
  * Parameters:
  * ip - interpreter
+ * scopeP - the scope in which to parse the struct
  * nameObj - name of the struct
  * structObj - structure definition
  * structPP - pointer to location to store pointer to internal form.
@@ -66,9 +67,10 @@ CffiStructUnref(CffiStruct *structP)
  */
 CffiResult
 CffiStructParse(CffiInterpCtx *ipCtxP,
-                 Tcl_Obj *nameObj,
-                 Tcl_Obj *structObj,
-                 CffiStruct **structPP)
+                CffiScope *scopeP,
+                Tcl_Obj *nameObj,
+                Tcl_Obj *structObj,
+                CffiStruct **structPP)
 {
     Tcl_Obj **objs;
     int          nobjs;
@@ -95,7 +97,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     structP->nFields = 0; /* Update as we go along */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         int k;
-        if (CffiTypeAndAttrsParse(ipCtxP,
+        if (CffiTypeAndAttrsParse(ipCtxP, scopeP,
                                   objs[i + 1],
                                   CFFI_F_TYPE_PARSE_FIELD,
                                   &structP->fields[j].fieldType)
@@ -1175,7 +1177,8 @@ CffiStructObjCmd(ClientData cdata,
     structNameObj = Tcl_ObjPrintf("%s", 2 + Tcl_GetString(cmdNameObj));
     Tcl_IncrRefCount(structNameObj);
 
-    ret = CffiStructParse(ipCtxP, structNameObj, defObj, &structP);
+    ret = CffiStructParse(
+        ipCtxP, CffiScopeGet(ipCtxP, NULL), structNameObj, defObj, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;

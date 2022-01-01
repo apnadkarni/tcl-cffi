@@ -81,6 +81,7 @@ TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiMemory.c \
                      generic/tclCffiPointer.c \
                      generic/tclCffiPrototype.c \
+                     generic/tclCffiScope.c \
                      generic/tclCffiStruct.c \
                      generic/tclCffiTypes.c \
                      generic/tclCffiWrapper.c \

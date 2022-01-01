@@ -668,8 +668,8 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
  * where *TYPE* is a type definition as parsed by <CffiTypeParse>.
  *
  * Parameters:
- *   ip - Interpreter
- *   nameObj - name of the function/structure/field to which this type pertains
+ *   ipCtxP - Interpreter context
+ *   scopeP - scope for resolving type aliases and enums
  *   typeAttrObj - parameter definition object
  *   parseMode - indicates whether the definition should accept attributes
  *               for function parameter, return type or struct field. Caller
@@ -681,9 +681,10 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
  */
 CffiResult
 CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
-                       Tcl_Obj *typeAttrObj,
-                       CffiTypeParseMode parseMode,
-                       CffiTypeAndAttrs *typeAttrP)
+                      CffiScope *scopeP,
+                      Tcl_Obj *typeAttrObj,
+                      CffiTypeParseMode parseMode,
+                      CffiTypeAndAttrs *typeAttrP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj **objs;
@@ -708,7 +709,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /* First check for a type definition before base types */
-    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
+    temp = CffiAliasGet(ipCtxP, scopeP, objs[0], typeAttrP);
     if (temp)
         baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
@@ -869,12 +870,24 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             if (typeAttrP->dataType.u.tagObj)
                 goto invalid_format; /* Something already using the slot? */
             /* May be a dictionary or a named enum */
-            if (Tcl_DictObjSize(NULL, fieldObjs[1], &temp) == TCL_OK)
+            if (Tcl_DictObjSize(NULL, fieldObjs[1], &temp) == TCL_OK) {
+                 /* TBD - check if numeric */
                 typeAttrP->dataType.u.tagObj = fieldObjs[1];
+            }
             else if (CffiEnumGetMap(
-                    ipCtxP, fieldObjs[1], 0, &typeAttrP->dataType.u.tagObj)
-                != TCL_OK)
+                         NULL, /* Don't report error, may be global */
+                         scopeP,
+                         fieldObjs[1],
+                         &typeAttrP->dataType.u.tagObj)
+                         != TCL_OK
+                     && CffiEnumGetMap(
+                            ip,
+                            ipCtxP->globalScopeP,
+                            fieldObjs[1],
+                            &typeAttrP->dataType.u.tagObj)
+                            != TCL_OK) {
                 goto error_exit; /* Named Enum does not exist */
+            }
             flags |= CFFI_F_ATTR_ENUM;
             Tcl_IncrRefCount(typeAttrP->dataType.u.tagObj);
             break;
@@ -1134,17 +1147,16 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
     if (flags & CFFI_F_ATTR_BITMASK) {
         /* TBD - Does not handle size truncation */
         return
-            CffiEnumMemberBitmask(ipCtxP,
+            CffiEnumMemberBitmask(ipCtxP->interp,
                             lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,
                             valueObj,
                             valueP);
     }
     if (lookup_enum) {
         Tcl_Obj *enumValueObj;
-        if (CffiEnumMemberFind(ipCtxP,
+        if (CffiEnumMemberFind(NULL,
                                typeAttrsP->dataType.u.tagObj,
                                valueObj,
-                               CFFI_F_ENUM_SKIP_STORE_ERROR,
                                &enumValueObj) == TCL_OK)
             valueObj = enumValueObj;
     }
@@ -2119,7 +2131,8 @@ CffiTypeObjCmd(ClientData cdata,
         else
             return Tclh_ErrorInvalidValue(ip, objv[3], "Invalid parse mode.");
     }
-    ret = CffiTypeAndAttrsParse(ipCtxP, objv[2], parse_mode, &typeAttrs);
+    ret = CffiTypeAndAttrsParse(
+        ipCtxP, CffiScopeGet(ipCtxP, NULL), objv[2], parse_mode, &typeAttrs);
     if (ret == TCL_ERROR)
         return ret;
 

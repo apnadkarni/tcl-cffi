@@ -411,9 +411,13 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
  *             parameters
  *
  * The function modifies the following:
+ *
  * callP->argsP[arg_index].flags - sets CFFI_F_ARG_INITIALIZED
+ *
  * callP->argsP[arg_index].value - the native value.
+ *
  * callP->argsP[arg_index].savedValue - copy of above for some types only
+ *
  * callP->argsP[arg_index].varNameObj - will store the variable name
  *            for byref parameters. This will be valueObj[0] for byref
  *            parameters and NULL for byval parameters. The reference
@@ -977,10 +981,9 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
             /* Note on error, keep the value */
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
                 Tcl_DecrRefCount(valueObj);
-                CffiEnumMemberFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                CffiEnumMemberFindReverse(NULL,
                                           typeAttrsP->dataType.u.tagObj,
                                           wide,
-                                          CFFI_F_ENUM_SKIP_STORE_ERROR,
                                           &valueObj);
             }
         }
@@ -1000,10 +1003,9 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
                         != TCL_OK) {
                         break;
                     }
-                    CffiEnumMemberFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                    CffiEnumMemberFindReverse(NULL,
                                               typeAttrsP->dataType.u.tagObj,
                                               wide,
-                                              CFFI_F_ENUM_SKIP_STORE_ERROR,
                                               &enumValueObj);
                     Tcl_ListObjAppendElement(NULL, enumValuesObj, enumValueObj);
                 }
@@ -1600,12 +1602,10 @@ CffiFunctionCall(ClientData cdata,
         if (fnCheckRet == TCL_OK                                               \
             && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ENUM)         \
             && protoP->returnType.typeAttrs.dataType.u.tagObj) {               \
-            CffiEnumMemberFindReverse(                                         \
-                ipCtxP,                                                        \
+            CffiEnumMemberFindReverse(NULL,\
                 protoP->returnType.typeAttrs.dataType.u.tagObj,                \
-                (Tcl_WideInt)retval.u.fld_,                                    \
-                CFFI_F_ENUM_SKIP_STORE_ERROR,                                  \
-                &resultObj);                                                   \
+                                      (Tcl_WideInt)retval.u.fld_,              \
+                                      &resultObj);                             \
         }                                                                      \
         else {                                                                 \
             /* AFTER above Check to not lose GetLastError */                   \
@@ -1865,8 +1865,13 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     CffiProto *protoP = NULL;
     CffiFunction *fnP = NULL;
 
-    CHECK(CffiPrototypeParse(
-        vmCtxP->ipCtxP, cmdNameObj, returnTypeObj, paramsObj, &protoP));
+    /* Function scope is as per current namespace context */
+    CHECK(CffiPrototypeParse(vmCtxP->ipCtxP,
+                             CffiScopeGet(vmCtxP->ipCtxP, NULL),
+                             cmdNameObj,
+                             returnTypeObj,
+                             paramsObj,
+                             &protoP));
     /* TBD - comment in func header says only override if default */
     protoP->abi = callMode;
 #ifdef CFFI_USE_LIBFFI

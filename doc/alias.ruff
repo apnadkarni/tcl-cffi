@@ -13,13 +13,13 @@ namespace eval ${NS}::alias {
         # Synopsis: aliasdefs
         #
         # Given two arguments, creates an alias of the given name for
-        # passed definition.
+        # passed definition in the current [scope][Scopes].
         # If a single argument is provided, it must be a dictionary mapping
         # alias names to their definitions.
         #
         # An error will be raised if an alias name matches a built-in
         # type or if an alias of that name already exists with a different
-        # definition.
+        # definition in the same scope.
         #
         # The definition may itself be based on an existing alias. In this
         # case the existing alias is immediately resolved and expanded
@@ -31,15 +31,17 @@ namespace eval ${NS}::alias {
     proc body {alias_name} {
         # Returns the resolved body of an alias.
         #  alias_name - Name of alias to be retrieved.
+        # The alias must be one defined in the current [scope][Scopes].
     }
     proc list {{pattern *}} {
-        # Returns a list of aliases matching the specified pattern.
+        # Returns a list of aliases in the current [scope][Scopes] that
+        # match the specified pattern.
         #  pattern - pattern to match against aliases
         # The pattern matching algorithm is the same as that of Tcl's
         # `string match` command.
     }
     proc delete {pattern} {
-        # Deletes type aliases matching a pattern.
+        # Deletes type aliases in the current [scope][Scopes] matching a pattern.
         #  pattern - pattern to match against aliases
         # The pattern matching algorithm is the same as that of Tcl's
         # `string match` command.
@@ -50,6 +52,8 @@ namespace eval ${NS}::alias {
         # Loads predefined type aliases.
         #  alias_set - the alias set to load.
         #
+        # The aliases are loaded into the global scope so as to be accessible
+        # from any scope.
         # The possible values of $alias_set are `C`, `win32` (Windows only),
         # or `posix` (platform dependent).
         #
@@ -59,8 +63,8 @@ namespace eval ${NS}::alias {
         #
         # The `win32` predefined alias set includes `BOOL` `BOOLEAN` `BYTE`
         # `CHAR` `DWORD` `DWORDLONG` `DWORD_PTR` `HALF_PTR` `HANDLE` `INT`
-        # `INT_PTR` `LONG` `LONGLONG` `LONG_PTR` `LPARAM` `LPSTR` `LPVOID`
-        # `LPWSTR` `LRESULT` `SHORT` `SIZE_T` `SSIZE_T` `UCHAR` `UINT`
+        # `INT_PTR` `LONG` `LONGLONG` `LONG_PTR` `LPARAM` `LPVOID`
+        # `LRESULT` `SHORT` `SIZE_T` `SSIZE_T` `UCHAR` `UINT`
         # `UINT_PTR` `ULONG` `ULONGLONG` `ULONG_PTR` `USHORT` `WORD` `WPARAM`
         #
         # The `posix` alias set is platform dependent. In POSIX compliant

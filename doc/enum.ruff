@@ -3,7 +3,7 @@
 
 namespace eval ${NS}::enum {
     proc define {enumname enumdefs} {
-        # Defines a new enumeration.
+        # Defines a new enumeration in the current [scope][Scopes].
         #  enumname - name of the enumeration
         #  enumdefs - dictionary of enumeration member names to their values.
         # Parameter declarations can reference the enumeration to indicate
@@ -18,28 +18,30 @@ namespace eval ${NS}::enum {
         # pattern.
     }
     proc members {enumname} {
-        # Returns a dictionary containing the definitions in an enumerations.
-        #  enumname - name of the enumeration whose elements are to be returned.
+        # Returns a dictionary containing the members in an enumeration.
+        #  enumname - name of the enumeration in the current [scope][Scopes]
+        # whose elements are to be returned.
     }
     proc list {pattern} {
-        # Lists enumerations.
+        # Lists enumerations in the current [scope][Scopes].
         #  pattern - A glob-style pattern
         # The command returns names of all enumerations with names matching
         # the specified pattern.
     }
     proc sequence {enumname membernames {{start 0}}} {
-        # Defines an enumeration with consecutive member values
+        # Defines an enumeration in the current [scope][Scopes]
+        # with consecutive member values
         #  enumname - name of the enumeration
         #  membernames - list of names of the enumeration members
         #  start - value of first enumeration member
     }
     proc value {enumname membername} {
-        # Returns the value of an enumeration member
+        # Returns the value of an enumeration member in the current [scope][Scopes].
         #  enumname - name of the enumeration
         #  membername - name of the enumeration member to retrieve
     }
     proc name {enumname membervalue} {
-        # Returns the symbolic name of a value in an enumeration
+        # Returns the symbolic name of a value in an enumeration in the current [scope][Scopes].
         #  enumname - name of the enumeration
         #  membervalue - value of an enumeration member
     }

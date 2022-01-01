@@ -82,6 +82,7 @@ CffiProtoUnref(CffiProto *protoP)
  */
 CffiResult
 CffiPrototypeParse(CffiInterpCtx *ipCtxP,
+                   CffiScope *scopeP,
                    Tcl_Obj *fnNameObj,
                    Tcl_Obj *returnTypeObj,
                    Tcl_Obj *paramsObj,
@@ -103,6 +104,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
      */
     protoP = CffiProtoAllocate(nobjs / 2);
     if (CffiTypeAndAttrsParse(ipCtxP,
+                              scopeP,
                               returnTypeObj,
                               CFFI_F_TYPE_PARSE_RETURN,
                               &protoP->returnType.typeAttrs)
@@ -116,6 +118,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     protoP->nParams = 0; /* Update as we go along  */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         if (CffiTypeAndAttrsParse(ipCtxP,
+                                  scopeP,
                                   objs[i + 1],
                                   CFFI_F_TYPE_PARSE_PARAM,
                                   &protoP->params[j].typeAttrs)
@@ -197,7 +200,13 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
     if (heP)
         return Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
 
-    CHECK(CffiPrototypeParse(ipCtxP, nameObj, objv[3], objv[4], &protoP));
+    /* Prototype scopes are per the current namespace context */
+    CHECK(CffiPrototypeParse(ipCtxP,
+                             CffiScopeGet(ipCtxP, NULL),
+                             nameObj,
+                             objv[3],
+                             objv[4],
+                             &protoP));
     protoP->abi = callMode;
 
     heP = Tcl_CreateHashEntry(&ipCtxP->prototypes, (char *) nameObj, &new_entry);

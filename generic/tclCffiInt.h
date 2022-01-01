@@ -301,6 +301,17 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
 }
 #define CFFI_F_STRUCT_CLEAR 0x0001
 
+
+typedef struct CffiScope {
+    Tcl_HashTable aliases;  /* typedef name -> CffiTypeAndAttrs */
+    Tcl_HashTable enums;    /* Enum -> (name->value table) */
+#define CFFI_F_SCOPE_GLOBAL 0x1 /* Marks the scope as the global one */
+    int nRefs;
+} CffiScope;
+CFFI_INLINE void CffiScopeRef(CffiScope *scopeP) {
+    scopeP->nRefs += 1;
+}
+
 /* Struct: CffiInterpCtx
  * Holds the CFFI related context for an interpreter.
  *
@@ -310,18 +321,23 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
  * interpreter is itself deleted.
  */
 typedef struct CffiInterpCtx {
-    Tcl_Interp *interp;     /* The interpreter in which the DL is registered.
-                               Note this does not need to be protected against
-                               deletion as contexts are unregistered before
-                               interp deletion */
-    Tcl_HashTable aliases;  /* typedef name -> CffiTypeAndAttrs */
+    Tcl_Interp *interp;       /* The interpreter in which the DL is registered.
+                                 Note this does not need to be protected against
+                                 deletion as contexts are unregistered before
+                                 interp deletion */
+    Tcl_HashTable scopes;     /* scope name -> CffiScope */
+    CffiScope *globalScopeP;  /* Links to the global scope in scopes */
     Tcl_HashTable prototypes; /* prototype name -> CffiProto */
+#ifdef OBSOLETE
+    Tcl_HashTable aliases;    /* typedef name -> CffiTypeAndAttrs */
     Tcl_HashTable enums;      /* Enum -> (name->value table) */
+#endif
 #ifdef CFFI_USE_DYNCALL
     DCCallVM *vmP; /* The dyncall call context to use */
 #endif
     MemLifo memlifo;        /* Software stack */
 } CffiInterpCtx;
+
 
 /* Struct: CffiCallVmCtx
  * Context required for making calls to a function in a DLL.
@@ -446,12 +462,14 @@ void CffiTypeLayoutInfo(const CffiType *typeP,
                         int *alignP);
 void CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP);
 CffiResult CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
+                                 CffiScope *scopeP,
                                  Tcl_Obj *typeAttrObj,
                                  CffiTypeParseMode parseMode,
                                  CffiTypeAndAttrs *typeAttrsP);
 void CffiTypeAndAttrsCleanup(CffiTypeAndAttrs *typeAttrsP);
 Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
 CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
+                           CffiScope *scopeP,
                            Tcl_Obj *nameObj,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
@@ -520,17 +538,22 @@ Tcl_WideInt CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
 Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);
 
 int CffiAliasGet(CffiInterpCtx *ipCtxP,
+                 CffiScope *scopeP,
                  Tcl_Obj *aliasNameObj,
                  CffiTypeAndAttrs *typeAttrP);
-CffiResult
-CffiAliasAdd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, Tcl_Obj *typedefObj);
+CffiResult CffiAliasAdd(CffiInterpCtx *ipCtxP,
+                        CffiScope *scopeP,
+                        Tcl_Obj *nameObj,
+                        Tcl_Obj *typedefObj);
 CffiResult CffiAliasAddStr(CffiInterpCtx *ipCtxP,
+                           CffiScope *scopeP,
                            const char *nameStr,
                            const char *typedefStr);
 int CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP);
 void CffiAliasesCleanup(Tcl_HashTable *typeAliasTableP);
 
 CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
+                              CffiScope *scopeP,
                               Tcl_Obj *fnNameObj,
                               Tcl_Obj *returnTypeObj,
                               Tcl_Obj *paramsObj,
@@ -545,34 +568,35 @@ CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
 Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
 
 /* Flags for CffiEnum* calls */
-#define CFFI_F_ENUM_SKIP_STORE_ERROR 0x1
+#define CFFI_F_ENUM_SKIP_ERROR_MESSAGE 0x1 /* No error in interp if not found */
+#define CFFI_F_ENUM_INCLUDE_GLOBAL     0x2 /* Include global enums in search */
 
-CffiResult CffiEnumGetMap(CffiInterpCtx *ipCtxP,
+CffiResult CffiEnumGetMap(Tcl_Interp *ip,
+                          CffiScope *scopeP,
                           Tcl_Obj *enumObj,
-                          int flags,
                           Tcl_Obj **mapObjP);
 void CffiEnumsCleanup(Tcl_HashTable *enumsTableP);
-CffiResult CffiEnumMemberFind(CffiInterpCtx *ipCtxP,
+CffiResult CffiEnumMemberFind(Tcl_Interp *ip,
                               Tcl_Obj *mapObj,
                               Tcl_Obj *memberNameObj,
-                              int flags,
                               Tcl_Obj **valueObjP);
 CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
+                        CffiScope *scopeP,
                         Tcl_Obj *enumObj,
                         Tcl_Obj *nameObj,
                         int flags,
                         Tcl_Obj **valueObjP);
-CffiResult CffiEnumMemberFindReverse(CffiInterpCtx *ipCtxP,
+CffiResult CffiEnumMemberFindReverse(Tcl_Interp *ip,
                                      Tcl_Obj *mapObj,
                                      Tcl_WideInt needle,
-                                     int flags,
                                      Tcl_Obj **nameObjP);
 CffiResult CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
+                               CffiScope *scopeP,
                                Tcl_Obj *enumNameObj,
                                Tcl_WideInt needle,
                                int flags,
                                Tcl_Obj **nameObjP);
-CffiResult CffiEnumMemberBitmask(CffiInterpCtx *ipCtxP,
+CffiResult CffiEnumMemberBitmask(Tcl_Interp *ip,
                            Tcl_Obj *enumObj,
                            Tcl_Obj *valueListObj,
                            Tcl_WideInt *maskP);
@@ -580,6 +604,10 @@ CffiResult CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
                                const CffiTypeAndAttrs *typeAttrsP,
                                Tcl_Obj *valueObj,
                                Tcl_WideInt *valueP);
+
+/* Scope prototypes */
+void CffiScopesCleanup(Tcl_HashTable *scopesTableP);
+CffiScope *CffiScopeGet(CffiInterpCtx *ipCtxP, const char *nameP);
 
 #ifdef CFFI_USE_DYNCALL
 
