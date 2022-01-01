@@ -423,12 +423,34 @@ namespace eval Concepts {
         command ensemble. The fragment below provides an example.
 
         ````
-        cffi::enum define CMARK_OPTS {DEFAULT 0 NORMALIZE 256 VALIDATE 512 SMART 1024 }
+        cffi::enum define CMARK_OPTS {
+            DEFAULT 0
+            NORMALIZE 256
+            VALIDATE 512
+            SMART 1024
+        }
         cffiLib function cmark_render_html pointer {
             root pointer.cmark_node
             opts {int {enum CMARK_OPTS}}
         }
         set htmlptr [cmark_render_html $root NORMALIZE]
+        ````
+
+        Enumeration can also be used in literal form where they are directly
+        expressed in the type definition. For example, the `cmark_render_html`
+        function could also be defined as below without the `CMARK_OPTS`
+        named enumeration.
+
+        ````
+        cffiLib function cmark_render_html pointer {
+            root pointer.cmark_node
+            opts {int {enum {
+                DEFAULT 0
+                NORMALIZE 256
+                VALIDATE 512
+                SMART 1024
+            }}}
+        }
         ````
 
         When combined with the `bitmask` annotation, bitmasks can be

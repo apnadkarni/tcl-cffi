@@ -306,10 +306,11 @@ namespace eval cffi::test {
             "out" "out byref"
         } {
             if {$type in $intTypes} {
-                testnumeric "$type $attr {enum E}" param "$expected {enum E}" -setup {
+                testnumeric "$type $attr {enum E}" param "$expected {enum {I 1}}" -setup {
                     cffi::enum delete *
-                    cffi::enum define E {}
+                    cffi::enum define E {I 1}
                 }
+                testnumeric "$type $attr {enum {I 1 J 2}}" param "$expected {enum {I 1 J 2}}"
             } else {
                 testinvalidattr "$type $attr {enum E}" param $errorMessages(attrtype)
             }
@@ -354,7 +355,9 @@ namespace eval cffi::test {
             "inout" "inout"
         } {
             if {$type in $intTypes} {
-                testnumericarray "$type $attr byref {enum E}" 10 param "$expected byref {enum E}"
+                catch {cffi::enum delete E}
+                cffi::enum define E {I 1}
+                testnumericarray "$type $attr byref {enum E}" 10 param "$expected byref {enum {I 1}}"
             } else {
                 # Already tested above for scalars
                 #testinvalidattr "$type $attr {enum E}" param $errorMessages(attrtype)
@@ -418,7 +421,9 @@ namespace eval cffi::test {
             foreach attr [list {*}$errorAttrs] {
                 testnumeric "$type $attr" return $attr
             }
-            testnumeric "$type {enum E}" return "{enum E}"
+            catch {cffi::enum delete E}
+            cffi::enum define E {I 1}
+            testnumeric "$type {enum E}" return "{enum {I 1}}"
         }
         if {$type in $intTypes} {
             foreach attr $requirementAttrs {
@@ -485,6 +490,8 @@ namespace eval cffi::test {
 
         # Scalar tests - success
         testnumeric $type field ""
+        catch {cffi::enum delete E}
+        cffi::enum define E {I 1}
         foreach {attr expected constraints} {
             "lasterror" "" "-constraints win"
             "winerror" "" "-constraints win"
@@ -492,7 +499,7 @@ namespace eval cffi::test {
             "{onerror handler}" "" ""
             "structsize" "structsize" ""
             "bitmask" "bitmask" ""
-            "{enum E}" "{enum E}" ""
+            "{enum E}" "{enum {I 1}}" ""
         } {
             if {$type in $intTypes} {
                 testnumeric "$type $attr" field $expected {*}$constraints
@@ -1033,7 +1040,10 @@ namespace eval cffi::test {
     } -body {
         cffi::type count type_count_test_alias_0
     } -result 2
+
 }
+
+
 
 ::tcltest::cleanupTests
 namespace delete cffi::test

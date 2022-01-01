@@ -977,11 +977,11 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
             /* Note on error, keep the value */
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
                 Tcl_DecrRefCount(valueObj);
-                CffiEnumFindReverse(callP->fnP->vmCtxP->ipCtxP,
-                                    typeAttrsP->dataType.u.tagObj,
-                                    wide,
-                                    0,
-                                    &valueObj);
+                CffiEnumMemberFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                                          typeAttrsP->dataType.u.tagObj,
+                                          wide,
+                                          CFFI_F_ENUM_SKIP_STORE_ERROR,
+                                          &valueObj);
             }
         }
         else {
@@ -1000,11 +1000,11 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
                         != TCL_OK) {
                         break;
                     }
-                    CffiEnumFindReverse(callP->fnP->vmCtxP->ipCtxP,
-                                        typeAttrsP->dataType.u.tagObj,
-                                        wide,
-                                        0,
-                                        &enumValueObj);
+                    CffiEnumMemberFindReverse(callP->fnP->vmCtxP->ipCtxP,
+                                              typeAttrsP->dataType.u.tagObj,
+                                              wide,
+                                              CFFI_F_ENUM_SKIP_STORE_ERROR,
+                                              &enumValueObj);
                     Tcl_ListObjAppendElement(NULL, enumValuesObj, enumValueObj);
                 }
                 if (i == nelems) {
@@ -1600,11 +1600,11 @@ CffiFunctionCall(ClientData cdata,
         if (fnCheckRet == TCL_OK                                               \
             && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ENUM)         \
             && protoP->returnType.typeAttrs.dataType.u.tagObj) {               \
-            CffiEnumFindReverse(                                               \
+            CffiEnumMemberFindReverse(                                         \
                 ipCtxP,                                                        \
                 protoP->returnType.typeAttrs.dataType.u.tagObj,                \
                 (Tcl_WideInt)retval.u.fld_,                                    \
-                0,                                                             \
+                CFFI_F_ENUM_SKIP_STORE_ERROR,                                  \
                 &resultObj);                                                   \
         }                                                                      \
         else {                                                                 \

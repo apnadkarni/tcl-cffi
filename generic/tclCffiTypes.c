@@ -692,7 +692,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     int i;
     enum CffiBaseType baseType;
     int validAttrs;
-    int found;
+    int temp;
     static const char *paramAnnotClashMsg = "Unknown, repeated or conflicting type annotations specified.";
     static const char *defaultNotAllowedMsg =
         "Defaults are not allowed in this declaration context.";
@@ -708,9 +708,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /* First check for a type definition before base types */
-    found = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
-    if (found)
-        baseType = typeAttrP->dataType.baseType;
+    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
+    if (temp)
+        baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
         CffiTypeAndAttrsInit(typeAttrP, NULL);
         CHECK(CffiTypeParse(ip, objs[0], &typeAttrP->dataType));
@@ -866,13 +866,17 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_STOREALWAYS;
             break;
         case ENUM:
-            if (CffiEnumGetMap(ipCtxP, fieldObjs[1], 0, NULL) != TCL_OK)
-                goto error_exit; /* Enum does not exist */
             if (typeAttrP->dataType.u.tagObj)
                 goto invalid_format; /* Something already using the slot? */
+            /* May be a dictionary or a named enum */
+            if (Tcl_DictObjSize(NULL, fieldObjs[1], &temp) == TCL_OK)
+                typeAttrP->dataType.u.tagObj = fieldObjs[1];
+            else if (CffiEnumGetMap(
+                    ipCtxP, fieldObjs[1], 0, &typeAttrP->dataType.u.tagObj)
+                != TCL_OK)
+                goto error_exit; /* Named Enum does not exist */
             flags |= CFFI_F_ATTR_ENUM;
-            Tcl_IncrRefCount(fieldObjs[1]);
-            typeAttrP->dataType.u.tagObj = fieldObjs[1];
+            Tcl_IncrRefCount(typeAttrP->dataType.u.tagObj);
             break;
         case BITMASK:
             flags |= CFFI_F_ATTR_BITMASK;
@@ -1130,18 +1134,18 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
     if (flags & CFFI_F_ATTR_BITMASK) {
         /* TBD - Does not handle size truncation */
         return
-            CffiEnumBitmask(ipCtxP,
+            CffiEnumMemberBitmask(ipCtxP,
                             lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,
                             valueObj,
                             valueP);
     }
     if (lookup_enum) {
         Tcl_Obj *enumValueObj;
-        if (CffiEnumFind(ipCtxP,
-                           typeAttrsP->dataType.u.tagObj,
-                           valueObj,
-                           CFFI_F_ENUM_SKIP_STORE_ERROR,
-                           &enumValueObj) == TCL_OK)
+        if (CffiEnumMemberFind(ipCtxP,
+                               typeAttrsP->dataType.u.tagObj,
+                               valueObj,
+                               CFFI_F_ENUM_SKIP_STORE_ERROR,
+                               &enumValueObj) == TCL_OK)
             valueObj = enumValueObj;
     }
     if (Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value) == TCL_OK) {

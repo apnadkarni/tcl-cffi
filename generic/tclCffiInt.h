@@ -552,17 +552,27 @@ CffiResult CffiEnumGetMap(CffiInterpCtx *ipCtxP,
                           int flags,
                           Tcl_Obj **mapObjP);
 void CffiEnumsCleanup(Tcl_HashTable *enumsTableP);
+CffiResult CffiEnumMemberFind(CffiInterpCtx *ipCtxP,
+                              Tcl_Obj *mapObj,
+                              Tcl_Obj *memberNameObj,
+                              int flags,
+                              Tcl_Obj **valueObjP);
 CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *enumObj,
                         Tcl_Obj *nameObj,
                         int flags,
                         Tcl_Obj **valueObjP);
+CffiResult CffiEnumMemberFindReverse(CffiInterpCtx *ipCtxP,
+                                     Tcl_Obj *mapObj,
+                                     Tcl_WideInt needle,
+                                     int flags,
+                                     Tcl_Obj **nameObjP);
 CffiResult CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
-                               Tcl_Obj *enumObj,
+                               Tcl_Obj *enumNameObj,
                                Tcl_WideInt needle,
-                               int strict,
+                               int flags,
                                Tcl_Obj **nameObjP);
-CffiResult CffiEnumBitmask(CffiInterpCtx *ipCtxP,
+CffiResult CffiEnumMemberBitmask(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *enumObj,
                            Tcl_Obj *valueListObj,
                            Tcl_WideInt *maskP);

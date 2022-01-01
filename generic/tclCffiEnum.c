@@ -41,6 +41,46 @@ CffiEnumGetMap(CffiInterpCtx *ipCtxP,
     }
 }
 
+/* Function: CffiEnumMemberFind
+ * Returns the value of a member of a given enum.
+ *
+ * Parameters:
+ * ipCtxP - context in which the enum is defined
+ * mapObj - the enum map
+ * nameObj - name of the member
+ * flags - If CFFI_F_ENUM_SKIP_STORE_ERROR is set, error message is not
+ *   stored in the interpreter
+ * valueObjP - location to store the value of the member. If *NULL*,
+ *   only a check is made as to existence.
+ *
+ * The reference count on the Tcl_Obj returned in valueObjP is NOT incremented.
+ *
+ * Returns:
+ * *TCL_OK* on success, *TCL_ERROR* on failure.
+ */
+CffiResult
+CffiEnumMemberFind(CffiInterpCtx *ipCtxP,
+                   Tcl_Obj *mapObj,
+                   Tcl_Obj *memberNameObj,
+                   int flags,
+                   Tcl_Obj **valueObjP)
+{
+    Tcl_Obj *valueObj;
+
+    if (Tcl_DictObjGet(NULL, mapObj, memberNameObj, &valueObj) != TCL_OK
+        || valueObj == NULL) {
+        if ((flags & CFFI_F_ENUM_SKIP_STORE_ERROR) == 0)
+            Tclh_ErrorNotFound(
+                ipCtxP->interp, "Enum member name", memberNameObj, NULL);
+        return TCL_ERROR;
+    }
+    if (valueObjP)
+        *valueObjP = valueObj;
+    return TCL_OK;
+}
+
+
+
 /* Function: CffiEnumFind
  * Returns the value of an enum member.
  *
@@ -48,7 +88,8 @@ CffiEnumGetMap(CffiInterpCtx *ipCtxP,
  * ipCtxP - context in which the enum is defined
  * enumObj - name of the enum
  * nameObj - name of the member
- * flags - bitmask of CFFI_F_ENUM_* values
+ * flags - If CFFI_F_ENUM_SKIP_STORE_ERROR is set, error message is not
+ *   stored in the interpreter
  * valueObjP - location to store the value of the member. If *NULL*,
  *   only a check is made as to existence.
  *
@@ -59,24 +100,63 @@ CffiEnumGetMap(CffiInterpCtx *ipCtxP,
  */
 CffiResult
 CffiEnumFind(CffiInterpCtx *ipCtxP,
-             Tcl_Obj *enumObj,
-             Tcl_Obj *nameObj,
+             Tcl_Obj *enumNameObj,
+             Tcl_Obj *memberNameObj,
              int flags,
              Tcl_Obj **valueObjP)
 {
-    Tcl_Obj *valueObj;
     Tcl_Obj *entries;
 
-    CHECK(CffiEnumGetMap(ipCtxP, enumObj, flags, &entries));
-    if (Tcl_DictObjGet(NULL, entries, nameObj, &valueObj) != TCL_OK
-        || valueObj == NULL) {
-        if ((flags & CFFI_F_ENUM_SKIP_STORE_ERROR) == 0)
-            Tclh_ErrorNotFound(
-                ipCtxP->interp, "Enum member name", nameObj, NULL);
-        return TCL_ERROR;
+    CHECK(CffiEnumGetMap(ipCtxP, enumNameObj, flags, &entries));
+    return CffiEnumMemberFind(ipCtxP, entries, memberNameObj, flags, valueObjP);
+}
+
+/* Function: CffiEnumMemberFindReverse
+ * Returns the name of an member value in a given enu in a given enum
+ *
+ * Parameters:
+ * ipCtxP - Context in which the enum is defined
+ * mapObj - Enum mapping table
+ * needleObj - Value to map to a name
+ * flags - If CFFI_F_ENUM_SKIP_STORE_ERROR is set, error message is not
+ *   stored in the interpreter if the needle is not founc and the needle
+ *   is itself returned in *nameObjP*
+ * nameObjP - location to store the name of the member
+ *
+ * The reference count on the Tcl_Obj returned in nameObjP is NOT incremented.
+ *
+ * Returns:
+ * *TCL_OK* on success, *TCL_ERROR* on failure.
+ */
+CffiResult
+CffiEnumMemberFindReverse(CffiInterpCtx *ipCtxP,
+                          Tcl_Obj *mapObj,
+                          Tcl_WideInt needle,
+                          int flags,
+                          Tcl_Obj **nameObjP)
+{
+    Tcl_Obj *nameObj;
+    Tcl_Obj *valueObj;
+    int done;
+    Tcl_DictSearch search;
+    CHECK(Tcl_DictObjFirst(
+        ipCtxP->interp, mapObj, &search, &nameObj, &valueObj, &done));
+    while (!done) {
+        Tcl_WideInt wide;
+        if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
+            && wide == needle) {
+            *nameObjP = nameObj;
+            Tcl_DictObjDone(&search);
+            return TCL_OK;
+        }
+        Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
     }
-    if (valueObjP)
-        *valueObjP = valueObj;
+    Tcl_DictObjDone(&search);
+    if (!(flags & CFFI_F_ENUM_SKIP_STORE_ERROR))
+        return Tclh_ErrorNotFound(
+            ipCtxP->interp, "Enum member value", NULL, NULL);
+    else
+        *nameObjP = Tcl_NewWideIntObj(needle);
     return TCL_OK;
 }
 
@@ -87,9 +167,9 @@ CffiEnumFind(CffiInterpCtx *ipCtxP,
  * ipCtxP - Context in which the enum is defined
  * enumObj - Name of the enum
  * needleObj - Value to map to a name
- * strict - If true, an error is raised if the needle value cannot be
- * mapped to a enum member name. Otherwise, the needle is returned in
- * *nameObjP* in such a case.
+ * flags - If CFFI_F_ENUM_SKIP_STORE_ERROR is set, error message is not
+ *   stored in the interpreter if the needle is not founc and the needle
+ * is itself returned in *nameObjP*
  * nameObjP - location to store the name of the member
  *
  * The reference count on the Tcl_Obj returned in nameObjP is NOT incremented.
@@ -101,50 +181,32 @@ CffiResult
 CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
                     Tcl_Obj *enumObj,
                     Tcl_WideInt needle,
-                    int strict,
+                    int flags,
                     Tcl_Obj **nameObjP)
 {
     Tcl_HashEntry *heP;
-    Tcl_Obj *nameObj;
-    Tcl_Obj *valueObj;
-    int done;
 
     heP = Tcl_FindHashEntry(&ipCtxP->enums, enumObj);
     if (heP == NULL) {
-        if (strict)
+        if (!(flags & CFFI_F_ENUM_SKIP_STORE_ERROR))
             return Tclh_ErrorNotFound(ipCtxP->interp, "Enum", enumObj, NULL);
+        *nameObjP = Tcl_NewWideIntObj(needle);
+        return TCL_OK;
     }
     else {
-        Tcl_DictSearch search;
         Tcl_Obj *entries = Tcl_GetHashValue(heP);
-        CHECK(Tcl_DictObjFirst(
-            ipCtxP->interp, entries, &search, &nameObj, &valueObj, &done));
-        while (!done) {
-            Tcl_WideInt wide;
-            if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
-                && wide == needle) {
-                *nameObjP = nameObj;
-                Tcl_DictObjDone(&search);
-                return TCL_OK;
-            }
-            Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
-        }
-        Tcl_DictObjDone(&search);
-        if (strict)
-            return Tclh_ErrorNotFound(
-                ipCtxP->interp, "Enum member value", NULL, NULL);
+        return CffiEnumMemberFindReverse(
+            ipCtxP, entries, needle, flags, nameObjP);
     }
-    *nameObjP = Tcl_NewWideIntObj(needle);
-    return TCL_OK;
 }
 
 
-/* Function: CffiEnumBitmask
+/* Function: CffiEnumMemberBitmask
  * Calculates a bitmask by doing a bitwise-OR of elements in a list
  *
  * Parameters:
  * ipCtxP - context in which the enum is defined
- * enumObj - name of the enum
+ * mapObj - enum mapping dictionary
  * valueListObj - list whose elements are to be OR-ed
  * maskP - location to store the result of OR-ing the elements
  *
@@ -154,10 +216,10 @@ CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
  * *TCL_OK* on success, else *TCL_ERROR* on failure.
  */
 CffiResult
-CffiEnumBitmask(CffiInterpCtx *ipCtxP,
-                Tcl_Obj *enumObj,
-                Tcl_Obj *valueListObj,
-                Tcl_WideInt *maskP)
+CffiEnumMemberBitmask(CffiInterpCtx *ipCtxP,
+                      Tcl_Obj *mapObj,
+                      Tcl_Obj *valueListObj,
+                      Tcl_WideInt *maskP)
 {
     Tcl_Obj **objs;
     Tcl_Interp *ip = ipCtxP->interp;
@@ -171,11 +233,11 @@ CffiEnumBitmask(CffiInterpCtx *ipCtxP,
     for (i = 0; i < nobjs; ++i) {
         Tcl_WideInt wide;
         Tcl_Obj *wideObj;
-        ret = Tcl_GetWideIntFromObj(enumObj ? NULL : ip, objs[i], &wide);
+        ret = Tcl_GetWideIntFromObj(mapObj ? NULL : ip, objs[i], &wide);
         if (ret != TCL_OK) {
-            if (enumObj == NULL)
+            if (mapObj == NULL)
                 return ret;
-            CHECK(CffiEnumFind(ipCtxP, enumObj, objs[i], 0, &wideObj));
+            CHECK(CffiEnumMemberFind(ipCtxP, mapObj, objs[i], 0, &wideObj));
             CHECK(Tcl_GetWideIntFromObj(ip, wideObj, &wide));
         }
         mask |= wide;
@@ -238,7 +300,7 @@ CffiEnumNameCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     CFFI_ASSERT(objc == 4);
 
     CHECK(Tcl_GetWideIntFromObj(ipCtxP->interp, objv[3], &wide));
-    CHECK(CffiEnumFindReverse(ipCtxP, objv[2], wide, 1, &nameObj));
+    CHECK(CffiEnumFindReverse(ipCtxP, objv[2], wide, 0, &nameObj));
     Tcl_SetObjResult(ipCtxP->interp, nameObj);
     return TCL_OK;
 }
