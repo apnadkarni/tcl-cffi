@@ -423,15 +423,15 @@ void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 {
     CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
     CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
-#ifdef CFFI_USE_DYNCALL
-    if (vmCtxP->vmP)
-        dcFree(vmCtxP->vmP);
-#endif
     if (ipCtxP) {
         CffiAliasesCleanup(&ipCtxP->aliases);
         CffiPrototypesCleanup(&ipCtxP->prototypes);
         CffiEnumsCleanup(&ipCtxP->enums);
         MemLifoClose(&ipCtxP->memlifo);
+#ifdef CFFI_USE_DYNCALL
+    if (ipCtxP->vmP)
+        dcFree(ipCtxP->vmP);
+#endif
         ckfree(ipCtxP);
     }
     ckfree(vmCtxP);
@@ -465,6 +465,9 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_InitObjHashTable(&ipCtxP->aliases);
     Tcl_InitObjHashTable(&ipCtxP->prototypes);
     Tcl_InitObjHashTable(&ipCtxP->enums);
+#ifdef CFFI_USE_DYNCALL
+    ipCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
+#endif
 
     /* TBD - size 16000 too much? */
     if (MemLifoInit(
@@ -475,9 +478,6 @@ Cffi_Init(Tcl_Interp *ip)
 
     vmCtxP = ckalloc(sizeof(*vmCtxP));
     vmCtxP->ipCtxP = ipCtxP;
-#ifdef CFFI_USE_DYNCALL
-    vmCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
-#endif
 
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, vmCtxP, NULL);

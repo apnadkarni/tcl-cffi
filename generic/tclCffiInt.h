@@ -317,6 +317,9 @@ typedef struct CffiInterpCtx {
     Tcl_HashTable aliases;  /* typedef name -> CffiTypeAndAttrs */
     Tcl_HashTable prototypes; /* prototype name -> CffiProto */
     Tcl_HashTable enums;      /* Enum -> (name->value table) */
+#ifdef CFFI_USE_DYNCALL
+    DCCallVM *vmP; /* The dyncall call context to use */
+#endif
     MemLifo memlifo;        /* Software stack */
 } CffiInterpCtx;
 
@@ -325,9 +328,6 @@ typedef struct CffiInterpCtx {
  */
 typedef struct CffiCallVmCtx {
     CffiInterpCtx *ipCtxP;
-#ifdef CFFI_USE_DYNCALL
-    DCCallVM *vmP; /* The dyncall call context to use */
-#endif
 } CffiCallVmCtx;
 
 /* Context for dll commands. */
@@ -369,15 +369,15 @@ typedef struct CffiParam {
  * parameters is variable.
  */
 typedef struct CffiProto {
-    int nRefs;             /* Reference count */
-    int nParams;           /* Number of params, sizeof params array */
-    CffiABIProtocol abi;   /* cdecl, stdcall etc. */
-    CffiParam returnType;  /* Name and return type of function */
+    int nRefs;            /* Reference count */
+    int nParams;          /* Number of params, sizeof params array */
+    CffiABIProtocol abi;  /* cdecl, stdcall etc. */
+    CffiParam returnType; /* Name and return type of function */
 #ifdef CFFI_USE_LIBFFI
     ffi_cif *cifP; /* Descriptor used by cffi */
 #endif
-    CffiParam params[1];   /* Real size depends on nparams which
-                               may even be 0!*/
+    CffiParam params[1]; /* Real size depends on nparams which
+                             may even be 0!*/
     /* !!!DO NOT ADD FIELDS HERE AT END OF STRUCT!!! */
 } CffiProto;
 CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
@@ -392,9 +392,9 @@ typedef struct CffiFunction {
     CffiCallVmCtx *vmCtxP; /* Context for the call */
     void *fnAddr;          /* Pointer to the function to call */
     CffiProto *protoP;     /* Prototype for the call */
-    CffiLibCtx *libCtxP; /* Containing library for bound functions or
-                            NULL for free standing functions */
-    Tcl_Obj *cmdNameObj; /* Name of Tcl command. May be NULL */
+    CffiLibCtx *libCtxP;   /* Containing library for bound functions or
+                              NULL for free standing functions */
+    Tcl_Obj *cmdNameObj;   /* Name of Tcl command. May be NULL */
 } CffiFunction;
 
 /* Struct: CffiArgument
@@ -406,21 +406,21 @@ typedef struct CffiArgument {
                              like disposable pointers. NOT used in all cases */
     Tcl_Obj *varNameObj;  /* Name of output variable or NULL */
 #ifdef CFFI_USE_LIBFFI
-    void *valueP; /* Always points to the value field. Used for libcffi
-                     which needs an additional level of indirection for
-                     byref parameters. Only set as needed in CffiPrepareArg */
+    void *valueP;         /* Always points to the value field. Used for libcffi
+                             which needs an additional level of indirection for
+                             byref parameters. Only set as needed in CffiPrepareArg */
 #endif
     int actualCount;      /* For dynamic arrays, stores the actual size.
-                             Always >= 0 (0 being scalar) */
+                             Always > = 0 (0 being scalar) */
     int flags;
 #define CFFI_F_ARG_INITIALIZED 0x1
 } CffiArgument;
 
 /* Struct: CffiCall
- * Complete context for a call invocation */
+ * Complete context for a call invocation
+ */
 typedef struct CffiCall {
     CffiFunction *fnP;         /* Function being called */
-    CffiArgument *argsP;   /* Arguments */
 #ifdef CFFI_USE_LIBFFI
     void **argValuesPP; /* Array of pointers into the actual value fields within
                            argsP[] elements */
@@ -428,6 +428,7 @@ typedef struct CffiCall {
     CffiValue retValue; /* Holds return value */
 #endif
     int nArgs;             /* Size of argsP. */
+    CffiArgument *argsP;   /* Arguments */
 } CffiCall;
 
 /*
@@ -592,10 +593,10 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP);
 
 #define DEFINEFN_(type_, name_, fn_) \
 CFFI_INLINE type_ name_ (CffiCall *callP) { \
-    return fn_ (callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr); \
+    return fn_ (callP->fnP->vmCtxP->ipCtxP->vmP, callP->fnP->fnAddr); \
 }
 CFFI_INLINE void CffiCallVoidFunc (CffiCall *callP) {
-    dcCallVoid(callP->fnP->vmCtxP->vmP, callP->fnP->fnAddr);
+    dcCallVoid(callP->fnP->vmCtxP->ipCtxP->vmP, callP->fnP->fnAddr);
 }
 
 DEFINEFN_(signed char, CffiCallSCharFunc, dcCallInt)
@@ -617,7 +618,7 @@ DEFINEFN_(DCpointer, CffiCallPointerFunc, dcCallPointer)
 #define STOREARGFN_(name_, type_, storefn_) \
 CFFI_INLINE void CffiStoreArg ## name_ (CffiCall *callP, int ix, type_ val) \
 { \
-    storefn_(callP->fnP->vmCtxP->vmP, val); \
+    storefn_(callP->fnP->vmCtxP->ipCtxP->vmP, val); \
 }
 STOREARGFN_(Pointer, void*, dcArgPointer)
 STOREARGFN_(SChar, signed char, dcArgChar)
