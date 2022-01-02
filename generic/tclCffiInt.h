@@ -310,7 +310,7 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
 typedef struct CffiScope {
     Tcl_HashTable aliases;  /* typedef name -> CffiTypeAndAttrs */
     Tcl_HashTable enums;    /* Enum -> (name->value table) */
-#define CFFI_F_SCOPE_GLOBAL 0x1 /* Marks the scope as the global one */
+    Tcl_HashTable prototypes; /* prototype name -> CffiProto */
     int nRefs;
     char name[1]; /* Name of scope. Note variable length array! */
     /* Do NOT ADD FIELDS HERE */
@@ -334,8 +334,8 @@ typedef struct CffiInterpCtx {
                                  interp deletion */
     Tcl_HashTable scopes;     /* scope name -> CffiScope */
     CffiScope *globalScopeP;  /* Links to the global scope in scopes */
-    Tcl_HashTable prototypes; /* prototype name -> CffiProto */
 #ifdef OBSOLETE
+    Tcl_HashTable prototypes; /* prototype name -> CffiProto */
     Tcl_HashTable aliases;    /* typedef name -> CffiTypeAndAttrs */
     Tcl_HashTable enums;      /* Enum -> (name->value table) */
 #endif
@@ -570,7 +570,8 @@ CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                               CffiProto **protoPP);
 void CffiProtoUnref(CffiProto *protoP);
 void CffiPrototypesCleanup(Tcl_HashTable *protoTableP);
-CffiProto *CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
+CffiProto *
+CffiProtoGet(CffiScope *scopeP, Tcl_Obj *protoNameObj);
 
 void CffiLibCtxUnref(CffiLibCtx *ctxP);
 void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj);

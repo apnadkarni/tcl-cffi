@@ -141,9 +141,8 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
  * form.
  *
  * Parameters:
- *   ipCtxP - Interpreter context
+ *   scopeP - scope
  *   protoNameObj - prototype name
- *   protoPP - location to store pointer to the CffiProto
  *
  * Note that the reference count of the returned structure is not incremented
  * Caller should do that if it is going to be held on to.
@@ -153,13 +152,12 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
  * is returned otherwise *NULL*.
  */
 CffiProto *
-CffiProtoGet(CffiInterpCtx *ipCtxP,
-             Tcl_Obj *protoNameObj)
+CffiProtoGet(CffiScope *scopeP, Tcl_Obj *protoNameObj)
 {
     Tcl_HashEntry *heP;
     CffiProto *protoP;
 
-    heP = Tcl_FindHashEntry(&ipCtxP->prototypes, protoNameObj);
+    heP = Tcl_FindHashEntry(&scopeP->prototypes, protoNameObj);
     if (heP == NULL)
         return NULL;
     protoP = Tcl_GetHashValue(heP);
@@ -188,28 +186,26 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
 {
     Tcl_HashEntry *heP;
     CffiProto *protoP;
+    CffiScope *scopeP;
     Tcl_Obj *nameObj = objv[2];
     int new_entry;
 
     CFFI_ASSERT(objc == 5);
 
-    /* Restrict name syntax - TBD - pull into common routine */
     CHECK(CffiNameSyntaxCheck(ip, nameObj));
 
-    heP = Tcl_FindHashEntry(&ipCtxP->prototypes, nameObj);
+    /* Prototype scopes are per the current namespace context */
+    scopeP = CffiScopeGet(ipCtxP, NULL);
+
+    heP = Tcl_FindHashEntry(&scopeP->prototypes, nameObj);
     if (heP)
         return Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
 
-    /* Prototype scopes are per the current namespace context */
-    CHECK(CffiPrototypeParse(ipCtxP,
-                             CffiScopeGet(ipCtxP, NULL),
-                             nameObj,
-                             objv[3],
-                             objv[4],
-                             &protoP));
+    CHECK(
+        CffiPrototypeParse(ipCtxP, scopeP, nameObj, objv[3], objv[4], &protoP));
     protoP->abi = callMode;
 
-    heP = Tcl_CreateHashEntry(&ipCtxP->prototypes, (char *) nameObj, &new_entry);
+    heP = Tcl_CreateHashEntry(&scopeP->prototypes, (char *) nameObj, &new_entry);
     if (! new_entry) {
         /* Should not happen because of existence check above but future proofing */
         CffiProto *oldP = Tcl_GetHashValue(heP);
@@ -231,8 +227,10 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
     const char *pattern;
     CffiProto *protoP;
     Tcl_HashTable *tableP;
+    CffiScope *scopeP;
 
-    tableP = &ipCtxP->prototypes;
+    scopeP = CffiScopeGet(ipCtxP, NULL);
+    tableP = &scopeP->prototypes;
 
     CFFI_ASSERT(objc == 3);
     heP = Tcl_FindHashEntry(tableP, objv[2]);
@@ -267,7 +265,8 @@ CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
     Tcl_HashEntry *heP;
     Tcl_HashSearch hSearch;
     const char *pattern;
-    Tcl_HashTable *tableP = &ipCtxP->prototypes;
+    CffiScope *scopeP = CffiScopeGet(ipCtxP, NULL);
+    Tcl_HashTable *tableP = &scopeP->prototypes;
     Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
 
     pattern = objc > 2 ? Tcl_GetString(objv[2]) : NULL;

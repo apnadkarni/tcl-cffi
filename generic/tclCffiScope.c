@@ -10,8 +10,9 @@
 static void
 CffiScopeCleanup(CffiScope *scopeP)
 {
-    CffiEnumsCleanup(&scopeP->enums);
     CffiAliasesCleanup(&scopeP->aliases);
+    CffiEnumsCleanup(&scopeP->enums);
+    CffiPrototypesCleanup(&scopeP->prototypes);
 }
 
 static void
@@ -75,6 +76,7 @@ CffiScopeGet(CffiInterpCtx *ipCtxP, const char *nameP)
         scopeP = ckalloc(offsetof(CffiScope, name) + nameLen);
         Tcl_InitObjHashTable(&scopeP->aliases);
         Tcl_InitObjHashTable(&scopeP->enums);
+        Tcl_InitObjHashTable(&scopeP->prototypes);
         scopeP->nRefs = 1;
         memcpy(scopeP->name, nameP, nameLen);
         Tcl_SetHashValue(heP, scopeP);

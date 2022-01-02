@@ -124,6 +124,7 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* TBD - make into a TCLH function */
 /* Function: CffiQualifyName
  * Fully qualifes a name that is relative.
  *
@@ -161,6 +162,7 @@ CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj)
     }
 }
 
+/* TBD - move to TCLH */
 /* Function: Tclh_ObjHashEnumerateEntries
  * Returns a list of keys of a hash table that uses *Tcl_Obj* keys.
  *
@@ -196,6 +198,7 @@ Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj)
     return resultObj;
 }
 
+/* TBD - move to TCLH */
 /* Function: Tclh_ObjHashDeleteEntries
  * Deletes entries with keys matching the specified pattern in a *Tcl_Obj*
  * hash table.
@@ -266,6 +269,45 @@ CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP)
     return TCL_OK;
 }
 
+/* TBD - move to TCLH */
+static Tcl_Obj *
+Tclh_NamespaceTail(const char *nsPathP, Tcl_Obj **qualifiersObjP)
+{
+    const char *tailP;
+    const char *endP;
+    Tcl_Obj *tailObj;
+
+    /* Go to end. TBD - +strlen() intrinsic faster? */
+    for (tailP = nsPathP;  *tailP != '\0';  tailP++) {
+        /* empty body */
+    }
+    endP = tailP;
+    while (--tailP > nsPathP) {
+        if ((*tailP == ':') && (*(tailP-1) == ':')) {
+            tailP++; /* Just after the last "::" */
+            break;
+        }
+    }
+
+    /*
+     * tail -> tail NULL
+     * head::tail -> tail head
+     * head:: -> NULL head
+     * {} -> NULL NULL
+     */
+    CFFI_ASSERT(tailP >= nsPathP);
+    tailObj =
+        *tailP == '\0' ? NULL : Tcl_NewStringObj(tailP, (Tclh_SSizeT)(endP - tailP));
+    if (qualifiersObjP) {
+        /* Remember we do not want trailing :: */
+        if (tailP < 2+nsPathP)
+            *qualifiersObjP = NULL;
+        else
+            *qualifiersObjP = Tcl_NewStringObj(nsPathP, (Tclh_SSizeT) (tailP - nsPathP - 2));
+    }
+    return tailObj;
+}
+
 static CffiResult
 CffiCallObjCmd(ClientData cdata,
                Tcl_Interp *ip,
@@ -273,19 +315,43 @@ CffiCallObjCmd(ClientData cdata,
                Tcl_Obj *const objv[])
 {
     Tcl_Obj *protoNameObj;
+    Tcl_Obj *scopeObj;
     CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
     CffiProto *protoP;
     CffiFunction *fnP;
+    CffiScope *scopeP;
     CffiResult ret;
     void *fnAddr;
 
     CHECK_NARGS(ip, 2, INT_MAX, "FNPTR ?ARG ...?");
     CHECK(Tclh_PointerObjGetTag(ip, objv[1], &protoNameObj));
     CHECK(Tclh_PointerUnwrap(ip, objv[1], &fnAddr, NULL));
-    if (protoNameObj == NULL
-        || (protoP = CffiProtoGet(vmCtxP->ipCtxP, protoNameObj)) == NULL) {
+    if (protoNameObj) {
+        /* The tag is consists of the scope followed by prototype name. */
+        protoNameObj =
+            Tclh_NamespaceTail(Tcl_GetString(protoNameObj), &scopeObj);
+    }
+    if (protoNameObj == NULL)
         return Tclh_ErrorNotFound(
             ip, "Prototype", protoNameObj, "Function prototype not found.");
+
+    CFFI_ASSERT(protoNameObj);
+    Tcl_IncrRefCount(protoNameObj);
+    if (scopeObj) {
+        scopeP = CffiScopeGet(vmCtxP->ipCtxP, Tcl_GetString(scopeObj));
+        Tcl_DecrRefCount(scopeObj);
+        scopeObj = NULL;
+    }
+    else
+        scopeP = CffiScopeGet(vmCtxP->ipCtxP, NULL);
+
+    protoP = CffiProtoGet(scopeP, protoNameObj);
+    Tcl_DecrRefCount(protoNameObj);
+    protoNameObj = NULL;
+
+    if (protoP == NULL) {
+        return Tclh_ErrorNotFound(
+            ip, "Prototype", objv[1], "Function prototype not found.");
     }
 
     fnP = ckalloc(sizeof(*fnP));
@@ -403,48 +469,21 @@ CffiSandboxObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
+    Tcl_Obj *head, *tail;
     CffiResult ret = TCL_OK;
+    Tcl_Obj *result = Tcl_NewListObj(2, NULL);
 
-    Tcl_WideInt wide;
-    #if 0
-    ret = Tclh_ObjToWideInt(ip, objv[1], &wide);
-    #else
-    ret = Tcl_GetWideIntFromObj(ip, objv[1], &wide);
-    #endif
-    if (!ret)
-        Tcl_SetObjResult(ip, Tcl_NewWideIntObj(wide));
-#if 0
-    unsigned long long ull;
-    mp_int big;
-    Tcl_WideInt wide;
-    ret = Tcl_GetWideIntFromObj(ip, objv[1], &wide);
-    if (ret == TCL_OK) {
-        ret = Tcl_GetBignumFromObj(ip, objv[1], &big);
-        if (ret == TCL_OK) {
-            Tcl_SetObjResult(ip, Tcl_NewBignumObj(&big));
-        }
-        int ival;
-        ret = Tcl_GetIntFromObj(ip, objv[1], &ival);
-        if (ret == TCL_OK)
-            Tcl_SetObjResult(ip, Tcl_NewIntObj(ival));
-    }
+    tail = Tclh_NamespaceTail(Tcl_GetString(objv[1]), &head);
 
-    // ret = Tcl_GetBignumFromObj(ip, objv[1], &big);
-#endif
-#if 0
-    if (Tclh_ObjToULongLong(ip, objv[1], &ull) != TCL_OK)
-        return TCL_ERROR;
-    else {
-        char buf[40];
-#ifdef _WIN32
-        _snprintf(buf, 40, "%I64u", ull);
-#else
-        snprintf(buf, 40, "%llu", ull);
-#endif
-        Tcl_SetResult(ip, buf, TCL_VOLATILE);
-        return TCL_OK;
-    }
-#endif
+    if (head)
+        Tcl_ListObjAppendElement(ip, result, head);
+    else
+        Tcl_ListObjAppendElement(ip, result, Tcl_NewStringObj("NULL", -1));
+    if (tail)
+        Tcl_ListObjAppendElement(ip, result, tail);
+    else
+        Tcl_ListObjAppendElement(ip, result, Tcl_NewStringObj("NULL", -1));
+    Tcl_SetObjResult(ip, result);
     return ret;
 }
 
@@ -461,12 +500,7 @@ void CffiFinit(ClientData cdata, Tcl_Interp *ip)
     CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
     CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
     if (ipCtxP) {
-        CffiPrototypesCleanup(&ipCtxP->prototypes);
         CffiScopesCleanup(&ipCtxP->scopes);
-#ifdef OBSOLETE
-        CffiAliasesCleanup(&ipCtxP->aliases);
-        CffiEnumsCleanup(&ipCtxP->enums);
-#endif
         MemLifoClose(&ipCtxP->memlifo);
 #ifdef CFFI_USE_DYNCALL
     if (ipCtxP->vmP)
@@ -502,7 +536,6 @@ Cffi_Init(Tcl_Interp *ip)
 
     ipCtxP = ckalloc(sizeof(*ipCtxP));
     ipCtxP->interp = ip;
-    Tcl_InitObjHashTable(&ipCtxP->prototypes);
     Tcl_InitHashTable(&ipCtxP->scopes, TCL_STRING_KEYS);
     ipCtxP->globalScopeP = NULL;
 #ifdef OBSOLETE

@@ -1135,7 +1135,6 @@ CffiStructObjCmd(ClientData cdata,
         {"create", 2, 3, "OBJNAME STRUCTDEF ?-clear?", NULL},
         {NULL}
     };
-    Tcl_Obj *structNameObj;
     Tcl_Obj *cmdNameObj;
     Tcl_Obj *defObj;
     int cmdIndex;
@@ -1181,11 +1180,9 @@ CffiStructObjCmd(ClientData cdata,
     }
 
     Tcl_IncrRefCount(cmdNameObj);
-    structNameObj = Tcl_ObjPrintf("%s", Tcl_GetString(cmdNameObj));
-    Tcl_IncrRefCount(structNameObj);
 
     ret = CffiStructParse(
-        ipCtxP, CffiScopeGet(ipCtxP, NULL), structNameObj, defObj, &structP);
+        ipCtxP, CffiScopeGet(ipCtxP, NULL), cmdNameObj, defObj, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;
@@ -1202,7 +1199,6 @@ CffiStructObjCmd(ClientData cdata,
         Tcl_SetObjResult(ip, cmdNameObj);
     }
     Tcl_DecrRefCount(cmdNameObj);
-    Tcl_DecrRefCount(structNameObj);
     return ret;
 }
 
