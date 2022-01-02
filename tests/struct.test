@@ -130,7 +130,7 @@ namespace eval cffi::test {
             ::cffi::Struct create S {x int}
             cffi::type size struct.S
         }] [::tempns::S name]
-    } -result [list 4 tempns::S]
+    } -result [list 4 ::tempns::S]
 
 
     test struct-namespace-3 "Verify qualified struct available in namespace" -cleanup {
@@ -187,7 +187,7 @@ namespace eval cffi::test {
     } -body {
         set p [S allocate]
         cffi::pointer tag $p
-    } -result [string trimleft [namespace current] :]::S
+    } -result [namespace current]::S
 
     test struct-allocate-error-0 "struct allocate zero count" -setup {
         cffi::Struct create S {x int}
@@ -224,7 +224,7 @@ namespace eval cffi::test {
     } -cleanup {
         rename ::S {}
     } -body {
-        ::S free 0^S
+        ::S free 0^::S
     } -result ""
 
     ###
@@ -233,7 +233,7 @@ namespace eval cffi::test {
 
     test struct-fromnative-0 "struct fromnative" -setup {
         set p [TestStruct allocate]
-        testDll function getTestStruct int {p pointer.TestStruct}
+        testDll function getTestStruct int {p pointer.::TestStruct}
     } -cleanup {
         TestStruct free $p
         rename getTestStruct ""
@@ -246,7 +246,7 @@ namespace eval cffi::test {
     test struct-fromnative-1 "struct fromnative index" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
         set p [S allocate 3]
-        testDll function structArrayFill int {n int p pointer.S}
+        testDll function structArrayFill int {n int p pointer.::S}
     } -cleanup {
         S free $p
         rename S ""
@@ -263,7 +263,7 @@ namespace eval cffi::test {
     } -body {
         cffi::pointer dispose $p
         set s [::TestStruct fromnative $p]
-    } -result {^Pointer 0x[[:xdigit:]]+\^TestStruct is not registered\.$} -match regexp -returnCodes error
+    } -result {^Pointer 0x[[:xdigit:]]+\^::TestStruct is not registered\.$} -match regexp -returnCodes error
 
     ###
     # fromnative!
@@ -271,7 +271,7 @@ namespace eval cffi::test {
 
     test struct-fromnative!-0 "struct fromnative!" -setup {
         set p [TestStruct allocate]
-        testDll function getTestStruct int {p {pointer.TestStruct unsafe}}
+        testDll function getTestStruct int {p {pointer.::TestStruct unsafe}}
     } -cleanup {
         TestStruct free $p
         rename getTestStruct ""
@@ -284,7 +284,7 @@ namespace eval cffi::test {
     test struct-fromnative!-1 "struct fromnative! index" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
         set p [S allocate 3]
-        testDll function structArrayFill int {n int p pointer.S}
+        testDll function structArrayFill int {n int p pointer.::S}
     } -cleanup {
         S free $p
         rename S ""
@@ -295,7 +295,7 @@ namespace eval cffi::test {
     test struct-fromnative!-2 "struct fromnative! - unsafe" -setup {
         set p [TestStruct allocate]
         cffi::pointer dispose $p ;# Make unsafe
-        testDll function getTestStruct int {p {pointer.TestStruct unsafe}}
+        testDll function getTestStruct int {p {pointer.::TestStruct unsafe}}
     } -cleanup {
         cffi::pointer safe $p ;# Before freeing
         TestStruct free $p
@@ -503,7 +503,7 @@ namespace eval cffi::test {
     } -body {
         # Name should not have leading ::
         S name
-    } -result "cffi::test::S"
+    } -result "::cffi::test::S"
 
     ###
     # Aliases in structs

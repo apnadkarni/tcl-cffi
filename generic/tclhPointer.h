@@ -40,7 +40,7 @@ typedef Tcl_Obj *Tclh_PointerTypeTag;
  * so that when checking arguments, the pointer type tag can be checked as
  * well. The type tag is typedefed as Tcl's *Tcl_Obj* type and is
  * treated as opaque as far as this library is concerned. The application
- * must provide a related functions, <Tclh_PointerTagMatch>, for the purpose
+ * must provide a related function, <Tclh_PointerTagMatch>, for the purpose
  * of checking a pointer tag.
  *
  * As a special case, no type checking is done on pointers with a type tag of

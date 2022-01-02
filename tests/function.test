@@ -941,17 +941,17 @@ namespace eval ${NS}::test {
 
     # pointer tags
     test function-pointer-param-tag-0 "pointer tag safe" -setup {
-        testDll function pointer_noop void {p pointer.TAG}
-        cffi::pointer safe 1^TAG
+        testDll function pointer_noop void {p pointer.::TAG}
+        cffi::pointer safe 1^::TAG
     } -cleanup {
-        cffi::pointer dispose 1^TAG
+        cffi::pointer dispose 1^::TAG
     } -body {
-        pointer_noop 1^TAG
+        pointer_noop 1^::TAG
     } -result ""
 
     test function-pointer-param-tag-1 "pointer tag unsafe" -body {
         testDll function pointer_noop void {p {pointer.TAG unsafe}}
-        pointer_noop 1^TAG
+        pointer_noop 1^[namespace current]::TAG
     } -result ""
 
     test function-pointer-param-tag-2 "pointer tag safe - wrong type" -body {
@@ -965,12 +965,12 @@ namespace eval ${NS}::test {
     } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
 
     test function-pointer-param-tag-4 "pointer tag counted" -setup {
-        testDll function pointer_noop void {p {pointer.TAG counted}}
-        cffi::pointer counted 1^TAG
+        testDll function pointer_noop void {p {pointer.::TAG counted}}
+        cffi::pointer counted 1^::TAG
     } -cleanup {
-        cffi::pointer dispose 1^TAG
+        cffi::pointer dispose 1^::TAG
     } -body {
-        pointer_noop 1^TAG
+        pointer_noop 1^::TAG
     } -result ""
 
     test function-pointer-param-tag-5 "pointer tag counted - wrong type" -body {
@@ -981,9 +981,10 @@ namespace eval ${NS}::test {
     # tag dispose
     test function-pointer-param-tag-6 "pointer tag dispose" -setup {
         testDll function pointer_noop void {p {pointer.TAG dispose}}
-        cffi::pointer safe 1^TAG
+        set tag [namespace current]::TAG
+        cffi::pointer safe 1^$tag
     } -body {
-        list [pointer_noop 1^TAG] [cffi::pointer isvalid 1^TAG]
+        list [pointer_noop 1^$tag] [cffi::pointer isvalid 1^$tag]
     } -result [list {} 0]
 
     test function-pointer-param-tag-7 "pointer tag dispose - wrong type" -body {
@@ -1474,7 +1475,7 @@ namespace eval ${NS}::test {
     }
 
     # Return attributes for pointers
-    foreach type {pointer pointer.TAG} tag {{} TAG} {
+    foreach type {pointer pointer.::TAG} tag {{} ::TAG} {
         # safe
         test function-return-$type-safe-0 "return type $type safe" -body {
             testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}

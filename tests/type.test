@@ -555,7 +555,7 @@ namespace eval cffi::test {
         } -result [list size [expr {$count ? ($count * $::tcl_platform(pointerSize)) : $::tcl_platform(pointerSize)}] count $count alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
     }
 
-    foreach type {pointer pointer.TAG} {
+    foreach type {pointer pointer.::TAG} {
         ### Parse mode = param
 
         set pointer_valid_error_attrs {errno lasterror}
@@ -952,7 +952,7 @@ namespace eval cffi::test {
                 "in byref {default {}}" "in byref {default {}}"
                 "in byref nullifempty" "in byref nullifempty"
             } {
-                teststruct "struct.TestStruct $attrs" param $expected
+                teststruct "struct.::TestStruct $attrs" param $expected
             }
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.} -constraints libffi
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode $errorMessages(structbyref) -constraints dyncall
@@ -962,9 +962,9 @@ namespace eval cffi::test {
             }
             if {$parse_mode eq "return"} {
                 testinvalidattr "struct.TestStruct" $parse_mode $errorMessages(typeparsemode) -constraints dyncall
-                teststruct "struct.TestStruct" $parse_mode "" 0 -constraints libffi
+                teststruct "struct.::TestStruct" $parse_mode "" 0 -constraints libffi
             } else {
-                teststruct "struct.TestStruct" $parse_mode ""
+                teststruct "struct.::TestStruct" $parse_mode ""
             }
         }
         # Failure tests - invalid attribute combinations
@@ -980,8 +980,8 @@ namespace eval cffi::test {
 
         # Array tests
         if {$parse_mode eq "param"} {
-            teststruct {struct.TestStruct byref} param "in byref" 2
-            teststruct {struct.TestStruct out} param "out byref" 2
+            teststruct {struct.::TestStruct byref} param "in byref" 2
+            teststruct {struct.::TestStruct out} param "out byref" 2
         }
         if {$parse_mode eq "field"} {
             testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(fieldvararray)

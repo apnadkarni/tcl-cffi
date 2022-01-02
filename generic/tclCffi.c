@@ -124,6 +124,43 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Function: CffiQualifyName
+ * Fully qualifes a name that is relative.
+ *
+ * If the name is already fully qualified, it is returned as is. Otherwise
+ * it is qualified with the name of the current namespace.
+ *
+ * Parameters:
+ * ip - interpreter
+ * nameObj - name
+ *
+ * Returns:
+ * A Tcl_Obj with the qualified name. This may be *nameObj* or a new Tcl_Obj.
+ * In either case, no manipulation of reference counts is done.
+ */
+Tcl_Obj *
+CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj)
+{
+    const char *name = Tcl_GetString(nameObj);
+
+    if (name[0] == ':' && name[1] == ':')
+        return nameObj; /* Already fully qualified */
+    else {
+        Tcl_Obj *fqnObj;
+        Tcl_Namespace *nsP;
+        nsP = Tcl_GetCurrentNamespace(ip);
+        if (nsP) {
+            fqnObj = Tcl_NewStringObj(nsP->fullName, -1);
+            if (strcmp("::", nsP->fullName))
+                Tcl_AppendToObj(fqnObj, "::", 2);
+        }
+        else
+            fqnObj = Tcl_NewStringObj("::", 2); /* Should not happen? */
+        Tcl_AppendObjToObj(fqnObj, nameObj);
+        return fqnObj;
+    }
+}
+
 /* Function: Tclh_ObjHashEnumerateEntries
  * Returns a list of keys of a hash table that uses *Tcl_Obj* keys.
  *
@@ -527,41 +564,4 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_RegisterConfig(ip, PACKAGE_NAME, cffiConfig, "utf-8");
 
     return TCL_OK;
-}
-
-/* Function: CffiQualifyName
- * Fully qualifes a name that is relative.
- *
- * If the name is already fully qualified, it is returned as is. Otherwise
- * it is qualified with the name of the current namespace.
- *
- * Parameters:
- * ip - interpreter
- * nameObj - name
- *
- * Returns:
- * A Tcl_Obj with the qualified name. This may be *nameObj* or a new Tcl_Obj.
- * In either case, no manipulation of reference counts is done.
- */
-Tcl_Obj *
-CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj)
-{
-    const char *name = Tcl_GetString(nameObj);
-
-    if (name[0] == ':' && name[1] == ':')
-        return nameObj; /* Already fully qualified */
-    else {
-        Tcl_Obj *fqnObj;
-        Tcl_Namespace *nsP;
-        nsP = Tcl_GetCurrentNamespace(ip);
-        if (nsP) {
-            fqnObj = Tcl_NewStringObj(nsP->fullName, -1);
-            if (strcmp("::", nsP->fullName))
-                Tcl_AppendToObj(fqnObj, "::", 2);
-        }
-        else
-            fqnObj = Tcl_NewStringObj("::", 2);
-        Tcl_AppendObjToObj(fqnObj, nameObj);
-        return fqnObj;
-    }
 }

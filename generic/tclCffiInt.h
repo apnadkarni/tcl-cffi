@@ -302,11 +302,18 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
 #define CFFI_F_STRUCT_CLEAR 0x0001
 
 
+/* Struct: CffiScope
+ * Contains scope-specific definitions.
+ *
+ * Note the structure is variable sized.
+ */
 typedef struct CffiScope {
     Tcl_HashTable aliases;  /* typedef name -> CffiTypeAndAttrs */
     Tcl_HashTable enums;    /* Enum -> (name->value table) */
 #define CFFI_F_SCOPE_GLOBAL 0x1 /* Marks the scope as the global one */
     int nRefs;
+    char name[1]; /* Name of scope. Note variable length array! */
+    /* Do NOT ADD FIELDS HERE */
 } CffiScope;
 CFFI_INLINE void CffiScopeRef(CffiScope *scopeP) {
     scopeP->nRefs += 1;
@@ -454,7 +461,10 @@ CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
 
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
                                             Tcl_Obj *baseTypeObj);
-CffiResult CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP);
+CffiResult CffiTypeParse(Tcl_Interp *ip,
+                         CffiScope *scope,
+                         Tcl_Obj *typeObj,
+                         CffiType *typeP);
 void CffiTypeCleanup(CffiType *);
 void CffiTypeLayoutInfo(const CffiType *typeP,
                         int *baseSizeP,

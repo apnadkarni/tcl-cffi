@@ -300,6 +300,25 @@ int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag ex
     return !strcmp(Tcl_GetString(pointer_tag), Tcl_GetString(expected_tag));
 }
 
+static Tcl_Obj *
+CffiPointerTag(CffiScope *scopeP, const char *scopedTagP, int tagLen)
+{
+    Tcl_Obj *tagObj;
+
+    /* If tag is fully qualified, return as is */
+    if (scopedTagP[0] == ':' && scopedTagP[1] == ':')
+        return Tcl_NewStringObj(scopedTagP, tagLen);
+
+    /* tag is relative so prefix with scope name */
+    tagObj = Tcl_NewStringObj(scopeP->name, -1);
+    /* Put separator only if not global namespace */
+    if (scopeP->name[0] != ':' || scopeP->name[1] != ':'
+        || scopeP->name[2] != 0)
+        Tcl_AppendToObj(tagObj, "::", 2);
+    Tcl_AppendToObj(tagObj, scopedTagP, tagLen);
+    return tagObj;
+}
+
 /* Function: CffiTypeInit
  * Initializes a CffiType structure
  *
@@ -348,6 +367,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
  *
  * Parameters:
  *   ip - Current interpreter
+ *   scopeP - the scope to use for resolving. Must not be NULL.
  *   typeObj - Contains the type definition to be parsed
  *   typeP - pointer to structure to hold the parsed type
  *
@@ -355,7 +375,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
  *  TCL_OK on success else TCL_ERROR with message in interpreter.
  */
 CffiResult
-CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
+CffiTypeParse(Tcl_Interp *ip, CffiScope *scopeP, Tcl_Obj *typeObj, CffiType *typeP)
 {
     int tokenLen;
     int tagLen;
@@ -368,6 +388,8 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     CffiResult ret;
 
     CFFI_ASSERT((sizeof(cffiBaseTypes)/sizeof(cffiBaseTypes[0]) - 1) == CFFI_K_NUM_TYPES);
+
+    CFFI_ASSERT(scopeP);
 
     CffiTypeInit(typeP, NULL);
     CFFI_ASSERT(typeP->count == 0); /* Code below assumes these values on init */
@@ -448,9 +470,8 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         break;
 
     case CFFI_K_TYPE_POINTER:
-        if (tagStr != NULL &&
-            (tagLen != 4 || strncmp(tagStr, "void", 4))) {
-                typeP->u.tagObj = Tcl_NewStringObj(tagStr, tagLen);
+        if (tagStr != NULL) {
+            typeP->u.tagObj = CffiPointerTag(scopeP, tagStr, tagLen);
                 Tcl_IncrRefCount(typeP->u.tagObj);
         }
         typeP->baseType = CFFI_K_TYPE_POINTER;
@@ -700,6 +721,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     static const char *typeInvalidForContextMsg = "The specified type is not valid for the type declaration context.";
     const char *message;
 
+    CFFI_ASSERT(scopeP);
+
     message = paramAnnotClashMsg;
 
     CHECK( Tcl_ListObjGetElements(ip, typeAttrObj, &nobjs, &objs) );
@@ -714,7 +737,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
         CffiTypeAndAttrsInit(typeAttrP, NULL);
-        CHECK(CffiTypeParse(ip, objs[0], &typeAttrP->dataType));
+        CHECK(CffiTypeParse(ip, scopeP, objs[0], &typeAttrP->dataType));
         baseType = typeAttrP->dataType.baseType;
         typeAttrP->parseModeSpecificObj = NULL;
         typeAttrP->flags      = 0;
@@ -1745,7 +1768,7 @@ CffiCharsInMemlifoFromObj(
      * extra two null bytes;
      */
     p = MemLifoAlloc(memlifoP, len+2);
-    memmove(p, Tcl_DStringValue(&ds), len);
+    memmove(p, fromP, len);
     p[len]     = 0;
     p[len + 1] = 0;
     *outPP = p;

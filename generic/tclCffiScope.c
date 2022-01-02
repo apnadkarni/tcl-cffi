@@ -69,10 +69,14 @@ CffiScopeGet(CffiInterpCtx *ipCtxP, const char *nameP)
 
     heP = Tcl_CreateHashEntry(&ipCtxP->scopes, nameP, &new_entry);
     if (new_entry) {
-        scopeP = ckalloc(sizeof(*scopeP));
+        int nameLen;
+        nameLen = Tclh_strlen(nameP) + 1; /* Including terminating null */
+        /* Allocate space to include name array at end.  */
+        scopeP = ckalloc(offsetof(CffiScope, name) + nameLen);
         Tcl_InitObjHashTable(&scopeP->aliases);
         Tcl_InitObjHashTable(&scopeP->enums);
         scopeP->nRefs = 1;
+        memcpy(scopeP->name, nameP, nameLen);
         Tcl_SetHashValue(heP, scopeP);
     }
     else {

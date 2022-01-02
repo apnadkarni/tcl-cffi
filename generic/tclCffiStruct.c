@@ -1149,12 +1149,20 @@ CffiStructObjCmd(ClientData cdata,
 
     if (cmdIndex == 0) {
         /* new */
-        cmdNameObj = Tcl_ObjPrintf("::" CFFI_NAMESPACE "::struct%u", ++name_generator);
+        Tcl_Namespace *nsP = Tcl_GetCurrentNamespace(ip);
+        const char *sep;
+        sep        = strcmp(nsP->fullName, "::") ? "::" : "";
+        cmdNameObj = Tcl_ObjPrintf(
+            "%s%scffiStruct%u", nsP->fullName, sep, ++name_generator);
         defObj  = objv[2];
         optIndex = 3;
     }
     else {
         /* create */
+        if (Tcl_GetCharLength(objv[2]) == 0) {
+            return Tclh_ErrorInvalidValue(
+                ip, objv[2], "Empty string specified for structure name.");
+        }
         cmdNameObj = CffiQualifyName(ip, objv[2]);
         defObj  = objv[3];
         optIndex = 4;
@@ -1173,8 +1181,7 @@ CffiStructObjCmd(ClientData cdata,
     }
 
     Tcl_IncrRefCount(cmdNameObj);
-    /* struct name does not have preceding :: for cosmetic reasons. */
-    structNameObj = Tcl_ObjPrintf("%s", 2 + Tcl_GetString(cmdNameObj));
+    structNameObj = Tcl_ObjPrintf("%s", Tcl_GetString(cmdNameObj));
     Tcl_IncrRefCount(structNameObj);
 
     ret = CffiStructParse(
