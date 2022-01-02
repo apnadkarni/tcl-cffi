@@ -1745,7 +1745,7 @@ CffiCharsInMemlifoFromObj(
      * extra two null bytes;
      */
     p = MemLifoAlloc(memlifoP, len+2);
-    memmove(p, Tcl_DStringValue(&ds), len);
+    memmove(p, fromP, len);
     p[len]     = 0;
     p[len + 1] = 0;
     *outPP = p;
