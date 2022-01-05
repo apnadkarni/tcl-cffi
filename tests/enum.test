@@ -12,6 +12,7 @@ namespace eval cffi::test {
     testnumargs enum-list "cffi::enum list" "" "?PATTERN?"
     testnumargs enum-members "cffi::enum members" "ENUM" ""
     testnumargs enum-sequence "cffi::enum sequence" "ENUM MEMBERNAMES" "?START?"
+    testnumargs enum-flags "cffi::enum flags" "ENUM FLAGNAMES" ""
 
     # Only very basic tests. Actual verification is in function.test
 
@@ -128,10 +129,30 @@ namespace eval cffi::test {
         cffi::enum sequence E {a b} 42
         cffi::enum members E
     } -result {a 42 b 43}
+    
+    test enum-12 "Define flags" -setup {
+        cffi::enum delete *
+    } -body {
+        cffi::enum flags E {a b c}
+        cffi::enum members E
+    } -result {a 1 b 2 c 4}
+
 
     test enum-error-0 "Invalid enum" -body {
         cffi::enum define X {a 1 b}
     } -result {missing value to go with key} -returnCodes error
+
+    test enum-error-1 "Invalid member name in definition" -body {
+        cffi::enum define X {1 2 3 4}
+    } -result {Invalid value "1". Invalid name syntax.} -returnCodes error
+
+    test enum-error-2 "Invalid member name in sequence" -body {
+        cffi::enum sequence X {1 2 3 4}
+    } -result {Invalid value "1". Invalid name syntax.} -returnCodes error
+
+    test enum-error-3 "Invalid member name in flags" -body {
+        cffi::enum flags X {1 2 3 4}
+    } -result {Invalid value "1". Invalid name syntax.} -returnCodes error
 
     test enum-value-0 "Get first enum member value" -setup {
         cffi::enum delete *
@@ -272,6 +293,16 @@ namespace eval cffi::test {
         namespace eval ::ns {cffi::enum sequence E {a b}}
         namespace eval ::ns {cffi::enum value E a}
     } -result 0
+
+    test enum-flags-scope-0 "Local scope flags" -setup {
+        namespace eval :: {cffi::enum delete *}
+        namespace eval ::ns {cffi::enum delete *}
+        cffi::enum delete *
+    } -body {
+        namespace eval :: {cffi::enum define E {a 10 b 20 c 30}}
+        namespace eval ::ns {cffi::enum flags E {a b}}
+        namespace eval ::ns {cffi::enum value E b}
+    } -result 2
 
     test enum-delete-scope-0 "Local scope delete" -setup {
         namespace eval :: {cffi::enum delete *}

@@ -365,6 +365,50 @@ CffiEnumNameCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     return TCL_OK;
 }
 
+static CffiResult
+CffiEnumFlagsCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_HashEntry *heP;
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Obj *enumObj;
+    Tcl_Obj **names;
+    CffiScope *scopeP;
+    int nNames;
+    int newEntry;
+    int i;
+
+    CFFI_ASSERT(objc == 4);
+
+    CHECK(CffiNameSyntaxCheck(ip, objv[2]));
+    CHECK(Tcl_ListObjGetElements(ip, objv[3], &nNames, &names));
+
+    if (nNames > 64)
+        return Tclh_ErrorInvalidValue(
+            ip, NULL, "Enum specified with more than 64 flag bits.");
+
+    /* We will create as list and let it be shimmered to dictionary as needed */
+    enumObj = Tcl_NewListObj(2 * nNames, NULL);
+    for (i = 0; i < nNames; ++i) {
+        if (CffiNameSyntaxCheck(ip, names[i]) != TCL_OK) {
+            Tcl_DecrRefCount(enumObj);
+            return TCL_ERROR;
+        }
+        Tcl_ListObjAppendElement(NULL, enumObj, names[i]);
+        Tcl_ListObjAppendElement(NULL, enumObj, Tcl_NewIntObj(1 << i));
+    }
+
+    scopeP = CffiScopeGet(ipCtxP, NULL);
+    heP = Tcl_CreateHashEntry(&scopeP->enums, (char *)objv[2], &newEntry);
+    if (! newEntry) {
+        Tcl_DecrRefCount(enumObj);
+        return Tclh_ErrorExists(ip, "Enum", objv[2], NULL);
+    }
+
+    Tcl_IncrRefCount(enumObj);
+    Tcl_SetHashValue(heP, enumObj);
+    return TCL_OK;
+}
+
 
 static CffiResult
 CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
@@ -389,16 +433,23 @@ CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     else
         start = 0;
 
-    scopeP = CffiScopeGet(ipCtxP, NULL);
-    heP = Tcl_CreateHashEntry(&scopeP->enums, (char *)objv[2], &newEntry);
-    if (! newEntry)
-        return Tclh_ErrorExists(ip, "Enum", objv[2], NULL);
 
     /* We will create as list and let it be shimmered to dictionary as needed */
     enumObj = Tcl_NewListObj(2 * nNames, NULL);
     for (i = 0; i < nNames; ++i) {
+        if (CffiNameSyntaxCheck(ip, names[i]) != TCL_OK) {
+            Tcl_DecrRefCount(enumObj);
+            return TCL_ERROR;
+        }
         Tcl_ListObjAppendElement(NULL, enumObj, names[i]);
         Tcl_ListObjAppendElement(NULL, enumObj, Tcl_NewIntObj(start++));
+    }
+
+    scopeP = CffiScopeGet(ipCtxP, NULL);
+    heP = Tcl_CreateHashEntry(&scopeP->enums, (char *)objv[2], &newEntry);
+    if (! newEntry) {
+        Tcl_DecrRefCount(enumObj);
+        return Tclh_ErrorExists(ip, "Enum", objv[2], NULL);
     }
 
     Tcl_IncrRefCount(enumObj);
@@ -432,7 +483,8 @@ CffiEnumListCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 static void CffiEnumEntryDelete(Tcl_HashEntry *heP)
 {
     Tcl_Obj *objP = Tcl_GetHashValue(heP);
-    Tcl_DecrRefCount(objP);
+    if (objP)
+        Tcl_DecrRefCount(objP);
 }
 
 static CffiResult
@@ -474,11 +526,12 @@ CffiEnumObjCmd(ClientData cdata,
     static const Tclh_SubCommand subCommands[] = {
         {"define", 2, 2, "ENUM MEMBERS", CffiEnumDefineCmd},
         {"delete", 1, 1, "PATTERN", CffiEnumDeleteCmd},
-        {"members", 1, 1, "ENUM", CffiEnumMembersCmd},
+        {"flags", 2, 2, "ENUM FLAGNAMES", CffiEnumFlagsCmd},
         {"list", 0, 1, "?PATTERN?", CffiEnumListCmd},
+        {"members", 1, 1, "ENUM", CffiEnumMembersCmd},
+        {"name", 2, 2, "ENUM VALUE", CffiEnumNameCmd},
         {"sequence", 2, 3, "ENUM MEMBERNAMES ?START?", CffiEnumSequenceCmd},
         {"value", 2, 2, "ENUM MEMBERNAME", CffiEnumValueCmd},
-        {"name", 2, 2, "ENUM VALUE", CffiEnumNameCmd},
         {NULL}};
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
