@@ -282,3 +282,10 @@ proc cffi::test::make_unsafe_pointers args {
         makeptr $addr
     }
 }
+
+# Resets enums in ::, cffi::test and any other passed namespaces
+proc cffi::test::reset_enums {args} {
+    foreach ns [list :: [namespace current] {*}$args] {
+        cffi::enum delete *
+    }
+}

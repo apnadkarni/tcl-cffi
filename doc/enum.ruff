@@ -32,6 +32,13 @@ namespace eval ${NS}::enum {
         # The command returns names of all enumerations with names matching
         # the specified pattern.
     }
+    proc mask {enumname membernames} {
+        # Returns an integer mask formed by bitwise OR-ing the passed
+        # enumeration members
+        #  enumname - name of the enumeration in the current [scope][Scopes]
+        #  membernames - list of member names and integer values.
+        # See also: "enum unmask"
+    }
     proc members {enumname} {
         # Returns a dictionary containing the members in an enumeration.
         #  enumname - name of the enumeration in the current [scope][Scopes]
@@ -48,6 +55,20 @@ namespace eval ${NS}::enum {
         #  enumname - name of the enumeration
         #  membernames - list of names of the enumeration members
         #  start - value of first enumeration member
+    }
+    proc unmask {enumname mask} {
+        # Returns a list of enumeration member names corresponding to the
+        # bits set in $mask.
+        # enumeration members
+        #  enumname - name of the enumeration in the current [scope][Scopes]
+        #  mask - Integer bit mask value
+        # The last element of the returned list is an integer containing the
+        # bits that were not matched against an enumberation member.
+        # Generally, the enumeration should consist of values that do not have
+        # overlapping bits set (commonly a single bit is set in each
+        # member value). This is not enforced but results might not be
+        # as expected if this condition is not met.
+        # See also: "enum mask"
     }
     proc value {enumname membername} {
         # Returns the value of an enumeration member in the current [scope][Scopes].

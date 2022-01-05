@@ -293,6 +293,52 @@ CffiEnumMemberBitmask(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Function: CffiEnumMemberBitunmask
+ * Returns a list of enum member names corresponding to bits that are
+ * set in an integer value
+ *
+ * Parameters:
+ * ip - interpreter. Pass as NULL if error messages not of interest
+ * mapObj - enum mapping dictionary
+ * bitmask - integer bit mask
+ * listObjP - location to hold list of enum names corresponding to bits
+ *   that are set in *bitmask*
+ *
+ * The bitmask of any bits that were not mapped to an enum member is
+ * returned as the last element of *listObjP*.
+ *
+ * Returns:
+ * *TCL_OK* on success, else *TCL_ERROR* on failure.
+ */
+CffiResult
+CffiEnumMemberBitUnmask(Tcl_Interp *ip,
+                        Tcl_Obj *mapObj,
+                        Tcl_WideInt bitmask,
+                        Tcl_Obj **listObjP)
+{
+    Tcl_Obj *nameObj;
+    Tcl_Obj *valueObj;
+    Tcl_DictSearch search;
+    Tcl_Obj *listObj = Tcl_NewListObj(0, NULL);
+    Tcl_WideInt remain = bitmask;
+    int done;
+
+    CHECK(Tcl_DictObjFirst(ip, mapObj, &search, &nameObj, &valueObj, &done));
+    while (!done) {
+        Tcl_WideInt wide;
+        if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
+            && ((wide & bitmask) == wide)) {
+            Tcl_ListObjAppendElement(NULL, listObj, nameObj);
+            remain &= ~wide;
+        }
+        Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
+    }
+    Tcl_DictObjDone(&search);
+    Tcl_ListObjAppendElement(NULL, listObj, Tcl_NewWideIntObj(remain));
+    *listObjP = listObj;
+    return TCL_OK;
+}
+
 static CffiResult
 CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
@@ -332,11 +378,41 @@ CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 }
 
 static CffiResult
+CffiEnumMaskCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_WideInt mask;
+    Tcl_Obj *mapObj;
+
+    CFFI_ASSERT(objc == 4);
+    CHECK(CffiEnumGetMap(ip, CffiScopeGet(ipCtxP, NULL), objv[2], &mapObj));
+    CHECK(CffiEnumMemberBitmask(ip, mapObj, objv[3], &mask));
+    Tcl_SetObjResult(ip, Tcl_NewWideIntObj(mask));
+    return TCL_OK;
+}
+
+static CffiResult
+CffiEnumUnmaskCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_WideInt mask;
+    Tcl_Obj *mapObj;
+    Tcl_Obj *listObj;
+
+    CFFI_ASSERT(objc == 4);
+    CHECK(Tcl_GetWideIntFromObj(ip, objv[3], &mask));
+    CHECK(CffiEnumGetMap(ip, CffiScopeGet(ipCtxP, NULL), objv[2], &mapObj));
+    CHECK(CffiEnumMemberBitUnmask(ip, mapObj, mask, &listObj));
+    Tcl_SetObjResult(ip, listObj);
+    return TCL_OK;
+}
+
+static CffiResult
 CffiEnumValueCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     Tcl_Obj *valueObj;
-    CFFI_ASSERT(objc == 4);
 
+    CFFI_ASSERT(objc == 4);
     CHECK(CffiEnumFind(ipCtxP,
                        CffiScopeGet(ipCtxP, NULL),
                        objv[2],
@@ -352,8 +428,8 @@ CffiEnumNameCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     Tcl_Obj *nameObj;
     Tcl_WideInt wide;
-    CFFI_ASSERT(objc == 4);
 
+    CFFI_ASSERT(objc == 4);
     CHECK(Tcl_GetWideIntFromObj(ipCtxP->interp, objv[3], &wide));
     CHECK(CffiEnumFindReverse(ipCtxP,
                               CffiScopeGet(ipCtxP, NULL),
@@ -532,6 +608,8 @@ CffiEnumObjCmd(ClientData cdata,
         {"name", 2, 2, "ENUM VALUE", CffiEnumNameCmd},
         {"sequence", 2, 3, "ENUM MEMBERNAMES ?START?", CffiEnumSequenceCmd},
         {"value", 2, 2, "ENUM MEMBERNAME", CffiEnumValueCmd},
+        {"mask", 2, 2, "ENUM MEMBERLIST", CffiEnumMaskCmd},
+        {"unmask", 2, 2, "ENUM INTEGER", CffiEnumUnmaskCmd},
         {NULL}};
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));

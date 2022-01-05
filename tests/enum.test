@@ -318,6 +318,44 @@ namespace eval cffi::test {
             [namespace eval :: {cffi::enum list}] \
             [namespace eval ::ns {cffi::enum list}]
     } -result {G L {} G {}}
+
+    test enum-mask-0 "enum mask" -setup {
+        reset_enums
+        cffi::enum flags E {a b c}
+    } -body {
+        cffi::enum mask E {a c}
+    } -result 5
+    test enum-mask-1 "enum mask - empty" -setup {
+        reset_enums
+        cffi::enum flags E {a b c}
+    } -body {
+        cffi::enum mask E {}
+    } -result 0
+    test enum-mask-2 "enum mask - number" -setup {
+        reset_enums
+        cffi::enum flags E {a b c}
+    } -body {
+        cffi::enum mask E {a 16}
+    } -result 17
+    test enum-unmask-0 "enum unmask" -setup {
+        reset_enums
+        cffi::enum flags E {a b c}
+    } -body {
+        cffi::enum unmask E 5
+    } -result {a c 0}
+    test enum-unmask-1 "enum unmask 0" -setup {
+        reset_enums
+        cffi::enum flags E {a b c}
+    } -body {
+        cffi::enum unmask E 0
+    } -result {0}
+    test enum-unmask-2 "enum unmask leftover bits" -setup {
+        reset_enums
+        cffi::enum flags E {a b c}
+    } -body {
+        cffi::enum unmask E 25
+    } -result {a 24}
+
 }
 
 ::tcltest::cleanupTests

@@ -614,6 +614,10 @@ CffiResult CffiEnumMemberBitmask(Tcl_Interp *ip,
                            Tcl_Obj *enumObj,
                            Tcl_Obj *valueListObj,
                            Tcl_WideInt *maskP);
+CffiResult CffiEnumMemberBitUnmask(Tcl_Interp *ip,
+                                   Tcl_Obj *mapObj,
+                                   Tcl_WideInt bitmask,
+                                   Tcl_Obj **listObjP);
 CffiResult CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
                                const CffiTypeAndAttrs *typeAttrsP,
                                Tcl_Obj *valueObj,
