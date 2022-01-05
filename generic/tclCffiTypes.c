@@ -300,8 +300,8 @@ int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag ex
     return !strcmp(Tcl_GetString(pointer_tag), Tcl_GetString(expected_tag));
 }
 
-static Tcl_Obj *
-CffiPointerTag(CffiScope *scopeP, const char *scopedTagP, int tagLen)
+Tcl_Obj *
+CffiMakePointerTag(CffiScope *scopeP, const char *scopedTagP, int tagLen)
 {
     Tcl_Obj *tagObj;
 
@@ -317,6 +317,13 @@ CffiPointerTag(CffiScope *scopeP, const char *scopedTagP, int tagLen)
         Tcl_AppendToObj(tagObj, "::", 2);
     Tcl_AppendToObj(tagObj, scopedTagP, tagLen);
     return tagObj;
+}
+
+Tcl_Obj *CffiMakePointerTagFromObj(CffiScope *scopeP, Tcl_Obj *scopedTagObj)
+{
+    int len;
+    const char *tag = Tcl_GetStringFromObj(scopedTagObj, &len);
+    return CffiMakePointerTag(scopeP, tag, len);
 }
 
 /* Function: CffiTypeInit
@@ -471,7 +478,7 @@ CffiTypeParse(Tcl_Interp *ip, CffiScope *scopeP, Tcl_Obj *typeObj, CffiType *typ
 
     case CFFI_K_TYPE_POINTER:
         if (tagStr != NULL) {
-            typeP->u.tagObj = CffiPointerTag(scopeP, tagStr, tagLen);
+            typeP->u.tagObj = CffiMakePointerTag(scopeP, tagStr, tagLen);
                 Tcl_IncrRefCount(typeP->u.tagObj);
         }
         typeP->baseType = CFFI_K_TYPE_POINTER;
@@ -2104,11 +2111,11 @@ CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj)
 
     nameP = (unsigned char*) Tcl_GetString(nameObj);
     ch    = *nameP++;
-    /* First letter must be alpha, _ or : */
-    if (isalpha(ch) || ch == '_' || ch == ':') {
+    /* First letter must be alpha */
+    if (isalpha(ch) || ch == '_') {
         /* Subsequent letter alphanumeric, _ or : */
         while ((ch = *nameP++) != '\0') {
-            if (!isalnum(ch) && ch != '_' && ch != ':')
+            if (!isalnum(ch) && ch != '_')
                 goto invalid_alias_syntax; /* Horrors, a goto */
         }
         return TCL_OK;

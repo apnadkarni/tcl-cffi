@@ -522,6 +522,9 @@ CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 void *valueP,
                                 int count,
                                 Tcl_Obj **valueObjP);
+Tcl_Obj *CffiMakePointerTagFromObj(CffiScope *scopeP, Tcl_Obj *scopedTagObj);
+Tcl_Obj *
+CffiMakePointerTag(CffiScope *scopeP, const char *scopedTagP, int tagLen);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);

@@ -16,8 +16,8 @@ namespace eval ${NS}::memory {
         # Frees the memory referenced by the passed pointer
         #  pointer - safe pointer to memory to free
         # The memory must have been allocated using [memory allocate],
-        # [memory frombinary] or one of the methods of a [Struct] object.
-        # Null pointers are silently ignored.
+        # [memory frombinary], [memory fromstring] or one of the methods of
+        # a [Struct] object. Null pointers are silently ignored.
         #
         # See also: "memory allocate"
     }

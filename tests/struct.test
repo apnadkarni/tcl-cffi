@@ -642,6 +642,57 @@ namespace eval cffi::test {
     } -result {expected integer but got "X"} -returnCodes error
 
     ###
+    # Scope tests
+    test struct-enum-scope-0 "struct field enum - local scope" -setup {
+        cffi::enum delete *
+        namespace eval :: {
+            cffi::enum delete *
+            cffi::enum define E {A 0}
+        }
+        namespace eval ::ns {
+            cffi::enum delete *
+            cffi::enum define E {A 1}
+        }
+    } -body {
+        namespace eval ::ns [list cffi::Struct create [namespace current]::S {i {int {enum E}}}]
+        S frombinary [S tobinary {i A}]
+    } -cleanup {
+        S destroy
+    } -result {i 1}
+    test struct-enum-scope-1 "struct field enum - local fall back to global" -setup {
+        cffi::enum delete *
+        namespace eval :: {
+            cffi::enum delete *
+            cffi::enum define E {A 0}
+        }
+        namespace eval ::ns {cffi::enum delete *}
+    } -body {
+        namespace eval ::ns [list cffi::Struct create [namespace current]::S {i {int {enum E}}}]
+        S frombinary [S tobinary {i A}]
+    } -cleanup {
+        S destroy
+    } -result {i 0}
+
+    test struct-alias-scope-0 "struct field alias - local scope" -setup {
+        cffi::alias delete *
+        namespace eval :: {
+            cffi::alias delete *
+            cffi::alias define INT uchar
+        }
+        namespace eval ::ns {
+            cffi::alias delete *
+            cffi::alias define INT int
+        }
+    } -body {
+        namespace eval ::ns [list cffi::Struct create [namespace current]::S {i INT}]
+        # Would error out if global INT was used
+        S frombinary [S tobinary {i 256}]
+    } -cleanup {
+        S destroy
+    } -result {i 256}
+
+
+    ###
     # Bug fixes
 
     test struct-bug-53-0 "Check that command is actually a struct" -body {

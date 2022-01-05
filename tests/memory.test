@@ -22,7 +22,7 @@ namespace eval cffi::test {
         cffi::memory free $p
     } -body {
         set p [cffi::memory allocate 1 TAG]
-    } -result {^0x[[:xdigit:]]{8,16}\^TAG$} -match regexp
+    } -result {^0x[[:xdigit:]]{8,16}\^::cffi::test::TAG$} -match regexp
 
     test memory-allocate-error-0 {Allocate zero bytes} -body {
         list [catch {cffi::memory allocate 0} result] $result $::errorCode

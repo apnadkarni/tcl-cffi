@@ -207,6 +207,7 @@ namespace eval ${NS}::test {
         cffi::call [makeptr $addr itoi] 0
     } -result {In {x 0} Out {} Result 0}
 
+    # TBD - prototype scope based tests
 }
 
 ${NS}::test::testDll destroy

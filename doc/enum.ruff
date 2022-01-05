@@ -20,7 +20,7 @@ namespace eval ${NS}::enum {
     proc members {enumname} {
         # Returns a dictionary containing the members in an enumeration.
         #  enumname - name of the enumeration in the current [scope][Scopes]
-        # whose elements are to be returned.
+        #  whose elements are to be returned.
     }
     proc list {pattern} {
         # Lists enumerations in the current [scope][Scopes].

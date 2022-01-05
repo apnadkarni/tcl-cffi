@@ -27,16 +27,27 @@
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     Tcl_WideInt size;
     CffiResult ret;
     Tcl_Obj *ptrObj;
+    Tcl_Obj *tagObj;
     void *p;
 
     CHECK(Tclh_ObjToRangedInt(ip, objv[2], 1, INT_MAX, &size));
     p = ckalloc((int)size);
-    ret = Tclh_PointerRegister(ip, p, objc == 4 ? objv[3] : NULL, &ptrObj);
+    if (objc == 4) {
+        tagObj = CffiMakePointerTagFromObj(CffiScopeGet(ipCtxP, NULL), objv[3]);
+        Tcl_IncrRefCount(tagObj);
+    }
+    else
+        tagObj = NULL;
+
+    ret = Tclh_PointerRegister(ip, p, tagObj, &ptrObj);
+    if (tagObj)
+        Tcl_DecrRefCount(tagObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, ptrObj);
     else
@@ -64,8 +75,9 @@ CffiMemoryAllocateCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags
  *
  */
 static CffiResult
-CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     CffiResult ret;
 
@@ -97,18 +109,28 @@ CffiMemoryFreeCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryFromBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     CffiResult ret;
     Tcl_Obj *ptrObj;
-    void *p;
     unsigned char *bytes;
+    Tcl_Obj *tagObj;
+    void *p;
     int len;
 
     bytes = Tcl_GetByteArrayFromObj(objv[2], &len);
     p = ckalloc(len);
     memmove(p, bytes, len);
-    ret = Tclh_PointerRegister(ip, p, objc == 4 ? objv[3] : NULL, &ptrObj);
+    if (objc == 4) {
+        tagObj = CffiMakePointerTagFromObj(CffiScopeGet(ipCtxP, NULL), objv[3]);
+        Tcl_IncrRefCount(tagObj);
+    }
+    else
+        tagObj = NULL;
+    ret = Tclh_PointerRegister(ip, p, tagObj, &ptrObj);
+    if (tagObj)
+        Tcl_DecrRefCount(tagObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, ptrObj);
     else
@@ -137,8 +159,9 @@ CffiMemoryFromBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int fla
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryToBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     unsigned int len;
 
@@ -176,8 +199,9 @@ CffiMemoryToBinaryCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags
  * interpreter result, *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryFromStringCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Encoding encoding;
     Tcl_DString ds;
     CffiResult ret;
@@ -239,11 +263,12 @@ CffiMemoryFromStringCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int fla
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryToStringCmd(Tcl_Interp *ip,
+CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
                       int objc,
                       Tcl_Obj *const objv[],
                       int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     Tcl_Encoding encoding;
     Tcl_DString ds;
@@ -291,8 +316,9 @@ CffiMemoryToStringCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemorySetCmd(Tcl_Interp *ip, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemorySetCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     Tcl_WideInt len;
     unsigned char val;
@@ -311,6 +337,7 @@ CffiMemoryObjCmd(ClientData cdata,
                  int objc,
                  Tcl_Obj *const objv[])
 {
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     /* The flags field low bit is set for unsafe pointer operation */
     static const Tclh_SubCommand subCommands[] = {
         {"allocate", 1, 2, "SIZE ?TYPETAG?", CffiMemoryAllocateCmd, 0},
@@ -327,6 +354,7 @@ CffiMemoryObjCmd(ClientData cdata,
     int cmdIndex;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
-    return subCommands[cmdIndex].cmdFn(ip, objc, objv, subCommands[cmdIndex].flags);
+    return subCommands[cmdIndex].cmdFn(
+        ipCtxP, objc, objv, subCommands[cmdIndex].flags);
 }
 

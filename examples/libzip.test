@@ -129,7 +129,7 @@ namespace eval libzip::test {
         set zip [libzip::zip_open [sample_path testfile.zip] ZIP_RDONLY code]
         libzip::zip_close $zip
         libzip::zip_close $zip
-    } -result {Pointer 0x*^zip_t is not registered.} -returnCodes error -match glob
+    } -result "Pointer 0x*^::libzip::zip_t is not registered." -returnCodes error -match glob
 
     ## zip_get_num_entries
     test zip_get_num_entries-0 "Get number of entries (> 64K)" -setup {

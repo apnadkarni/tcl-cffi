@@ -1475,7 +1475,7 @@ namespace eval ${NS}::test {
     }
 
     # Return attributes for pointers
-    foreach type {pointer pointer.::TAG} tag {{} ::TAG} {
+    foreach type {pointer pointer.::TAG pointer.TAG} tag {{} ::TAG ::cffi::test::TAG} {
         # safe
         test function-return-$type-safe-0 "return type $type safe" -body {
             testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
@@ -2236,6 +2236,31 @@ namespace eval ${NS}::test {
             testDll function $fn $type [list inparam [list $type {enum E}]]
             $fn z
         } -result {expected integer but got "z"} -returnCodes error
+
+        test function-enum-scope-$type-0 "function enum scope local $type" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x 1 a 42}
+            namespace eval :: {
+                cffi::enum delete *
+                cffi::enum define E {x 2 y 3}
+            }
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type {enum E}]]
+            list [$fn x]
+        } -result 1
+        test function-enum-scope-$type-1 "function enum scope global $type" -setup {
+            cffi::enum delete *
+            cffi::enum define E {x 1 a 42}
+            namespace eval :: {
+                cffi::enum delete *
+                cffi::enum define D {x 2 y 3}
+            }
+        } -body {
+            set fn ${type}_to_$type
+            testDll function $fn $type [list inparam [list $type {enum D}]]
+            list [$fn x]
+        } -result 2
     }
 
     ###
@@ -2288,6 +2313,35 @@ namespace eval ${NS}::test {
         rename fn {}
         S destroy
     } -result 1
+
+    ###
+    # scopes - aliases
+    test function-alias-scope-0 "local alias overrides global" -setup {
+        namespace eval :: {
+            cffi::alias delete *
+            cffi::alias define RET int
+            cffi::test::testDll function int_to_int RET {i int}
+        }
+        namespace eval ::ns {
+            cffi::alias delete *
+            cffi::alias define RET uchar
+            cffi::test::testDll function int_to_int RET {i int}
+        }
+    } -body {
+        list [::int_to_int 65537] [::ns::int_to_int 65537]
+    } -result {65537 1}
+    test function-alias-scope-1 "alias falls back to global" -setup {
+        namespace eval :: {
+            cffi::alias delete *
+            cffi::alias define RET int
+        }
+        namespace eval ::ns {
+            cffi::alias delete *
+            cffi::test::testDll function int_to_int RET {i int}
+        }
+    } -body {
+        list [::ns::int_to_int 65537]
+    } -result 65537
 }
 
 ${NS}::test::testDll destroy

@@ -1041,6 +1041,20 @@ namespace eval cffi::test {
         cffi::type count type_count_test_alias_0
     } -result 2
 
+    test type-info-alias-scope-0 "type info alias scoped" -setup {
+        cffi::alias delete *
+        namespace eval ::ns {cffi::alias delete *}
+        namespace eval :: {cffi::alias delete *}
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        namespace eval :: {cffi::alias define INT int}
+        namespace eval ::ns {cffi::alias define INT longlong}
+        list \
+            [cffi::type info INT] \
+            [namespace eval ::ns {cffi::type info INT}]
+    } -result {{size 4 count 0 alignment 4 definition int} {size 8 count 0 alignment 8 definition longlong}}
+
 }
 
 

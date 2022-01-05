@@ -574,7 +574,7 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::prototype", CffiPrototypeObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::memory", CffiMemoryObjCmd, NULL, NULL);
+        ip, CFFI_NAMESPACE "::memory", CffiMemoryObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::type", CffiTypeObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(

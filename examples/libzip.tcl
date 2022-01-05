@@ -252,9 +252,9 @@ namespace eval libzip {
         zip_error_code_system    { int    {zerr ZIP_ERROR_REF} }
         zip_error_clear          { void   {pzip PZIP_T}}
         zip_strerror             { string {pzip PZIP_T} }
-        zip_get_error            { {pointer.libzip::zip_error_t} {pzip PZIP_T} }
+        zip_get_error            { {pointer.zip_error_t} {pzip PZIP_T} }
         zip_file_strerror        { string {pfile PZIP_FILE_T} }
-        zip_file_get_error       { {pointer.libzip::zip_error_t} {pfile PZIP_FILE_T} }
+        zip_file_get_error       { {pointer.zip_error_t} {pfile PZIP_FILE_T} }
     }
 
     # Archive open/close

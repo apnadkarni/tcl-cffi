@@ -5,6 +5,38 @@ namespace eval Concepts {
         the Tcl script level. Basic knowledge of the package as described in
         [Quick start] is assumed.
 
+        ## Scopes
+
+        To avoid conflicts arising from the same name being used
+        in different in packages layered on CFFI, program elements like
+        type aliases, enumerations, prototypes and pointer tags are defined
+        within an enclosing *scope*. The scope is named after the Tcl namespace in
+        which the defining command is invoked.
+
+        For example, assuming the `libgit2` and `libzip` namespaces are used for
+        wrapping shared libraries of the same name, the following definition for
+        the `STATUS` alias used in two (imagined) functions would not be in
+        conflict as they have different scopes.
+
+        ```
+        namespace eval libgit2 {
+            cffi::Wrapper create lib1 libgit2.so
+            cffi::alias define STATUS int
+            lib1 function git_commit STATUS {}
+        }
+        namespace eval libzip {
+            cffi::Wrapper create lib2 libzip.so
+            cffi::alias define STATUS long
+            lib2 function libzip_open STATUS {path string}
+        }
+        ```
+        Note that although CFFI scopes are named after Tcl namespaces, they are
+        not directly tied to them. For example, deleting will a Tcl namespace
+        will not cause the scope of the same name to disappear.
+
+        Further sections will elaborate how scopes affect each type of program
+        element.
+
         ## Type declarations
 
         Type declarations appear in three different contexts:
@@ -781,7 +813,7 @@ namespace eval Concepts {
         fnptr(1,2);
         ```
 
-        This would be translated into Tcl as
+        This would be translated into CFFI as
 
         ```
         cffi::prototype function ADDER int {x int y int}
@@ -789,10 +821,6 @@ namespace eval Concepts {
         set fnptr [function_returning_adder]
         cffi::call $fnptr 1 2
         ```
-
-        ## Scopes
-
-        TBD
     }
 }
 

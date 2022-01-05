@@ -117,10 +117,18 @@ CffiEnumFind(CffiInterpCtx *ipCtxP,
         ip = ipCtxP->interp;
 
     ret = CffiEnumGetMap(ip, scopeP, enumNameObj, &entries);
-    if (ret == TCL_OK)
-        ret = CffiEnumMemberFind(
-            ip, entries, memberNameObj, valueObjP);
-    if (ret == TCL_OK || (flags & CFFI_F_ENUM_INCLUDE_GLOBAL) == 0)
+    if (ret == TCL_OK) {
+        if (flags & CFFI_F_ENUM_SKIP_ERROR_MESSAGE)
+            ip = NULL;
+        else
+            ip = ipCtxP->interp;
+        /*
+         * If enum is defined locally, we do not look up global namespace
+         * on error if member is not defined
+         */
+        return CffiEnumMemberFind(ip, entries, memberNameObj, valueObjP);
+    }
+    else if ((flags & CFFI_F_ENUM_INCLUDE_GLOBAL) == 0)
         return ret;
 
     /* No luck so check global scope */
@@ -220,9 +228,14 @@ CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
         ip = ipCtxP->interp;
 
     ret = CffiEnumGetMap(ip, scopeP, enumNameObj, &entries);
-    if (ret == TCL_OK)
-        ret = CffiEnumMemberFindReverse(ip, entries, needle, nameObjP);
-    if (ret == TCL_OK || (flags & CFFI_F_ENUM_INCLUDE_GLOBAL) == 0)
+    if (ret == TCL_OK) {
+        if (flags & CFFI_F_ENUM_SKIP_ERROR_MESSAGE)
+            ip = NULL;
+        else
+            ip = ipCtxP->interp;
+        return CffiEnumMemberFindReverse(ip, entries, needle, nameObjP);
+    }
+    else if ((flags & CFFI_F_ENUM_INCLUDE_GLOBAL) == 0)
         return ret;
 
     /* No luck so check global scope */
@@ -328,7 +341,7 @@ CffiEnumValueCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
                        CffiScopeGet(ipCtxP, NULL),
                        objv[2],
                        objv[3],
-                       0,
+                       CFFI_F_ENUM_INCLUDE_GLOBAL,
                        &valueObj));
     Tcl_SetObjResult(ipCtxP->interp, valueObj);
     return TCL_OK;
@@ -346,7 +359,7 @@ CffiEnumNameCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
                               CffiScopeGet(ipCtxP, NULL),
                               objv[2],
                               wide,
-                              0,
+                              CFFI_F_ENUM_INCLUDE_GLOBAL,
                               &nameObj));
     Tcl_SetObjResult(ipCtxP->interp, nameObj);
     return TCL_OK;

@@ -240,7 +240,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias load C
         # Should be empty as C loaded into global scope
-        lsort [cffi::alias list]
+        cffi::alias list
     } -result ""
 
     test alias-load-win-0 "alias load" -setup {
@@ -282,6 +282,53 @@ namespace eval cffi::test {
         cffi::alias load xx
     } -result "Invalid value \"xx\". Unknown predefined alias set." -returnCodes error
 
+    ###
+    # Scope tests
+    test alias-list-scope-0 "alias list in scope" -setup {
+        cffi::alias delete *
+        uplevel #0 cffi::alias delete *
+        namespace eval ::ns {cffi::alias delete *}
+    } -body {
+        cffi::alias define INT int
+        namespace eval :: {cffi::alias define LONGLONG longlong}
+        namespace eval ::ns {cffi::alias define LONG long}
+        list \
+            [cffi::alias list] \
+            [namespace eval ::ns {cffi::alias list}] \
+            [uplevel #0 cffi::alias list]
+    } -result {INT LONG LONGLONG}
+
+    test alias-body-scope-0 "alias body in scope" -setup {
+        cffi::alias delete *
+        uplevel #0 cffi::alias delete *
+        namespace eval ::ns {cffi::alias delete *}
+    } -body {
+        cffi::alias define INT int
+        namespace eval :: {cffi::alias define INT longlong}
+        namespace eval ::ns {cffi::alias define INT long}
+        list \
+            [cffi::alias body INT] \
+            [namespace eval ::ns {cffi::alias body INT}] \
+            [uplevel #0 cffi::alias body INT]
+    } -result {int long longlong}
+
+    test alias-delete-scope-0 "alias delete in scope" -setup {
+        cffi::alias delete *
+        uplevel #0 cffi::alias delete *
+        namespace eval ::ns {cffi::alias delete *}
+    } -body {
+        cffi::alias define INT int
+        namespace eval :: {cffi::alias define LONGLONG longlong}
+        namespace eval ::ns {cffi::alias define LONG long}
+        list \
+            [cffi::alias list] \
+            [namespace eval ::ns {cffi::alias list}] \
+            [uplevel #0 cffi::alias list] \
+            [cffi::alias delete *] \
+            [cffi::alias list] \
+            [namespace eval ::ns {cffi::alias list}] \
+            [uplevel #0 cffi::alias list]
+    } -result {INT LONG LONGLONG {} {} LONG LONGLONG}
 }
 ::tcltest::cleanupTests
 namespace delete cffi::test
