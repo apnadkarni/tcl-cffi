@@ -148,13 +148,12 @@ CffiEnumFind(CffiInterpCtx *ipCtxP,
  * ip - interpreter. May be NULL if no error messages are required.
  * mapObj - Enum mapping table
  * needleObj - Value to map to a name
- * nameObjP - location to store the name of the member. If ip is NULL,
- *   then needle is stored in nameObjP if a mapping is not found.
+ * nameObjP - location to store the name of the member.
  *
  * The reference count on the Tcl_Obj returned in nameObjP is NOT incremented.
  *
  * Returns:
- * *TCL_OK* on success, *TCL_ERROR* on failure.
+ * *TCL_OK* on success, *TCL_ERROR* on failure if member name is not found.
  */
 CffiResult
 CffiEnumMemberFindReverse(Tcl_Interp *ip,
@@ -178,12 +177,7 @@ CffiEnumMemberFindReverse(Tcl_Interp *ip,
         Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
     }
     Tcl_DictObjDone(&search);
-    if (ip)
-        return Tclh_ErrorNotFound(ip, "Enum member value", NULL, NULL);
-    else
-        *nameObjP = Tcl_NewWideIntObj(needle);
-
-    return TCL_OK;
+    return Tclh_ErrorNotFound(ip, "Enum member value", NULL, NULL);
 }
 
 /* Function: CffiEnumFindReverse
@@ -194,7 +188,7 @@ CffiEnumMemberFindReverse(Tcl_Interp *ip,
  * scopeP - the scope in which to look up the enum definition
  * enumNameObj - Name of the enum
  * needleObj - Value to map to a name
- * flags - If CFFI_F_ENUM_SKIP_STORE_ERROR is set, error message is not
+ * flags - If CFFI_F_ENUM_SKIP_ERROR_MESSAGE is set, error message is not
  *   stored in the interpreter if the needle is not founc and the needle
  *   is itself returned in *nameObjP*
  * nameObjP - location to store the name of the member
@@ -229,11 +223,16 @@ CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
 
     ret = CffiEnumGetMap(ip, scopeP, enumNameObj, &entries);
     if (ret == TCL_OK) {
-        if (flags & CFFI_F_ENUM_SKIP_ERROR_MESSAGE)
-            ip = NULL;
-        else
-            ip = ipCtxP->interp;
-        return CffiEnumMemberFindReverse(ip, entries, needle, nameObjP);
+        if (flags & CFFI_F_ENUM_SKIP_ERROR_MESSAGE) {
+            if (CffiEnumMemberFindReverse(NULL, entries, needle, nameObjP)
+                != TCL_OK)
+                *nameObjP = Tcl_NewWideIntObj(needle);
+        }
+        else {
+            ret = CffiEnumMemberFindReverse(
+                ipCtxP->interp, entries, needle, nameObjP);
+        }
+        return ret;
     }
     else if ((flags & CFFI_F_ENUM_INCLUDE_GLOBAL) == 0)
         return ret;
@@ -243,8 +242,14 @@ CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
 
     ip = (flags & CFFI_F_ENUM_SKIP_ERROR_MESSAGE) ? NULL : ipCtxP->interp;
     ret = CffiEnumGetMap(ip, ipCtxP->globalScopeP, enumNameObj, &entries);
-    if (ret == TCL_OK)
+    if (ret == TCL_OK) {
         ret = CffiEnumMemberFindReverse(ip, entries, needle, nameObjP);
+    }
+    if (ret != TCL_OK && ip == NULL) {
+        *nameObjP = Tcl_NewWideIntObj(needle);
+        ret       = TCL_OK;
+    }
+
     return ret;
 }
 
@@ -275,6 +280,7 @@ CffiEnumMemberBitmask(Tcl_Interp *ip,
     int i;
     CffiResult ret = TCL_OK;
 
+    /* TBD - handles ulonglong correctly? */
     CHECK(Tcl_ListObjGetElements(ip, valueListObj, &nobjs, &objs));
     mask = 0;
     for (i = 0; i < nobjs; ++i) {
@@ -299,7 +305,7 @@ CffiEnumMemberBitmask(Tcl_Interp *ip,
  *
  * Parameters:
  * ip - interpreter. Pass as NULL if error messages not of interest
- * mapObj - enum mapping dictionary
+ * mapObj - enum mapping dictionary. May be NULL if no associated enum.
  * bitmask - integer bit mask
  * listObjP - location to hold list of enum names corresponding to bits
  *   that are set in *bitmask*
@@ -316,24 +322,30 @@ CffiEnumMemberBitUnmask(Tcl_Interp *ip,
                         Tcl_WideInt bitmask,
                         Tcl_Obj **listObjP)
 {
-    Tcl_Obj *nameObj;
-    Tcl_Obj *valueObj;
-    Tcl_DictSearch search;
     Tcl_Obj *listObj = Tcl_NewListObj(0, NULL);
     Tcl_WideInt remain = bitmask;
-    int done;
 
-    CHECK(Tcl_DictObjFirst(ip, mapObj, &search, &nameObj, &valueObj, &done));
-    while (!done) {
-        Tcl_WideInt wide;
-        if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
-            && ((wide & bitmask) == wide)) {
-            Tcl_ListObjAppendElement(NULL, listObj, nameObj);
-            remain &= ~wide;
+    if (mapObj) {
+        Tcl_Obj *nameObj;
+        Tcl_Obj *valueObj;
+        Tcl_DictSearch search;
+        int done;
+        if (Tcl_DictObjFirst(ip, mapObj, &search, &nameObj, &valueObj, &done)
+            != TCL_OK) {
+            Tcl_DecrRefCount(listObj);
+            return TCL_ERROR;
         }
-        Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
+        while (!done) {
+            Tcl_WideInt wide;
+            if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
+                && ((wide & bitmask) == wide)) {
+                Tcl_ListObjAppendElement(NULL, listObj, nameObj);
+                remain &= ~wide;
+            }
+            Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
+        }
+        Tcl_DictObjDone(&search);
     }
-    Tcl_DictObjDone(&search);
     Tcl_ListObjAppendElement(NULL, listObj, Tcl_NewWideIntObj(remain));
     *listObjP = listObj;
     return TCL_OK;

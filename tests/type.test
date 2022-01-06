@@ -322,6 +322,7 @@ namespace eval cffi::test {
             "" "in"
             "in" "in"
             "inout" "inout byref"
+            "out" "out byref"
         } {
             if {$type in $intTypes} {
                 testnumeric "$type $attr bitmask" param "$expected bitmask"
@@ -348,7 +349,7 @@ namespace eval cffi::test {
             testnumericarray "$type $attr" NUMELEMS param $expected
         }
 
-        # enum arrays
+        # enum and bitmask arrays
         foreach {attr expected} {
             "" "in"
             "in" "in"
@@ -358,6 +359,7 @@ namespace eval cffi::test {
                 catch {cffi::enum delete E}
                 cffi::enum define E {I 1}
                 testnumericarray "$type $attr byref {enum E}" 10 param "$expected byref {enum {I 1}}"
+                testnumericarray "$type $attr byref bitmask" 10 param "$expected byref bitmask"
             } else {
                 # Already tested above for scalars
                 #testinvalidattr "$type $attr {enum E}" param $errorMessages(attrtype)
@@ -381,13 +383,6 @@ namespace eval cffi::test {
         }
         testinvalidattr "$type out storeonerror storealways" param $errorMessages(attrconflict)
         testinvalidattr "$type inout storeonerror storealways" param $errorMessages(attrconflict)
-        foreach attr {bitmask} {
-            if {$type in $intTypes} {
-                testinvalidattr [list $type out $attr] param $errorMessages(attrparamdir)
-            } else {
-                testinvalidattr [list $type out $attr] param $errorMessages(attrtype)
-            }
-        }
 
         # Scalar tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs nullifempty] {
@@ -424,6 +419,7 @@ namespace eval cffi::test {
             catch {cffi::enum delete E}
             cffi::enum define E {I 1}
             testnumeric "$type {enum E}" return "{enum {I 1}}"
+            testnumeric "$type bitmask" return "bitmask"
         }
         if {$type in $intTypes} {
             foreach attr $requirementAttrs {
@@ -451,7 +447,6 @@ namespace eval cffi::test {
         if {$type in $intTypes} {
             testinvalidattr "$type {onerror foo}" return {"onerror" requires an error checking annotation.}
             testinvalidattr "$type onerror" return {A type annotation has the wrong number of fields.}
-            testinvalidattr "$type bitmask" return $errorMessages(attrparsemode)
             testinvalidattr "$type structsize" param $errorMessages(attrparsemode)
         } else {
             testinvalidattr "$type {onerror foo}" return $errorMessages(attrtype)

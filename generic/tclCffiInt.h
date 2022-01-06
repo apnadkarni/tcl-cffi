@@ -622,6 +622,8 @@ CffiResult CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
                                const CffiTypeAndAttrs *typeAttrsP,
                                Tcl_Obj *valueObj,
                                Tcl_WideInt *valueP);
+Tcl_Obj *CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
+                           Tcl_WideInt value);
 
 /* Scope prototypes */
 void CffiScopesCleanup(Tcl_HashTable *scopesTableP);

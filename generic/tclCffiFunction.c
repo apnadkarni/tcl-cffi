@@ -940,7 +940,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         break;
 
     case CFFI_K_TYPE_STRUCT:
-        /* Arrays not supported for struct currently */
+        /* Arrays not supported for struct currently  - TBD still true? */
         ret = CffiNativeValueToObj(
             ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
         break;
@@ -974,17 +974,16 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
      * integer but currently the required context is not being passed down
      * to the lower level functions that extract scalar values.
      */
-    if ((typeAttrsP->flags & CFFI_F_ATTR_ENUM)
+    if ((typeAttrsP->flags & (CFFI_F_ATTR_ENUM|CFFI_F_ATTR_BITMASK))
         && typeAttrsP->dataType.u.tagObj) {
+        Tcl_Obj *enumValueObj;
         Tcl_WideInt wide;
         if (typeAttrsP->dataType.count == 0) {
             /* Note on error, keep the value */
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
-                Tcl_DecrRefCount(valueObj);
-                CffiEnumMemberFindReverse(NULL,
-                                          typeAttrsP->dataType.u.tagObj,
-                                          wide,
-                                          &valueObj);
+                enumValueObj = CffiIntValueToObj(typeAttrsP, wide);
+                if (enumValueObj)
+                    valueObj = enumValueObj;
             }
         }
         else {
@@ -995,7 +994,6 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
             if (Tcl_ListObjGetElements(NULL, valueObj, &nelems, &elemObjs)
                 == TCL_OK) {
                 Tcl_Obj *enumValuesObj;
-                Tcl_Obj *enumValueObj;
                 int i;
                 enumValuesObj = Tcl_NewListObj(nelems, NULL);
                 for (i = 0; i < nelems; ++i) {
@@ -1003,11 +1001,13 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
                         != TCL_OK) {
                         break;
                     }
-                    CffiEnumMemberFindReverse(NULL,
-                                              typeAttrsP->dataType.u.tagObj,
-                                              wide,
-                                              &enumValueObj);
-                    Tcl_ListObjAppendElement(NULL, enumValuesObj, enumValueObj);
+                    enumValueObj = CffiIntValueToObj(typeAttrsP, wide);
+                    if (enumValueObj)
+                        Tcl_ListObjAppendElement(
+                            NULL, enumValuesObj, enumValueObj);
+                    else
+                        Tcl_ListObjAppendElement(
+                            NULL, enumValuesObj, elemObjs[i]);
                 }
                 if (i == nelems) {
                     /* All converted successfully */
@@ -1599,13 +1599,11 @@ CffiFunctionCall(ClientData cdata,
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
-        if (fnCheckRet == TCL_OK                                               \
-            && (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ENUM)         \
-            && protoP->returnType.typeAttrs.dataType.u.tagObj) {               \
-            CffiEnumMemberFindReverse(NULL,\
-                protoP->returnType.typeAttrs.dataType.u.tagObj,                \
-                                      (Tcl_WideInt)retval.u.fld_,              \
-                                      &resultObj);                             \
+        if (fnCheckRet == TCL_OK) {                                            \
+            resultObj = CffiIntValueToObj(&protoP->returnType.typeAttrs,       \
+                                          (Tcl_WideInt)retval.u.fld_);         \
+            if (resultObj == NULL)                                             \
+                resultObj = objfn_(retval.u.fld_);                             \
         }                                                                      \
         else {                                                                 \
             /* AFTER above Check to not lose GetLastError */                   \

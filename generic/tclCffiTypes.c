@@ -234,7 +234,8 @@ static CffiAttrs cffiAttrs[] = {
     {"bitmask",
      BITMASK,
      CFFI_F_ATTR_BITMASK,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
+         | CFFI_F_TYPE_PARSE_RETURN,
      1},
     {"onerror",
      ONERROR,
@@ -992,14 +993,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
             /*
-             * NULLIFEMPTY never allowed for any output. DISPOSE*, BITMASK,
-             * ENUM not allowed for pure OUT.
+             * NULLIFEMPTY never allowed for any output. DISPOSE*
              */
             if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
                 || ((flags & CFFI_F_ATTR_OUT)
                     && (flags
-                        & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS
-                           | CFFI_F_ATTR_BITMASK)))) {
+                        & (CFFI_F_ATTR_DISPOSE
+                           | CFFI_F_ATTR_DISPOSEONSUCCESS)))) {
                 message = "One or more annotations are invalid for the "
                           "parameter direction.";
                 goto invalid_format;
@@ -1148,7 +1148,7 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
 }
 
 
-/* Function: CffiObjToInteger
+/* Function: CffiIntValueFromObj
  * Converts a *Tcl_Obj* to an integer with support for enums and bitmasks
  *
  * Parameters:
@@ -1198,6 +1198,43 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
         return TCL_ERROR;
 }
 
+
+/* Function: CffiIntValueToObj
+ * Converts an integer value to a Tcl_Obj mapping to an enum or bitmask
+ * if appropriate.
+ *
+ * Parameters:
+ * typeAttrsP - the type attributes. May be NULL.
+ * value - the integer value to convert
+ *
+ * The unwrapping takes into account the enum and bitmask settings as
+ * per the *typeAttrsP* argument.
+ *
+ * Returns:
+ * A Tcl_Obj with the mapped values or NULL. In the latter case, caller
+ * should use the type-specific integer conversion itself.
+ *
+ */
+Tcl_Obj *
+CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
+                  Tcl_WideInt value)
+{
+    Tcl_Obj *valueObj;
+    /* TBD - Handles ulonglong correctly? */
+    if (typeAttrsP != NULL && ((typeAttrsP->flags & CFFI_F_ATTR_ENUM) != 0)
+        && typeAttrsP->dataType.u.tagObj != NULL) {
+        CffiResult ret;
+        if (typeAttrsP->flags & CFFI_F_ATTR_BITMASK)
+            ret = CffiEnumMemberBitUnmask(
+                NULL, typeAttrsP->dataType.u.tagObj, value, &valueObj);
+        else
+            ret = CffiEnumMemberFindReverse(
+                NULL, typeAttrsP->dataType.u.tagObj, value, &valueObj);
+        return ret == TCL_OK ? valueObj : NULL;
+    }
+    return NULL;
+}
+
 /* Function: CffiNativeScalarToObj
  * Wraps a scalar C binary value into a Tcl_Obj.
  *
@@ -1228,39 +1265,48 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
 
     baseType = typeAttrsP->dataType.baseType;
 
+#define MAKEINTOBJ_(objfn_, type_)                                         \
+    do {                                                                   \
+        type_ value_ = *(type_ *)valueP;                                   \
+        valueObj     = CffiIntValueToObj(typeAttrsP, (Tcl_WideInt)value_); \
+        if (valueObj == NULL)                                              \
+            valueObj = objfn_(value_);                                     \
+    } while (0)
+
     switch (baseType) {
     case CFFI_K_TYPE_VOID:
         valueObj = Tcl_NewObj();
+        break;
     case CFFI_K_TYPE_SCHAR:
-        valueObj = Tcl_NewIntObj(*(signed char *)valueP);
+        MAKEINTOBJ_(Tcl_NewIntObj,signed char);
         break;
     case CFFI_K_TYPE_UCHAR:
-        valueObj = Tcl_NewIntObj(*(unsigned char *)valueP);
+        MAKEINTOBJ_(Tcl_NewIntObj,unsigned char);
         break;
     case CFFI_K_TYPE_SHORT:
-        valueObj = Tcl_NewIntObj(*(signed short *)valueP);
+        MAKEINTOBJ_(Tcl_NewIntObj,signed short);
         break;
     case CFFI_K_TYPE_USHORT:
-        valueObj = Tcl_NewIntObj(*(unsigned short *)valueP);
+        MAKEINTOBJ_(Tcl_NewIntObj,unsigned short);
         break;
     case CFFI_K_TYPE_INT:
-        valueObj = Tcl_NewIntObj(*(signed int *)valueP);
+        MAKEINTOBJ_(Tcl_NewIntObj,signed int);
         break;
     case CFFI_K_TYPE_UINT:
-        valueObj = Tcl_NewWideIntObj(*(unsigned int *)valueP);
+        MAKEINTOBJ_(Tcl_NewWideIntObj,unsigned int);
         break;
     case CFFI_K_TYPE_LONG:
-        valueObj = Tcl_NewLongObj(*(signed long *)valueP);
+        MAKEINTOBJ_(Tcl_NewLongObj,signed long);
         break;
     case CFFI_K_TYPE_ULONG:
-        valueObj = Tclh_ObjFromULong(*(unsigned long *)valueP);
+        MAKEINTOBJ_(Tclh_ObjFromULong,unsigned long);
         break;
     case CFFI_K_TYPE_LONGLONG:
         CFFI_ASSERT(sizeof(signed long long) == sizeof(Tcl_WideInt));
-        valueObj = Tcl_NewWideIntObj(*(signed long long *)valueP);
+        MAKEINTOBJ_(Tcl_NewWideIntObj,signed long long);
         break;
-    case CFFI_K_TYPE_ULONGLONG: /* TBD - 64 bit signedness? */
-        valueObj = Tclh_ObjFromULongLong(*(unsigned long long *)valueP);
+    case CFFI_K_TYPE_ULONGLONG:
+        MAKEINTOBJ_(Tclh_ObjFromULongLong,unsigned long long);
         break;
     case CFFI_K_TYPE_FLOAT:
         valueObj = Tcl_NewDoubleObj(*(float *)valueP);
