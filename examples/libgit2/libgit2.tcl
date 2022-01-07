@@ -52,23 +52,20 @@ namespace eval $GIT_NS {
     proc InitFunctions {{lazy 1}} {
         variable functionDefinitions
 
+        unset -nocomplain functionDefinitions(#); # Disregard comments
         if {$lazy} {
             foreach {fn_name prototype} [array get functionDefinitions] {
-                if {$fn_name eq "#"} continue
-                proc $fn_name args "LoadLibgit2; libgit2 function $fn_name [list {*}$prototype]; tailcall $fn_name {*}\$args"
+                if {[llength $fn_name] > 1} {
+                    set cmd_name [lindex $fn_name 1]
+                } else {
+                    set cmd_name $fn_name
+                }
+
+                proc $cmd_name args "LoadLibgit2; libgit2 function $fn_name [list {*}$prototype]; tailcall $cmd_name {*}\$args"
             }
         } else {
             LoadLibgit2
             foreach {fn_name prototype} [array get functionDefinitions] {
-                if {$fn_name eq "#"} continue
-                libgit2 function $fn_name {*}$prototype
-            }
-        }
-        foreach {fn_name prototype} [array get functionDefinitions] {
-            if {$fn_name eq "#"} continue
-            if {$lazy} {
-                proc $fn_name args "LoadLibgit2; libgit2 function $fn_name [list {*}$prototype]; tailcall $fn_name {*}\$args"
-            } else {
                 libgit2 function $fn_name {*}$prototype
             }
         }
@@ -108,7 +105,10 @@ namespace eval $GIT_NS {
         source [file join $packageDirectory init.tcl]
         source [file join $packageDirectory buffer.tcl]
         source [file join $packageDirectory oid.tcl]
+        source [file join $packageDirectory oidarray.tcl]
         source [file join $packageDirectory repository.tcl]
+        source [file join $packageDirectory indexer.tcl]
+        source [file join $packageDirectory odb.tcl]
 
         InitFunctions $lazy
 
