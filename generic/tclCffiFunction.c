@@ -113,7 +113,7 @@ CffiArgPrepareChars(CffiCall *callP,
                     Tcl_Obj *valueObj,
                     CffiValue *valueP)
 {
-    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
@@ -167,7 +167,7 @@ CffiArgPrepareUniChars(CffiCall *callP,
                        Tcl_Obj *valueObj,
                        CffiValue *valueP)
 {
-    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
@@ -342,7 +342,7 @@ CffiArgPrepareBytes(CffiCall *callP,
                        Tcl_Obj *valueObj,
                        CffiValue *valueP)
 {
-    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
@@ -436,7 +436,7 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
 CffiResult
 CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 {
-    CffiInterpCtx *ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     Tcl_Interp *ip        = ipCtxP->interp;
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
@@ -886,7 +886,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 CffiResult
 CffiArgPostProcess(CffiCall *callP, int arg_index)
 {
-    Tcl_Interp *ip = callP->fnP->vmCtxP->ipCtxP->interp;
+    Tcl_Interp *ip = callP->fnP->ipCtxP->interp;
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
     CffiArgument *argP = &callP->argsP[arg_index];
@@ -1104,11 +1104,11 @@ CffiReturnPrepare(CffiCall *callP)
     case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
     case CFFI_K_TYPE_STRUCT:
         callP->retValueP = MemLifoAlloc(
-            &callP->fnP->libCtxP->vmCtxP->ipCtxP->memlifo,
+            &callP->fnP->libCtxP->ipCtxP->memlifo,
             callP->fnP->protoP->returnType.typeAttrs.dataType.u.structP->size);
         break;
     default:
-        Tcl_SetResult(callP->fnP->vmCtxP->ipCtxP->interp,
+        Tcl_SetResult(callP->fnP->ipCtxP->interp,
                       "Invalid return type.",
                       TCL_STATIC);
         return TCL_ERROR;
@@ -1343,7 +1343,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     CffiInterpCtx *ipCtxP;
 
     protoP = callP->fnP->protoP;
-    ipCtxP = callP->fnP->vmCtxP->ipCtxP;
+    ipCtxP = callP->fnP->ipCtxP;
     ip     = ipCtxP->interp;
 
     /* Resets the context for the call */
@@ -1497,7 +1497,7 @@ CffiFunctionCall(ClientData cdata,
 {
     CffiFunction *fnP     = (CffiFunction *)cdata;
     CffiProto *protoP     = fnP->protoP;
-    CffiInterpCtx *ipCtxP = fnP->vmCtxP->ipCtxP;
+    CffiInterpCtx *ipCtxP = fnP->ipCtxP;
     Tcl_Obj **argObjs = NULL;
     int nArgObjs;
     Tcl_Obj *resultObj = NULL;
@@ -1831,7 +1831,8 @@ CffiFunctionInstanceCmd(ClientData cdata,
  * Creates a single command mapped to a function.
  *
  * Parameters:
- *    vmCtxP - pointer to the context in which function is to be called
+ *    ip - interpreter
+ *    ipCtxP - interpreter context
  *    libCtxP - containing library, NULL for free standing function
  *    fnAddr - address of function
  *    cmdNameObj - name to give to command
@@ -1851,7 +1852,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
  */
 static CffiResult
 CffiDefineOneFunction(Tcl_Interp *ip,
-                      CffiCallVmCtx *vmCtxP,
+                      CffiInterpCtx *ipCtxP,
                       CffiLibCtx *libCtxP,
                       void *fnAddr,
                       Tcl_Obj *cmdNameObj,
@@ -1864,8 +1865,8 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     CffiFunction *fnP = NULL;
 
     /* Function scope is as per current namespace context */
-    CHECK(CffiPrototypeParse(vmCtxP->ipCtxP,
-                             CffiScopeGet(vmCtxP->ipCtxP, NULL),
+    CHECK(CffiPrototypeParse(ipCtxP,
+                             CffiScopeGet(ipCtxP, NULL),
                              cmdNameObj,
                              returnTypeObj,
                              paramsObj,
@@ -1878,7 +1879,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
 
     fnP = ckalloc(sizeof(*fnP));
     fnP->fnAddr = fnAddr;
-    fnP->vmCtxP = vmCtxP;
+    fnP->ipCtxP = ipCtxP;
     fnP->libCtxP = libCtxP;
     if (libCtxP)
         CffiLibCtxRef(libCtxP);
@@ -1944,7 +1945,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
         cmdNameObj = nameObjs[1];
 
     return CffiDefineOneFunction(ip,
-                                 libCtxP->vmCtxP,
+                                 libCtxP->ipCtxP,
                                  libCtxP,
                                  fn,
                                  cmdNameObj,

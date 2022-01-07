@@ -316,7 +316,7 @@ CffiCallObjCmd(ClientData cdata,
 {
     Tcl_Obj *protoNameObj;
     Tcl_Obj *scopeObj;
-    CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiProto *protoP;
     CffiFunction *fnP;
     CffiScope *scopeP;
@@ -338,12 +338,12 @@ CffiCallObjCmd(ClientData cdata,
     CFFI_ASSERT(protoNameObj);
     Tcl_IncrRefCount(protoNameObj);
     if (scopeObj) {
-        scopeP = CffiScopeGet(vmCtxP->ipCtxP, Tcl_GetString(scopeObj));
+        scopeP = CffiScopeGet(ipCtxP, Tcl_GetString(scopeObj));
         Tcl_DecrRefCount(scopeObj);
         scopeObj = NULL;
     }
     else
-        scopeP = CffiScopeGet(vmCtxP->ipCtxP, NULL);
+        scopeP = CffiScopeGet(ipCtxP, NULL);
 
     protoP = CffiProtoGet(scopeP, protoNameObj);
     Tcl_DecrRefCount(protoNameObj);
@@ -356,7 +356,7 @@ CffiCallObjCmd(ClientData cdata,
 
     fnP = ckalloc(sizeof(*fnP));
     fnP->fnAddr = fnAddr;
-    fnP->vmCtxP = vmCtxP;
+    fnP->ipCtxP = ipCtxP;
     fnP->libCtxP = NULL;
     fnP->cmdNameObj = NULL;
     CffiProtoRef(protoP);
@@ -497,8 +497,7 @@ CffiSandboxObjCmd(ClientData cdata,
  */
 void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 {
-    CffiCallVmCtx *vmCtxP = (CffiCallVmCtx *)cdata;
-    CffiInterpCtx *ipCtxP = vmCtxP->ipCtxP;
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     if (ipCtxP) {
         CffiScopesCleanup(&ipCtxP->scopes);
         MemLifoClose(&ipCtxP->memlifo);
@@ -508,14 +507,12 @@ void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 #endif
         ckfree(ipCtxP);
     }
-    ckfree(vmCtxP);
 }
 
 DLLEXPORT int
 Cffi_Init(Tcl_Interp *ip)
 {
     CffiInterpCtx *ipCtxP;
-    CffiCallVmCtx *vmCtxP;
 
 #ifdef USE_TCL_STUBS
     if (Tcl_InitStubs(ip, "8.6", 0) == NULL) {
@@ -558,11 +555,8 @@ Cffi_Init(Tcl_Interp *ip)
         return Tclh_ErrorAllocation(ip, "Memlifo", NULL);
     }
 
-    vmCtxP = ckalloc(sizeof(*vmCtxP));
-    vmCtxP->ipCtxP = ipCtxP;
-
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, vmCtxP, NULL);
+        ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, ipCtxP, NULL);
 #ifdef CFFI_USE_DYNCALL
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::dyncall::Symbols", CffiDyncallSymbolsObjCmd, NULL, NULL);
@@ -570,7 +564,7 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Struct", CffiStructObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::call", CffiCallObjCmd, vmCtxP, NULL);
+        ip, CFFI_NAMESPACE "::call", CffiCallObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::prototype", CffiPrototypeObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
@@ -590,7 +584,7 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::sandbox", CffiSandboxObjCmd, NULL, NULL);
 
-    Tcl_CallWhenDeleted(ip, CffiFinit, vmCtxP);
+    Tcl_CallWhenDeleted(ip, CffiFinit, ipCtxP);
 
     Tcl_PkgProvide(ip, PACKAGE_NAME, PACKAGE_VERSION);
 

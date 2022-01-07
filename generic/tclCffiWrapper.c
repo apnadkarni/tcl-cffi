@@ -297,7 +297,7 @@ CffiWrapperObjCmd(ClientData cdata,
 
     ret = CffiLibLoad(ip, pathObj, &ctxP);
     if (ret == TCL_OK) {
-        ctxP->vmCtxP = (CffiCallVmCtx *)cdata;
+        ctxP->ipCtxP = (CffiInterpCtx *)cdata;
         Tcl_CreateObjCommand(ip,
                              Tcl_GetString(nameObj),
                              CffiWrapperInstanceCmd,

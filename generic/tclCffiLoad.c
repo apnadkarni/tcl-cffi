@@ -112,7 +112,7 @@ CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP)
     }
 
     ctxP          = ckalloc(sizeof(*ctxP));
-    ctxP->vmCtxP  = NULL;
+    ctxP->ipCtxP  = NULL;
     ctxP->libH     = dlH;
     ctxP->pathObj = pathObj; /* Note ref count was already incr'ed above */
     ctxP->nRefs   = 1;

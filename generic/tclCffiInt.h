@@ -345,14 +345,6 @@ typedef struct CffiInterpCtx {
     MemLifo memlifo;        /* Software stack */
 } CffiInterpCtx;
 
-
-/* Struct: CffiCallVmCtx
- * Context required for making calls to a function in a DLL.
- */
-typedef struct CffiCallVmCtx {
-    CffiInterpCtx *ipCtxP;
-} CffiCallVmCtx;
-
 /* Context for dll commands. */
 #ifdef CFFI_USE_TCLLOAD
 typedef Tcl_LoadHandle CffiLoadHandle;
@@ -361,7 +353,7 @@ typedef DLLib *CffiLoadHandle;
 #endif
 
 typedef struct CffiLibCtx {
-    CffiCallVmCtx *vmCtxP;
+    CffiInterpCtx *ipCtxP;
     CffiLoadHandle libH; /* The dyncall library context */
     Tcl_Obj *pathObj;    /* Path to the library. May be NULL */
     int nRefs; /* To ensure library not released with bound functions */
@@ -412,7 +404,7 @@ CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
  * and other optional information
  */
 typedef struct CffiFunction {
-    CffiCallVmCtx *vmCtxP; /* Context for the call */
+    CffiInterpCtx *ipCtxP; /* Interpreter context */
     void *fnAddr;          /* Pointer to the function to call */
     CffiProto *protoP;     /* Prototype for the call */
     CffiLibCtx *libCtxP;   /* Containing library for bound functions or
@@ -651,10 +643,10 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP);
 
 #define DEFINEFN_(type_, name_, fn_) \
 CFFI_INLINE type_ name_ (CffiCall *callP) { \
-    return fn_ (callP->fnP->vmCtxP->ipCtxP->vmP, callP->fnP->fnAddr); \
+    return fn_ (callP->fnP->ipCtxP->vmP, callP->fnP->fnAddr); \
 }
 CFFI_INLINE void CffiCallVoidFunc (CffiCall *callP) {
-    dcCallVoid(callP->fnP->vmCtxP->ipCtxP->vmP, callP->fnP->fnAddr);
+    dcCallVoid(callP->fnP->ipCtxP->vmP, callP->fnP->fnAddr);
 }
 
 DEFINEFN_(signed char, CffiCallSCharFunc, dcCallInt)
@@ -676,7 +668,7 @@ DEFINEFN_(DCpointer, CffiCallPointerFunc, dcCallPointer)
 #define STOREARGFN_(name_, type_, storefn_) \
 CFFI_INLINE void CffiStoreArg ## name_ (CffiCall *callP, int ix, type_ val) \
 { \
-    storefn_(callP->fnP->vmCtxP->ipCtxP->vmP, val); \
+    storefn_(callP->fnP->ipCtxP->vmP, val); \
 }
 STOREARGFN_(Pointer, void*, dcArgPointer)
 STOREARGFN_(SChar, signed char, dcArgChar)
