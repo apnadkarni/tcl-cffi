@@ -924,6 +924,8 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     case CFFI_K_TYPE_DOUBLE:
     case CFFI_K_TYPE_POINTER:
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
+        /* TBD - this might be broken for small integers on big-endian
+        since they are promoted by libffi to ffi_arg */
         if (argP->actualCount == 0)
             ret = CffiNativeValueToObj(
                 ip, typeAttrsP, valueP, argP->actualCount, &valueObj);

@@ -57,6 +57,7 @@ EXTDIR = $(ROOT)\external-libs\win\$(BUILDDIRTOP)
 PRJ_OBJS = \
 	$(TMP_DIR)\tclCffi.obj \
 	$(TMP_DIR)\tclCffiAlias.obj \
+	$(TMP_DIR)\tclCffiCallback.obj \
 	$(TMP_DIR)\tclCffiEnum.obj \
 	$(TMP_DIR)\tclCffiFunction.obj \
 	$(TMP_DIR)\tclCffiHelp.obj \

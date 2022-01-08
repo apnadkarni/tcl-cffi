@@ -55,6 +55,10 @@
 
 #endif /* CFFI_USE_LIBFFI */
 
+#if defined(CFFI_USE_LIBFFI) && defined(FFI_CLOSURES)
+#define CFFI_ENABLE_CALLBACKS
+#endif
+
 /*
  * Libffi does not have its own load. For consistency, always use Tcl_Load even for
  * dyncall.
@@ -112,7 +116,7 @@ typedef enum CffiBaseType {
  * Context types when parsing type definitions.
  */
 typedef enum CffiTypeParseMode {
-    CFFI_F_TYPE_PARSE_PARAM  = 1, /* Function parameter*/
+    CFFI_F_TYPE_PARSE_PARAM  = 1, /* Function parameter */
     CFFI_F_TYPE_PARSE_RETURN = 2, /* Function return type */
     CFFI_F_TYPE_PARSE_FIELD  = 4, /* Structure field */
 } CffiTypeParseMode;
@@ -446,6 +450,21 @@ typedef struct CffiCall {
     CffiArgument *argsP;   /* Arguments */
 } CffiCall;
 
+#ifdef CFFI_ENABLE_CALLBACKS
+/* Struct: CffiCallback
+ * Contains context needed for processing callbacks.
+ */
+typedef struct CffiCallback {
+    CffiInterpCtx *ipCtxP;
+    CffiProto *protoP;
+    Tcl_Obj *cmdObj;
+    Tcl_Obj *errorResultObj;
+#ifdef CFFI_USE_LIBFFI
+    ffi_closure *ffiClosureP;
+#endif
+} CffiCallback;
+#endif
+
 /*
  * Prototypes
  */
@@ -509,6 +528,10 @@ CffiResult CffiStructToObj(Tcl_Interp *ip,
                            const CffiStruct *structP,
                            void *valueP,
                            Tcl_Obj **valueObjP);
+CffiResult CffiNativeScalarToObj(Tcl_Interp *ip,
+                                 const CffiTypeAndAttrs *typeAttrsP,
+                                 void *valueP,
+                                 Tcl_Obj **valueObjP);
 CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 const CffiTypeAndAttrs *typeAttrsP,
                                 void *valueP,
@@ -686,9 +709,15 @@ STOREARGFN_(Double, double, dcArgDouble)
 
 #undef STOREARGFN_
 
-#else
+#endif
+
+#ifdef CFFI_USE_LIBFFI
 
 CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP);
+
+# ifdef CFFI_ENABLE_CALLBACKS
+void CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata);
+# endif
 
 CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
     return FFI_DEFAULT_ABI;
@@ -703,7 +732,7 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
 CFFI_INLINE void
 CffiReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
 {
-    /* libcffi does not need reloadinf of args once loaded */
+    /* libcffi does not need reloading of args once loaded */
 }
 
 CFFI_INLINE CffiResult CffiResetCall(Tcl_Interp *ip, CffiCall *callP) {
@@ -786,6 +815,11 @@ Tcl_ObjCmdProc CffiPointerObjCmd;
 Tcl_ObjCmdProc CffiPrototypeObjCmd;
 Tcl_ObjCmdProc CffiStructObjCmd;
 Tcl_ObjCmdProc CffiTypeObjCmd;
+
+#ifdef CFFI_ENABLE_CALLBACKS
+Tcl_ObjCmdProc CffiCallbackObjCmd;
+Tcl_ObjCmdProc CffiCallbackFreeObjCmd;
+#endif
 
 /* TBD - move these to Tclh headers */
 typedef struct Tclh_SubCommand {

@@ -1253,7 +1253,7 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
  * *TCL_OK* on success with a pointer to the *Tcl_Obj* stored in *valueObjP*
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
-static CffiResult
+CffiResult
 CffiNativeScalarToObj(Tcl_Interp *ip,
                       const CffiTypeAndAttrs *typeAttrsP,
                       void *valueP,

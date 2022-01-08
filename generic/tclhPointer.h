@@ -638,6 +638,7 @@ PointerNotRegisteredError(Tcl_Interp *interp,
 static void
 TclhPointerRecordFree(TclhPointerRecord *ptrRecP)
 {
+    /* TBD - this assumes pointer tags are tagObj */
     if (ptrRecP->tagObj)
         Tcl_DecrRefCount(ptrRecP->tagObj);
     ckfree(ptrRecP);
