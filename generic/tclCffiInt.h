@@ -460,8 +460,10 @@ typedef struct CffiCallback {
     Tcl_Obj *errorResultObj;
 #ifdef CFFI_USE_LIBFFI
     ffi_closure *ffiClosureP;
+    void *ffiExecutableAddress;
 #endif
 } CffiCallback;
+void CffiCallbackCleanupAndFree(CffiCallback *cbP);
 #endif
 
 /*

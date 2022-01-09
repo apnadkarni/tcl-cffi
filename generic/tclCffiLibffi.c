@@ -424,14 +424,25 @@ vamoose:
     }
 }
 
+static void
+CffiLibffiClosureDeleteEntry(Tcl_HashEntry *heP)
+{
+    CffiCallback *cbP = Tcl_GetHashValue(heP);
+    if (cbP)
+        CffiCallbackCleanupAndFree(cbP);
+}
+
 void
 CffiLibffiFinit(CffiInterpCtx *ipCtxP)
 {
-
+    Tclh_ObjHashDeleteEntries(
+        &ipCtxP->callbackClosures, NULL, CffiLibffiClosureDeleteEntry);
 }
 
 CffiResult
 CffiLibffiInit(CffiInterpCtx *ipCtxP)
 {
+    /* Table mapping callback closure function addresses to CffiCallback */
+    Tcl_InitHashTable(&ipCtxP->callbackClosures, TCL_ONE_WORD_KEYS);
     return TCL_OK;
 }
