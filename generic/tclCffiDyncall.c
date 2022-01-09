@@ -218,7 +218,7 @@ CffiDyncallSymbolsObjCmd(ClientData cdata,
  */
 CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
 {
-    DCCallVM *vmP = callP->fnP->vmCtxP->ipCtxP->vmP;
+    DCCallVM *vmP = callP->fnP->ipCtxP->vmP;
 
     dcReset(vmP);
     dcMode(vmP, callP->fnP->protoP->abi);
@@ -239,7 +239,7 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
  */
 void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
 {
-    DCCallVM *vmP = callP->fnP->vmCtxP->ipCtxP->vmP;
+    DCCallVM *vmP = callP->fnP->ipCtxP->vmP;
 
     CFFI_ASSERT(argP->flags & CFFI_F_ARG_INITIALIZED);
 
@@ -300,7 +300,7 @@ void CffiDyncallFinit(CffiInterpCtx *ipCtxP)
     }
 }
 
-CffiResult CffiDyncallFinit(CffiInterpCtx *ipCtxP)
+CffiResult CffiDyncallInit(CffiInterpCtx *ipCtxP)
 {
     ipCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
     return TCL_OK;
