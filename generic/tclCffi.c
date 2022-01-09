@@ -205,7 +205,7 @@ Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj)
  *
  * Parameters:
  * htP - hash table
- * patObj - key or pattern to match. Must not be *NULL*.
+ * patObj - key or pattern to match.
  * deleteFn - passed the hash entry for clean up purposes
  *
  * Assumes the hash table keys cannot contain glob metacharacters.
@@ -218,21 +218,14 @@ void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
     Tcl_HashSearch hSearch;
     const char *pattern;
 
-    CFFI_ASSERT(patObj);
-
-    heP = Tcl_FindHashEntry(htP, patObj);
-    if (heP) {
-        (*deleteFn)(heP);
-        Tcl_DeleteHashEntry(heP);
-        return;
-    }
+    /* If pattern given, check for exact match */
+    pattern = patObj ? Tcl_GetString(patObj) : NULL;
 
     /* Check if glob pattern */
-    pattern = Tcl_GetString(patObj);
     for (heP = Tcl_FirstHashEntry(htP, &hSearch);
          heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
         Tcl_Obj *key = Tcl_GetHashKey(htP, heP);
-        if (Tcl_StringMatch(Tcl_GetString(key), pattern)) {
+        if (pattern == NULL || Tcl_StringMatch(Tcl_GetString(key), pattern)) {
             (*deleteFn)(heP);
             Tcl_DeleteHashEntry(heP);
         }
