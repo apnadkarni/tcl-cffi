@@ -806,9 +806,36 @@ EXTERN int setWinError(int i)
 }
 #endif
 
+/* Callback test functions */
+
+EXTERN void noargs_caller(void (*fnptr)(void)) {
+    fnptr();
+}
+
 #define FNCALLBACK(token_, type_) \
-typedef type_ token_##callback(type_); \
+typedef type_ (* token_##callback)(type_); \
 EXTERN type_ token_ ## _fn_caller (type_ val, token_ ## callback cb_fn) { \
     return cb_fn(val); \
+} \
+typedef type_ (* token_##callback_byref)(type_); \
+EXTERN type_ token_ ## _fn_caller_byref (type_ val, token_ ## callback_byref cb_fn) { \
+    return cb_fn(val); \
 }
-FNCALLBACK(sint, int)
+
+FNCALLBACK(schar, signed char)
+FNCALLBACK(uchar, unsigned char)
+FNCALLBACK(short, short)
+FNCALLBACK(ushort, unsigned short)
+FNCALLBACK(int, int)
+FNCALLBACK(uint, unsigned int)
+FNCALLBACK(long, long)
+FNCALLBACK(ulong, unsigned long)
+FNCALLBACK(longlong, long long)
+FNCALLBACK(ulonglong, unsigned long long)
+FNCALLBACK(float, float)
+FNCALLBACK(double, double)
+FNCALLBACK(pointer, void*)
+
+EXTERN int callback_check_byref(void *p, int (*fn)(void *)) {
+    return fn(p);
+}

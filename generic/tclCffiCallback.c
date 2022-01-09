@@ -103,6 +103,12 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
         }
         return TCL_OK;
     case CFFI_K_TYPE_POINTER:
+        if (! (typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
+            return Tclh_ErrorInvalidValue(
+                ipCtxP->interp,
+                paramP->nameObj,
+                "Pointer types in callbacks must have the unsafe annotation.");
+        }
         if (isReturn && valueObj) {
             void *pv;
             CHECK(Tclh_PointerUnwrap(ipCtxP->interp, valueObj, &pv, NULL));
@@ -212,7 +218,7 @@ CffiCallbackFreeObjCmd(ClientData cdata,
     CffiResult ret;
     Tcl_Obj *tagObj;
 
-    CHECK_NARGS(ip, 2, 2, "CALLBACK_POINTER");
+    CHECK_NARGS(ip, 2, 2, "CALLBACKPTR");
 
     CHECK(Tclh_PointerUnwrap(ip, objv[1], &pv, NULL));
     if (pv == NULL)
@@ -248,7 +254,7 @@ CffiCallbackObjCmd(ClientData cdata,
     void *closureP;
     void *executableAddr;
 
-    CHECK_NARGS(ip, 4, 5, "PROTOTYPENAME CMDPREFIX ?ERROR_RESULT?");
+    CHECK_NARGS(ip, 3, 4, "PROTOTYPENAME CMDPREFIX ?ERROR_RESULT?");
 
     CHECK(Tcl_ListObjGetElements(ip, objv[2], &nCmdObjs, &cmdObjs));
     if (nCmdObjs == 0)

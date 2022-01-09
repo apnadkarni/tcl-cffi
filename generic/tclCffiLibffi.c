@@ -237,10 +237,14 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
-    case CFFI_K_TYPE_STRUCT:
-        CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
         valueP = args[argIndex];
         break;
+    case CFFI_K_TYPE_STRUCT:
+        CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
+        /* args[argIndex] is the location of the pointer to the struct */
+        valueP = *(void **)args[argIndex];
+        return CffiNativeValueToObj(
+            cbP->ipCtxP->interp, typeAttrsP, valueP, 0, argObjP);
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
