@@ -423,3 +423,15 @@ vamoose:
                                             retP);
     }
 }
+
+void
+CffiLibffiFinit(CffiInterpCtx *ipCtxP)
+{
+
+}
+
+CffiResult
+CffiLibffiInit(CffiInterpCtx *ipCtxP)
+{
+    return TCL_OK;
+}

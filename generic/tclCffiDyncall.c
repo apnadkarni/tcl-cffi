@@ -291,3 +291,17 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
     }
 #undef STORESCALAR
 }
+
+void CffiDyncallFinit(CffiInterpCtx *ipCtxP)
+{
+    if (ipCtxP->vmP) {
+        dcFree(ipCtxP->vmP);
+        ipCtxP->vmP = NULL;
+    }
+}
+
+CffiResult CffiDyncallFinit(CffiInterpCtx *ipCtxP)
+{
+    ipCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
+    return TCL_OK;
+}

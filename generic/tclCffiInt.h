@@ -338,10 +338,9 @@ typedef struct CffiInterpCtx {
                                  interp deletion */
     Tcl_HashTable scopes;     /* scope name -> CffiScope */
     CffiScope *globalScopeP;  /* Links to the global scope in scopes */
-#ifdef OBSOLETE
-    Tcl_HashTable prototypes; /* prototype name -> CffiProto */
-    Tcl_HashTable aliases;    /* typedef name -> CffiTypeAndAttrs */
-    Tcl_HashTable enums;      /* Enum -> (name->value table) */
+#ifdef CFFI_USE_LIBFFI
+    Tcl_HashTable callbackClosures;   /* Maps FFI callback function pointers
+                                         to CffiCallback */
 #endif
 #ifdef CFFI_USE_DYNCALL
     DCCallVM *vmP; /* The dyncall call context to use */
@@ -641,10 +640,14 @@ Tcl_Obj *CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
                            Tcl_WideInt value);
 
 /* Scope prototypes */
-void CffiScopesCleanup(Tcl_HashTable *scopesTableP);
+CffiResult CffiScopesInit(CffiInterpCtx *ipCtxP);
+void CffiScopesCleanup(CffiInterpCtx *ipCtxP);
 CffiScope *CffiScopeGet(CffiInterpCtx *ipCtxP, const char *nameP);
 
 #ifdef CFFI_USE_DYNCALL
+
+CffiResult CffiDyncallInit(CffiInterpCtx *ipCtxP);
+void CffiDyncallFinit(CffiInterpCtx *ipCtxP);
 
 CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
     return DC_CALL_C_DEFAULT;
@@ -712,6 +715,9 @@ STOREARGFN_(Double, double, dcArgDouble)
 #endif
 
 #ifdef CFFI_USE_LIBFFI
+
+CffiResult CffiLibffiInit(CffiInterpCtx *ipCtxP);
+void CffiLibffiFinit(CffiInterpCtx *ipCtxP);
 
 CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP);
 

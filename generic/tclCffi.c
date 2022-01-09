@@ -469,6 +469,58 @@ CffiSandboxObjCmd(ClientData cdata,
     return ret;
 }
 
+static void
+CffiInterpCtxCleanupAndFree(CffiInterpCtx *ipCtxP)
+{
+#ifdef CFFI_USE_LIBFFI
+        CffiLibffiFinit(ipCtxP);
+#endif
+#ifdef CFFI_USE_DYNCALL
+        CffiDyncallFinit(ipCtxP);
+#endif
+        CffiScopesCleanup(ipCtxP);
+        MemLifoClose(&ipCtxP->memlifo);
+        ckfree(ipCtxP);
+}
+
+static CffiResult
+CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
+{
+    CffiInterpCtx *ipCtxP;
+    CffiResult ret;
+
+    ipCtxP = ckalloc(sizeof(*ipCtxP));
+    memset(ipCtxP, 0, sizeof(*ipCtxP)); /* So we can call cleanup any time */
+
+    ipCtxP->interp = ip;
+
+    /* Set up memlifo before anything else */
+    /* TBD - size 16000 too much? */
+    if (MemLifoInit(
+            &ipCtxP->memlifo, NULL, NULL, 16000, MEMLIFO_F_PANIC_ON_FAIL) !=
+        MEMLIFO_E_SUCCESS) {
+        /* Don't call CleanupAndFree since that assumes memlifo init'ed */
+        ckfree(ipCtxP);
+        return Tclh_ErrorAllocation(ip, "Memlifo", NULL);
+    }
+
+    if (CffiScopesInit(ipCtxP) == TCL_OK) {
+#ifdef CFFI_USE_DYNCALL
+        ret = CffiDyncallInit(ipCtxP);
+#endif
+#ifdef CFFI_USE_LIBFFI
+        ret = CffiLibffiInit(ipCtxP);
+#endif
+        if (ret == TCL_OK) {
+            *ipCtxPP = ipCtxP;
+            return TCL_OK;
+        }
+    }
+
+    CffiInterpCtxCleanupAndFree(ipCtxP);
+    return TCL_ERROR;
+}
+
 /* Function: CffiFinit
  * Cleans up interpreter-wide resources when extension is unloaded from
  * interpreter.
@@ -477,17 +529,11 @@ CffiSandboxObjCmd(ClientData cdata,
  * ip - interpreter
  * cdata - CallVm context for the interpreter.
  */
-void CffiFinit(ClientData cdata, Tcl_Interp *ip)
+static void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     if (ipCtxP) {
-        CffiScopesCleanup(&ipCtxP->scopes);
-        MemLifoClose(&ipCtxP->memlifo);
-#ifdef CFFI_USE_DYNCALL
-    if (ipCtxP->vmP)
-        dcFree(ipCtxP->vmP);
-#endif
-        ckfree(ipCtxP);
+        CffiInterpCtxCleanupAndFree(ipCtxP);
     }
 }
 
@@ -506,36 +552,10 @@ Cffi_Init(Tcl_Interp *ip)
     }
 #endif
 
-    if (Tclh_BaseLibInit(ip) != TCL_OK)
-        return TCL_ERROR;
-    if (Tclh_ObjLibInit(ip) != TCL_OK)
-        return TCL_ERROR;
-    if (Tclh_PointerLibInit(ip) != TCL_OK)
-        return TCL_ERROR;
-
-    ipCtxP = ckalloc(sizeof(*ipCtxP));
-    ipCtxP->interp = ip;
-    Tcl_InitHashTable(&ipCtxP->scopes, TCL_STRING_KEYS);
-    ipCtxP->globalScopeP = NULL;
-#ifdef OBSOLETE
-    Tcl_InitObjHashTable(&ipCtxP->aliases);
-    Tcl_InitObjHashTable(&ipCtxP->enums);
-#endif
-
-#ifdef CFFI_USE_DYNCALL
-    ipCtxP->vmP    = dcNewCallVM(4096); /* TBD - size? */
-#endif
-
-    /* Initialize the global scope */
-    ipCtxP->globalScopeP = CffiScopeGet(ipCtxP, "::");
-    CffiScopeRef(ipCtxP->globalScopeP);
-
-    /* TBD - size 16000 too much? */
-    if (MemLifoInit(
-            &ipCtxP->memlifo, NULL, NULL, 16000, MEMLIFO_F_PANIC_ON_FAIL) !=
-        MEMLIFO_E_SUCCESS) {
-        return Tclh_ErrorAllocation(ip, "Memlifo", NULL);
-    }
+    CHECK(Tclh_BaseLibInit(ip));
+    CHECK(Tclh_ObjLibInit(ip));
+    CHECK(Tclh_PointerLibInit(ip));
+    CHECK(CffiInterpCtxAllocAndInit(ip, &ipCtxP));
 
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, ipCtxP, NULL);

@@ -26,20 +26,6 @@ CffiScopeUnref(CffiScope *scopeP)
     }
 }
 
-/* Called on interp deletion to release all scopes */
-void
-CffiScopesCleanup(Tcl_HashTable *scopesP)
-{
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    for (heP = Tcl_FirstHashEntry(scopesP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        CffiScope *scopeP = Tcl_GetHashValue(heP);
-        CffiScopeUnref(scopeP);
-    }
-    Tcl_DeleteHashTable(scopesP);
-}
-
 /* Function: CffiScopeGet
  * Returns the scope descriptor for the specified scope
  *
@@ -87,3 +73,30 @@ CffiScopeGet(CffiInterpCtx *ipCtxP, const char *nameP)
     return scopeP;
 }
 
+/* Called on interp deletion to release all scopes */
+void
+CffiScopesCleanup(CffiInterpCtx *ipCtxP)
+{
+    Tcl_HashTable *scopesP = &ipCtxP->scopes;
+    Tcl_HashEntry *heP;
+    Tcl_HashSearch hSearch;
+    for (heP = Tcl_FirstHashEntry(scopesP, &hSearch);
+         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
+        CffiScope *scopeP = Tcl_GetHashValue(heP);
+        CffiScopeUnref(scopeP);
+    }
+    Tcl_DeleteHashTable(scopesP);
+    if (ipCtxP->globalScopeP) {
+        CffiScopeUnref(ipCtxP->globalScopeP);
+        ipCtxP->globalScopeP = NULL;
+    }
+}
+
+CffiResult
+CffiScopesInit(CffiInterpCtx *ipCtxP)
+{
+    Tcl_InitHashTable(&ipCtxP->scopes, TCL_STRING_KEYS);
+    ipCtxP->globalScopeP = CffiScopeGet(ipCtxP, "::");
+    CffiScopeRef(ipCtxP->globalScopeP);
+    return TCL_OK;
+}

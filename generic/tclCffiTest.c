@@ -142,7 +142,11 @@ typedef type_ token_##callback(type_); \
 EXTERN type_ token_ ## _fn_caller (type_ val, token_ ## callback cb_fn) { \
     return cb_fn(val); \
 }
-FNCALLBACK(sint, int)
+/* FNCALLBACK(sint, int) */
+typedef int sintcallback(int);
+extern __declspec(dllexport) int sint_fn_caller (int val, sintcallback cb_fn) {
+    return cb_fn(val);
+}
 
 typedef struct InnerTestStruct {
     char c[15];
