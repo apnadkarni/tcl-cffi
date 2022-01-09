@@ -315,37 +315,19 @@ CffiCallObjCmd(ClientData cdata,
                Tcl_Obj *const objv[])
 {
     Tcl_Obj *protoNameObj;
-    Tcl_Obj *scopeObj;
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiProto *protoP;
     CffiFunction *fnP;
-    CffiScope *scopeP;
     CffiResult ret;
     void *fnAddr;
 
     CHECK_NARGS(ip, 2, INT_MAX, "FNPTR ?ARG ...?");
     CHECK(Tclh_PointerObjGetTag(ip, objv[1], &protoNameObj));
     CHECK(Tclh_PointerUnwrap(ip, objv[1], &fnAddr, NULL));
-    if (protoNameObj) {
-        /* The tag is consists of the scope followed by prototype name. */
-        protoNameObj =
-            Tclh_NamespaceTail(Tcl_GetString(protoNameObj), &scopeObj);
-    }
-    if (protoNameObj == NULL)
-        return Tclh_ErrorNotFound(
-            ip, "Prototype", protoNameObj, "Function prototype not found.");
 
-    CFFI_ASSERT(protoNameObj);
+    protoNameObj = CffiQualifyName(ip, protoNameObj);
     Tcl_IncrRefCount(protoNameObj);
-    if (scopeObj) {
-        scopeP = CffiScopeGet(ipCtxP, Tcl_GetString(scopeObj));
-        Tcl_DecrRefCount(scopeObj);
-        scopeObj = NULL;
-    }
-    else
-        scopeP = CffiScopeGet(ipCtxP, NULL);
-
-    protoP = CffiProtoGet(scopeP, protoNameObj);
+    protoP = CffiProtoGet(CffiScopeGet(ipCtxP, NULL), protoNameObj);
     Tcl_DecrRefCount(protoNameObj);
     protoNameObj = NULL;
 

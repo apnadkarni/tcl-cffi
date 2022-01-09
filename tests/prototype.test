@@ -30,7 +30,7 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         cffi::prototype function itoi int {x int}
-        cffi::call [makeptr $addr itoi] 42
+        cffi::call [scoped_ptr $addr itoi] 42
     } -result 42
     test prototype-function-1 "Function pointer from struct" -setup {
         cffi::prototype function itoi int {x int}
@@ -53,7 +53,7 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         cffi::prototype stdcall dbldiv double {a double b double}
-        cffi::call [makeptr $addr dbldiv] 1 2
+        cffi::call [scoped_ptr $addr dbldiv] 1 2
     } -result 0.5
     test prototype-stdcall-1 "Function pointer from struct - stdcall" -setup {
         cffi::prototype stdcall dbldiv double {a double b double}
@@ -83,7 +83,7 @@ namespace eval ${NS}::test {
             cffi::prototype delete *
         } -body {
             cffi::prototype ${mode} PROTOTYPE void {}
-        } -result {Prototype "PROTOTYPE" already exists. } -returnCodes error
+        } -result "Prototype \"[namespace current]::PROTOTYPE\" already exists. " -returnCodes error
 
     }
 
@@ -101,7 +101,7 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         lsort [cffi::prototype list]
-    } -result [list Function Stdcall]
+    } -result [lprefixns Function Stdcall]
     test prototype-list-2 "prototype list exact" -setup {
         cffi::prototype delete *
         cffi::prototype function Function int {x int}
@@ -111,7 +111,7 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         lsort [cffi::prototype list F]
-    } -result [list F ]
+    } -result [lprefixns F ]
     test prototype-list-3 "prototype list glob" -setup {
         cffi::prototype delete *
         cffi::prototype function Function int {x int}
@@ -121,7 +121,7 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         lsort [cffi::prototype list F* ]
-    } -result [list F Function]
+    } -result [lprefixns F Function]
     test prototype-list-4 "prototype list nomatch" -setup {
         cffi::prototype delete *
         cffi::prototype function Function int {x int}
@@ -145,7 +145,7 @@ namespace eval ${NS}::test {
     } -body {
         cffi::prototype delete F
         lsort [cffi::prototype list]
-    } -result [list Function Stdcall]
+    } -result [lprefix [namespace current]:: Function Stdcall]
     test prototype-delete-1 "prototype delete glob" -setup {
         cffi::prototype delete *
         cffi::prototype function Function int {x int}
@@ -156,7 +156,7 @@ namespace eval ${NS}::test {
     } -body {
         cffi::prototype delete F*
         lsort [cffi::prototype list]
-    } -result [list Stdcall]
+    } -result [lprefix [namespace current]:: Stdcall]
     test prototype-delete-2 "prototype delete nomatch" -setup {
         cffi::prototype delete *
         cffi::prototype function Function int {x int}
@@ -167,7 +167,7 @@ namespace eval ${NS}::test {
     } -body {
         cffi::prototype delete Fx*
         lsort [cffi::prototype list]
-    } -result [list F Function Stdcall]
+    } -result [lprefix [namespace current]:: F Function Stdcall]
 
 
     # Call command
@@ -177,7 +177,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::prototype delete *
     } -body {
-        cffi::call [makeptr 0 itoi] 42
+        cffi::call [scoped_ptr 0 itoi] 42
     } -result "Invalid value. Function pointer not in executable page." -returnCodes error
 
     test call-error-1 "Call with wrong num args" -setup {
@@ -186,8 +186,8 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         cffi::prototype function itoi int {x int}
-        cffi::call [makeptr $addr itoi]
-    } -result "Syntax: cffi::call [makeptr [testDll addressof int_to_int] itoi] x" -returnCodes error
+        cffi::call [scoped_ptr $addr itoi]
+    } -result "Syntax: cffi::call [scoped_ptr [testDll addressof int_to_int] itoi] x" -returnCodes error
 
     # Error annotations
     test prototype-errorannotation-0 "zero error" -setup {
@@ -196,15 +196,15 @@ namespace eval ${NS}::test {
         cffi::prototype delete *
     } -body {
         cffi::prototype function itoi {int zero} {x int}
-        cffi::call [makeptr $addr itoi] 42
+        cffi::call [scoped_ptr $addr itoi] 42
     } -result {Invalid value "42". Function returned an error value.} -returnCodes error
-    test prototype-errorannotation-0 "onerror" -setup {
+    test prototype-errorannotation-1 "onerror" -setup {
         set addr [testDll addressof int_to_int]
     } -cleanup {
         cffi::prototype delete *
     } -body {
         cffi::prototype function itoi {int nonzero {onerror {return -level 0}}} {x int}
-        cffi::call [makeptr $addr itoi] 0
+        cffi::call [scoped_ptr $addr itoi] 0
     } -result {In {x 0} Out {} Result 0}
 
     # TBD - prototype scope based tests

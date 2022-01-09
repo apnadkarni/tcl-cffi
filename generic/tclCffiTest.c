@@ -137,6 +137,13 @@
         return len;                                  \
     }
 
+#define FNCALLBACK(token_, type_) \
+typedef type_ token_##callback(type_); \
+EXTERN type_ token_ ## _fn_caller (type_ val, token_ ## callback cb_fn) { \
+    return cb_fn(val); \
+}
+FNCALLBACK(sint, int)
+
 typedef struct InnerTestStruct {
     char c[15];
 } InnerTestStruct;

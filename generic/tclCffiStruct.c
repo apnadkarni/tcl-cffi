@@ -1153,6 +1153,7 @@ CffiStructObjCmd(ClientData cdata,
         sep        = strcmp(nsP->fullName, "::") ? "::" : "";
         cmdNameObj = Tcl_ObjPrintf(
             "%s%scffiStruct%u", nsP->fullName, sep, ++name_generator);
+        Tcl_IncrRefCount(cmdNameObj);
         defObj  = objv[2];
         optIndex = 3;
     }
@@ -1163,6 +1164,7 @@ CffiStructObjCmd(ClientData cdata,
                 ip, objv[2], "Empty string specified for structure name.");
         }
         cmdNameObj = CffiQualifyName(ip, objv[2]);
+        Tcl_IncrRefCount(cmdNameObj);
         defObj  = objv[3];
         optIndex = 4;
     }
@@ -1172,14 +1174,13 @@ CffiStructObjCmd(ClientData cdata,
     if (optIndex < objc) {
         const char *optStr = Tcl_GetString(objv[optIndex]);
         if (strcmp("-clear", optStr)) {
+            Tcl_DecrRefCount(cmdNameObj);
             Tcl_SetObjResult(
                 ip, Tcl_ObjPrintf("bad option \"%s\": must be -clear", optStr));
             return TCL_ERROR;
         }
         clear = 1;
     }
-
-    Tcl_IncrRefCount(cmdNameObj);
 
     ret = CffiStructParse(
         ipCtxP, CffiScopeGet(ipCtxP, NULL), cmdNameObj, defObj, &structP);

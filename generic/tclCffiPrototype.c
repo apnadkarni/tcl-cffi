@@ -187,33 +187,43 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
     Tcl_HashEntry *heP;
     CffiProto *protoP;
     CffiScope *scopeP;
-    Tcl_Obj *nameObj = objv[2];
+    Tcl_Obj *nameObj;
+    CffiResult ret;
     int new_entry;
 
     CFFI_ASSERT(objc == 5);
 
-    CHECK(CffiNameSyntaxCheck(ip, nameObj));
+    CHECK(CffiNameSyntaxCheck(ip, objv[2]));
+
+    nameObj = CffiQualifyName(ip, objv[2]);
+    Tcl_IncrRefCount(nameObj);
 
     /* Prototype scopes are per the current namespace context */
     scopeP = CffiScopeGet(ipCtxP, NULL);
 
     heP = Tcl_FindHashEntry(&scopeP->prototypes, nameObj);
     if (heP)
-        return Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
+        ret = Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
+    else {
+        ret = CffiPrototypeParse(
+            ipCtxP, scopeP, nameObj, objv[3], objv[4], &protoP);
+        if (ret == TCL_OK) {
+            protoP->abi = callMode;
 
-    CHECK(
-        CffiPrototypeParse(ipCtxP, scopeP, nameObj, objv[3], objv[4], &protoP));
-    protoP->abi = callMode;
-
-    heP = Tcl_CreateHashEntry(&scopeP->prototypes, (char *) nameObj, &new_entry);
-    if (! new_entry) {
-        /* Should not happen because of existence check above but future proofing */
-        CffiProto *oldP = Tcl_GetHashValue(heP);
-        CffiProtoUnref(oldP);
+            heP = Tcl_CreateHashEntry(
+                &scopeP->prototypes, (char *)nameObj, &new_entry);
+            if (!new_entry) {
+                /* Should not happen because of existence check above but future
+                 * proofing */
+                CffiProto *oldP = Tcl_GetHashValue(heP);
+                CffiProtoUnref(oldP);
+            }
+            CffiProtoRef(protoP);
+            Tcl_SetHashValue(heP, protoP);
+        }
     }
-    CffiProtoRef(protoP);
-    Tcl_SetHashValue(heP, protoP);
-    return TCL_OK;
+    Tcl_DecrRefCount(nameObj);
+    return ret;
 }
 
 static CffiResult
@@ -228,6 +238,7 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
     CffiProto *protoP;
     Tcl_HashTable *tableP;
     CffiScope *scopeP;
+    Tcl_Obj *patternObj;
 
     scopeP = CffiScopeGet(ipCtxP, NULL);
     tableP = &scopeP->prototypes;
@@ -242,7 +253,9 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
     }
 
     /* Check if glob pattern */
-    pattern = Tcl_GetString(objv[2]);
+    patternObj = CffiQualifyName(ip, objv[2]);
+    Tcl_IncrRefCount(patternObj);
+    pattern = Tcl_GetString(patternObj);
     for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
          heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
         Tcl_Obj *key = Tcl_GetHashKey(tableP, heP);
@@ -252,7 +265,7 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
             Tcl_DeleteHashEntry(heP);
         }
     }
-
+    Tcl_DecrRefCount(patternObj);
     return TCL_OK;
 }
 
@@ -265,11 +278,19 @@ CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
     Tcl_HashEntry *heP;
     Tcl_HashSearch hSearch;
     const char *pattern;
+    Tcl_Obj *patternObj;
     CffiScope *scopeP = CffiScopeGet(ipCtxP, NULL);
     Tcl_HashTable *tableP = &scopeP->prototypes;
     Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
 
-    pattern = objc > 2 ? Tcl_GetString(objv[2]) : NULL;
+    if (objc > 2) {
+        patternObj = CffiQualifyName(ip, objv[2]);
+        Tcl_IncrRefCount(patternObj);
+        pattern    = Tcl_GetString(patternObj);
+    } else {
+        patternObj = NULL;
+        pattern = NULL;
+    }
     for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
          heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
         /* If a pattern was specified, only return those */
@@ -283,6 +304,8 @@ CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
                                  resultObj,
                                  (Tcl_Obj *)Tcl_GetHashKey(tableP, heP));
     }
+    if (patternObj)
+        Tcl_DecrRefCount(patternObj);
     Tcl_SetObjResult(ipCtxP->interp, resultObj);
     return TCL_OK;
 }

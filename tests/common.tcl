@@ -179,10 +179,38 @@ proc cffi::test::command_exists {cmd} {
     return [expr {[uplevel #0 namespace which $cmd] eq $cmd}]
 }
 
+proc nsqualify {name {ns {}}} {
+    if {[string equal -length 2 :: $name]} {
+        return $name
+    }
+    if {$ns eq {}} {
+        set ns [uplevel 1 namespace current]
+    }
+    set ns [string trimright $ns :]
+    return ${ns}::$name
+}
+
 
 proc cffi::test::makeptr {p {tag {}}} {
     set width [expr {$::tcl_platform(pointerSize) * 2}]
     return [format "0x%.${width}lx" $p]^$tag
+}
+
+proc cffi::test::scoped_ptr {p tag} {
+    return [makeptr $p [nsqualify $tag [uplevel 1 namespace current]]]
+}
+
+proc cffi::test::lprefix {prefix args} {
+    lmap e $args {
+        return -level 0 $prefix$e
+    }
+}
+
+proc cffi::test::lprefixns {args} {
+    set ns [uplevel 1 namespace current]
+    return [lmap e $args {
+        nsqualify $e $ns
+    }]
 }
 
 # step better be > 0
