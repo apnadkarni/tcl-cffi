@@ -533,7 +533,7 @@ static void CffiFinit(ClientData cdata, Tcl_Interp *ip)
 DLLEXPORT int
 Cffi_Init(Tcl_Interp *ip)
 {
-    CffiInterpCtx *ipCtxP;
+    CffiInterpCtx *ipCtxP = NULL;
 
 #ifdef USE_TCL_STUBS
     if (Tcl_InitStubs(ip, "8.6", 0) == NULL) {

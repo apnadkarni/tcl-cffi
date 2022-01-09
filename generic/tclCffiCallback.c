@@ -208,7 +208,7 @@ CffiCallbackFreeObjCmd(ClientData cdata,
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     void *pv;
-    CffiCallback *cbP;
+    CffiCallback *cbP = NULL;
     CffiResult ret;
     Tcl_Obj *tagObj;
 
