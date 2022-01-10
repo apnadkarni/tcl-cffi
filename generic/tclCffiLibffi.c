@@ -208,17 +208,31 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     do {                                                                       \
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \
             /* arg is actually a pointer to the value, not the value itself */ \
-            valueP = args[argIndex];                                           \
+            valueP = *(void **)args[argIndex];                                 \
         }                                                                      \
         else {                                                                 \
             /* libffi promotes smaller integers to ffi_arg */                  \
-            if (sizeof(type_) <= sizeof(ffi_arg))                              \
+            if (sizeof(type_) <= sizeof(ffi_arg)) {                            \
                 val.u.fld_ = (type_) * (ffi_arg *)args[argIndex];              \
+                valueP     = &val.u.fld_;                                      \
+            }                                                                  \
             else                                                               \
-                val.u.fld_ = *(type_ *)args[argIndex];                         \
-            valueP = &val.u.fld_;                                              \
+                valueP = args[argIndex];                                       \
         }                                                                      \
     } while (0)
+
+#define EXTRACT_(type_, fld_)                                                  \
+    do {                                                                       \
+        if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \
+            /* arg is actually a pointer to the value, not the value itself */ \
+            valueP = *(void **)args[argIndex];                                 \
+        }                                                                      \
+        else {                                                                 \
+            valueP = args[argIndex];                                           \
+        }                                                                      \
+    } while (0)
+
+    /* TBD - big endian? */
 
     switch (typeAttrsP->dataType.baseType) {
     case CFFI_K_TYPE_SCHAR    : EXTRACTINT_(signed char, schar); break;
@@ -232,13 +246,15 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     case CFFI_K_TYPE_LONGLONG : EXTRACTINT_(long long, slonglong); break;
     case CFFI_K_TYPE_ULONGLONG: EXTRACTINT_(unsigned long long, ulonglong); break;
 
-    case CFFI_K_TYPE_FLOAT:
-    case CFFI_K_TYPE_DOUBLE:
+    case CFFI_K_TYPE_FLOAT: EXTRACT_(float, flt); break;
+    case CFFI_K_TYPE_DOUBLE: EXTRACT_(double, dbl); break;
+
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
-        valueP = args[argIndex];
+        EXTRACT_(void *, ptr);
         break;
+
     case CFFI_K_TYPE_STRUCT:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
         /* args[argIndex] is the location of the pointer to the struct */
@@ -259,6 +275,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     return CffiNativeScalarToObj(
         cbP->ipCtxP->interp, typeAttrsP, valueP, argObjP);
 
+#undef EXTRACT_
 #undef EXTRACT_INT_
 }
 

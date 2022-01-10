@@ -817,9 +817,9 @@ typedef type_ (* token_##callback)(type_); \
 EXTERN type_ token_ ## _fn_caller (type_ val, token_ ## callback cb_fn) { \
     return cb_fn(val); \
 } \
-typedef type_ (* token_##callback_byref)(type_); \
+typedef type_ (* token_##callback_byref)(type_ *); \
 EXTERN type_ token_ ## _fn_caller_byref (type_ val, token_ ## callback_byref cb_fn) { \
-    return cb_fn(val); \
+    return cb_fn(&val); \
 }
 
 FNCALLBACK(schar, signed char)
@@ -838,4 +838,65 @@ FNCALLBACK(pointer, void*)
 
 EXTERN int callback_check_byref(void *p, int (*fn)(void *)) {
     return fn(p);
+}
+
+
+EXTERN
+double
+manyargs_callback(signed char ch,
+                  unsigned char uch,
+                  short shrt,
+                  unsigned short ushort,
+                  int i,
+                  unsigned int ui,
+                  long l,
+                  unsigned long ul,
+                  long long ll,
+                  unsigned long long ull,
+                  float f,
+                  double d,
+                  double (*fn)(signed char ch,
+                               unsigned char uch,
+                               short shrt,
+                               unsigned short ushort,
+                               int i,
+                               unsigned int ui,
+                               long l,
+                               unsigned long ul,
+                               long long ll,
+                               unsigned long long ull,
+                               float f,
+                               double d))
+{
+    return fn(ch, uch, shrt, ushort, i, ui, l, ul, ll, ull, f, d);
+}
+
+DLLEXPORT
+double CFFI_STDCALL
+manyargs_callback_stdcall(signed char ch,
+                  unsigned char uch,
+                  short shrt,
+                  unsigned short ushort,
+                  int i,
+                  unsigned int ui,
+                  long l,
+                  unsigned long ul,
+                  long long ll,
+                  unsigned long long ull,
+                  float f,
+                  double d,
+                  double (CFFI_STDCALL * fn)(signed char ch,
+                               unsigned char uch,
+                               short shrt,
+                               unsigned short ushort,
+                               int i,
+                               unsigned int ui,
+                               long l,
+                               unsigned long ul,
+                               long long ll,
+                               unsigned long long ull,
+                               float f,
+                               double d))
+{
+    return fn(ch, uch, shrt, ushort, i, ui, l, ul, ll, ull, f, d);
 }
