@@ -410,16 +410,10 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
 void
 CffiAliasesCleanup(Tcl_HashTable *typeAliasTableP)
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    for (heP = Tcl_FirstHashEntry(typeAliasTableP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        CffiTypeAndAttrs *typeAndAttrsP = Tcl_GetHashValue(heP);
-        CffiTypeAndAttrsCleanup(typeAndAttrsP);
-        ckfree(typeAndAttrsP);
-    }
+    Tclh_ObjHashDeleteEntries(typeAliasTableP, NULL, CffiAliasEntryDelete);
     Tcl_DeleteHashTable(typeAliasTableP);
 }
+
 CffiResult
 CffiAliasObjCmd(ClientData cdata,
                 Tcl_Interp *ip,

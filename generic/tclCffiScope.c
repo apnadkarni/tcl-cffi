@@ -73,18 +73,21 @@ CffiScopeGet(CffiInterpCtx *ipCtxP, const char *nameP)
     return scopeP;
 }
 
+static void CffiScopeEntryDelete(Tcl_HashEntry *heP)
+{
+    CffiScope *scopeP;
+    scopeP = Tcl_GetHashValue(heP);
+    if (scopeP)
+        CffiScopeUnref(scopeP);
+}
+
+
 /* Called on interp deletion to release all scopes */
 void
 CffiScopesCleanup(CffiInterpCtx *ipCtxP)
 {
     Tcl_HashTable *scopesP = &ipCtxP->scopes;
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    for (heP = Tcl_FirstHashEntry(scopesP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        CffiScope *scopeP = Tcl_GetHashValue(heP);
-        CffiScopeUnref(scopeP);
-    }
+    Tclh_ObjHashDeleteEntries(scopesP, NULL, CffiScopeEntryDelete);
     Tcl_DeleteHashTable(scopesP);
     if (ipCtxP->globalScopeP) {
         CffiScopeUnref(ipCtxP->globalScopeP);

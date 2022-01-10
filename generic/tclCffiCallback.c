@@ -38,6 +38,28 @@ void CffiCallbackCleanupAndFree(CffiCallback *cbP)
     ckfree(cbP);
 }
 
+static CffiCallback *
+CffiCallbackAllocAndInit(CffiInterpCtx *ipCtxP,
+                         CffiProto *protoP,
+                         Tcl_Obj *cmdObj,
+                         Tcl_Obj *errorResultObj)
+{
+    CffiCallback *cbP;
+
+    cbP = ckalloc(sizeof(*cbP));
+    cbP->ipCtxP = ipCtxP;
+    cbP->protoP = protoP;
+    protoP->nRefs += 1;
+    cbP->cmdObj = cmdObj;
+    Tcl_IncrRefCount(cmdObj);
+    cbP->ffiClosureP = NULL;
+    cbP->ffiExecutableAddress = NULL;
+    cbP->errorResultObj = errorResultObj;
+    if (errorResultObj)
+        Tcl_IncrRefCount(errorResultObj);
+    return cbP;
+}
+
 /* Function: CffiCallbackCheckType
  * Checks whether a type is suitable for use in a callback
  *
@@ -276,20 +298,10 @@ CffiCallbackObjCmd(ClientData cdata,
 #ifdef CFFI_USE_LIBFFI
     CHECK(CffiLibffiInitProtoCif(ip, protoP));
 
-    cbP = ckalloc(sizeof(*cbP));
-    cbP->ipCtxP = ipCtxP;
-    cbP->protoP = protoP;
-    protoP->nRefs += 1;
-    cbP->cmdObj = objv[2];
-    Tcl_IncrRefCount(cbP->cmdObj);
-    cbP->ffiClosureP = NULL;
-    cbP->ffiExecutableAddress = NULL;
-    if (objc < 4)
-        cbP->errorResultObj = NULL;
-    else {
-        cbP->errorResultObj = objv[3];
-        Tcl_IncrRefCount(cbP->errorResultObj);
-    }
+    cbP = CffiCallbackAllocAndInit(
+        ipCtxP, protoP, objv[2], objc < 4 ? NULL : objv[3]);
+    if (cbP == NULL)
+        return TCL_ERROR;
 
     /* Allocate the libffi closure */
     closureP = ffi_closure_alloc(sizeof(ffi_closure), &executableAddr);
@@ -332,10 +344,8 @@ CffiCallbackObjCmd(ClientData cdata,
         }
     }
 
-    /* Error return */
-    if (cbP)
-        CffiCallbackCleanupAndFree(cbP);
-
+    CFFI_ASSERT(cbP);
+    CffiCallbackCleanupAndFree(cbP);
     return TCL_ERROR;
 #endif
 }

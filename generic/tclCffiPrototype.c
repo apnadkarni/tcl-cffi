@@ -226,16 +226,19 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+static void CffiPrototypeEntryDelete(Tcl_HashEntry *heP)
+{
+    CffiProto *protoP = Tcl_GetHashValue(heP);
+    if (protoP)
+        CffiProtoUnref(protoP);
+}
+
 static CffiResult
 CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
                        Tcl_Interp *ip,
                        int objc,
                        Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    const char *pattern;
-    CffiProto *protoP;
     Tcl_HashTable *tableP;
     CffiScope *scopeP;
     Tcl_Obj *patternObj;
@@ -244,27 +247,10 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
     tableP = &scopeP->prototypes;
 
     CFFI_ASSERT(objc == 3);
-    heP = Tcl_FindHashEntry(tableP, objv[2]);
-    if (heP) {
-        protoP = Tcl_GetHashValue(heP);
-        CffiProtoUnref(protoP);
-        Tcl_DeleteHashEntry(heP);
-        return TCL_OK;
-    }
 
-    /* Check if glob pattern */
     patternObj = CffiQualifyName(ip, objv[2]);
     Tcl_IncrRefCount(patternObj);
-    pattern = Tcl_GetString(patternObj);
-    for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        Tcl_Obj *key = Tcl_GetHashKey(tableP, heP);
-        if (Tcl_StringMatch(Tcl_GetString(key), pattern)) {
-            protoP = Tcl_GetHashValue(heP);
-            CffiProtoUnref(protoP);
-            Tcl_DeleteHashEntry(heP);
-        }
-    }
+    Tclh_ObjHashDeleteEntries(tableP, patternObj, CffiPrototypeEntryDelete);
     Tcl_DecrRefCount(patternObj);
     return TCL_OK;
 }
@@ -314,13 +300,7 @@ CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
 void
 CffiPrototypesCleanup(Tcl_HashTable *protoTableP)
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    for (heP = Tcl_FirstHashEntry(protoTableP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        CffiProto *protoP = Tcl_GetHashValue(heP);
-        CffiProtoUnref(protoP);
-    }
+    Tclh_ObjHashDeleteEntries(protoTableP, NULL, CffiPrototypeEntryDelete);
     Tcl_DeleteHashTable(protoTableP);
 }
 

@@ -592,13 +592,7 @@ CffiEnumDeleteCmd(CffiInterpCtx *ipCtxP,
 void
 CffiEnumsCleanup(Tcl_HashTable *enumsTableP)
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
-    for (heP = Tcl_FirstHashEntry(enumsTableP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        Tcl_Obj *enumsObj = Tcl_GetHashValue(heP);
-        Tcl_DecrRefCount(enumsObj);
-    }
+    Tclh_ObjHashDeleteEntries(enumsTableP, NULL, CffiEnumEntryDelete);
     Tcl_DeleteHashTable(enumsTableP);
 }
 

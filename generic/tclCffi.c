@@ -206,7 +206,8 @@ Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj)
  * Parameters:
  * htP - hash table
  * patObj - key or pattern to match.
- * deleteFn - passed the hash entry for clean up purposes
+ * deleteFn - passed the hash entry for clean up purposes. May be NULL if no other
+ *      cleanup needed.
  *
  * Assumes the hash table keys cannot contain glob metacharacters.
  */
@@ -226,7 +227,8 @@ void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
          heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
         Tcl_Obj *key = Tcl_GetHashKey(htP, heP);
         if (pattern == NULL || Tcl_StringMatch(Tcl_GetString(key), pattern)) {
-            (*deleteFn)(heP);
+            if (deleteFn)
+                (*deleteFn)(heP);
             Tcl_DeleteHashEntry(heP);
         }
     }
