@@ -821,6 +821,20 @@ namespace eval Concepts {
         set fnptr [function_returning_adder]
         cffi::call $fnptr 1 2
         ```
+
+        ## Callbacks
+
+        ````
+        cffi::prototype function ftw_callback int {fpath string sbP {pointer.stat byref} typeflag int}
+        libc function ftw int {dirpath string fn pointer.ftw_callback nopenfd int}
+        proc print_name {fpath pSb typeflag} {puts $fpath:$typeflag; return 0}
+        set cb [cffi::callback ftw_callback print_name -1]
+
+        cffi::Wrapper create libc libc.so.6
+        ftw [pwd] $cb 5
+
+ 
+        ````
     }
 }
 
