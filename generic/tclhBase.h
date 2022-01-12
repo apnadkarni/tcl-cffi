@@ -187,6 +187,31 @@ int Tclh_ErrorExists(Tcl_Interp *interp, const char *type,
  */
 int Tclh_ErrorGeneric(Tcl_Interp *interp, const char *code, const char *message);
 
+/* Function: Tclh_ErrorNotFoundStr
+ * Reports an error where an string is not found or is not accessible.
+ *
+ * Parameters:
+ * interp  - Tcl interpreter in which to report the error.
+ * type    - String indicating type of object, e.g. *File*. Defaults to *Object*
+ *           if passed as NULL.
+ * string - The object being searched for, e.g. the file name. This is
+ *           included in the error message if not *NULL*.
+ * message - Additional text to append to the standard error message. May be NULL.
+ *
+ *
+ * The Tcl *errorCode* variable is set to a list of three elements: the
+ * *TCLH_EMBEDDER* macro value set by the extension, the literal string
+ * *NOT_FOUND* and the error message.
+ *
+ * Returns:
+ * TCL_ERROR - Always returns this value so caller can just pass on the return
+ *             value from this function.
+ */
+int Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
+                          const char *type,
+                          const char *search,
+                          const char *message);
+
 /* Function: Tclh_ErrorNotFound
  * Reports an error where an object is not found or is not accessible.
  *
@@ -232,6 +257,27 @@ int Tclh_ErrorNotFound(Tcl_Interp *interp, const char *type,
  */
 int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *type,
                          Tcl_Obj *searchObj, const char *message);
+
+/* Function: Tclh_ErrorInvalidValueStr
+ * Reports an invalid argument passed in to a command function.
+ *
+ * Parameters:
+ * interp    - Tcl interpreter in which to report the error.
+ * badValue - The argument that was found to be invalid. This is
+ *           included in the error message if not *NULL*.
+ * message - Additional text to append to the standard error message. May be NULL.
+ *
+ * The Tcl *errorCode* variable is set to a list of three elements: the
+ * *TCLH_EMBEDDER* macro value set by the extension, the literal string
+ * *INVALID_VALUE* and the error message.
+ *
+ * Returns:
+ * TCL_ERROR - Always returns this value so caller can just pass on the return
+ *             value from this function.
+ */
+int Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
+                              const char *badValue,
+                              const char *message);
 
 /* Function: Tclh_ErrorInvalidValue
  * Reports an invalid argument passed in to a command function.
@@ -359,7 +405,9 @@ Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *me
 #ifdef TCLH_SHORTNAMES
 #define ErrorGeneric    Tclh_ErrorGeneric
 #define ErrorInvalidValue Tclh_ErrorInvalidValue
+#define ErrorInvalidValueStr Tclh_ErrorInvalidValueStr
 #define ErrorNotFound   Tclh_ErrorNotFound
+#define ErrorNotFoundStr   Tclh_ErrorNotFoundStr
 #define ErrorExists     Tclh_ErrorExists
 #define ErrorWrongType  Tclh_ErrorWrongType
 #define ErrorNumArgs    Tclh_ErrorNumArgs
@@ -484,15 +532,25 @@ Tclh_ErrorNotFound(Tcl_Interp *interp,
                    Tcl_Obj *   searchObj,
                    const char *message)
 {
+    return Tclh_ErrorNotFoundStr(
+        interp, type, searchObj ? Tcl_GetString(searchObj) : NULL, message);
+}
+
+int
+Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
+                      const char *type,
+                      const char *searchStr,
+                      const char *message)
+{
     Tcl_Obj *msgObj;
     if (type == NULL)
         type = "Object";
     if (message == NULL)
         message = "";
-    if (searchObj) {
+    if (searchStr) {
         msgObj = Tcl_ObjPrintf("%s \"%s\" not found or inaccessible. %s",
                                type,
-                               Tcl_GetString(searchObj),
+                               searchStr,
                                message);
     }
     else {
@@ -500,6 +558,7 @@ Tclh_ErrorNotFound(Tcl_Interp *interp,
     }
     return TclhRecordError(interp, "NOT_FOUND", msgObj);
 }
+
 
 int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *oper,
                          Tcl_Obj *operandObj, const char *message)
@@ -517,20 +576,27 @@ int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *oper,
 }
 
 int
-Tclh_ErrorInvalidValue(Tcl_Interp *interp, Tcl_Obj *badArgObj, const char *message)
+Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
+                          const char *badValue,
+                          const char *message)
 {
     Tcl_Obj *msgObj;
     if (message == NULL)
         message = "";
-    if (badArgObj) {
-        msgObj = Tcl_ObjPrintf("Invalid value \"%s\". %s",
-                               Tcl_GetString(badArgObj),
-                               message);
+    if (badValue) {
+        msgObj = Tcl_ObjPrintf("Invalid value \"%s\". %s", badValue, message);
     }
     else {
         msgObj = Tcl_ObjPrintf("Invalid value. %s", message);
     }
     return TclhRecordError(interp, "INVALID_VALUE", msgObj);
+}
+
+int
+Tclh_ErrorInvalidValue(Tcl_Interp *interp, Tcl_Obj *badArgObj, const char *message)
+{
+    Tclh_ErrorInvalidValueStr(
+        interp, badArgObj ? Tcl_GetString(badArgObj) : NULL, message);
 }
 
 int

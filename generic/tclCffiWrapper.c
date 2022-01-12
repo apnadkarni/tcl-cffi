@@ -290,7 +290,7 @@ CffiWrapperObjCmd(ClientData cdata,
     }
     else {
         /* create */
-        nameObj = CffiQualifyName(ip, objv[2]);
+        nameObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
         pathObj  = objc > 3 ? objv[3] : NULL;
     }
     Tcl_IncrRefCount(nameObj);

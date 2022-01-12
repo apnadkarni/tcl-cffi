@@ -82,7 +82,6 @@ CffiProtoUnref(CffiProto *protoP)
  */
 CffiResult
 CffiPrototypeParse(CffiInterpCtx *ipCtxP,
-                   CffiScope *scopeP,
                    Tcl_Obj *fnNameObj,
                    Tcl_Obj *returnTypeObj,
                    Tcl_Obj *paramsObj,
@@ -104,7 +103,6 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
      */
     protoP = CffiProtoAllocate(nobjs / 2);
     if (CffiTypeAndAttrsParse(ipCtxP,
-                              scopeP,
                               returnTypeObj,
                               CFFI_F_TYPE_PARSE_RETURN,
                               &protoP->returnType.typeAttrs)
@@ -118,7 +116,6 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     protoP->nParams = 0; /* Update as we go along  */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         if (CffiTypeAndAttrsParse(ipCtxP,
-                                  scopeP,
                                   objs[i + 1],
                                   CFFI_F_TYPE_PARSE_PARAM,
                                   &protoP->params[j].typeAttrs)
@@ -131,8 +128,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
         protoP->nParams += 1; /* Update incrementally for error cleanup */
     }
 
-    *protoPP       = protoP;
-
+    *protoPP = protoP;
     return TCL_OK;
 }
 
@@ -152,16 +148,18 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
  * is returned otherwise *NULL*.
  */
 CffiProto *
-CffiProtoGet(CffiScope *scopeP, Tcl_Obj *protoNameObj)
+CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj)
 {
-    Tcl_HashEntry *heP;
     CffiProto *protoP;
-
-    heP = Tcl_FindHashEntry(&scopeP->prototypes, protoNameObj);
-    if (heP == NULL)
-        return NULL;
-    protoP = Tcl_GetHashValue(heP);
-    return protoP;
+    CffiResult ret;
+    ret = CffiNameLookup(ipCtxP->interp,
+                         &ipCtxP->scope.prototypes,
+                         Tcl_GetString(protoNameObj),
+                         "Enum",
+                         CFFI_F_NAME_SKIP_MESSAGES,
+                         (ClientData *)&protoP,
+                         NULL);
+    return ret == TCL_OK ? protoP : NULL;
 }
 
 /* Function: CffiPrototypeDefineCmd
@@ -184,51 +182,34 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
                   Tcl_Obj *const objv[],
                   CffiABIProtocol callMode)
 {
-    Tcl_HashEntry *heP;
     CffiProto *protoP;
-    CffiScope *scopeP;
-    Tcl_Obj *nameObj;
-    CffiResult ret;
-    int new_entry;
+    Tcl_Obj *fqnObj;
 
     CFFI_ASSERT(objc == 5);
 
-    CHECK(CffiNameSyntaxCheck(ip, objv[2]));
+    CHECK(CffiNameSyntaxCheck(ipCtxP->interp, objv[2]));
 
-    nameObj = CffiQualifyName(ip, objv[2]);
-    Tcl_IncrRefCount(nameObj);
-
-    /* Prototype scopes are per the current namespace context */
-    scopeP = CffiScopeGet(ipCtxP, NULL);
-
-    heP = Tcl_FindHashEntry(&scopeP->prototypes, nameObj);
-    if (heP)
-        ret = Tclh_ErrorExists(ip, "Prototype", nameObj, NULL);
-    else {
-        ret = CffiPrototypeParse(
-            ipCtxP, scopeP, nameObj, objv[3], objv[4], &protoP);
-        if (ret == TCL_OK) {
-            protoP->abi = callMode;
-
-            heP = Tcl_CreateHashEntry(
-                &scopeP->prototypes, (char *)nameObj, &new_entry);
-            if (!new_entry) {
-                /* Should not happen because of existence check above but future
-                 * proofing */
-                CffiProto *oldP = Tcl_GetHashValue(heP);
-                CffiProtoUnref(oldP);
-            }
-            CffiProtoRef(protoP);
-            Tcl_SetHashValue(heP, protoP);
-        }
+    CHECK(CffiPrototypeParse(ipCtxP, objv[2], objv[3], objv[4], &protoP));
+    protoP->abi = callMode;
+    if (CffiNameObjAdd(ip,
+                       &ipCtxP->scope.prototypes,
+                       objv[2],
+                       "Prototype",
+                       protoP,
+                       &fqnObj)
+        != TCL_OK) {
+        CffiProtoUnref(protoP);
+        return TCL_ERROR;
     }
-    Tcl_DecrRefCount(nameObj);
-    return ret;
+    else {
+        Tcl_SetObjResult(ip, fqnObj);
+        return TCL_OK;
+    }
 }
 
-static void CffiPrototypeEntryDelete(Tcl_HashEntry *heP)
+static void CffiPrototypeNameDeleteCallback(ClientData clientData)
 {
-    CffiProto *protoP = Tcl_GetHashValue(heP);
+    CffiProto *protoP = (CffiProto *)clientData;
     if (protoP)
         CffiProtoUnref(protoP);
 }
@@ -239,20 +220,11 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
                        int objc,
                        Tcl_Obj *const objv[])
 {
-    Tcl_HashTable *tableP;
-    CffiScope *scopeP;
-    Tcl_Obj *patternObj;
-
-    scopeP = CffiScopeGet(ipCtxP, NULL);
-    tableP = &scopeP->prototypes;
-
     CFFI_ASSERT(objc == 3);
-
-    patternObj = CffiQualifyName(ip, objv[2]);
-    Tcl_IncrRefCount(patternObj);
-    Tclh_ObjHashDeleteEntries(tableP, patternObj, CffiPrototypeEntryDelete);
-    Tcl_DecrRefCount(patternObj);
-    return TCL_OK;
+    return CffiNameDeleteNames(ipCtxP->interp,
+                               &ipCtxP->scope.prototypes,
+                               Tcl_GetString(objv[2]),
+                               CffiPrototypeNameDeleteCallback);
 }
 
 static CffiResult
@@ -261,47 +233,30 @@ CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
                      int objc,
                      Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-    Tcl_HashSearch hSearch;
     const char *pattern;
-    Tcl_Obj *patternObj;
-    CffiScope *scopeP = CffiScopeGet(ipCtxP, NULL);
-    Tcl_HashTable *tableP = &scopeP->prototypes;
-    Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
+    Tcl_Obj *namesObj;
+    CffiResult ret;
 
-    if (objc > 2) {
-        patternObj = CffiQualifyName(ip, objv[2]);
-        Tcl_IncrRefCount(patternObj);
-        pattern    = Tcl_GetString(patternObj);
-    } else {
-        patternObj = NULL;
-        pattern = NULL;
-    }
-    for (heP = Tcl_FirstHashEntry(tableP, &hSearch);
-         heP != NULL; heP = Tcl_NextHashEntry(&hSearch)) {
-        /* If a pattern was specified, only return those */
-        if (pattern) {
-            Tcl_Obj *key = Tcl_GetHashKey(tableP, heP);
-            if (! Tcl_StringMatch(Tcl_GetString(key), pattern))
-                continue;
-        }
-
-        Tcl_ListObjAppendElement(ipCtxP->interp,
-                                 resultObj,
-                                 (Tcl_Obj *)Tcl_GetHashKey(tableP, heP));
-    }
-    if (patternObj)
-        Tcl_DecrRefCount(patternObj);
-    Tcl_SetObjResult(ipCtxP->interp, resultObj);
-    return TCL_OK;
+    /*
+     * Default pattern to "*", not NULL as the latter will list all scopes
+     * we only want the ones in current namespace.
+     */
+    pattern = objc > 2 ? Tcl_GetString(objv[2]) : "*";
+    ret = CffiNameListNames(
+        ipCtxP->interp, &ipCtxP->scope.prototypes, pattern, &namesObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ipCtxP->interp, namesObj);
+    return ret;
 }
 
-
 void
-CffiPrototypesCleanup(Tcl_HashTable *protoTableP)
+CffiPrototypesCleanup(CffiInterpCtx *ipCtxP)
 {
-    Tclh_ObjHashDeleteEntries(protoTableP, NULL, CffiPrototypeEntryDelete);
-    Tcl_DeleteHashTable(protoTableP);
+    CffiNameDeleteNames(ipCtxP->interp,
+                        &ipCtxP->scope.prototypes,
+                        NULL,
+                        CffiPrototypeNameDeleteCallback);
+    Tcl_DeleteHashTable(&ipCtxP->scope.prototypes);
 }
 
 CffiResult

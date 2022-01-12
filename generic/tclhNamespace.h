@@ -15,8 +15,8 @@
  * Provides utility routines related to Tcl namespaces.
  */
 
-/* Function: Tclh_PointerLibInit
- * Must be called to initialize the Pointer module before any of
+/* Function: Tclh_NamespaceLibInit
+ * Must be called to initialize the Namespace module before any of
  * the other functions in the module.
  *
  * Parameters:
@@ -27,10 +27,7 @@
  * TCL_ERROR - Initialization failed. Library functions must not be called.
  *             An error message is left in the interpreter result.
  */
-int Tclh_PointerLibInit(Tcl_Interp *interp);
-TCLH_INLINE int Tclh_PointerLibInit(Tcl_Interp *interp) {
-    return TCL_OK;
-}
+int Tclh_NsLibInit(Tcl_Interp *interp);
 
 /* Function: Tclh_NsIsGlobalNs
  * Returns true if passed namespace is the global namespace.
@@ -45,7 +42,6 @@ TCLH_INLINE int Tclh_PointerLibInit(Tcl_Interp *interp) {
  * 1 if the passed name is the name of the global namespace
  * and 0 otherwise.
  */
-int Tclh_NsIsGlobalNs(const char *nsP);
 TCLH_INLINE int Tclh_NsIsGlobalNs(const char *nsP)
 {
     const char *p = nsP;
@@ -63,8 +59,7 @@ TCLH_INLINE int Tclh_NsIsGlobalNs(const char *nsP)
  * Returns:
  * 1 if the passed name is fully qualified and 0 otherwise.
  */
-TCLH_INLINE int Tclh_NsIsFQN(const char *nsP);
-int Tclh_NsIsFQN(const char *nsP)
+TCLH_INLINE int Tclh_NsIsFQN(const char *nsP)
 {
     return nsP[0] == ':' && nsP[1] == ':';
 }
@@ -73,8 +68,10 @@ int Tclh_NsIsFQN(const char *nsP)
  * Returns a fully qualified name
  *
  * Parameters:
- * ip - interpreter
+ * ip - interpreter. This may be NULL iff defaultNsP is not NULL.
  * nameObj - Name to be qualified
+ * defaultNsP - namespace to use to qualify if necessary.
+ *   This must be fully qualified. If NULL, the current namespace will be used.
  *
  * The passed *Tcl_Obj* is fully qualified with the current namespace if
  * not already a FQN.
@@ -89,16 +86,19 @@ int Tclh_NsIsFQN(const char *nsP)
  * Returns:
  * A *Tcl_Obj* containing the fully qualified name.
  */
-Tcl_Obj *Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj);
+Tcl_Obj *
+Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj, const char *defaultNsP);
 
 /* Function: Tclh_NsQualifyName
  * Fully qualifies a name.
  *
  * Parameters:
- * ip - interpreter
- * nameP - Name to be qualified
+ * ip - interpreter. This may be NULL iff defaultNsP is not NULL.
+ * nameP - name to be qualified
  * dsP - storage to use if necessary. This is initialized by the function
- * and must be freed with Tcl_DStringFree on return in all cases.
+ *   and must be freed with Tcl_DStringFree on return in all cases.
+ * defaultNsP - namespace to use to qualify if necessary.
+ *   This must be fully qualified. If NULL, the current namespace will be used.
  *
  * The passed name is fully qualified with the current namespace if
  * not already a FQN.
@@ -107,7 +107,10 @@ Tcl_Obj *Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj);
  * A pointer to a fully qualified name. This may be either nameP or a
  * pointer into dsP. Caller should not assume eiter.
  */
-char *Tclh_NsQualifyName(Tcl_Interp *ip, const char *nameP, Tcl_DString *dsP);
+const char *Tclh_NsQualifyName(Tcl_Interp *ip,
+                         const char *nameP,
+                         Tcl_DString *dsP,
+                         const char *defaultNsP);
 
 /* Function: Tclh_NsTailPos
  * Returns the index of the tail component in a name.
@@ -141,8 +144,12 @@ int Tclh_NsTailPos(const char *nameP);
 
 #ifdef TCLH_NAMESPACE_IMPL
 
+int Tclh_NsLibInit(Tcl_Interp *ip) {
+    return Tclh_BaseLibInit(ip);
+}
+
 Tcl_Obj *
-Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj)
+Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj, const char *defaultNsP)
 {
     const char *nameP;
     Tcl_Namespace *nsP;
@@ -150,38 +157,43 @@ Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj)
     int nameLen;
 
     nameP = Tcl_GetStringFromObj(nameObj, &nameLen);
-    if (Tclh_NSIsFQN(nameP))
+    if (Tclh_NsIsFQN(nameP))
         return nameObj;
 
-    /* Qualify with current namespace */
-    nsP = Tcl_GetCurrentNamespace(ip);
-    TCLH_ASSERT(nsP);
+    if (defaultNsP == NULL) {
+        nsP = Tcl_GetCurrentNamespace(ip);
+        TCLH_ASSERT(nsP);
+        defaultNsP = nsP->fullName;
+    }
 
-    fqnObj = Tcl_NewStringObj(nsP->fullName, -1);
+    fqnObj = Tcl_NewStringObj(defaultNsP, -1);
     /* Append '::' only if not global namespace else we'll get :::: */
-    if (!Tclh_NsIsGlobalNS(nsP->fullName))
+    if (!Tclh_NsIsGlobalNs(defaultNsP))
         Tcl_AppendToObj(fqnObj, "::", 2);
     Tcl_AppendToObj(fqnObj, nameP, nameLen);
     return fqnObj;
 }
 
-char *
-Tclh_NsQualifyName(Tcl_Interp *ip, const char *nameP, Tcl_DString *dsP)
+const char *
+Tclh_NsQualifyName(Tcl_Interp *ip, const char *nameP, Tcl_DString *dsP, const char *defaultNsP)
 {
     Tcl_Namespace *nsP;
 
-    Tcl_DStringInit(dsP);
+    Tcl_DStringInit(dsP); /* Init BEFORE return below since caller will Reset it */
 
-    if (Tclh_NSIsFQN(nameP))
+    if (Tclh_NsIsFQN(nameP))
         return nameP;
 
     /* Qualify with current namespace */
-    nsP = Tcl_GetCurrentNamespace(ip);
-    TCLH_ASSERT(nsP);
+    if (defaultNsP == NULL) {
+        nsP = Tcl_GetCurrentNamespace(ip);
+        TCLH_ASSERT(nsP);
+        defaultNsP = nsP->fullName;
+    }
 
-    Tcl_DStringAppend(dsP, nsP->fullName, -1);
+    Tcl_DStringAppend(dsP, defaultNsP, -1);
     /* Append '::' only if not global namespace else we'll get :::: */
-    if (!Tclh_NsIsGlobalNS(nsP->fullName))
+    if (!Tclh_NsIsGlobalNs(defaultNsP))
         Tcl_DStringAppend(dsP, "::", 2);
     Tcl_DStringAppend(dsP, nameP, -1);
     return Tcl_DStringValue(dsP);
@@ -202,7 +214,7 @@ Tclh_NsTailPos(const char *nameP)
 
     while (tailP > (nameP+1)) {
         if (tailP[-1] == ':' && tailP[-2] == ':')
-            return tailP - nameP;
+            return (int) (tailP - nameP);
         --tailP;
     }
     /* Could not find a :: */

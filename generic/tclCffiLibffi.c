@@ -445,19 +445,21 @@ vamoose:
     }
 }
 
-static void
-CffiLibffiClosureDeleteEntry(Tcl_HashEntry *heP)
+static int
+CffiLibffiClosureDeleteEntry(Tcl_HashTable *htP, Tcl_HashEntry *heP, ClientData unused)
 {
     CffiCallback *cbP = Tcl_GetHashValue(heP);
     if (cbP)
         CffiCallbackCleanupAndFree(cbP);
+    return 1;
 }
 
 void
 CffiLibffiFinit(CffiInterpCtx *ipCtxP)
 {
-    Tclh_ObjHashDeleteEntries(
-        &ipCtxP->callbackClosures, NULL, CffiLibffiClosureDeleteEntry);
+    Tclh_HashIterate(
+        &ipCtxP->callbackClosures, CffiLibffiClosureDeleteEntry, NULL);
+    Tcl_DeleteHashTable(&ipCtxP->callbackClosures);
 }
 
 CffiResult

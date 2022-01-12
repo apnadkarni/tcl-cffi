@@ -1,6 +1,13 @@
 #ifndef TCLHPOINTER_H
 #define TCLHPOINTER_H
 
+/*
+ * Copyright (c) 2021-2022, Ashok P. Nadkarni
+ * All rights reserved.
+ *
+ * See the file LICENSE for license
+ */
+
 #include "tclhBase.h"
 
 /* Typedef: Tclh_PointerTypeTag
@@ -899,6 +906,6 @@ Tclh_PointerObjVerifyAnyOf(Tcl_Interp *interp,
     return tclResult;
 }
 
-#endif /* TCLH_IMPL */
+#endif /* TCLH_POINTER_IMPL */
 
 #endif /* TCLHPOINTER_H */

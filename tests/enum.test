@@ -6,6 +6,17 @@
 source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
+
+    proc setup_enums {} {
+        reset_enums ::ns ::ns::ns2
+        cffi::enum define ::E {a 0 e 1}
+        uplevel #0 [list cffi::enum define X {x 2}]
+        cffi::enum define ::ns::E {e 10}
+        namespace eval ::ns {cffi::enum define Y {y 20}}
+        cffi::enum define ::ns::ns2::E {e 100}
+        namespace eval ::ns::ns2 {cffi::enum define Z {z 200}}
+    }
+
     testsubcmd ::cffi::enum
     testnumargs enum-define "cffi::enum define" "ENUM MEMBERS" ""
     testnumargs enum-delete "cffi::enum delete" "PATTERN" ""
@@ -19,16 +30,14 @@ namespace eval cffi::test {
     test enum-0 "Define empty enum" -setup {
         cffi::enum delete *
     } -body {
-        cffi::enum define E {}
-        cffi::enum members E
-    } -result {}
+        list [cffi::enum define E {}] [cffi::enum members E]
+    } -result [list [namespace current]::E {}]
 
     test enum-1 "Define enum" -setup {
         cffi::enum delete *
     } -body {
-        cffi::enum define E {a 1 b 2}
-        cffi::enum members E
-    } -result {a 1 b 2}
+        list [cffi::enum define E {a 1 b 2}] [cffi::enum members E]
+    } -result [list [lprefixns E] {a 1 b 2}]
 
     test enum-invalid-value-0 "Define enum - invalid value" -body {
         cffi::enum define E {a abc}
@@ -38,18 +47,15 @@ namespace eval cffi::test {
         cffi::enum define E {1 2}
     } -result {Invalid value "1". Invalid name syntax.} -returnCodes error
 
-    test enum-invalid-name-1 "Define enum - invalid name" -body {
-        cffi::enum define ns::E {a 2}
-    } -result {Invalid value "ns::E". Invalid name syntax.} -returnCodes error
 
     test enum-2 "enum list" -setup {
-        cffi::enum delete *
+        reset_enums
         cffi::enum define E {a 1 b 2}
         cffi::enum define E2 {x 1 y 2}
         cffi::enum define X {}
     } -body {
         lsort [cffi::enum list]
-    } -result {E E2 X}
+    } -result [lprefix [namespace current]:: E E2 X]
 
     test enum-3 "enum list exact" -setup {
         cffi::enum delete *
@@ -58,7 +64,7 @@ namespace eval cffi::test {
         cffi::enum define X {}
     } -body {
         lsort [cffi::enum list E]
-    } -result {E}
+    } -result [namespace current]::E
 
     test enum-4 "enum list glob" -setup {
         cffi::enum delete *
@@ -67,7 +73,7 @@ namespace eval cffi::test {
         cffi::enum define X {}
     } -body {
         lsort [cffi::enum list E*]
-    } -result {E E2}
+    } -result [lprefix [namespace current]:: E E2]
 
     test enum-5 "enum list empty" -setup {
         cffi::enum delete *
@@ -86,7 +92,7 @@ namespace eval cffi::test {
     } -body {
         cffi::enum delete E
         lsort [cffi::enum list]
-    } -result {E2 X}
+    } -result [lprefix [namespace current]:: E2 X]
 
     test enum-7 "enum delete glob" -setup {
         cffi::enum delete *
@@ -96,7 +102,7 @@ namespace eval cffi::test {
     } -body {
         cffi::enum delete E*
         cffi::enum list
-    } -result {X}
+    } -result [lprefix [namespace current]:: X]
 
     test enum-8 "enum delete none" -setup {
         cffi::enum delete *
@@ -107,7 +113,7 @@ namespace eval cffi::test {
     } -body {
         cffi::enum delete Z
         lsort [cffi::enum list]
-    } -result {E E2 X}
+    } -result [lprefix [namespace current]:: E E2 X]
 
     test enum-9 "Define empty sequence" -setup {
         cffi::enum delete *
@@ -207,117 +213,158 @@ namespace eval cffi::test {
     ###
     # Scope based tests
     test enum-value-scope-0 "Local scope overrides global" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+        setup_enums
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2 c 3}}
-        namespace eval ::ns {cffi::enum define E {a 10 b 20}}
-        namespace eval ::ns {cffi::enum value E a}
+        namespace eval ::ns {cffi::enum value E e}
     } -result 10
 
-    test enum-value-scope-1 "no fallback to global if local enum defined without member" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+    test enum-value-scope-1 "no fallback to global if local enum defined" -setup {
+        setup_enums
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2 c 3}}
-        namespace eval ::ns {cffi::enum define E {a 10 b 20}}
-        namespace eval ::ns {cffi::enum value E c}
-    } -result {Enum member name "c" not found or inaccessible. } -returnCodes error
+        namespace eval ::ns {cffi::enum value E a}
+    } -result {Enum member name "a" not found or inaccessible. } -returnCodes error
 
-    test enum-value-scope-2 "Fallback to global, NOT parent" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+    test enum-value-scope-2 "Fallback to global" -setup {
+        setup_enums
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2 c 3}}
-        namespace eval ::ns {cffi::enum define E {a 10 b 20}}
-        namespace eval ::ns::childns {cffi::enum value E b}
+        namespace eval ::ns::ns2 {cffi::enum value X x}
     } -result 2
-    
-    test enum-name-scope-0 "Local scope overrides global" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
-    } -body {
+
+    test enum-value-scope-3 "relative scope" -setup { setup_enums } -body {
+        namespace eval ::ns {cffi::enum value ns2::E e}
+    } -result 100
+
+    test enum-value-scope-4 "explicit fqn" -setup { setup_enums } -body {
+        cffi::enum value ::ns::E e
+    } -result 10
+
+    test enum-value-scope-5 "global relative name" -setup { setup_enums } -body {
+        cffi::enum value ns::E e
+    } -result 10
+
+    test enum-name-scope-0 "Local scope over global" -setup { reset_enums } -body {
         namespace eval :: {cffi::enum define E {a 1 b 2 c 3}}
         namespace eval ::ns {cffi::enum define E {x 1 y 2}}
         namespace eval ::ns {cffi::enum name E 1}
     } -result x
 
-    test enum-name-scope-1 "scope falls back to global" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+    test enum-name-scope-1 "no fallback to global if local enum defined" -setup {
+        setup_enums
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2 c 3}}
         namespace eval ::ns {cffi::enum name E 1}
-    } -result a
+    } -result {Enum member value not found. } -returnCodes error
 
-    test enum-list-scope-0 "enum list in scope" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
-    } -body {
-        namespace eval :: {cffi::enum define X {a 1 b 2 c 3}}
-        namespace eval ::ns {cffi::enum define E {a 10 b 20}}
-        namespace eval ::ns {cffi::enum list *}
-    } -result E
+    test enum-name-scope-2 "scope falls back to global" -setup { setup_enums } -body {
+        namespace eval ::ns {cffi::enum name X 2}
+    } -result x
+
+    test enum-name-scope-3 "relative scope" -setup { setup_enums } -body {
+        namespace eval ::ns {cffi::enum name ns2::E 100}
+    } -result e
+
+    test enum-name-scope-4 "explicit fqn" -setup { setup_enums } -body {
+        cffi::enum name ::ns::E 10
+    } -result e
+
+    test enum-name-scope-5 "global relative name" -setup { setup_enums } -body {
+        cffi::enum name ns::E 10
+    } -result e
+
+    test enum-list-scope-0 "enum list in scope" -setup {setup_enums} -body {
+        list \
+            [lsort [namespace eval :: {cffi::enum list}]] \
+            [lsort [namespace eval ::ns {cffi::enum list}]] \
+            [lsort [namespace eval ::ns::ns2 {cffi::enum list}]]
+    } -result {{::E ::X ::ns::E ::ns::Y ::ns::ns2::E ::ns::ns2::Z} {::ns::E ::ns::Y ::ns::ns2::E ::ns::ns2::Z} {::ns::ns2::E ::ns::ns2::Z}}
+
+    test enum-list-scope-1 "enum list in explicit" -setup {setup_enums} -body {
+        cffi::enum list ::ns::*
+    } -result {::ns::ns2::E ::ns::ns2::Z ::ns::Y ::ns::E}
 
     test enum-members-scope-0 "enum members in scope" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+        setup_enums
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2}}
-        namespace eval ::ns {cffi::enum define E {x 10 y 20}}
         namespace eval ::ns {cffi::enum members E}
-    } -result {x 10 y 20}
+    } -result {e 10}
 
-    test enum-members-scope-1 "enum members in scope not found" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+    test enum-members-scope-1 "enum members in global scope default" -setup {
+        setup_enums
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2}}
-        namespace eval ::ns {cffi::enum members E}
-    } -result {Enum "E" not found or inaccessible. } -returnCodes error
+        namespace eval ::ns {cffi::enum members X}
+    } -result {x 2}
+
+    test enum-members-scope-2 "enum members relative" -setup {
+        setup_enums
+    } -body {
+        namespace eval ::ns {cffi::enum members ns2::E}
+    } -result {e 100}
+
+    test enum-members-scope-3 "enum members in fqn" -setup {
+        setup_enums
+    } -body {
+        cffi::enum members ::ns::E
+    } -result {e 10}
+
+    test enum-members-scope-4 "enum members in global relative" -setup {
+        setup_enums
+    } -body {
+        cffi::enum members ns::E
+    } -result {e 10}
 
     test enum-sequence-scope-0 "Local scope sequence" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+        reset_enums ::ns
     } -body {
-        namespace eval :: {cffi::enum define E {a 1 b 2 c 3}}
         namespace eval ::ns {cffi::enum sequence E {a b}}
-        namespace eval ::ns {cffi::enum value E a}
-    } -result 0
+        list [cffi::enum list ::*] [cffi::enum members ::ns::E]
+    } -result {::ns::E {a 0 b 1}}
+
+    test enum-sequence-scope-1 "fqn scope sequence" -setup {
+        reset_enums ::ns
+    } -body {
+        cffi::enum sequence ::ns::E {a b}
+        list [cffi::enum list ::*] [cffi::enum members ::ns::E]
+    } -result {::ns::E {a 0 b 1}}
+
+    test enum-sequence-scope-2 "relative scope sequence" -setup {
+        reset_enums ::ns
+    } -body {
+        namespace eval ::ns {cffi::enum sequence ns2::E {a b}}
+        list [cffi::enum list ::*] [cffi::enum members ::ns::ns2::E]
+    } -result {::ns::ns2::E {a 0 b 1}}
 
     test enum-flags-scope-0 "Local scope flags" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+        reset_enums ::ns
     } -body {
-        namespace eval :: {cffi::enum define E {a 10 b 20 c 30}}
         namespace eval ::ns {cffi::enum flags E {a b}}
-        namespace eval ::ns {cffi::enum value E b}
-    } -result 2
+        list [cffi::enum list ::*] [cffi::enum members ::ns::E]
+    } -result {::ns::E {a 1 b 2}}
+
+    test enum-flags-scope-1 "fqn scope flags" -setup {
+        reset_enums ::ns
+    } -body {
+        cffi::enum flags ::ns::E {a b}
+        list [cffi::enum list ::*] [cffi::enum members ::ns::E]
+    } -result {::ns::E {a 1 b 2}}
+
+    test enum-flags-scope-2 "relative scope flags" -setup {
+        reset_enums ::ns
+    } -body {
+        namespace eval ::ns {cffi::enum flags ns2::E {a b}}
+        list [cffi::enum list ::*] [cffi::enum members ::ns::ns2::E]
+    } -result {::ns::ns2::E {a 1 b 2}}
 
     test enum-delete-scope-0 "Local scope delete" -setup {
-        namespace eval :: {cffi::enum delete *}
-        namespace eval ::ns {cffi::enum delete *}
-        cffi::enum delete *
+        reset_enums ::ns
     } -body {
         namespace eval :: {cffi::enum define G {a 1 b 2 c 3}}
         namespace eval ::ns {cffi::enum define L {a 0 b 1}}
         list \
-            [namespace eval :: {cffi::enum list}] \
+            [lsort [namespace eval :: {cffi::enum list}]] \
             [namespace eval ::ns {cffi::enum list}] \
             [namespace eval ::ns {cffi::enum delete *}] \
             [namespace eval :: {cffi::enum list}] \
             [namespace eval ::ns {cffi::enum list}]
-    } -result {G L {} G {}}
+    } -result {{::G ::ns::L} ::ns::L {} ::G {}}
 
     test enum-mask-0 "enum mask" -setup {
         reset_enums
@@ -337,6 +384,7 @@ namespace eval cffi::test {
     } -body {
         cffi::enum mask E {a 16}
     } -result 17
+
     test enum-unmask-0 "enum unmask" -setup {
         reset_enums
         cffi::enum flags E {a b c}

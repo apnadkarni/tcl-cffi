@@ -282,7 +282,7 @@ CffiCallbackObjCmd(ClientData cdata,
     if (nCmdObjs == 0)
         return Tclh_ErrorInvalidValue(ip, NULL, "Empty command specified.");
 
-    protoP = CffiProtoGet(CffiScopeGet(ipCtxP, NULL), objv[1]);
+    protoP = CffiProtoGet(ipCtxP, objv[1]);
     if (protoP == NULL) {
         return Tclh_ErrorNotFound(ip, "Prototype", objv[1], NULL);
     }

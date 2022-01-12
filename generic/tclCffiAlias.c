@@ -13,8 +13,7 @@
  *
  * Parameters:
  *   ipCtxP - Interpreter context
- *   scopeP - scope for alias lookup
- *   aliasNameObj - typedef name
+ *   aliasNameObj - alias name
  *   typeAttrP - pointer to structure to hold parsed information. Note this
  *               structure is *overwritten*, not merged.
  *
@@ -25,23 +24,21 @@
  */
 int
 CffiAliasGet(CffiInterpCtx *ipCtxP,
-             CffiScope *scopeP,
              Tcl_Obj *aliasNameObj,
              CffiTypeAndAttrs *typeAttrP)
 {
-    Tcl_HashEntry *heP;
-    CffiTypeAndAttrs *heValueP;
-
-    heP = Tcl_FindHashEntry(&scopeP->aliases, aliasNameObj);
-    if (heP == NULL) {
-        /* Try the global scope */
-        if (scopeP != ipCtxP->globalScopeP)
-            heP = Tcl_FindHashEntry(&ipCtxP->globalScopeP->aliases, aliasNameObj);
-    }
-    if (heP == NULL)
+    CffiTypeAndAttrs *aliasTypeAttrP;
+    CffiResult ret;
+    ret = CffiNameLookup(ipCtxP->interp,
+                         &ipCtxP->scope.aliases,
+                         Tcl_GetString(aliasNameObj),
+                         "Alias",
+                         0,
+                         (ClientData *)&aliasTypeAttrP,
+                         NULL);
+    if (ret == TCL_ERROR)
         return 0;
-    heValueP = Tcl_GetHashValue(heP);
-    CffiTypeAndAttrsInit(typeAttrP, heValueP);
+    CffiTypeAndAttrsInit(typeAttrP, aliasTypeAttrP);
     return 1;
 }
 
@@ -54,26 +51,26 @@ CffiAliasGet(CffiInterpCtx *ipCtxP,
  *
  * Parameters:
  * ipCtxP - interpreter context
- * scopeP - scope for alias lookup
  * nameObj - alias to add
  * typedefObj - target type definition
- *
+ * fqnObjP - location to store the final name (qualified if necessary). May
+ *    be NULL. Note its reference count must NOT be decremented by caller without
+ *    incrementing.
  * Returns:
  * *TCL_OK* or *TCL_ERROR*
  */
 CffiResult
 CffiAliasAdd(CffiInterpCtx *ipCtxP,
-             CffiScope *scopeP,
              Tcl_Obj *nameObj,
-             Tcl_Obj *typedefObj)
+             Tcl_Obj *typedefObj,
+             Tcl_Obj **fqnObjP)
 {
-    Tcl_HashEntry *heP;
     CffiTypeAndAttrs *typeAttrsP;
-    int new_entry;
     const CffiBaseTypeInfo *baseTypeInfoP;
+    CffiResult ret;
+    Tcl_Obj *fqnObj = NULL;
 
     CHECK(CffiNameSyntaxCheck(ipCtxP->interp, nameObj));
-
     baseTypeInfoP = CffiBaseTypeInfoGet(NULL, nameObj);
     if (baseTypeInfoP) {
         return Tclh_ErrorExists(
@@ -82,7 +79,6 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP,
 
     typeAttrsP = ckalloc(sizeof(*typeAttrsP));
     if (CffiTypeAndAttrsParse(ipCtxP,
-                              scopeP,
                               typedefObj,
                               CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN
                                   | CFFI_F_TYPE_PARSE_FIELD,
@@ -92,41 +88,70 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP,
         return TCL_ERROR;
     }
 
-    heP    = Tcl_CreateHashEntry(&scopeP->aliases, (char *)nameObj, &new_entry);
-    if (! new_entry) {
-        CffiTypeAndAttrs *oldP = Tcl_GetHashValue(heP);
+    ret = CffiNameObjAdd(ipCtxP->interp,
+                         &ipCtxP->scope.aliases,
+                         nameObj,
+                         "Alias",
+                         typeAttrsP,
+                         &fqnObj);
+
+    if (ret != TCL_OK) {
         /* Only permit if definition is the same */
+        CffiTypeAndAttrs *oldP;
         Tcl_Obj *oldObj;
         Tcl_Obj *newObj;
         int different;
-        /* TBD - may be write a typeAttrs comparison function */
-        oldObj = CffiTypeAndAttrsUnparse(oldP);
-        newObj = CffiTypeAndAttrsUnparse(typeAttrsP);
-        different = strcmp(Tcl_GetString(oldObj), Tcl_GetString(newObj));
-        /* No matter what we do not need new allocations */
-        Tcl_DecrRefCount(oldObj);
-        Tcl_DecrRefCount(newObj);
-        CffiTypeAndAttrsCleanup(typeAttrsP);
-        ckfree(typeAttrsP);
-        if (different) {
-            /* Mismatched existing alias */
-            return Tclh_ErrorExists(ipCtxP->interp,
-                                    "Alias",
-                                    nameObj,
-                                    "Alias exists with a different definition.");
+
+        /* Find existing definition */
+        ret = CffiNameLookup(ipCtxP->interp,
+                             &ipCtxP->scope.aliases,
+                             Tcl_GetString(nameObj),
+                             "Alias",
+                             CFFI_F_NAME_SKIP_MESSAGES,
+                             (ClientData *)&oldP,
+                             &fqnObj);
+        if (ret == TCL_OK) {
+            /* TBD - maybe write a typeAttrs comparison function */
+            oldObj    = CffiTypeAndAttrsUnparse(oldP);
+            newObj    = CffiTypeAndAttrsUnparse(typeAttrsP);
+            different = strcmp(Tcl_GetString(oldObj), Tcl_GetString(newObj));
+            Tcl_DecrRefCount(oldObj);
+            Tcl_DecrRefCount(newObj);
+            /* If same do not generate error */
+            if (different)
+                ret = Tclh_ErrorExists(
+                    ipCtxP->interp,
+                    "Alias",
+                    nameObj,
+                    "Alias exists with a different definition.");
+            else {
+                ret = TCL_OK;
+                Tcl_ResetResult(ipCtxP->interp); /* Erase recorded error */
+            }
+            /* NOTE - fqnObj NOT to be freed even if error returned as hash table is holding it */
         }
         else {
-            /* Existing alias is the same */
-            return TCL_OK;
+            /* Should not really happen that we could not add but could not find either */
+            /* Stay with the reported erro */
         }
+        CffiTypeAndAttrsCleanup(typeAttrsP);
+        ckfree(typeAttrsP);
     }
-    Tcl_SetHashValue(heP, typeAttrsP);
-    return TCL_OK;
+
+    if (ret == TCL_OK && fqnObjP) {
+        CFFI_ASSERT(fqnObj);
+        *fqnObjP = fqnObj;
+    }
+
+    return ret;
 }
 
 /* Like CffiAliasAdd but with char* arguments */
 CffiResult
-CffiAliasAddStr(CffiInterpCtx *ipCtxP, CffiScope *scopeP, const char *nameStr, const char *typedefStr)
+CffiAliasAddStr(CffiInterpCtx *ipCtxP,
+                const char *nameStr,
+                const char *typedefStr,
+                Tcl_Obj **fqnObjP)
 {
     CffiResult ret;
     Tcl_Obj *nameObj;
@@ -135,7 +160,7 @@ CffiAliasAddStr(CffiInterpCtx *ipCtxP, CffiScope *scopeP, const char *nameStr, c
     Tcl_IncrRefCount(nameObj);
     typedefObj = Tcl_NewStringObj(typedefStr, -1);
     Tcl_IncrRefCount(typedefObj);
-    ret = CffiAliasAdd(ipCtxP, scopeP, nameObj, typedefObj);
+    ret = CffiAliasAdd(ipCtxP, nameObj, typedefObj, fqnObjP);
     Tcl_DecrRefCount(nameObj);
     Tcl_DecrRefCount(typedefObj);
     return ret;
@@ -147,19 +172,20 @@ CffiAliasDefineCmd(CffiInterpCtx *ipCtxP,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    CffiScope *scopeP;
-
+    Tcl_Obj *fqnObj;
+    CffiResult ret;
     CFFI_ASSERT(objc == 3 || objc == 4);
 
-    scopeP = CffiScopeGet(ipCtxP, NULL);
-    if (objc == 4)
-        return CffiAliasAdd(ipCtxP, scopeP, objv[2], objv[3]);
+    if (objc == 4) {
+        ret = CffiAliasAdd(ipCtxP, objv[2], objv[3], &fqnObj);
+        if (ret == TCL_OK)
+            Tcl_SetObjResult(ip, fqnObj);
+    }
     else {
         /* Dup to protect list from shimmering away */
         Tcl_Obj *defsObj = Tcl_DuplicateObj(objv[2]);
         Tcl_Obj **objs;
         int nobjs;
-        int ret;
         Tcl_IncrRefCount(defsObj);
         ret = Tcl_ListObjGetElements(ip, defsObj, &nobjs, &objs);
         if (ret == TCL_OK) {
@@ -169,16 +195,22 @@ CffiAliasDefineCmd(CffiInterpCtx *ipCtxP,
             }
             else {
                 int i;
+                Tcl_Obj *resultObj = Tcl_NewListObj(nobjs / 2, NULL);
                 for (i = 0; i < nobjs; i += 2) {
-                    ret = CffiAliasAdd(ipCtxP, scopeP, objs[i], objs[i + 1]);
+                    ret = CffiAliasAdd(ipCtxP, objs[i], objs[i + 1], &fqnObj);
                     if (ret != TCL_OK)
                         break;
+                    Tcl_ListObjAppendElement(ip, resultObj, fqnObj);
                 }
+                if (ret == TCL_OK)
+                    Tcl_SetObjResult(ip, resultObj);
+                else
+                    Tcl_DecrRefCount(resultObj);
             }
         }
         Tcl_DecrRefCount(defsObj);
-        return ret;
     }
+    return ret;
 }
 
 static CffiResult
@@ -187,17 +219,17 @@ CffiAliasBodyCmd(CffiInterpCtx *ipCtxP,
                  int objc,
                  Tcl_Obj *const objv[])
 {
-    Tcl_HashEntry *heP;
-    CffiScope *scopeP;
     CffiTypeAndAttrs *typeAttrsP;
 
     CFFI_ASSERT(objc == 3);
 
-    scopeP = CffiScopeGet(ipCtxP, NULL);
-    heP = Tcl_FindHashEntry(&scopeP->aliases, objv[2]);
-    if (heP == NULL)
-        return Tclh_ErrorNotFound(ip, "Type or alias", objv[2], NULL);
-    typeAttrsP = Tcl_GetHashValue(heP);
+    CHECK(CffiNameLookup(ip,
+                         &ipCtxP->scope.aliases,
+                         Tcl_GetString(objv[2]),
+                         "Alias",
+                         0,
+                         (ClientData *)&typeAttrsP,
+                         NULL));
     Tcl_SetObjResult(ip, CffiTypeAndAttrsUnparse(typeAttrsP));
     return TCL_OK;
 }
@@ -208,11 +240,20 @@ CffiAliasListCmd(CffiInterpCtx *ipCtxP,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-    CffiScope *scopeP = CffiScopeGet(ipCtxP, NULL);
-    Tcl_SetObjResult(ipCtxP->interp,
-                     Tclh_ObjHashEnumerateEntries(&scopeP->aliases,
-                                                  objc > 2 ? objv[2] : NULL));
-    return TCL_OK;
+    const char *pattern;
+    CffiResult ret;
+    Tcl_Obj *namesObj;
+
+    /*
+     * Default pattern to "*", not NULL as the latter will list all scopes
+     * we only want the ones in current namespace.
+     */
+    pattern = objc > 2 ? Tcl_GetString(objv[2]) : "*";
+    ret = CffiNameListNames(
+        ipCtxP->interp, &ipCtxP->scope.aliases, pattern, &namesObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ipCtxP->interp, namesObj);
+    return ret;
 }
 
 static CffiResult
@@ -225,10 +266,9 @@ CffiAliasLoadCmd(CffiInterpCtx *ipCtxP,
     return CffiAddBuiltinAliases(ipCtxP, objv[2]);
 }
 
-static void CffiAliasEntryDelete(Tcl_HashEntry *heP)
+static void CffiAliasNameDeleteCallback(ClientData clientData)
 {
-    CffiTypeAndAttrs *typeAttrsP;
-    typeAttrsP = Tcl_GetHashValue(heP);
+    CffiTypeAndAttrs *typeAttrsP = (CffiTypeAndAttrs *)clientData;
     CffiTypeAndAttrsCleanup(typeAttrsP);
     ckfree(typeAttrsP);
 }
@@ -239,14 +279,12 @@ CffiAliasDeleteCmd(CffiInterpCtx *ipCtxP,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-    CffiScope *scopeP;
     CFFI_ASSERT(objc == 3);
-    scopeP = CffiScopeGet(ipCtxP, NULL);
-    Tclh_ObjHashDeleteEntries(
-        &scopeP->aliases, objv[2], CffiAliasEntryDelete);
-    return TCL_OK;
+    return CffiNameDeleteNames(ipCtxP->interp,
+                               &ipCtxP->scope.aliases,
+                               Tcl_GetString(objv[2]),
+                               CffiAliasNameDeleteCallback);
 }
-
 
 /* Function: CffiAddBuiltinAliases
  * Adds predefined type definitions.
@@ -258,24 +296,21 @@ int
 CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
 {
     const char *s;
-    CffiScope *scopeP;
 
-    scopeP = CffiScopeGet(ipCtxP, "::");/* Add to global scope */
-
-#define SIGNEDTYPEINDEX(type_)                                  \
-    do {                                                        \
-        if (sizeof(type_) == sizeof(signed char))               \
-            typeIndex = CFFI_K_TYPE_SCHAR;                     \
-        else if (sizeof(type_) == sizeof(signed short))         \
-            typeIndex = CFFI_K_TYPE_SHORT;                    \
-        else if (sizeof(type_) == sizeof(signed int))           \
-            typeIndex = CFFI_K_TYPE_INT;                      \
-        else if (sizeof(type_) == sizeof(signed long))          \
-            typeIndex = CFFI_K_TYPE_LONG;                     \
-        else if (sizeof(type_) == sizeof(signed long long))     \
-            typeIndex = CFFI_K_TYPE_LONGLONG;                 \
-        else                                                    \
-            CFFI_ASSERT(0);                                    \
+#define SIGNEDTYPEINDEX(type_)                              \
+    do {                                                    \
+        if (sizeof(type_) == sizeof(signed char))           \
+            typeIndex = CFFI_K_TYPE_SCHAR;                  \
+        else if (sizeof(type_) == sizeof(signed short))     \
+            typeIndex = CFFI_K_TYPE_SHORT;                  \
+        else if (sizeof(type_) == sizeof(signed int))       \
+            typeIndex = CFFI_K_TYPE_INT;                    \
+        else if (sizeof(type_) == sizeof(signed long))      \
+            typeIndex = CFFI_K_TYPE_LONG;                   \
+        else if (sizeof(type_) == sizeof(signed long long)) \
+            typeIndex = CFFI_K_TYPE_LONGLONG;               \
+        else                                                \
+            CFFI_ASSERT(0);                                 \
     } while (0)
 
 #define UNSIGNEDTYPEINDEX(type_)                              \
@@ -294,14 +329,12 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             CFFI_ASSERT(0);                                   \
     } while (0)
 
-#define ADDTYPEINDEX(newtype_, existingIndex_)                   \
-    do {                                                         \
-        if (CffiAliasAddStr(ipCtxP,                              \
-                            scopeP,                              \
-                            #newtype_,                           \
-                            cffiBaseTypes[existingIndex_].token) \
-            != TCL_OK)                                           \
-            return TCL_ERROR;                                    \
+#define ADDTYPEINDEX(newtype_, existingIndex_)                                \
+    do {                                                                      \
+        if (CffiAliasAddStr(                                                  \
+                ipCtxP, #newtype_, cffiBaseTypes[existingIndex_].token, NULL) \
+            != TCL_OK)                                                        \
+            return TCL_ERROR;                                                 \
     } while (0)
 
 #define ADDINTTYPE(type_)               \
@@ -358,9 +391,9 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         ADDINTTYPE(USHORT);
         ADDINTTYPE(WPARAM);
 
-        if (CffiAliasAddStr(ipCtxP, scopeP, "LPVOID", "pointer") != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, "LPVOID", "pointer", NULL) != TCL_OK)
             return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, scopeP, "HANDLE", "pointer.HANDLE") != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, "HANDLE", "pointer.HANDLE", NULL) != TCL_OK)
             return TCL_ERROR;
     }
 #endif
@@ -408,10 +441,13 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
 
 /* Called on interp deletion */
 void
-CffiAliasesCleanup(Tcl_HashTable *typeAliasTableP)
+CffiAliasesCleanup(CffiInterpCtx *ipCtxP)
 {
-    Tclh_ObjHashDeleteEntries(typeAliasTableP, NULL, CffiAliasEntryDelete);
-    Tcl_DeleteHashTable(typeAliasTableP);
+    CffiNameDeleteNames(ipCtxP->interp,
+                        &ipCtxP->scope.aliases,
+                        NULL,
+                        CffiAliasNameDeleteCallback);
+    Tcl_DeleteHashTable(&ipCtxP->scope.aliases);
 }
 
 CffiResult

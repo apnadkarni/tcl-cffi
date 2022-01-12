@@ -39,7 +39,7 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], in
     CHECK(Tclh_ObjToRangedInt(ip, objv[2], 1, INT_MAX, &size));
     p = ckalloc((int)size);
     if (objc == 4) {
-        tagObj = CffiMakePointerTagFromObj(CffiScopeGet(ipCtxP, NULL), objv[3]);
+        tagObj = CffiMakePointerTagFromObj(ip, objv[3]);
         Tcl_IncrRefCount(tagObj);
     }
     else
@@ -123,7 +123,7 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], 
     p = ckalloc(len);
     memmove(p, bytes, len);
     if (objc == 4) {
-        tagObj = CffiMakePointerTagFromObj(CffiScopeGet(ipCtxP, NULL), objv[3]);
+        tagObj = CffiMakePointerTagFromObj(ip, objv[3]);
         Tcl_IncrRefCount(tagObj);
     }
     else

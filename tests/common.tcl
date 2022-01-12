@@ -314,6 +314,12 @@ proc cffi::test::make_unsafe_pointers args {
 # Resets enums in ::, cffi::test and any other passed namespaces
 proc cffi::test::reset_enums {args} {
     foreach ns [list :: [namespace current] {*}$args] {
-        cffi::enum delete *
+        namespace eval $ns {cffi::enum delete *}
+    }
+}
+# Resets aliases in ::, cffi::test and any other passed namespaces
+proc cffi::test::reset_aliases {args} {
+    foreach ns [list :: [namespace current] {*}$args] {
+        namespace eval $ns {cffi::alias delete *}
     }
 }

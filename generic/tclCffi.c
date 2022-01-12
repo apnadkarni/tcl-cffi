@@ -124,6 +124,7 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+#ifdef OBSOLETE
 /* TBD - make into a TCLH function */
 /* Function: CffiQualifyName
  * Fully qualifes a name that is relative.
@@ -161,7 +162,9 @@ CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj)
         return fqnObj;
     }
 }
+#endif
 
+#ifdef OBSOLETE
 /* TBD - move to TCLH */
 /* Function: Tclh_ObjHashEnumerateEntries
  * Returns a list of keys of a hash table that uses *Tcl_Obj* keys.
@@ -197,7 +200,9 @@ Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj)
     }
     return resultObj;
 }
+#endif
 
+#ifdef OBSOLETE
 /* TBD - move to TCLH */
 /* Function: Tclh_ObjHashDeleteEntries
  * Deletes entries with keys matching the specified pattern in a *Tcl_Obj*
@@ -233,6 +238,7 @@ void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
         }
     }
 }
+#endif
 
 /* Function: CffiGetEncodingFromObj
  * Gets the Tcl_Encoding named by the passed object
@@ -264,45 +270,6 @@ CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP)
     return TCL_OK;
 }
 
-/* TBD - move to TCLH */
-static Tcl_Obj *
-Tclh_NamespaceTail(const char *nsPathP, Tcl_Obj **qualifiersObjP)
-{
-    const char *tailP;
-    const char *endP;
-    Tcl_Obj *tailObj;
-
-    /* Go to end. TBD - +strlen() intrinsic faster? */
-    for (tailP = nsPathP;  *tailP != '\0';  tailP++) {
-        /* empty body */
-    }
-    endP = tailP;
-    while (--tailP > nsPathP) {
-        if ((*tailP == ':') && (*(tailP-1) == ':')) {
-            tailP++; /* Just after the last "::" */
-            break;
-        }
-    }
-
-    /*
-     * tail -> tail NULL
-     * head::tail -> tail head
-     * head:: -> NULL head
-     * {} -> NULL NULL
-     */
-    CFFI_ASSERT(tailP >= nsPathP);
-    tailObj =
-        *tailP == '\0' ? NULL : Tcl_NewStringObj(tailP, (Tclh_SSizeT)(endP - tailP));
-    if (qualifiersObjP) {
-        /* Remember we do not want trailing :: */
-        if (tailP < 2+nsPathP)
-            *qualifiersObjP = NULL;
-        else
-            *qualifiersObjP = Tcl_NewStringObj(nsPathP, (Tclh_SSizeT) (tailP - nsPathP - 2));
-    }
-    return tailObj;
-}
-
 static CffiResult
 CffiCallObjCmd(ClientData cdata,
                Tcl_Interp *ip,
@@ -320,9 +287,9 @@ CffiCallObjCmd(ClientData cdata,
     CHECK(Tclh_PointerObjGetTag(ip, objv[1], &protoNameObj));
     CHECK(Tclh_PointerUnwrap(ip, objv[1], &fnAddr, NULL));
 
-    protoNameObj = CffiQualifyName(ip, protoNameObj);
+    protoNameObj = Tclh_NsQualifyNameObj(ip, protoNameObj, NULL);
     Tcl_IncrRefCount(protoNameObj);
-    protoP = CffiProtoGet(CffiScopeGet(ipCtxP, NULL), protoNameObj);
+    protoP = CffiProtoGet(ipCtxP, protoNameObj);
     Tcl_DecrRefCount(protoNameObj);
     protoNameObj = NULL;
 
@@ -446,22 +413,7 @@ CffiSandboxObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    Tcl_Obj *head, *tail;
-    CffiResult ret = TCL_OK;
-    Tcl_Obj *result = Tcl_NewListObj(2, NULL);
-
-    tail = Tclh_NamespaceTail(Tcl_GetString(objv[1]), &head);
-
-    if (head)
-        Tcl_ListObjAppendElement(ip, result, head);
-    else
-        Tcl_ListObjAppendElement(ip, result, Tcl_NewStringObj("NULL", -1));
-    if (tail)
-        Tcl_ListObjAppendElement(ip, result, tail);
-    else
-        Tcl_ListObjAppendElement(ip, result, Tcl_NewStringObj("NULL", -1));
-    Tcl_SetObjResult(ip, result);
-    return ret;
+    return TCL_OK;
 }
 
 static void
@@ -473,7 +425,10 @@ CffiInterpCtxCleanupAndFree(CffiInterpCtx *ipCtxP)
 #ifdef CFFI_USE_DYNCALL
         CffiDyncallFinit(ipCtxP);
 #endif
-        CffiScopesCleanup(ipCtxP);
+        CffiAliasesCleanup(ipCtxP);
+        CffiEnumsCleanup(ipCtxP);
+        CffiPrototypesCleanup(ipCtxP);
+
         MemLifoClose(&ipCtxP->memlifo);
         ckfree(ipCtxP);
 }
@@ -499,17 +454,19 @@ CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
         return Tclh_ErrorAllocation(ip, "Memlifo", NULL);
     }
 
-    if (CffiScopesInit(ipCtxP) == TCL_OK) {
+    Tcl_InitHashTable(&ipCtxP->scope.enums, TCL_STRING_KEYS);
+    Tcl_InitHashTable(&ipCtxP->scope.aliases, TCL_STRING_KEYS);
+    Tcl_InitHashTable(&ipCtxP->scope.prototypes, TCL_STRING_KEYS);
+
 #ifdef CFFI_USE_DYNCALL
-        ret = CffiDyncallInit(ipCtxP);
+    ret = CffiDyncallInit(ipCtxP);
 #endif
 #ifdef CFFI_USE_LIBFFI
-        ret = CffiLibffiInit(ipCtxP);
+    ret = CffiLibffiInit(ipCtxP);
 #endif
-        if (ret == TCL_OK) {
-            *ipCtxPP = ipCtxP;
-            return TCL_OK;
-        }
+    if (ret == TCL_OK) {
+        *ipCtxPP = ipCtxP;
+        return TCL_OK;
     }
 
     CffiInterpCtxCleanupAndFree(ipCtxP);
@@ -550,6 +507,8 @@ Cffi_Init(Tcl_Interp *ip)
     CHECK(Tclh_BaseLibInit(ip));
     CHECK(Tclh_ObjLibInit(ip));
     CHECK(Tclh_PointerLibInit(ip));
+    CHECK(Tclh_NsLibInit(ip));
+    CHECK(Tclh_HashLibInit(ip));
     CHECK(CffiInterpCtxAllocAndInit(ip, &ipCtxP));
 
     Tcl_CreateObjCommand(

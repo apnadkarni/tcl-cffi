@@ -29,8 +29,11 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_AppendObjToObj(resultObj, objv[2]);
     for (i = 0; i < protoP->nParams; ++i) {
 	if (protoP->params[i].typeAttrs.parseModeSpecificObj)
-            Tcl_AppendStringsToObj(
-                resultObj, " ?", Tcl_GetString(protoP->params[i].nameObj), "?", NULL);
+            Tcl_AppendStringsToObj(resultObj,
+                                   " ?",
+                                   Tcl_GetString(protoP->params[i].nameObj),
+                                   "?",
+                                   NULL);
         else
             Tcl_AppendStringsToObj(
                 resultObj, " ", Tcl_GetString(protoP->params[i].nameObj), NULL);

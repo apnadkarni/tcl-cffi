@@ -1866,9 +1866,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     CffiProto *protoP = NULL;
     CffiFunction *fnP = NULL;
 
-    /* Function scope is as per current namespace context */
     CHECK(CffiPrototypeParse(ipCtxP,
-                             CffiScopeGet(ipCtxP, NULL),
                              cmdNameObj,
                              returnTypeObj,
                              paramsObj,
@@ -1887,7 +1885,8 @@ CffiDefineOneFunction(Tcl_Interp *ip,
         CffiLibCtxRef(libCtxP);
     CffiProtoRef(protoP);
     fnP->protoP = protoP;
-    fqnObj = CffiQualifyName(ip, cmdNameObj);
+    fqnObj = Tclh_NsQualifyNameObj(ip, cmdNameObj, NULL);
+
     Tcl_IncrRefCount(fqnObj);
     fnP->cmdNameObj = fqnObj;
 
@@ -1896,7 +1895,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
                          CffiFunctionInstanceCmd,
                          fnP,
                          CffiFunctionInstanceDeleter);
-
+    Tcl_SetObjResult(ip, fqnObj);
     return TCL_OK;
 }
 

@@ -13,7 +13,7 @@ static CffiStruct *CffiStructCkalloc(int nfields)
     int         sz;
     CffiStruct *structP;
 
-    sz      = offsetof(CffiStruct, fields) + (nfields * sizeof(structP->fields[0]));
+    sz = offsetof(CffiStruct, fields) + (nfields * sizeof(structP->fields[0]));
     structP = ckalloc(sz);
     memset(structP, 0, sz);
     return structP;
@@ -54,7 +54,6 @@ CffiStructUnref(CffiStruct *structP)
  *
  * Parameters:
  * ip - interpreter
- * scopeP - the scope in which to parse the struct
  * nameObj - name of the struct
  * structObj - structure definition
  * structPP - pointer to location to store pointer to internal form.
@@ -67,7 +66,6 @@ CffiStructUnref(CffiStruct *structP)
  */
 CffiResult
 CffiStructParse(CffiInterpCtx *ipCtxP,
-                CffiScope *scopeP,
                 Tcl_Obj *nameObj,
                 Tcl_Obj *structObj,
                 CffiStruct **structPP)
@@ -97,7 +95,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     structP->nFields = 0; /* Update as we go along */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         int k;
-        if (CffiTypeAndAttrsParse(ipCtxP, scopeP,
+        if (CffiTypeAndAttrsParse(ipCtxP,
                                   objs[i + 1],
                                   CFFI_F_TYPE_PARSE_FIELD,
                                   &structP->fields[j].fieldType)
@@ -1163,7 +1161,7 @@ CffiStructObjCmd(ClientData cdata,
             return Tclh_ErrorInvalidValue(
                 ip, objv[2], "Empty string specified for structure name.");
         }
-        cmdNameObj = CffiQualifyName(ip, objv[2]);
+        cmdNameObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
         Tcl_IncrRefCount(cmdNameObj);
         defObj  = objv[3];
         optIndex = 4;
@@ -1183,7 +1181,7 @@ CffiStructObjCmd(ClientData cdata,
     }
 
     ret = CffiStructParse(
-        ipCtxP, CffiScopeGet(ipCtxP, NULL), cmdNameObj, defObj, &structP);
+        ipCtxP, cmdNameObj, defObj, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;

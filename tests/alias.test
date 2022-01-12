@@ -71,7 +71,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias define {f float i {int nonzero}}
         list [lsort [cffi::alias list]] [cffi::type info f] [cffi::type info i]
-    } -result {{f i} {size 4 count 0 alignment 4 definition float} {size 4 count 0 alignment 4 definition {int nonzero}}}
+    } -result [list [lprefixns f i] {size 4 count 0 alignment 4 definition float} {size 4 count 0 alignment 4 definition {int nonzero}}]
 
     test alias-define-multi-error-0 "Missing definition" -setup {
         cffi::alias delete *
@@ -146,7 +146,7 @@ namespace eval cffi::test {
         cffi::alias delete *
     } -body {
         lsort [cffi::alias list]
-    } -result {abc abd x}
+    } -result [lprefixns abc abd x]
 
     test alias-list-2 "alias list exact" -setup {
         cffi::alias delete *
@@ -157,7 +157,7 @@ namespace eval cffi::test {
         cffi::alias delete *
     } -body {
         cffi::alias list abc
-    } -result abc
+    } -result [lprefixns abc]
 
     test alias-list-3 "alias list glob" -setup {
         cffi::alias delete *
@@ -168,7 +168,7 @@ namespace eval cffi::test {
         cffi::alias delete *
     } -body {
         lsort [cffi::alias list ab*]
-    } -result {abc abd}
+    } -result [lprefixns abc abd]
 
     test alias-list-4 "alias list nomatch" -setup {
         cffi::alias delete *
@@ -194,7 +194,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias delete abd
         lsort [cffi::alias list ab*]
-    } -result {abc}
+    } -result [lprefixns abc]
 
     test alias-delete-1 "alias delete glob" -setup {
         cffi::alias delete *
@@ -206,7 +206,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias delete ab*
         lsort [cffi::alias list]
-    } -result {x}
+    } -result [lprefixns x]
 
     test alias-delete-2 "alias delete *" -setup {
         cffi::alias delete *
@@ -215,7 +215,7 @@ namespace eval cffi::test {
         cffi::alias define x string
     } -body {
         list [lsort [cffi::alias list]] [cffi::alias delete *] [cffi::alias list]
-    } -result [list {abc abd x} {} {}]
+    } -result [list [lprefixns abc abd x] {} {}]
 
     test alias-delete-error-0 "alias delete - too many arguments" -body {
         cffi::alias delete X int
@@ -230,37 +230,37 @@ namespace eval cffi::test {
     #
     testnumargs alias-load "cffi::alias load" "ALIASSET"
     test alias-load-C-0 "alias load" -setup {
-        uplevel #0 cffi::alias delete *
+        reset_aliases
     } -body {
         cffi::alias load C
         lsort [uplevel #0 cffi::alias list]
-    } -result "int16_t int32_t int64_t int8_t size_t uint16_t uint32_t uint64_t uint8_t"
+    } -result [lprefixns int16_t int32_t int64_t int8_t size_t uint16_t uint32_t uint64_t uint8_t]
     test alias-load-C-1 "alias load" -setup {
-        uplevel #0 cffi::alias delete *
+        reset_aliases
     } -body {
-        cffi::alias load C
+        uplevel #0 cffi::alias load C
         # Should be empty as C loaded into global scope
         cffi::alias list
     } -result ""
 
     test alias-load-win-0 "alias load" -setup {
-        uplevel #0 cffi::alias delete *
+        reset_aliases
     } -constraints win -body {
         cffi::alias load win32
         lsort [uplevel #0 cffi::alias list]
-    } -result "BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPVOID LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM"
+    } -result [lprefixns BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPVOID LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM]
 
     test alias-load-win-1 "alias load" -setup {
-        uplevel #0 cffi::alias delete *
+        reset_aliases
     } -constraints win -body {
         cffi::alias load posix
         lsort [uplevel #0 cffi::alias list]
-    } -result "dev_t ino_t off_t time_t"
+    } -result [lprefixns dev_t ino_t off_t time_t]
 
     test alias-load-win-2 "alias load" -setup {
-        uplevel #0 cffi::alias delete *
+        reset_aliases
     } -constraints win -body {
-        cffi::alias load posix
+        namespace eval :: {cffi::alias load posix}
         lsort [cffi::alias list]
     } -result {}
 
@@ -313,9 +313,7 @@ namespace eval cffi::test {
     } -result {int long longlong}
 
     test alias-delete-scope-0 "alias delete in scope" -setup {
-        cffi::alias delete *
-        uplevel #0 cffi::alias delete *
-        namespace eval ::ns {cffi::alias delete *}
+        reset_aliases ::ns
     } -body {
         cffi::alias define INT int
         namespace eval :: {cffi::alias define LONGLONG longlong}

@@ -302,29 +302,31 @@ int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag ex
 }
 
 Tcl_Obj *
-CffiMakePointerTag(CffiScope *scopeP, const char *scopedTagP, int tagLen)
+CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, int tagLen)
 {
+    Tcl_Namespace *nsP;
     Tcl_Obj *tagObj;
 
-    /* If tag is fully qualified, return as is */
-    if (scopedTagP[0] == ':' && scopedTagP[1] == ':')
-        return Tcl_NewStringObj(scopedTagP, tagLen);
+    /* Tclh_NsQualify* unusable here because tagP defined by tagLen, not nul */
 
-    /* tag is relative so prefix with scope name */
-    tagObj = Tcl_NewStringObj(scopeP->name, -1);
+    if (Tclh_NsIsFQN(tagP))
+        return Tcl_NewStringObj(tagP, tagLen);
+
+    /* tag is relative so qualify it */
+    nsP = Tcl_GetCurrentNamespace(ip);
+    tagObj = Tcl_NewStringObj(nsP->fullName, -1);
     /* Put separator only if not global namespace */
-    if (scopeP->name[0] != ':' || scopeP->name[1] != ':'
-        || scopeP->name[2] != 0)
+    if (! Tclh_NsIsGlobalNs(nsP->fullName))
         Tcl_AppendToObj(tagObj, "::", 2);
-    Tcl_AppendToObj(tagObj, scopedTagP, tagLen);
+    Tcl_AppendToObj(tagObj, tagP, tagLen);
     return tagObj;
 }
 
-Tcl_Obj *CffiMakePointerTagFromObj(CffiScope *scopeP, Tcl_Obj *scopedTagObj)
+Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj)
 {
     int len;
-    const char *tag = Tcl_GetStringFromObj(scopedTagObj, &len);
-    return CffiMakePointerTag(scopeP, tag, len);
+    const char *tag = Tcl_GetStringFromObj(tagObj, &len);
+    return CffiMakePointerTag(ip, tag, len);
 }
 
 /* Function: CffiTypeInit
@@ -375,7 +377,6 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
  *
  * Parameters:
  *   ip - Current interpreter
- *   scopeP - the scope to use for resolving. Must not be NULL.
  *   typeObj - Contains the type definition to be parsed
  *   typeP - pointer to structure to hold the parsed type
  *
@@ -383,7 +384,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
  *  TCL_OK on success else TCL_ERROR with message in interpreter.
  */
 CffiResult
-CffiTypeParse(Tcl_Interp *ip, CffiScope *scopeP, Tcl_Obj *typeObj, CffiType *typeP)
+CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
 {
     int tokenLen;
     int tagLen;
@@ -396,8 +397,6 @@ CffiTypeParse(Tcl_Interp *ip, CffiScope *scopeP, Tcl_Obj *typeObj, CffiType *typ
     CffiResult ret;
 
     CFFI_ASSERT((sizeof(cffiBaseTypes)/sizeof(cffiBaseTypes[0]) - 1) == CFFI_K_NUM_TYPES);
-
-    CFFI_ASSERT(scopeP);
 
     CffiTypeInit(typeP, NULL);
     CFFI_ASSERT(typeP->count == 0); /* Code below assumes these values on init */
@@ -479,7 +478,7 @@ CffiTypeParse(Tcl_Interp *ip, CffiScope *scopeP, Tcl_Obj *typeObj, CffiType *typ
 
     case CFFI_K_TYPE_POINTER:
         if (tagStr != NULL) {
-            typeP->u.tagObj = CffiMakePointerTag(scopeP, tagStr, tagLen);
+            typeP->u.tagObj = CffiMakePointerTag(ip, tagStr, tagLen);
                 Tcl_IncrRefCount(typeP->u.tagObj);
         }
         typeP->baseType = CFFI_K_TYPE_POINTER;
@@ -698,7 +697,6 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
  *
  * Parameters:
  *   ipCtxP - Interpreter context
- *   scopeP - scope for resolving type aliases and enums
  *   typeAttrObj - parameter definition object
  *   parseMode - indicates whether the definition should accept attributes
  *               for function parameter, return type or struct field. Caller
@@ -710,7 +708,6 @@ CffiTypeAndAttrsInit(CffiTypeAndAttrs *toP, CffiTypeAndAttrs *fromP)
  */
 CffiResult
 CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
-                      CffiScope *scopeP,
                       Tcl_Obj *typeAttrObj,
                       CffiTypeParseMode parseMode,
                       CffiTypeAndAttrs *typeAttrP)
@@ -729,8 +726,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     static const char *typeInvalidForContextMsg = "The specified type is not valid for the type declaration context.";
     const char *message;
 
-    CFFI_ASSERT(scopeP);
-
     message = paramAnnotClashMsg;
 
     CHECK( Tcl_ListObjGetElements(ip, typeAttrObj, &nobjs, &objs) );
@@ -740,12 +735,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /* First check for a type definition before base types */
-    temp = CffiAliasGet(ipCtxP, scopeP, objs[0], typeAttrP);
+    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
     if (temp)
         baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
         CffiTypeAndAttrsInit(typeAttrP, NULL);
-        CHECK(CffiTypeParse(ip, scopeP, objs[0], &typeAttrP->dataType));
+        CHECK(CffiTypeParse(ip, objs[0], &typeAttrP->dataType));
         baseType = typeAttrP->dataType.baseType;
         typeAttrP->parseModeSpecificObj = NULL;
         typeAttrP->flags      = 0;
@@ -906,17 +901,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 typeAttrP->dataType.u.tagObj = fieldObjs[1];
             }
             else if (CffiEnumGetMap(
-                         NULL, /* Don't report error, may be global */
-                         scopeP,
-                         fieldObjs[1],
-                         &typeAttrP->dataType.u.tagObj)
-                         != TCL_OK
-                     && CffiEnumGetMap(
-                            ip,
-                            ipCtxP->globalScopeP,
-                            fieldObjs[1],
-                            &typeAttrP->dataType.u.tagObj)
-                            != TCL_OK) {
+                         ipCtxP, fieldObjs[1], 0, &typeAttrP->dataType.u.tagObj)
+                     != TCL_OK) {
                 goto error_exit; /* Named Enum does not exist */
             }
             flags |= CFFI_F_ATTR_ENUM;
@@ -2139,37 +2125,6 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
     return resultObj;
 }
 
-/* Function: CffiNameSyntaxCheck
- * Verifies that a name matches permitted syntax.`
- *
- * Parameters:
- * ip - interpreter
- * nameObj - name to be checked
- *
- * Returns:
- * *TCL_OK* if syntax is permitted, other *TCL_ERROR* with error message
- * in interpreter.
- */
-CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj)
-{
-    unsigned char ch;
-    const unsigned char *nameP; /* NOTE *unsigned* char for isalpha etc.*/
-
-    nameP = (unsigned char*) Tcl_GetString(nameObj);
-    ch    = *nameP++;
-    /* First letter must be alpha */
-    if (isalpha(ch) || ch == '_') {
-        /* Subsequent letter alphanumeric, _ or : */
-        while ((ch = *nameP++) != '\0') {
-            if (!isalnum(ch) && ch != '_')
-                goto invalid_alias_syntax; /* Horrors, a goto */
-        }
-        return TCL_OK;
-    }
-invalid_alias_syntax:
-    return Tclh_ErrorInvalidValue(ip, nameObj, "Invalid name syntax.");
-}
-
 CffiResult
 CffiTypeObjCmd(ClientData cdata,
                 Tcl_Interp *ip,
@@ -2208,7 +2163,7 @@ CffiTypeObjCmd(ClientData cdata,
             return Tclh_ErrorInvalidValue(ip, objv[3], "Invalid parse mode.");
     }
     ret = CffiTypeAndAttrsParse(
-        ipCtxP, CffiScopeGet(ipCtxP, NULL), objv[2], parse_mode, &typeAttrs);
+        ipCtxP, objv[2], parse_mode, &typeAttrs);
     if (ret == TCL_ERROR)
         return ret;
 
