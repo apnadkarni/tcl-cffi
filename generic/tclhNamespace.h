@@ -120,7 +120,7 @@ const char *Tclh_NsQualifyName(Tcl_Interp *ip,
  *
  * If there are no qualifiers, the returned index will be 0 corresponding to
  * the start of the name. If the name ends in a namespace separator, the
- * index will be the terminating nul.
+ * index will be that of the terminating nul.
  *
  * Returns:
  * Index of the tail component.

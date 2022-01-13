@@ -413,6 +413,7 @@ CffiSandboxObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
+    Tcl_SetObjResult(ip, Tcl_NewIntObj(Tclh_NsTailPos(Tcl_GetString(objv[1]))));
     return TCL_OK;
 }
 

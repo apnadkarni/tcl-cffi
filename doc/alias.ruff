@@ -2,6 +2,10 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::alias {
+    proc clear {} {
+        # Deletes all aliases from the interpreter
+    }
+
     proc define {args} {
         # Defines one or more type aliases.
         #  name - Name for type alias. Must begin with an alphabetic
@@ -12,10 +16,9 @@ namespace eval ${NS}::alias {
         # Synopsis: name definition
         # Synopsis: aliasdefs
         #
-        # Given two arguments, creates an alias of the given name for
-        # passed definition in the current [scope][Scopes].
-        # If a single argument is provided, it must be a dictionary mapping
-        # alias names to their definitions.
+        # Given two arguments, creates an alias of the given name for passed
+        # definition. If a single argument is provided, it must be a dictionary
+        # mapping alias names to their definitions.
         #
         # An error will be raised if an alias name matches a built-in
         # type or if an alias of that name already exists with a different
@@ -34,26 +37,30 @@ namespace eval ${NS}::alias {
         # The alias must be one defined in the current [scope][Scopes].
     }
     proc list {{pattern *}} {
-        # Returns a list of aliases in the current [scope][Scopes] that
-        # match the specified pattern.
+        # Returns a list of aliases that match the specified pattern.
         #  pattern - pattern to match against aliases
-        # The pattern matching algorithm is the same as that of Tcl's
-        # `string match` command.
+        # The command returns the alias names that match the specified pattern.
+        # The conditions for matching the pattern are:
+        #  - the tail of the pattern must match the tail of the alias name
+        #    using Tcl's glob pattern matching rules.
+        #  - the scope component of the alias name must match exactly.
     }
     proc delete {pattern} {
-        # Deletes type aliases in the current [scope][Scopes] matching a pattern.
+        # Deletes aliases matching a pattern.
         #  pattern - pattern to match against aliases
-        # The pattern matching algorithm is the same as that of Tcl's
-        # `string match` command.
-        # It is not an error if the pattern does not match any aliasses.
+        # The command deletes all aliases whose name matches the specified
+        # pattern. The conditions for matching the pattern are:
+        #  - the tail of the pattern must match the tail of the alias name
+        #    using Tcl's glob pattern matching rules.
+        #  - the scope component of the alias name must match exactly.
 
     }
     proc load {alias_set} {
         # Loads predefined type aliases.
         #  alias_set - the alias set to load.
         #
-        # The aliases are loaded into the global scope so as to be accessible
-        # from any scope.
+        # The aliases are loaded into the calling scope.
+        #
         # The possible values of $alias_set are `C`, `win32` (Windows only),
         # or `posix` (platform dependent).
         #

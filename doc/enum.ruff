@@ -2,8 +2,11 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::enum {
+    proc clear {} {
+        # Deletes all enumerations from the interpreter
+    }
     proc define {enumname enumdefs} {
-        # Defines a new enumeration in the current [scope][Scopes].
+        # Defines a new enumeration.
         #  enumname - name of the enumeration
         #  enumdefs - dictionary of enumeration member names to their values.
         # Parameter declarations can reference the enumeration to indicate
@@ -13,13 +16,16 @@ namespace eval ${NS}::enum {
     }
     proc delete {pattern} {
         # Deletes enumerations.
-        #  pattern - A glob-style pattern
+        #  pattern - pattern to match.
         # The command deletes all enumerations whose name matches the specified
-        # pattern.
+        # pattern. The conditions for matching the pattern are:
+        #  - the tail of the pattern must match the tail of the enumeration name
+        #    using Tcl's glob pattern matching rules.
+        #  - the scope component of the enumeration name must match exactly.
+
     }
     proc flags {enumname membernames} {
-        # Defines an enumeration in the current [scope][Scopes]
-        # as bit flags
+        # Defines an enumeration as bit flags
         #  enumname - name of the enumeration
         #  membernames - list of names of the enumeration members
         # For example,
@@ -27,10 +33,13 @@ namespace eval ${NS}::enum {
         # would define an enumeration with `A`, `B`, `C` values being 1, 2 and 4.
     }
     proc list {pattern} {
-        # Lists enumerations in the current [scope][Scopes].
-        #  pattern - A glob-style pattern
-        # The command returns names of all enumerations with names matching
-        # the specified pattern.
+        # Lists enumerations.
+        #  pattern - pattern to match.
+        # The command returns the names of all enumerations whose name matches
+        # the specified pattern. The conditions for matching the pattern are:
+        #  - the tail of the pattern must match the tail of the enumeration name
+        #    using Tcl's glob pattern matching rules.
+        #  - the scope component of the enumeration name must match exactly.
     }
     proc mask {enumname membernames} {
         # Returns an integer mask formed by bitwise OR-ing the passed
@@ -41,17 +50,15 @@ namespace eval ${NS}::enum {
     }
     proc members {enumname} {
         # Returns a dictionary containing the members in an enumeration.
-        #  enumname - name of the enumeration in the current [scope][Scopes]
-        #  whose elements are to be returned.
+        #  enumname - name of the enumeration whose elements are to be returned.
     }
     proc name {enumname membervalue} {
-        # Returns the symbolic name of a value in an enumeration in the current [scope][Scopes].
+        # Returns the symbolic name of a value in an enumeration.
         #  enumname - name of the enumeration
         #  membervalue - value of an enumeration member
     }
     proc sequence {enumname membernames {{start 0}}} {
-        # Defines an enumeration in the current [scope][Scopes]
-        # with consecutive member values
+        # Defines an enumeration with consecutive member values
         #  enumname - name of the enumeration
         #  membernames - list of names of the enumeration members
         #  start - value of first enumeration member
@@ -60,7 +67,7 @@ namespace eval ${NS}::enum {
         # Returns a list of enumeration member names corresponding to the
         # bits set in $mask.
         # enumeration members
-        #  enumname - name of the enumeration in the current [scope][Scopes]
+        #  enumname - name of the enumeration
         #  mask - Integer bit mask value
         # The last element of the returned list is an integer containing the
         # bits that were not matched against an enumberation member.
@@ -71,7 +78,7 @@ namespace eval ${NS}::enum {
         # See also: "enum mask"
     }
     proc value {enumname membername} {
-        # Returns the value of an enumeration member in the current [scope][Scopes].
+        # Returns the value of an enumeration member
         #  enumname - name of the enumeration
         #  membername - name of the enumeration member to retrieve
     }

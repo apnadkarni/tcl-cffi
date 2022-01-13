@@ -155,7 +155,7 @@ CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj)
     ret = CffiNameLookup(ipCtxP->interp,
                          &ipCtxP->scope.prototypes,
                          Tcl_GetString(protoNameObj),
-                         "Enum",
+                         "Prototype",
                          CFFI_F_NAME_SKIP_MESSAGES,
                          (ClientData *)&protoP,
                          NULL);
@@ -191,6 +191,7 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
 
     CHECK(CffiPrototypeParse(ipCtxP, objv[2], objv[3], objv[4], &protoP));
     protoP->abi = callMode;
+    CffiProtoRef(protoP);
     if (CffiNameObjAdd(ip,
                        &ipCtxP->scope.prototypes,
                        objv[2],
@@ -224,6 +225,16 @@ CffiPrototypeDeleteCmd(CffiInterpCtx *ipCtxP,
     return CffiNameDeleteNames(ipCtxP->interp,
                                &ipCtxP->scope.prototypes,
                                Tcl_GetString(objv[2]),
+                               CffiPrototypeNameDeleteCallback);
+}
+
+static CffiResult
+CffiPrototypeClearCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    CFFI_ASSERT(objc == 2);
+    return CffiNameDeleteNames(ipCtxP->interp,
+                               &ipCtxP->scope.prototypes,
+                               NULL,
                                CffiPrototypeNameDeleteCallback);
 }
 
@@ -270,12 +281,9 @@ CffiPrototypeObjCmd(ClientData cdata,
     static const Tclh_SubCommand subCommands[] = {
         {"function", 3, 3, "NAME RETURNTYPE PARAMDEFS", NULL},
         {"stdcall", 3, 3, "NAME RETURNTYPE PARAMDEFS", NULL},
+        {"clear", 0, 0, "", CffiPrototypeClearCmd},
         {"delete", 1, 1, "PATTERN", CffiPrototypeDeleteCmd},
         {"list", 0, 1, "?PATTERN?", CffiPrototypeListCmd},
-#ifdef NOTYET
-        {"body", 1, 1, "ALIAS", NULL},
-        {"bind", 2, 2, "NAME FNPTR", NULL},
-#endif
         {NULL}
     };
 

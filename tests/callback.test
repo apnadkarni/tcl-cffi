@@ -12,6 +12,7 @@ namespace eval ${NS}::test {
     testnumargs callback "::cffi::callback" "PROTOTYPENAME CMDPREFIX" "?ERROR_RESULT?" -constraints libffi
 
     test callback-noargs-0 "Call with no args" -setup {
+        cffi::prototype clear
         cffi::prototype function proto void {}
         testDll function noargs_caller void {fnptr pointer.proto}
         unset -nocomplain X
@@ -19,12 +20,11 @@ namespace eval ${NS}::test {
         set fnptr [cffi::callback [namespace current]::proto [list set [namespace current]::X success]]
         noargs_caller $fnptr
         set X
-    } -cleanup {
-        cffi::prototype delete proto
     } -result success
 
     foreach type $numericTypes {
         test callback-$type-0 "Pass and return value" -setup {
+            cffi::prototype clear
             proc [namespace current]::cb {arg} {expr {$arg+1}}
             cffi::prototype function proto $type [list input $type]
             set caller ${type}_fn_caller
@@ -32,24 +32,22 @@ namespace eval ${NS}::test {
         } -constraints libffi -body {
             set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb 0]
             $caller 42 $fnptr
-        } -cleanup {
-            cffi::prototype delete proto
         } -result [expr {$type in $intTypes ? 43 : 43.0}]
 
         if {$type in $intTypes} {
             test callback-$type-1 "Pass and return max value" -setup {
+                cffi::prototype clear
                 cffi::prototype function proto $type [list input $type]
                 set caller ${type}_fn_caller
                 testDll function $caller $type [list val $type fnptr {pointer.proto}]
             } -constraints libffi -body {
                 set fnptr [cffi::callback [namespace current]::proto [list return -level 0] 0]
                 list [$caller $intMax($type) $fnptr] [$caller $intMin($type) $fnptr]
-            } -cleanup {
-                cffi::prototype delete proto
             } -result [list $intMax($type) $intMin($type)]
         }
 
         test callback-$type-byref-0 "Pass byref" -setup {
+            cffi::prototype clear
             proc [namespace current]::cb {arg} {expr {$arg+1}}
             cffi::prototype function proto $type [list input [list $type byref]]
             set caller ${type}_fn_caller_byref
@@ -57,11 +55,10 @@ namespace eval ${NS}::test {
         } -constraints libffi -body {
             set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb 0]
             $caller 99 $fnptr
-        } -cleanup {
-            cffi::prototype delete proto
         } -result [expr {$type in $intTypes ? 100 : 100.0}]
 
         test callback-$type-error-0 "Raise error in callback" -setup {
+            cffi::prototype clear
             proc [namespace current]::cb {arg} {set nosuchvar}
             cffi::prototype function proto $type [list input $type]
             set caller ${type}_fn_caller
@@ -69,46 +66,43 @@ namespace eval ${NS}::test {
         } -constraints libffi -body {
             set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb 0]
             $caller 42 $fnptr
-        } -cleanup {
-            cffi::prototype delete proto
         } -result [expr {$type in $intTypes ? 0 : 0.0}]
 
         test callback-$type-error-0 "Undefined callback" -setup {
+            cffi::prototype clear
             cffi::prototype function proto $type [list input $type]
             set caller ${type}_fn_caller
             testDll function $caller $type [list val $type fnptr {pointer.proto}]
         } -constraints libffi -body {
             set fnptr [cffi::callback [namespace current]::proto nosuchproc 0]
             $caller 42 $fnptr
-        } -cleanup {
-            cffi::prototype delete proto
         } -result [expr {$type in $intTypes ? 0 : 0.0}]
 
         # Parameter annotations only invalid for callback parameters
         foreach annotation {out inout} {
-            test callback-$type-error-$annotation-0 "Callback error - $annotation" -constraints libffi -body {
+            test callback-$type-error-$annotation-0 "Callback error - $annotation" -constraints libffi -setup {
+                cffi::prototype clear
+            } -body {
                 cffi::prototype function proto void [list input [list $type $annotation]]
                 set fnptr [cffi::callback [namespace current]::proto xxx 0]
-            } -cleanup {
-                cffi::prototype delete proto
             } -result "Invalid value \"input\". An annotation in the type definition is not suitable for use in callbacks." -returnCodes error
         }
         # Return annotations only invalid for callback returns
         foreach annotation [list {*}$requirementAttrs {*}$errorHandlerAttrs] {
             if {$type ni $intTypes} continue
-            test callback-$type-error-$annotation-0 "Callback error - $annotation" -constraints libffi -body {
+            test callback-$type-error-$annotation-0 "Callback error - $annotation" -constraints libffi -setup {
+                cffi::prototype clear
+            } -body {
                 cffi::prototype function proto [list $type $annotation] {}
                 set fnptr [cffi::callback [namespace current]::proto xxx 0]
-            } -cleanup {
-                cffi::prototype delete proto
-            } -result "Invalid value \"::cffi::test::proto\". An annotation in the type definition is not suitable for use in callbacks." -returnCodes error
+            } -result "Invalid value \"proto\". An annotation in the type definition is not suitable for use in callbacks." -returnCodes error
         }
 
         test callback-$type-error-bad-default-0 "Callback error - bad default" -constraints libffi -body {
             cffi::prototype function proto $type {}
             set fnptr [cffi::callback [namespace current]::proto xxx abc]
-        } -cleanup {
-            cffi::prototype delete proto
+        } -setup {
+            cffi::prototype clear
         } -result "expected * but got \"abc\"" -returnCodes error -match glob
 
     }
@@ -116,19 +110,19 @@ namespace eval ${NS}::test {
     # string, unistring
     foreach {type val} [list string $testStrings(ascii) string.utf-8 $testStrings(unicode) string.jis0208 $testStrings(jis0208) unistring $testStrings(unicode)] {
         test callback-$type-0 "Pass value" -setup {
+            cffi::prototype clear
             cffi::prototype function proto int [list input $type]
             set caller callback_check_byref
             testDll function $caller int [list str $type fnptr pointer.proto]
         } -constraints libffi -body {
             set fnptr [cffi::callback [namespace current]::proto [list string equal $val] 0]
             $caller $val $fnptr
-        } -cleanup {
-            cffi::prototype delete proto
         } -result 1
     }
 
     # pointer
     test callback-pointer-0 "Pass and return value" -setup {
+        cffi::prototype clear
         proc [namespace current]::cb {arg} {
             set addr [cffi::pointer address $arg]
             incr addr
@@ -140,20 +134,18 @@ namespace eval ${NS}::test {
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb [makeptr 0]]
         $caller [makeptr 1] $fnptr
-    } -cleanup {
-        cffi::prototype delete proto
     } -result [makeptr 2]
 
     test callback-pointer-1 "Pass and return value - safe error" -setup {
+        cffi::prototype clear
         cffi::prototype function proto pointer [list input pointer]
         set caller pointer_fn_caller
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb [makeptr 0]]
-    } -cleanup {
-        cffi::prototype delete proto
     } -result {Invalid value "input". Pointer types in callbacks must have the unsafe annotation.} -returnCodes error
 
     test callback-pointer-byref-0 "Pass byref" -setup {
+        cffi::prototype clear
         proc [namespace current]::cb {arg} {
             set addr [cffi::pointer address $arg]
             incr addr
@@ -165,12 +157,11 @@ namespace eval ${NS}::test {
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb [makeptr 0]]
         $caller [makeptr 1] $fnptr
-    } -cleanup {
-        cffi::prototype delete proto
     } -result [makeptr 2]
 
     # struct
     test callback-struct-0 "Pass struct by reference" -setup {
+        cffi::prototype clear
         cffi::Struct create ::S {i int d double}
         proc [namespace current]::cb {s} {
             dict with s {
@@ -183,20 +174,18 @@ namespace eval ${NS}::test {
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb 0]
         $caller {i 1 d 2} $fnptr
-    } -cleanup {
-        cffi::prototype delete proto
     } -result 1
 
     test callback-struct-error-0 "Pass struct by value - error" -setup {
+        cffi::prototype clear
         cffi::Struct create ::S {i int d double}
         cffi::prototype function proto int [list s struct.::S]
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb 0]
-    } -cleanup {
-        cffi::prototype delete proto
     } -result {Invalid value "s". Struct parameter types in callbacks must be byref.} -returnCodes error
 
     test callback-manyargs-0 "Callback with many arguments" -setup {
+        cffi::prototype clear
         proc cb {ch uch shrt ushrt i ui l ul ll ull f d} {
             return [expr {
                           $ch + $uch + $shrt + $ushrt + $i + $ui + $l + $ul + $ll + $ull +$f + $d
@@ -208,12 +197,11 @@ namespace eval ${NS}::test {
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb -1]
         $caller 1 2 3 4 5 6 7 8 9 10 10.5 11.5 $fnptr
-    } -cleanup {
-        cffi::prototype delete proto
     } -result 77.0
 
     # evaluation context
     test callback-context-0 "Call at global level" -setup {
+        cffi::prototype clear
         cffi::prototype function proto void {}
         testDll function noargs_caller void {fnptr pointer.proto}
         unset -nocomplain ::X
@@ -221,11 +209,10 @@ namespace eval ${NS}::test {
         set fnptr [cffi::callback [namespace current]::proto [list set X success]]
         uplevel #0 [list [namespace current]::noargs_caller $fnptr]
         set ::X
-    } -cleanup {
-        cffi::prototype delete proto
     } -result success
 
     test callback-context-1 "Call at namespace context" -setup {
+        cffi::prototype clear
         cffi::prototype function proto void {}
         testDll function noargs_caller void {fnptr pointer.proto}
         unset -nocomplain X
@@ -233,14 +220,13 @@ namespace eval ${NS}::test {
         set fnptr [cffi::callback [namespace current]::proto [list X success]]
         noargs_caller $fnptr
         set X
-    } -cleanup {
-        cffi::prototype delete proto
     } -result success
 
 
     # stdcall callbacks
 
     test callback-stdcall-0 "stdcall callback" -setup {
+        cffi::prototype clear
         proc cb {ch uch shrt ushrt i ui l ul ll ull f d} {
             return [expr {
                           $ch + $uch + $shrt + $ushrt + $i + $ui + $l + $ul + $ll + $ull +$f + $d
@@ -252,8 +238,6 @@ namespace eval ${NS}::test {
     } -constraints libffi -body {
         set fnptr [cffi::callback [namespace current]::proto [namespace current]::cb -1]
         $caller 1 2 3 4 5 6 7 8 9 10 10.5 11.5 $fnptr
-    } -cleanup {
-        cffi::prototype delete proto
     } -result 77.0
 
 
@@ -261,6 +245,7 @@ namespace eval ${NS}::test {
     testnumargs callback_free "::cffi::callback_free" "CALLBACKPTR" "" -constraints libffi
 
     test callback_free-0 "Callback free with no args" -setup {
+        cffi::prototype clear
         cffi::prototype function proto void {}
         testDll function noargs_caller void {fnptr pointer.proto}
         unset -nocomplain X
@@ -268,8 +253,6 @@ namespace eval ${NS}::test {
         set fnptr [cffi::callback [namespace current]::proto [list set [namespace current]::X success]]
         cffi::callback_free $fnptr
         noargs_caller $fnptr
-    } -cleanup {
-        cffi::prototype delete proto
     } -result {Pointer 0x*^::cffi::test::proto is not registered.} -returnCodes error -match glob
 
 }

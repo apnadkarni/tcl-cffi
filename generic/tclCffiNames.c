@@ -167,9 +167,9 @@ CffiNameAdd(Tcl_Interp *ip,
     else {
         Tcl_AppendResult(ip,
                          nameTypeP ? nameTypeP : "Entry",
-                         " with name ",
+                         " with name \"",
                          nameP,
-                         " already exists.",
+                         "\" already exists.",
                          NULL);
     }
 vamoose:
@@ -211,7 +211,8 @@ CffiNameObjAdd(Tcl_Interp *ip,
 struct CffiNameListNamesState {
     Tcl_Obj *resultObj;
     const char *pattern;
-};
+    int pattern_tail_pos;
+    };
 
 static int
 CffiNameListNamesCallback(Tcl_HashTable *htP,
@@ -221,10 +222,19 @@ CffiNameListNamesCallback(Tcl_HashTable *htP,
     struct CffiNameListNamesState *stateP =
         (struct CffiNameListNamesState *)clientData;
     const char *key = Tcl_GetHashKey(htP, heP);
-    if (stateP->pattern == NULL || Tcl_StringMatch(key, stateP->pattern)) {
-        Tcl_ListObjAppendElement(
-            NULL, stateP->resultObj, Tcl_NewStringObj(key, -1));
+
+    if (stateP->pattern) {
+        int key_tail_pos = Tclh_NsTailPos(key);
+        /* Split the tail to match that as a wildcard pattern */
+        if (key_tail_pos != stateP->pattern_tail_pos ||
+        strncmp(key, stateP->pattern, key_tail_pos) ||
+        !Tcl_StringMatch(key+key_tail_pos, stateP->pattern+key_tail_pos))
+            return 1;
+
     }
+    /* Include in the list of matches */
+    Tcl_ListObjAppendElement(
+        NULL, stateP->resultObj, Tcl_NewStringObj(key, -1));
 
     return 1; /* Keep iterating */
 }
@@ -235,8 +245,11 @@ CffiNameListNamesCallback(Tcl_HashTable *htP,
  * Parameters:
  * ip - interpreter. May be NULL. Only used for error messages.
  * htP - hash table to be enumerated
- * pattern - glob pattern to match. May be NULL to get all entries. If not
+ * pattern - pattern to match. May be NULL to match all. If not
  *   not fully qualified, it is qualified with the current namespace.
+ *   Only the tail of the pattern is treated as a glob pattern
+ *   and matched against the tail of the hash table key. The rest is treated
+ *   as a normal string compare.
  * namesObjP - location to store the list of names
  *
  * Returns:
@@ -253,10 +266,14 @@ CffiNameListNames(Tcl_Interp *ip,
     Tcl_DString ds;
 
     state.resultObj = Tcl_NewListObj(0, NULL);
-    if (pattern)
+    if (pattern) {
         state.pattern = Tclh_NsQualifyName(ip, pattern, &ds, NULL);
-    else
+        state.pattern_tail_pos = Tclh_NsTailPos(state.pattern);
+    }
+    else {
         state.pattern = NULL;
+        state.pattern_tail_pos = 0;
+    }
     Tclh_HashIterate(htP, CffiNameListNamesCallback, &state);
     if (pattern)
         Tcl_DStringFree(&ds);
@@ -266,6 +283,7 @@ CffiNameListNames(Tcl_Interp *ip,
 
 struct CffiNameDeleteNamesState {
     const char *pattern;
+    int pattern_tail_pos;
     void (*deleteFn)(ClientData clientData);
 };
 
@@ -277,11 +295,17 @@ CffiNameDeleteNamesCallback(Tcl_HashTable *htP,
     struct CffiNameDeleteNamesState *stateP =
         (struct CffiNameDeleteNamesState *)clientData;
 
-    if (stateP->pattern == NULL ||
-      Tcl_StringMatch(Tcl_GetHashKey(htP, heP), stateP->pattern)) {
-        stateP->deleteFn(Tcl_GetHashValue(heP));
-        Tcl_DeleteHashEntry(heP);
+    if (stateP->pattern) {
+        const char *key  = Tcl_GetHashKey(htP, heP);
+        int key_tail_pos = Tclh_NsTailPos(key);
+        /* Split the tail to match that as a wildcard pattern */
+        if (key_tail_pos != stateP->pattern_tail_pos ||
+        strncmp(key, stateP->pattern, key_tail_pos) ||
+        !Tcl_StringMatch(key+key_tail_pos, stateP->pattern+key_tail_pos))
+            return 1;
     }
+    stateP->deleteFn(Tcl_GetHashValue(heP));
+    Tcl_DeleteHashEntry(heP);
 
     return 1;
 }
@@ -292,8 +316,11 @@ CffiNameDeleteNamesCallback(Tcl_HashTable *htP,
  * Parameters:
  * ip - interpreter. May be NULL. Only used for error messages.
  * htP - hash table to be enumerated
- * pattern - glob pattern to match. May be NULL to delete all. If not
+ * pattern - pattern to match. May be NULL to delete all. If not
  *   not fully qualified, it is qualified with the current namespace.
+ *   Only the tail of the pattern is treated as a glob pattern
+ *   and matched against the tail of the hash table key. The rest is treated
+ *   as a normal string compare.
  * deleteFnP - function to call with value for the name.
  * Returns:
  * *TCL_OK* on success and *TCL_ERROR* on failure.
@@ -306,10 +333,14 @@ CffiNameDeleteNames(Tcl_Interp *ip,
 {
     struct CffiNameDeleteNamesState state;
     Tcl_DString ds;
-    if (pattern)
+    if (pattern) {
         state.pattern = Tclh_NsQualifyName(ip, pattern, &ds, NULL);
-    else
+        state.pattern_tail_pos = Tclh_NsTailPos(state.pattern);
+    }
+    else {
         state.pattern = NULL;
+        state.pattern_tail_pos = 0;
+    }
 
     state.deleteFn = deleteFn;
     Tclh_HashIterate(htP, CffiNameDeleteNamesCallback, &state);

@@ -595,7 +595,7 @@ Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
 int
 Tclh_ErrorInvalidValue(Tcl_Interp *interp, Tcl_Obj *badArgObj, const char *message)
 {
-    Tclh_ErrorInvalidValueStr(
+    return Tclh_ErrorInvalidValueStr(
         interp, badArgObj ? Tcl_GetString(badArgObj) : NULL, message);
 }
 

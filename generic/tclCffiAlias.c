@@ -286,6 +286,16 @@ CffiAliasDeleteCmd(CffiInterpCtx *ipCtxP,
                                CffiAliasNameDeleteCallback);
 }
 
+static CffiResult
+CffiAliasClearCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    CFFI_ASSERT(objc == 2);
+    return CffiNameDeleteNames(ipCtxP->interp,
+                               &ipCtxP->scope.aliases,
+                               NULL,
+                               CffiAliasNameDeleteCallback);
+}
+
 /* Function: CffiAddBuiltinAliases
  * Adds predefined type definitions.
  *
@@ -459,6 +469,7 @@ CffiAliasObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     static const Tclh_SubCommand subCommands[] = {
+        {"clear", 0, 0, "", CffiAliasClearCmd},
         {"body", 1, 1, "ALIAS", CffiAliasBodyCmd},
         {"define", 1, 2, "(ALIASDEFS | ALIAS DEFINITION)", CffiAliasDefineCmd},
         {"delete", 1, 1, "PATTERN", CffiAliasDeleteCmd},

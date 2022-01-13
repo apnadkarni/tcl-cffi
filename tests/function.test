@@ -1730,11 +1730,18 @@ namespace eval ${NS}::test {
             ${type}_to_$type notanumber
         } -result {expected integer but got "notanumber"} -returnCodes error -match glob
     }
-    foreach type {string string.utf-8 chars[10] chars.utf-8[10] binary bytes[10]} {
+    foreach type {string string.utf-8 chars[10] chars.utf-8[10]} {
         test function-paramdefault-$type-0 "function $type default" -body {
             set fn string_to_int
             testDll function $fn int [list x [list $type [list default 42]]]
             list [$fn 24] [$fn]
+        } -result [list 24 42]
+    }
+    foreach type {binary bytes[10]} {
+        test function-paramdefault-$type-0 "function $type default" -body {
+            set fn string_to_int
+            testDll function $fn int [list x [list $type [list default "42\0"]]]
+            list [$fn "24\0"] [$fn]
         } -result [list 24 42]
     }
 

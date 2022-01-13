@@ -233,7 +233,7 @@ namespace eval cffi::test {
         reset_aliases
     } -body {
         cffi::alias load C
-        lsort [uplevel #0 cffi::alias list]
+        lsort [cffi::alias list]
     } -result [lprefixns int16_t int32_t int64_t int8_t size_t uint16_t uint32_t uint64_t uint8_t]
     test alias-load-C-1 "alias load" -setup {
         reset_aliases
@@ -247,15 +247,15 @@ namespace eval cffi::test {
         reset_aliases
     } -constraints win -body {
         cffi::alias load win32
-        lsort [uplevel #0 cffi::alias list]
+        lsort [cffi::alias list]
     } -result [lprefixns BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPVOID LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM]
 
     test alias-load-win-1 "alias load" -setup {
         reset_aliases
     } -constraints win -body {
-        cffi::alias load posix
+        uplevel #0 cffi::alias load posix
         lsort [uplevel #0 cffi::alias list]
-    } -result [lprefixns dev_t ino_t off_t time_t]
+    } -result [list ::dev_t ::ino_t ::off_t ::time_t]
 
     test alias-load-win-2 "alias load" -setup {
         reset_aliases
@@ -284,24 +284,44 @@ namespace eval cffi::test {
 
     ###
     # Scope tests
+    test alias-define-scope-0 "Define aliases in multiple scopes" -setup {
+        reset_aliases
+    } -body {
+        namespace eval ::ns {cffi::alias define INT int}
+        namespace eval :: {cffi::alias define INT long}
+        cffi::alias define ::ns::ns2::INT longlong
+        list \
+            [dict get [cffi::type info ::ns::INT] definition] \
+            [dict get [cffi::type info ::INT] definition] \
+            [dict get [cffi::type info ::ns::ns2::INT] definition]
+    } -result {int long longlong}
+
+    test alias-define-scope-1 "Resolve aliases in multiple scopes" -setup {
+        reset_aliases
+        namespace eval ::ns {cffi::alias define INT int}
+        namespace eval :: {cffi::alias define INT long}
+        cffi::alias define ::ns::ns2::INT longlong
+    } -body {
+        list \
+            [dict get [namespace eval ::ns {cffi::type info INT}] definition] \
+            [dict get [namespace eval :: {cffi::type info INT}] definition] \
+            [dict get [namespace eval ::ns::ns2 {cffi::type info INT}] definition]
+    } -result {int long longlong}
+ 
     test alias-list-scope-0 "alias list in scope" -setup {
-        cffi::alias delete *
-        uplevel #0 cffi::alias delete *
-        namespace eval ::ns {cffi::alias delete *}
+        reset_aliases
     } -body {
         cffi::alias define INT int
         namespace eval :: {cffi::alias define LONGLONG longlong}
         namespace eval ::ns {cffi::alias define LONG long}
         list \
-            [cffi::alias list] \
-            [namespace eval ::ns {cffi::alias list}] \
-            [uplevel #0 cffi::alias list]
-    } -result {INT LONG LONGLONG}
+            [lsort [cffi::alias list]] \
+            [lsort [namespace eval ::ns {cffi::alias list}]] \
+            [lsort [uplevel #0 cffi::alias list]]
+    } -result [list [lprefixns INT] ::ns::LONG ::LONGLONG]
 
     test alias-body-scope-0 "alias body in scope" -setup {
-        cffi::alias delete *
-        uplevel #0 cffi::alias delete *
-        namespace eval ::ns {cffi::alias delete *}
+        reset_aliases
     } -body {
         cffi::alias define INT int
         namespace eval :: {cffi::alias define INT longlong}
@@ -313,7 +333,7 @@ namespace eval cffi::test {
     } -result {int long longlong}
 
     test alias-delete-scope-0 "alias delete in scope" -setup {
-        reset_aliases ::ns
+        reset_aliases
     } -body {
         cffi::alias define INT int
         namespace eval :: {cffi::alias define LONGLONG longlong}
@@ -326,7 +346,20 @@ namespace eval cffi::test {
             [cffi::alias list] \
             [namespace eval ::ns {cffi::alias list}] \
             [uplevel #0 cffi::alias list]
-    } -result {INT LONG LONGLONG {} {} LONG LONGLONG}
+    } -result {::cffi::test::INT ::ns::LONG ::LONGLONG {} {} ::ns::LONG ::LONGLONG}
+
+    test alias-clear-0 "Erase all aliases" -setup {
+        reset_aliases
+        cffi::alias define INT int
+        namespace eval :: {cffi::alias define LONGLONG longlong}
+        namespace eval ::ns {cffi::alias define LONG long}
+    } -body {
+        set pre [list [cffi::alias list *] [cffi::alias list ::ns::*] [cffi::alias list ::*]]
+        cffi::alias clear
+        set post [list [cffi::alias list *] [cffi::alias list ::ns::*] [cffi::alias list ::*]]
+        list $pre $post
+    } -result {{::cffi::test::INT ::ns::LONG ::LONGLONG} {{} {} {}}}
+
 }
 ::tcltest::cleanupTests
 namespace delete cffi::test

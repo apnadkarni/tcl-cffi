@@ -513,6 +513,16 @@ CffiEnumDeleteCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
                                CffiEnumNameDeleteCallback);
 }
 
+static CffiResult
+CffiEnumClearCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    CFFI_ASSERT(objc == 2);
+    return CffiNameDeleteNames(ipCtxP->interp,
+                               &ipCtxP->scope.enums,
+                               NULL,
+                               CffiEnumNameDeleteCallback);
+}
+
 /* Called on interp deletion */
 void
 CffiEnumsCleanup(CffiInterpCtx *ipCtxP)
@@ -533,6 +543,7 @@ CffiEnumObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     static const Tclh_SubCommand subCommands[] = {
+        {"clear", 0, 0, "", CffiEnumClearCmd},
         {"define", 2, 2, "ENUM MEMBERS", CffiEnumDefineCmd},
         {"delete", 1, 1, "PATTERN", CffiEnumDeleteCmd},
         {"flags", 2, 2, "ENUM FLAGNAMES", CffiEnumFlagsCmd},
