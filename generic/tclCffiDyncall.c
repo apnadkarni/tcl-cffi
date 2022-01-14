@@ -143,7 +143,7 @@ CffiDyncallSymbolsObjCmd(ClientData cdata,
     }
     else {
         /* create */
-        nameObj = CffiQualifyName(ip, objv[2]);
+        nameObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
         if (objc > 3)
             pathObj = objv[3];
     }

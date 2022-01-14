@@ -264,18 +264,19 @@ namespace eval cffi::test {
         lsort [cffi::alias list]
     } -result {}
 
-    test alias-load-1-posix "alias load" -setup {
-        uplevel #0 cffi::alias delete *
-    } -constraints !win -body {
-        cffi::alias load posix
-        lsort [uplevel #0 cffi::alias list]
-    } -result "blkcnt_t blksize_t clock_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t"
-
-    test alias-load-1-posix "alias load" -setup {
+    test alias-load-posix-0 "alias load" -setup {
+        reset_aliases
         uplevel #0 cffi::alias delete *
     } -constraints !win -body {
         cffi::alias load posix
         lsort [cffi::alias list]
+    } -result [lprefixns blkcnt_t blksize_t clock_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t]
+
+    test alias-load-posix-1 "alias load" -setup {
+        reset_aliases
+    } -constraints !win -body {
+        cffi::alias load posix
+        lsort [uplevel #0 cffi::alias list]
     } -result {}
 
     test alias-load-error-0 "alias load - unknown set" -body {
