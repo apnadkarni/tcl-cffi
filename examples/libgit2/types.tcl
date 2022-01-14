@@ -24,7 +24,7 @@
 ::cffi::alias define {
     PODB                      pointer.git_odb
     PODB_BACKEND              pointer.git_odb_backend
-    PODB_OBJECT               pointer.git_odb_object
+    PODB_OBJECT               {pointer.git_odb_object counted}
     PODB_STREAM               pointer.git_odb_stream
     PODB_WRITEPACK            pointer.git_odb_writepack
     PMIDX_WRITER              pointer.git_midx_writer
@@ -92,6 +92,7 @@ cffi::Struct create git_time {
     GIT_FILEMODE_LINK              0120000
     GIT_FILEMODE_COMMIT            0160000
 }
+::cffi::alias define GIT_FILEMODE_T {int {enum git_filemode_t}}
 
 ::cffi::alias define {
     PREFSPEC           pointer.git_refspec
@@ -111,6 +112,7 @@ cffi::Struct create git_time {
     GIT_SUBMODULE_UPDATE_NONE      4
     GIT_SUBMODULE_UPDATE_DEFAULT   0
 }
+::cffi::alias define GIT_SUBMODULE_UPDATE_T {int {enum git_submodule_update_t}}
 
 ::cffi::enum define git_submodule_ignore_t {
     GIT_SUBMODULE_IGNORE_UNSPECIFIED   -1
@@ -119,21 +121,24 @@ cffi::Struct create git_time {
     GIT_SUBMODULE_IGNORE_DIRTY      3
     GIT_SUBMODULE_IGNORE_ALL        4
 }
+::cffi::alias define GIT_SUBMODULE_IGNORE_T {int {enum git_submodule_ignore_t}}
 
 ::cffi::enum define git_submodule_recurse_t {
     GIT_SUBMODULE_RECURSE_NO        0
     GIT_SUBMODULE_RECURSE_YES       1
     GIT_SUBMODULE_RECURSE_ONDEMAND  2
 }
+::cffi::alias define GIT_SUBMODULE_RECURSE_T {int {enum git_submodule_recurse_t}}
 
 ::cffi::alias define PWRITESTREAM pointer.git_writestream
 
-# TBD - pending till callbacks implemented
+# TBD
 # /** A type to write in a streaming fashion, for example, for filters. */
 # struct git_writestream {
 #     int GIT_CALLBACK(write)(git_writestream *stream, const char *buffer, size_t len);
 #     int GIT_CALLBACK(close)(git_writestream *stream);
 #     void GIT_CALLBACK(free)(git_writestream *stream);
 # };
+
 
 ::cffi::alias define PMAILMAP pointer.git_mailmap

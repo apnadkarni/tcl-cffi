@@ -13,8 +13,7 @@
     received_bytes   size_t
 }
 
-# TODO - callbacks
-# typedef int GIT_CALLBACK(git_indexer_progress_cb)(const git_indexer_progress *stats, void *payload);
+::cffi::prototype function git_indexer_progress_cb int {stats {struct.git_indexer_progress out} payload {pointer unsafe}}
 
 ::cffi::Struct create git_indexer_options {
     version             int
@@ -37,7 +36,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             ppIndexer {PINDEXER out}
-            path      string
+            path      STRING
             mode      uint
             pOdb      {PODB nullok}
         }

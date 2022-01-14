@@ -1,3 +1,5 @@
+# Based on libgit2/include/global.h
+
 # This file should be sourced into whatever namespace commands should
 # be created in.
 

@@ -66,7 +66,13 @@ namespace eval $GIT_NS {
         } else {
             LoadLibgit2
             foreach {fn_name prototype} [array get functionDefinitions] {
-                libgit2 function $fn_name {*}$prototype
+                # Wrap in catch because else function name causing error does not
+                # show in error stack making finding fault tedious.
+                if {[catch {
+                    libgit2 function $fn_name {*}$prototype
+                } result]} {
+                    throw {CFFI LIBGIT2 LOAD} "Error loading $fn_name: $result"
+                }
             }
         }
     }
@@ -97,18 +103,31 @@ namespace eval $GIT_NS {
         set libgit2Path $path
 
         uplevel #0 {package require cffi}
-        cffi::alias load C
+        ::cffi::alias load C
+
+        # String encoding expected by libgit2
+        cffi::alias define STRING string.utf-8
+        # Standard error handler
+        cffi::alias define GIT_ERROR_CODE \
+            [list int nonnegative [list onerror [namespace current]::ErrorCodeHandler]]
+        cffi::alias define git_object_size_t uint64_t
 
         source [file join $packageDirectory common.tcl]
+        source [file join $packageDirectory strarray.tcl]
+        source [file join $packageDirectory global.tcl]
         source [file join $packageDirectory errors.tcl]
         source [file join $packageDirectory types.tcl]
-        source [file join $packageDirectory init.tcl]
         source [file join $packageDirectory buffer.tcl]
         source [file join $packageDirectory oid.tcl]
         source [file join $packageDirectory oidarray.tcl]
         source [file join $packageDirectory repository.tcl]
         source [file join $packageDirectory indexer.tcl]
         source [file join $packageDirectory odb.tcl]
+        source [file join $packageDirectory object.tcl]
+        source [file join $packageDirectory tree.tcl]
+        source [file join $packageDirectory net.tcl]
+        source [file join $packageDirectory refspec.tcl]
+        source [file join $packageDirectory diff.tcl]
 
         InitFunctions $lazy
 

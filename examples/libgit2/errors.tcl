@@ -33,8 +33,6 @@ cffi::enum define git_error_code {
 	GIT_EINDEXDIRTY      -34
 	GIT_EAPPLYFAIL       -35
 }
-cffi::alias define GIT_ERROR_CODE \
-    [list int nonnegative [list onerror [namespace current]::ErrorCodeHandler]]
 
 # These are error classes (field klass in git_error)
 cffi::enum sequence git_error_t {
@@ -78,7 +76,7 @@ cffi::enum sequence git_error_t {
 cffi::alias define git_error_t {int {enum git_error_t}}
 
 cffi::Struct create git_error {
-    message {string nullok nullifempty}
+    message {STRING nullok nullifempty}
     klass   {int {enum git_error_t}}
 }
 
@@ -93,7 +91,7 @@ AddFunctions {
     }
     git_error_set_str {
         {int zero}
-        {klass git_error_t message string}
+        {klass git_error_t message STRING}
     }
     git_error_set_oom {
         void

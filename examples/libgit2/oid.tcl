@@ -7,7 +7,7 @@
     id bytes[20]
 }
 
-::cffi::alias define POID pointer.OID
+::cffi::alias define POID pointer.git_oid
 
 AddFunctions {
     git_oid_fromstr {
@@ -21,7 +21,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             oid {struct.git_oid out byref}
-            str string
+            str STRING
         }
     }
     git_oid_fromstrn {
@@ -48,13 +48,13 @@ AddFunctions {
         }
     }
     git_oid_tostr_s {
-        string
+        STRING
         {
             oid {struct.git_oid byref}
         }
     }
     git_oid_tostr {
-        string
+        STRING
         {
             str chars[n]
             n   size_t
@@ -94,14 +94,14 @@ AddFunctions {
         int
         {
             id {struct.git_oid byref}
-            str string
+            str STRING
         }
     }
     git_oid_strcmp {
         int
         {
             id {struct.git_oid byref}
-            str string
+            str STRING
         }
     }
     git_oid_is_zero {
@@ -137,7 +137,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             os POID_SHORTEN
-            text_id string
+            text_id STRING
         }
     }
     git_oid_shorten_free {

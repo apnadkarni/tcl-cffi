@@ -8,7 +8,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             ppRep {PREPOSITORY out}
-            path string
+            path STRING
         }
     }
     git_repository_open_from_worktree {
@@ -29,9 +29,9 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             buffer PBUF
-            start_path string
+            start_path STRING
             across_fs int
-            ceiling_dirs {string {default ""}}
+            ceiling_dirs {STRING {default ""}}
         }
     }
 }
@@ -49,16 +49,16 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             ppRep {PREPOSITORY out}
-            path  string
+            path  STRING
             flags uint
-            ceiling_dirs {string {default ""}}
+            ceiling_dirs {STRING {default ""}}
         }
     }
     git_repository_open_bare {
         GIT_ERROR_CODE
         {
             ppRep     {PREPOSITORY out}
-            bare_path string
+            bare_path STRING
         }
     }
     git_repository_free {
@@ -69,7 +69,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             ppRep  {PREPOSITORY out}
-            path   string
+            path   STRING
             is_bare uint
         }
     }
@@ -97,11 +97,11 @@ AddFunctions {
     version  {uint {default 1}}
     flags    {uint32_t bitmask {enum git_repository_init_flag_t}}
     mode     {uint32_t bitmask {enum git_repository_init_mode_t}}
-    workdir_path   {string {default ""} nullifempty}
-    description    {string {default ""} nullifempty}
-    template_path  {string {default ""} nullifempty}
-    initial_head   {string {default ""} nullifempty}
-    origin_url     {string {default ""} nullifempty}
+    workdir_path   {STRING {default ""} nullifempty}
+    description    {STRING {default ""} nullifempty}
+    template_path  {STRING {default ""} nullifempty}
+    initial_head   {STRING {default ""} nullifempty}
+    origin_url     {STRING {default ""} nullifempty}
 }
 
 AddFunctions {
@@ -116,7 +116,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             ppRep {PREPOSITORY out}
-            repo_path string
+            repo_path STRING
             opts      {struct.git_repository_init_options byref}
         }
     }
@@ -132,7 +132,7 @@ AddFunctions {
         {
             ppRef {PREFERENCE out}
             pRepo PREPOSITORY
-            name string
+            name STRING
         }
     }
     git_repository_head_detached {
@@ -145,7 +145,7 @@ AddFunctions {
         int
         {
             pRepo PREPOSITORY
-            name string
+            name STRING
         }
     }
     git_repository_head_unborn {
@@ -191,19 +191,19 @@ AddFunctions {
         }
     }
     git_repository_path {
-        string
+        STRING
         {
             pRepo PREPOSITORY
         }
     }
     git_repository_workdir {
-        string
+        STRING
         {
             pRepo PREPOSITORY
         }
     }
     git_repository_commondir {
-        string
+        STRING
         {
             pRepo PREPOSITORY
         }
@@ -212,7 +212,7 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             pRepo   PREPOSITORY
-            workdir string
+            workdir STRING
             update_gitlink int
         }
     }
@@ -284,35 +284,50 @@ AddFunctions {
     }
 }
 
-# TODO - pending implementation of callbacks
-# typedef int GIT_CALLBACK(git_repository_fetchhead_foreach_cb)(const char *ref_name,
-# GIT_EXTERN(int) git_repository_fetchhead_foreach(
-# git_repository *repo,
-# git_repository_fetchhead_foreach_cb callback,
-# void *payload);
-# typedef int GIT_CALLBACK(git_repository_mergehead_foreach_cb)(const git_oid *oid,
-# void *payload);
-# GIT_EXTERN(int) git_repository_mergehead_foreach(
-# git_repository *repo,
-# git_repository_mergehead_foreach_cb callback,
-# void *payload);
+::cffi::prototype function git_repository_fetchhead_foreach_cb int {
+    ref_name   STRING
+    remote_url STRING
+    oid        {struct.git_oid byref}
+    is_merge   uint
+    payload    {pointer unsafe}
+}
+::cffi::prototype function git_repository_mergehead_foreach_cb int {
+    oid     {struct.git_oid byref}
+    payload {pointer unsafe}
+}
 
 AddFunctions {
+    git_repository_fetchhead_foreach {
+        int
+        {
+            pRepo    PREPOSITORY
+            callback {pointer.git_repository_fetchhead_foreach_cb unsafe}
+            payload  {pointer unsafe}
+        }
+    }
+    git_repository_mergehead_foreach {
+        int
+        {
+            pRepo    PREPOSITORY
+            callback {pointer.git_repository_mergehead_foreach_cb unsafe}
+            payload  {pointer unsafe}
+        }
+    }
     git_repository_hashfile {
         GIT_ERROR_CODE
         {
             oid   {struct.git_oid out byref}
             pRepo PREPOSITORY
-            path  string
+            path  STRING
             type  GIT_OBJECT_T
-            as_path string
+            as_path STRING
         }
     }
     git_repository_set_head {
         GIT_ERROR_CODE
         {
             pRepo   PREPOSITORY
-            refname string
+            refname STRING
         }
     }
     git_repository_set_head_detached {
@@ -365,11 +380,11 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             pRepo PREPOSITORY
-            nmspace string
+            nmspace STRING
         }
     }
     git_repository_get_namespace {
-        string
+        STRING
         {
             pRepo PREPOSITORY
         }
@@ -383,8 +398,8 @@ AddFunctions {
     git_repository_ident {
         GIT_ERROR_CODE
         {
-            name {string out}
-            email {string out}
+            name {STRING out}
+            email {STRING out}
             pRepo PREPOSITORY
         }
     }
@@ -392,8 +407,8 @@ AddFunctions {
         GIT_ERROR_CODE
         {
             pRepo PREPOSITORY
-            name  {string nullifempty}
-            email {string nullifempty}
+            name  {STRING nullifempty}
+            email {STRING nullifempty}
         }
     }
 }
