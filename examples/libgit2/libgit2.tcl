@@ -10,6 +10,11 @@
 # Edit build2\src\CMakeFiles\git2.dir linklibs.rsp to add -lbcrypt
 # For a verbose build, add "-- VERBOSE=1" before the cmake --build command
 
+# testrepo
+# object 323fae03f4606ea9991df8befbb2fca795e648fa
+
+
+
 if {![info exists GIT_NS]} {
     set GIT_NS [namespace current]::git
 }
@@ -20,63 +25,6 @@ namespace eval $GIT_NS {
 
 namespace eval $GIT_NS {
 
-    proc AddFunction {name type params} {
-        variable functionDefinitions
-        set functionDefinitions($name) [list $type $params]
-    }
-    proc AddFunctions {functions} {
-        variable functionDefinitions
-        array set functionDefinitions $functions
-    }
-
-    # Lazy initialization
-    #
-    # The wrapped functions are lazy-initialized by default, i.e. they are
-    # actually wrapped the first time they are called. This has two benefits:
-    #  - faster initialization since symbols do not need to be looked up in
-    #    the symbol table if they are never used
-    #  - more important, symbols that are not defined in the shared library
-    #    (if it is an older version for example) will not prevent the package
-    #    from loading and other functions that are defined can still be used.
-
-    proc LoadLibgit2 {} {
-        variable packageDirectory
-        variable libgit2Path
-
-        ::cffi::Wrapper create libgit2 $libgit2Path
-
-        # Redefine as no-op for further calls
-        proc LoadPackage args {}
-    }
-
-    proc InitFunctions {{lazy 1}} {
-        variable functionDefinitions
-
-        unset -nocomplain functionDefinitions(#); # Disregard comments
-        if {$lazy} {
-            foreach {fn_name prototype} [array get functionDefinitions] {
-                if {[llength $fn_name] > 1} {
-                    set cmd_name [lindex $fn_name 1]
-                } else {
-                    set cmd_name $fn_name
-                }
-
-                proc $cmd_name args "LoadLibgit2; libgit2 function $fn_name [list {*}$prototype]; tailcall $cmd_name {*}\$args"
-            }
-        } else {
-            LoadLibgit2
-            foreach {fn_name prototype} [array get functionDefinitions] {
-                # Wrap in catch because else function name causing error does not
-                # show in error stack making finding fault tedious.
-                if {[catch {
-                    libgit2 function $fn_name {*}$prototype
-                } result]} {
-                    throw {CFFI LIBGIT2 LOAD} "Error loading $fn_name: $result"
-                }
-            }
-        }
-    }
-
     # This function must be called to initialize the package with the path
     # to the shared library to be wrapped. By default it will try
     # looking in a platform-specific dir on Windows only, otherwise leave
@@ -85,6 +33,31 @@ namespace eval $GIT_NS {
         variable packageDirectory
         variable functionDefinitions
         variable libgit2Path
+        # The order of loading these files is important!!!
+        variable scriptFiles {
+            common.tcl
+            strarray.tcl
+            global.tcl
+            errors.tcl
+            types.tcl
+            buffer.tcl
+            oid.tcl
+            oidarray.tcl
+            repository.tcl
+            indexer.tcl
+            odb.tcl
+            object.tcl
+            tree.tcl
+            net.tcl
+            refspec.tcl
+            diff.tcl
+            checkout.tcl
+            blob.tcl
+            tag.tcl
+            cert.tcl
+            credential.tcl
+            transport.tcl
+        }
 
         if {$path eq ""} {
             set path "libgit2[info sharedlibextension]"
@@ -104,6 +77,7 @@ namespace eval $GIT_NS {
 
         uplevel #0 {package require cffi}
         ::cffi::alias load C
+        ::cffi::Wrapper create libgit2 $libgit2Path
 
         # String encoding expected by libgit2
         cffi::alias define STRING string.utf-8
@@ -112,28 +86,15 @@ namespace eval $GIT_NS {
             [list int nonnegative [list onerror [namespace current]::ErrorCodeHandler]]
         cffi::alias define git_object_size_t uint64_t
 
-        source [file join $packageDirectory common.tcl]
-        source [file join $packageDirectory strarray.tcl]
-        source [file join $packageDirectory global.tcl]
-        source [file join $packageDirectory errors.tcl]
-        source [file join $packageDirectory types.tcl]
-        source [file join $packageDirectory buffer.tcl]
-        source [file join $packageDirectory oid.tcl]
-        source [file join $packageDirectory oidarray.tcl]
-        source [file join $packageDirectory repository.tcl]
-        source [file join $packageDirectory indexer.tcl]
-        source [file join $packageDirectory odb.tcl]
-        source [file join $packageDirectory object.tcl]
-        source [file join $packageDirectory tree.tcl]
-        source [file join $packageDirectory net.tcl]
-        source [file join $packageDirectory refspec.tcl]
-        source [file join $packageDirectory diff.tcl]
+        # Note these are sourced into current namespace
+        foreach file $scriptFiles {
+            source [file join $packageDirectory $file]
+        }
 
-        InitFunctions $lazy
+        set ret [git_libgit2_init]
 
         # Redefine to no-op
-        proc init args {}
+        proc init args "return $ret"
+        return $ret
     }
-
-
 }

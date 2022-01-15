@@ -62,6 +62,12 @@ cffi::Struct create git_time {
     sign   schar
 }
 
+cffi::Struct create git_signature {
+    name  STRING
+    email STRING
+    when  struct.git_time
+}
+
 ::cffi::alias define {
     PREFERENCE           pointer.git_reference
     PREFERENCE_ITERATOR  pointer.git_reference_iterator

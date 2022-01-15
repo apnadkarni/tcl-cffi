@@ -8,6 +8,6 @@
     count size_t
 }
 
-AddFunction git_oidarray_dispose void {
+libgit2 function git_oidarray_dispose void {
     array pointer.git_oidarray
 }

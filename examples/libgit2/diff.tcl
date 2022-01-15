@@ -280,267 +280,174 @@ cffi::prototype function similarity_cb int {
 }
 
 
-AddFunctions {
-    git_diff_options_init {
-        GIT_ERROR_CODE
-        {
-            pOpts   {struct.git_diff_options out}
-            version uint
-        }
+libgit2 functions {
+    git_diff_options_init GIT_ERROR_CODE {
+        pOpts   {struct.git_diff_options out}
+        version uint
     }
-    git_diff_find_options_init {
-        GIT_ERROR_CODE
-        {
-            pOpts   {struct.git_diff_find_options out}
-            version uint
-        }
+    git_diff_find_options_init GIT_ERROR_CODE {
+        pOpts   {struct.git_diff_find_options out}
+        version uint
     }
-    git_diff_free {
-        void
-        {
-            pDiff {PDIFF dispose}
-        }
+    git_diff_free void {
+        pDiff {PDIFF dispose}
     }
-    git_diff_tree_to_tree {
-        GIT_ERROR_CODE
-        {
-            pDiff {PDIFF out}
-            pRepo PREPOSITORY
-            pOldTree PTREE
-            pNewTree PTREE
-            pOpts {struct.git_diff_options byref}
-        }
+    git_diff_tree_to_tree GIT_ERROR_CODE {
+        pDiff {PDIFF out}
+        pRepo PREPOSITORY
+        pOldTree PTREE
+        pNewTree PTREE
+        pOpts {struct.git_diff_options byref}
     }
-    git_diff_tree_to_index {
-        GIT_ERROR_CODE
-        {
-            pDiff {PDIFF out}
-            pRepo PREPOSITORY
-            pOldTree PTREE
-            pIndex {PINDEX nullok}
-            pOpts {struct.git_diff_options byref}
-        }
+    git_diff_tree_to_index GIT_ERROR_CODE {
+        pDiff {PDIFF out}
+        pRepo PREPOSITORY
+        pOldTree PTREE
+        pIndex {PINDEX nullok}
+        pOpts {struct.git_diff_options byref}
     }
-    git_diff_index_to_workdir {
-        GIT_ERROR_CODE
-        {
-            pDiff {PDIFF out}
-            pRepo PREPOSITORY
-            pIndex {PINDEX nullok}
-            pOpts {struct.git_diff_options byref}
-        }
+    git_diff_index_to_workdir GIT_ERROR_CODE {
+        pDiff {PDIFF out}
+        pRepo PREPOSITORY
+        pIndex {PINDEX nullok}
+        pOpts {struct.git_diff_options byref}
     }
-    git_diff_tree_to_workdir {
-        GIT_ERROR_CODE
-        {
-            pDiff    {PDIFF out}
-            pRepo    PREPOSITORY
-            pOldTree PTREE
-            pOpts    {struct.git_diff_options  byref}
-        }
+    git_diff_tree_to_workdir GIT_ERROR_CODE {
+        pDiff    {PDIFF out}
+        pRepo    PREPOSITORY
+        pOldTree PTREE
+        pOpts    {struct.git_diff_options  byref}
     }
-    git_diff_tree_to_workdir_with_index {
-        GIT_ERROR_CODE
-        {
-            pDiff    {PDIFF out}
-            pRepo    PREPOSITORY
-            pOldTree PTREE
-            pOpts    {struct.git_diff_options byref}
-        }
+    git_diff_tree_to_workdir_with_index GIT_ERROR_CODE {
+        pDiff    {PDIFF out}
+        pRepo    PREPOSITORY
+        pOldTree PTREE
+        pOpts    {struct.git_diff_options byref}
     }
-    git_diff_index_to_index {
-        GIT_ERROR_CODE
-        {
-            pDiff     {PDIFF out}
-            pRepo     PREPOSITORY
-            pOldIndex PINDEX
-            pNewIndex PINDEX
-            pOpts     {struct.git_diff_options byref}
-        }
+    git_diff_index_to_index GIT_ERROR_CODE {
+        pDiff     {PDIFF out}
+        pRepo     PREPOSITORY
+        pOldIndex PINDEX
+        pNewIndex PINDEX
+        pOpts     {struct.git_diff_options byref}
     }
-    git_diff_merge {
-        GIT_ERROR_CODE
-        {
-            pOnto PDIFF
-            pFrom PDIFF
-        }
+    git_diff_merge GIT_ERROR_CODE {
+        pOnto PDIFF
+        pFrom PDIFF
     }
-    git_diff_find_similar {
-        GIT_ERROR_CODE
-        {
-            pDiff PDIFF
-            pOpts {struct.git_diff_find_options byref}
-        }
+    git_diff_find_similar GIT_ERROR_CODE {
+        pDiff PDIFF
+        pOpts {struct.git_diff_find_options byref}
     }
-    git_diff_num_deltas {
-        size_t
-        {
-            pDiff PDIFF
-        }
+    git_diff_num_deltas size_t {
+        pDiff PDIFF
     }
-    git_diff_num_deltas_of_type {
-        size_t
-        {
-            pDiff PDIFF
-            type  GIT_DELTA_T
-        }
+    git_diff_num_deltas_of_type size_t {
+        pDiff PDIFF
+        type  GIT_DELTA_T
     }
-    git_diff_get_delta {
-        {pointer.git_diff_delta unsafe}
-        {
-            pDiff PDIFF
-            idx   size_t
-        }
+    git_diff_get_delta {pointer.git_diff_delta unsafe} {
+        pDiff PDIFF
+        idx   size_t
     }
-    git_diff_is_sorted_icase {
-        int
-        {
-            pDiff PDIFF
-        }
+    git_diff_is_sorted_icase int {
+        pDiff PDIFF
     }
-    git_diff_foreach {
-        GIT_ERROR_CODE
-        {
-            pDiff PDIFF
-            file_cb pointer.git_diff_file_cb
-            binary_cb {pointer.git_diff_binary_cb nullok}
-            hunk_cb {pointer.git_diff_hunk_cb nullok}
-            line_cb {pointer.git_diff_line_cb nullok}
-            payload {pointer unsafe}
-        }
+    git_diff_foreach GIT_ERROR_CODE {
+        pDiff PDIFF
+        file_cb pointer.git_diff_file_cb
+        binary_cb {pointer.git_diff_binary_cb nullok}
+        hunk_cb {pointer.git_diff_hunk_cb nullok}
+        line_cb {pointer.git_diff_line_cb nullok}
+        payload {pointer unsafe}
     }
-    git_diff_status_char {
-        uchar
-        {
-            status GIT_DELTA_T
-        }
+    git_diff_status_char uchar {
+        status GIT_DELTA_T
     }
-    git_diff_print {
-        GIT_ERROR_CODE
-        {
-            pDiff    PDIFF
-            format   GIT_DIFF_FORMAT_T
-            print_cb pointer.git_diff_line_cb
-            payload  {pointer unsafe}
-        }
+    git_diff_print GIT_ERROR_CODE {
+        pDiff    PDIFF
+        format   GIT_DIFF_FORMAT_T
+        print_cb pointer.git_diff_line_cb
+        payload  {pointer unsafe}
     }
-    git_diff_to_buf {
-        GIT_ERROR_CODE
-        {
-            pBuf PBUF
-            pDiff PDIFF
-            format GIT_DIFF_FORMAT_T
-        }
+    git_diff_to_buf GIT_ERROR_CODE {
+        pBuf PBUF
+        pDiff PDIFF
+        format GIT_DIFF_FORMAT_T
     }
-    git_diff_blobs {
-        GIT_ERROR_CODE
-        {
-            pOldBlob    {PBLOB nullok}
-            old_as_path {STRING nullifempty nullok}
-            pNewBlob    {PBLOB nullok}
-            new_as_path {STRING nullifempty nullok}
-            pOpts       {pointer.git_diff_options unsafe nullok {default NULL}}
-            file_cb     {pointer.git_diff_file_cb nullok        {default NULL}}
-            binary_cb   {pointer.git_diff_binary_cb nullok      {default NULL}}
-            hunk_cb     {pointer.git_diff_hunk_cb nullok        {default NULL}}
-            line_cb     {pointer.git_diff_line_cb nullok        {default NULL}}
-            payload     {pointer unsafe}
-        }
+    git_diff_blobs GIT_ERROR_CODE {
+        pOldBlob    {PBLOB nullok}
+        old_as_path {STRING nullifempty nullok}
+        pNewBlob    {PBLOB nullok}
+        new_as_path {STRING nullifempty nullok}
+        pOpts       {pointer.git_diff_options unsafe nullok {default NULL}}
+        file_cb     {pointer.git_diff_file_cb nullok        {default NULL}}
+        binary_cb   {pointer.git_diff_binary_cb nullok      {default NULL}}
+        hunk_cb     {pointer.git_diff_hunk_cb nullok        {default NULL}}
+        line_cb     {pointer.git_diff_line_cb nullok        {default NULL}}
+        payload     {pointer unsafe}
     }
-    git_diff_blob_to_buffer {
-        GIT_ERROR_CODE
-        {
-            pOldBlob       {PBLOB nullok}
-            old_as_path    {STRING nullifempty nullok}
-            buffer         {pointer unsafe nullok}
-            buffer_len     size_t
-            buffer_as_path {STRING nullifempty nullok}
-            pOpts          {pointer.git_diff_options unsafe nullok {default NULL}}
-            file_cb        {pointer.git_diff_file_cb nullok        {default NULL}}
-            binary_cb      {pointer.git_diff_binary_cb nullok      {default NULL}}
-            hunk_cb        {pointer.git_diff_hunk_cb nullok        {default NULL}}
-            line_cb        {pointer.git_diff_line_cb nullok        {default NULL}}
-            payload        {pointer unsafe}
-        }
+    git_diff_blob_to_buffer GIT_ERROR_CODE {
+        pOldBlob       {PBLOB nullok}
+        old_as_path    {STRING nullifempty nullok}
+        buffer         {pointer unsafe nullok}
+        buffer_len     size_t
+        buffer_as_path {STRING nullifempty nullok}
+        pOpts          {pointer.git_diff_options unsafe nullok {default NULL}}
+        file_cb        {pointer.git_diff_file_cb nullok        {default NULL}}
+        binary_cb      {pointer.git_diff_binary_cb nullok      {default NULL}}
+        hunk_cb        {pointer.git_diff_hunk_cb nullok        {default NULL}}
+        line_cb        {pointer.git_diff_line_cb nullok        {default NULL}}
+        payload        {pointer unsafe}
     }
-    git_diff_buffers {
-        GIT_ERROR_CODE
-        {
-            pOldBuf     {pointer unsafe nullok}
-            old_len     size_t
-            old_as_path {STRING nullifempty nullok}
-            pNewBuf     {pointer unsafe nullok}
-            new_len     size_t
-            new_as_path {STRING nullifempty nullok}
-            pOpts       {pointer.git_diff_options unsafe nullok {default NULL}}
-            file_cb     {pointer.git_diff_file_cb nullok        {default NULL}}
-            binary_cb   {pointer.git_diff_binary_cb nullok      {default NULL}}
-            hunk_cb     {pointer.git_diff_hunk_cb nullok        {default NULL}}
-            line_cb     {pointer.git_diff_line_cb nullok        {default NULL}}
-            payload     {pointer unsafe}
-        }
+    git_diff_buffers GIT_ERROR_CODE {
+        pOldBuf     {pointer unsafe nullok}
+        old_len     size_t
+        old_as_path {STRING nullifempty nullok}
+        pNewBuf     {pointer unsafe nullok}
+        new_len     size_t
+        new_as_path {STRING nullifempty nullok}
+        pOpts       {pointer.git_diff_options unsafe nullok {default NULL}}
+        file_cb     {pointer.git_diff_file_cb nullok        {default NULL}}
+        binary_cb   {pointer.git_diff_binary_cb nullok      {default NULL}}
+        hunk_cb     {pointer.git_diff_hunk_cb nullok        {default NULL}}
+        line_cb     {pointer.git_diff_line_cb nullok        {default NULL}}
+        payload     {pointer unsafe}
     }
-    git_diff_from_buffer {
-        GIT_ERROR_CODE
-        {
-            pDiff       {PDIFF   out}
-            content     {pointer unsafe}
-            content_len size_t
-        }
+    git_diff_from_buffer GIT_ERROR_CODE {
+        pDiff       {PDIFF   out}
+        content     {pointer unsafe}
+        content_len size_t
     }
-    git_diff_get_stats {
-        GIT_ERROR_CODE
-        {
-            pStats {PDIFF_STATS out}
-            pDiff  PDIFF
-        }
+    git_diff_get_stats GIT_ERROR_CODE {
+        pStats {PDIFF_STATS out}
+        pDiff  PDIFF
     }
-    git_diff_stats_files_changed {
-        size_t
-        {
-            pStats PDIFF_STATS
-        }
+    git_diff_stats_files_changed size_t {
+        pStats PDIFF_STATS
     }
-    git_diff_stats_insertions {
-        size_t
-        {
-            pStats PDIFF_STATS
-        }
+    git_diff_stats_insertions size_t {
+        pStats PDIFF_STATS
     }
-    git_diff_stats_deletions {
-        size_t
-        {
-            pStats PDIFF_STATS
-        }
+    git_diff_stats_deletions size_t {
+        pStats PDIFF_STATS
     }
-    git_diff_stats_to_buf {
-        GIT_ERROR_CODE
-        {
-            pBuf    PBUF
-            pStats  PDIFF_STATS
-            format  GIT_DIFF_STATS_FORMAT_T
-            width   size_t
-        }
+    git_diff_stats_to_buf GIT_ERROR_CODE {
+        pBuf    PBUF
+        pStats  PDIFF_STATS
+        format  GIT_DIFF_STATS_FORMAT_T
+        width   size_t
     }
-    git_diff_stats_free {
-        void
-        {
-            pStats {PDIFF_STATS dispose}
-        }
+    git_diff_stats_free void {
+        pStats {PDIFF_STATS dispose}
     }
-    git_diff_patchid_options_init {
-        GIT_ERROR_CODE
-        {
-            pOpts   {struct.git_diff_patchid_options out}
-            version uint
-        }
+    git_diff_patchid_options_init GIT_ERROR_CODE {
+        pOpts   {struct.git_diff_patchid_options out}
+        version uint
     }
-    git_diff_patchid {
-        GIT_ERROR_CODE
-        {
-            oid {struct.git_oid out}
-            pDiff PDIFF
-            pOpts {struct.git_diff_patchid_options byref}
-        }
+    git_diff_patchid GIT_ERROR_CODE {
+        oid {struct.git_oid out}
+        pDiff PDIFF
+        pOpts {struct.git_diff_patchid_options byref}
     }
 }

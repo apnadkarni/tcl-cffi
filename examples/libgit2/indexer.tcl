@@ -24,50 +24,35 @@
 ::cffi::alias define PINDEXER_OPTIONS pointer.git_indexer_options
 ::cffi::alias define PINDEXER pointer.git_indexer
 
-AddFunctions {
-    git_indexer_options_init {
-        GIT_ERROR_CODE
-        {
+libgit2 functions {
+    git_indexer_options_init GIT_ERROR_CODE {
             pOpts   PINDEXER_OPTIONS
             version uint
-        }
     }
-    git_indexer_new {
-        GIT_ERROR_CODE
-        {
+    git_indexer_new GIT_ERROR_CODE {
             ppIndexer {PINDEXER out}
             path      STRING
             mode      uint
             pOdb      {PODB nullok}
-        }
     }
-    git_indexer_append {
-        GIT_ERROR_CODE
-        {
+    git_indexer_append GIT_ERROR_CODE {
             pIndexer  PINDEXER
             data      binary
             size      size_t
             stats     {struct.git_indexer_progress out}
-        }
     }
-    git_indexer_commit {
-        GIT_ERROR_CODE
-        {
+    git_indexer_commit GIT_ERROR_CODE {
             pIndexer  PINDEXER
             stats     {struct.git_indexer_progress out}
-        }
     }
-    git_indexer_free {
-        void
-        {
+    git_indexer_free void {
             pIndexer {PINDEXER dispose}
-        }
     }
 }
 
 # TODO - should git_indexer_hash return a {struct.git_oid byref} once byref is
 # implemented for return values. For now do a proc wrapper
-AddFunction {git_indexer_hash git_indexer_hash_internal} {POID unsafe} {pIndexer PINDEXER}
+libgit2 function {git_indexer_hash git_indexer_hash_internal} {POID unsafe} {pIndexer PINDEXER}
 proc git_indexer_hash {pIndexer} {
     set pOid [git_indexer_hash_internal $pIndexer]
     # pOid points INSIDE pIndexer, no need to free or dispose etc.

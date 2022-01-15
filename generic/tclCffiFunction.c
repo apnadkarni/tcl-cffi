@@ -1125,7 +1125,7 @@ CffiResult CffiReturnCleanup(CffiCall *callP)
 {
     /*
      * No clean up needed for any types. Any type that needs non-scalar
-     * storage is not allowed for a return type.
+     * storage is allocated from the memlifo area.
      */
     return TCL_OK;
 }

@@ -8,18 +8,12 @@
     count   size_t
 }
 
-AddFunctions {
-    git_strarray_dispose {
-        void
-        {
-            array pointer.git_strarray
-        }
+libgit2 functions {
+    git_strarray_dispose void {
+        array pointer.git_strarray
     }
-    git_strarray_copy {
-        GIT_ERROR_CODE
-        {
-            pTarget pointer.git_strarray
-            pSource pointer.git_strarray
-        }
+    git_strarray_copy GIT_ERROR_CODE {
+        pTarget pointer.git_strarray
+        pSource pointer.git_strarray
     }
 }

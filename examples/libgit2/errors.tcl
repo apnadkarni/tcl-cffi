@@ -80,23 +80,11 @@ cffi::Struct create git_error {
     klass   {int {enum git_error_t}}
 }
 
-AddFunctions {
-    git_error_last {
-        {pointer.git_error unsafe}
-        {}
-    }
-    git_error_clear {
-        void
-        {}
-    }
-    git_error_set_str {
-        {int zero}
-        {klass git_error_t message STRING}
-    }
-    git_error_set_oom {
-        void
-        {}
-    }
+libgit2 functions {
+    git_error_last {pointer.git_error unsafe} {}
+    git_error_clear void {}
+    git_error_set_str {int zero} {klass git_error_t message STRING}
+    git_error_set_oom void {}
 }
 
 proc ErrorCodeHandler {callinfo} {

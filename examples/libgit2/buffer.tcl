@@ -17,38 +17,23 @@
 
 ::cffi::alias define PBUF pointer.git_buf
 
-AddFunctions {
-    git_buf_dispose {
-        void
-        {
-            buffer PBUF
-        }
+libgit2 functions {
+    git_buf_dispose void {
+        buffer PBUF
     }
-    git_buf_grow {
-        GIT_ERROR_CODE
-        {
-            buffer      PBUF
-            target_size size_t
-        }
+    git_buf_grow GIT_ERROR_CODE {
+        buffer      PBUF
+        target_size size_t
     }
-    git_buf_set {
-        GIT_ERROR_CODE
-        {
-            buffer  PBUF
-            data    bytes[datalen]
-            datalen size_t
-        }
+    git_buf_set GIT_ERROR_CODE {
+        buffer  PBUF
+        data    bytes[datalen]
+        datalen size_t
     }
-    git_buf_is_binary {
-        int
-        {
-            buffer  PBUF
-        }
+    git_buf_is_binary int {
+        buffer  PBUF
     }
-    git_buf_contains_nul {
-        int
-        {
-            buffer  PBUF
-        }
+    git_buf_contains_nul int {
+        buffer  PBUF
     }
 }

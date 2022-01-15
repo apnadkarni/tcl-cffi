@@ -3,36 +3,24 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-AddFunctions {
-    git_repository_open {
-        GIT_ERROR_CODE
-        {
-            ppRep {PREPOSITORY out}
-            path STRING
-        }
+libgit2 functions {
+    git_repository_open GIT_ERROR_CODE {
+        ppRep {PREPOSITORY out}
+        path STRING
     }
-    git_repository_open_from_worktree {
-        GIT_ERROR_CODE
-        {
-            ppRep      {PREPOSITORY out}
-            pWorkTree PWORKTREE
-        }
+    git_repository_open_from_worktree GIT_ERROR_CODE {
+        ppRep      {PREPOSITORY out}
+        pWorkTree PWORKTREE
     }
-    git_repository_wrap_odb {
-        GIT_ERROR_CODE
-        {
-            ppRep {PREPOSITORY out}
-            pOdb PODB
-        }
+    git_repository_wrap_odb GIT_ERROR_CODE {
+        ppRep {PREPOSITORY out}
+        pOdb PODB
     }
-    git_repository_discover {
-        GIT_ERROR_CODE
-        {
-            buffer PBUF
-            start_path STRING
-            across_fs int
-            ceiling_dirs {STRING {default ""}}
-        }
+    git_repository_discover GIT_ERROR_CODE {
+        buffer PBUF
+        start_path STRING
+        across_fs int
+        ceiling_dirs {STRING {default ""}}
     }
 }
 
@@ -44,34 +32,22 @@ AddFunctions {
     GIT_REPOSITORY_OPEN_FROM_ENV
 }
 
-AddFunctions {
-    git_repository_open_ext  {
-        GIT_ERROR_CODE
-        {
+libgit2 functions {
+    git_repository_open_ext  GIT_ERROR_CODE {
             ppRep {PREPOSITORY out}
             path  STRING
             flags uint
             ceiling_dirs {STRING {default ""}}
-        }
     }
-    git_repository_open_bare {
-        GIT_ERROR_CODE
-        {
+    git_repository_open_bare GIT_ERROR_CODE {
             ppRep     {PREPOSITORY out}
             bare_path STRING
-        }
     }
-    git_repository_free {
-        void
-        {pRep {PREPOSITORY dispose}}
-    }
-    git_repository_init {
-        GIT_ERROR_CODE
-        {
+    git_repository_free void {pRep {PREPOSITORY dispose}}
+    git_repository_init GIT_ERROR_CODE {
             ppRep  {PREPOSITORY out}
             path   STRING
             is_bare uint
-        }
     }
 }
 
@@ -104,61 +80,37 @@ AddFunctions {
     origin_url     {STRING {default ""} nullifempty}
 }
 
-AddFunctions {
-    git_repository_init_options_init {
-        {int zero}
-        {
-            opts {struct.git_repository_init_options out}
-            version {uint {default 1}}
-        }
+libgit2 functions {
+    git_repository_init_options_init {int zero} {
+        opts {struct.git_repository_init_options out}
+        version {uint {default 1}}
     }
-    git_repository_init_ext {
-        GIT_ERROR_CODE
-        {
-            ppRep {PREPOSITORY out}
-            repo_path STRING
-            opts      {struct.git_repository_init_options byref}
-        }
+    git_repository_init_ext GIT_ERROR_CODE {
+        ppRep {PREPOSITORY out}
+        repo_path STRING
+        opts      {struct.git_repository_init_options byref}
     }
-    git_repository_head {
-        GIT_ERROR_CODE
-        {
-            ppRef {PREFERENCE out}
-            pRepo PREPOSITORY
-        }
+    git_repository_head GIT_ERROR_CODE {
+        ppRef {PREFERENCE out}
+        pRepo PREPOSITORY
     }
-    git_repository_head_for_worktree {
-        GIT_ERROR_CODE
-        {
-            ppRef {PREFERENCE out}
-            pRepo PREPOSITORY
-            name STRING
-        }
+    git_repository_head_for_worktree GIT_ERROR_CODE {
+        ppRef {PREFERENCE out}
+        pRepo PREPOSITORY
+        name STRING
     }
-    git_repository_head_detached {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_head_detached int {
+        pRepo PREPOSITORY
     }
-    git_repository_head_detached_for_worktree {
-        int
-        {
-            pRepo PREPOSITORY
-            name STRING
-        }
+    git_repository_head_detached_for_worktree int {
+        pRepo PREPOSITORY
+        name STRING
     }
-    git_repository_head_unborn {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_head_unborn int {
+        pRepo PREPOSITORY
     }
-    git_repository_is_empty {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_is_empty int {
+        pRepo PREPOSITORY
     }
 }
 
@@ -181,106 +133,61 @@ AddFunctions {
 }
 ::cffi::alias define GIT_REPOSITORY_ITEM_T {int {enum git_repository_item_t}}
 
-AddFunctions {
-    git_repository_item_path {
-        GIT_ERROR_CODE
-        {
-            pBuf  PBUF
-            pRepo PREPOSITORY
-            item  GIT_REPOSITORY_ITEM_T
-        }
+libgit2 functions {
+    git_repository_item_path GIT_ERROR_CODE {
+        pBuf  PBUF
+        pRepo PREPOSITORY
+        item  GIT_REPOSITORY_ITEM_T
     }
-    git_repository_path {
-        STRING
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_path STRING {
+        pRepo PREPOSITORY
     }
-    git_repository_workdir {
-        STRING
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_workdir STRING {
+        pRepo PREPOSITORY
     }
-    git_repository_commondir {
-        STRING
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_commondir STRING {
+        pRepo PREPOSITORY
     }
-    git_repository_set_workdir {
-        GIT_ERROR_CODE
-        {
-            pRepo   PREPOSITORY
-            workdir STRING
-            update_gitlink int
-        }
+    git_repository_set_workdir GIT_ERROR_CODE {
+        pRepo   PREPOSITORY
+        workdir STRING
+        update_gitlink int
     }
-    git_repository_is_bare {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_is_bare int {
+        pRepo PREPOSITORY
     }
-    git_repository_is_worktree {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_is_worktree int {
+        pRepo PREPOSITORY
     }
-    git_repository_config {
-        GIT_ERROR_CODE
-        {
-            ppConfig {PCONFIG out}
-            pRepo PREPOSITORY
-        }
+    git_repository_config GIT_ERROR_CODE {
+        ppConfig {PCONFIG out}
+        pRepo PREPOSITORY
     }
-    git_repository_config_snapshot {
-        GIT_ERROR_CODE
-        {
-            ppConfig {PCONFIG out}
-            pRepo PREPOSITORY
-        }
+    git_repository_config_snapshot GIT_ERROR_CODE {
+        ppConfig {PCONFIG out}
+        pRepo PREPOSITORY
     }
-    git_repository_odb {
-        GIT_ERROR_CODE
-        {
-            pOdb {PODB out}
-            pRepo PREPOSITORY
-        }
+    git_repository_odb GIT_ERROR_CODE {
+        pOdb {PODB out}
+        pRepo PREPOSITORY
     }
-    git_repository_refdb {
-        GIT_ERROR_CODE
-        {
-            pRefdb {PREFDB out}
-            pRepo PREPOSITORY
-        }
+    git_repository_refdb GIT_ERROR_CODE {
+        pRefdb {PREFDB out}
+        pRepo PREPOSITORY
     }
-    git_repository_index {
-        GIT_ERROR_CODE
-        {
-            pIndex {PINDEX out}
-            pRepo PREPOSITORY
-        }
+    git_repository_index GIT_ERROR_CODE {
+        pIndex {PINDEX out}
+        pRepo PREPOSITORY
     }
-    git_repository_message {
-        GIT_ERROR_CODE
-        {
-            pBuf PBUF
-            pRepo PREPOSITORY
-        }
+    git_repository_message GIT_ERROR_CODE {
+        pBuf PBUF
+        pRepo PREPOSITORY
     }
-    git_repository_message_remove {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_message_remove int {
+        pRepo PREPOSITORY
     }
-    git_repository_state_cleanup {
-        GIT_ERROR_CODE
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_state_cleanup GIT_ERROR_CODE {
+        pRepo PREPOSITORY
     }
 }
 
@@ -296,59 +203,38 @@ AddFunctions {
     payload {pointer unsafe}
 }
 
-AddFunctions {
-    git_repository_fetchhead_foreach {
-        int
-        {
-            pRepo    PREPOSITORY
-            callback {pointer.git_repository_fetchhead_foreach_cb unsafe}
-            payload  {pointer unsafe}
-        }
+libgit2 functions {
+    git_repository_fetchhead_foreach int {
+        pRepo    PREPOSITORY
+        callback {pointer.git_repository_fetchhead_foreach_cb unsafe}
+        payload  {pointer unsafe}
     }
-    git_repository_mergehead_foreach {
-        int
-        {
-            pRepo    PREPOSITORY
-            callback {pointer.git_repository_mergehead_foreach_cb unsafe}
-            payload  {pointer unsafe}
-        }
+    git_repository_mergehead_foreach int {
+        pRepo    PREPOSITORY
+        callback {pointer.git_repository_mergehead_foreach_cb unsafe}
+        payload  {pointer unsafe}
     }
-    git_repository_hashfile {
-        GIT_ERROR_CODE
-        {
-            oid   {struct.git_oid out byref}
-            pRepo PREPOSITORY
-            path  STRING
-            type  GIT_OBJECT_T
-            as_path STRING
-        }
+    git_repository_hashfile GIT_ERROR_CODE {
+        oid   {struct.git_oid out byref}
+        pRepo PREPOSITORY
+        path  STRING
+        type  GIT_OBJECT_T
+        as_path STRING
     }
-    git_repository_set_head {
-        GIT_ERROR_CODE
-        {
-            pRepo   PREPOSITORY
-            refname STRING
-        }
+    git_repository_set_head GIT_ERROR_CODE {
+        pRepo   PREPOSITORY
+        refname STRING
     }
-    git_repository_set_head_detached {
-        GIT_ERROR_CODE
-        {
-            pRepo       PREPOSITORY
-            commitish   {struct.git_oid byref}
-        }
+    git_repository_set_head_detached GIT_ERROR_CODE {
+        pRepo       PREPOSITORY
+        commitish   {struct.git_oid byref}
     }
-    git_repository_set_head_detached_from_annotated {
-        GIT_ERROR_CODE
-        {
-            pRepo       PREPOSITORY
-            commitish   PANNOTATED_COMMIT
-        }
+    git_repository_set_head_detached_from_annotated GIT_ERROR_CODE {
+        pRepo       PREPOSITORY
+        commitish   PANNOTATED_COMMIT
     }
-    git_repository_detach_head {
-        GIT_ERROR_CODE
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_detach_head GIT_ERROR_CODE {
+        pRepo PREPOSITORY
     }
 }
 
@@ -369,46 +255,28 @@ AddFunctions {
 }
 ::cffi::alias define GIT_REPOSITORY_STATE_T {int {enum git_repository_state_t}}
 
-AddFunctions {
-    git_repository_state {
-        GIT_REPOSITORY_STATE_T
-        {
-            pRepo PREPOSITORY
-        }
+libgit2 functions {
+    git_repository_state GIT_REPOSITORY_STATE_T {
+        pRepo PREPOSITORY
     }
-    git_repository_set_namespace {
-        GIT_ERROR_CODE
-        {
-            pRepo PREPOSITORY
-            nmspace STRING
-        }
+    git_repository_set_namespace GIT_ERROR_CODE {
+        pRepo PREPOSITORY
+        nmspace STRING
     }
-    git_repository_get_namespace {
-        STRING
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_get_namespace STRING {
+        pRepo PREPOSITORY
     }
-    git_repository_is_shallow {
-        int
-        {
-            pRepo PREPOSITORY
-        }
+    git_repository_is_shallow int {
+        pRepo PREPOSITORY
     }
-    git_repository_ident {
-        GIT_ERROR_CODE
-        {
-            name {STRING out}
-            email {STRING out}
-            pRepo PREPOSITORY
-        }
+    git_repository_ident GIT_ERROR_CODE {
+        name {STRING out}
+        email {STRING out}
+        pRepo PREPOSITORY
     }
-    git_repository_set_ident {
-        GIT_ERROR_CODE
-        {
-            pRepo PREPOSITORY
-            name  {STRING nullifempty}
-            email {STRING nullifempty}
-        }
+    git_repository_set_ident GIT_ERROR_CODE {
+        pRepo PREPOSITORY
+        name  {STRING nullifempty}
+        email {STRING nullifempty}
     }
 }

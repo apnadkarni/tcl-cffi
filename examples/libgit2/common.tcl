@@ -10,15 +10,9 @@
     GIT_FEATURE_NSEC
 }
 
-AddFunctions {
-    git_libgit2_version {
-        GIT_ERROR_CODE
-        {major {int out} minor {int out} rev {int out}}
-    }
-    git_libgit2_features {
-        {int {enum git_feature_t} bitmask}
-        {}
-    }
+libgit2 functions {
+    git_libgit2_version GIT_ERROR_CODE {major {int out} minor {int out} rev {int out}}
+    git_libgit2_features {int {enum git_feature_t} bitmask} {}
 }
 
 ::cffi::enum sequence git_libgit2_opt_t {
