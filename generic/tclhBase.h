@@ -646,36 +646,13 @@ Tclh_ErrorRange(Tcl_Interp *interp,
  */
 char *TclhPrintAddress(const void *address, char *buf, int buflen)
 {
-#ifdef OBSOLETE
-/* %p on gcc prints (nil) for null pointers - not what we want */
-    static int fixup = -1; /* Thread safety? Meh... */
-
     TCLH_ASSERT(buflen > 2);
 
     /*
-     *  MSC does not prefix with 0x, gcc and may be others, do. Remove
-     *  any extraneous prefix if present. Take care about string lengths.
+     * Note we do not sue %p here because generated output differs
+     * between compilers in terms of the 0x prefix. Moreover, gcc
+     * prints (nil) for NULL pointers which is not what we want.
      */
-    if (fixup == -1) {
-        /* We have not determined the format. Do so */
-        snprintf(buf, buflen, "%p", address);
-        if (buf[1] == 'x') {
-            /* Does what we want. */
-            fixup = 0;
-            return buf;
-        }
-        else
-            fixup = 1;
-    }
-    if (fixup == 0) {
-        snprintf(buf, buflen, "%p", address);
-    } else {
-        snprintf(buf, buflen, "0x%p", address);
-    }
-    return buf;
-#else
-    TCLH_ASSERT(buflen > 2);
-
     if (sizeof(void*) == sizeof(int)) {
         unsigned int i = (unsigned int) (intptr_t) address;
         snprintf(buf, buflen, "0x%.8x", i);
@@ -686,7 +663,6 @@ char *TclhPrintAddress(const void *address, char *buf, int buflen)
         snprintf(buf, buflen, "0x%.16llx", ull);
     }
     return buf;
-#endif
 }
 
 #ifdef _WIN32

@@ -628,54 +628,6 @@ negative_error:
         Tcl_NewStringObj("Negative values are not in range for unsigned types.", -1));
 }
 
-
-int Tclh_ObjToULongLongOBSOLETE(Tcl_Interp *interp, Tcl_Obj *objP, unsigned long long *ullP)
-{
-    Tcl_WideInt wide;
-
-    TCLH_ASSERT(sizeof(Tcl_WideInt) == sizeof(unsigned long long));
-
-    /*
-     * Below code depends on Tcl_GWIFO accepting values up to ULONGLONG_MAX
-     * (though they will be treated as negative if > LONGLONG_MAX)
-     */
-    if (Tcl_GetWideIntFromObj(interp, objP, &wide) != TCL_OK)
-        return TCL_ERROR;
-    if (wide < 0) {
-        /*
-         * On a successful return with a negative result, we do not know
-         * if it is an error or not. It could be
-         * - a genuine error. A negative value is stored in the internal rep
-         * - a false error. An overflowed positive value was stored that
-         *   looks negative
-         * In general, we cannot now distinguish between the two. The best
-         * we can do is look for a string rep *if it exists* and see if
-         * it has a minus sign. Note we do NOT generate a string rep if
-         * it does not exist because that would be meaningless if generated
-         * from the existing internal rep. Not foolproof but know of no
-         * better way.
-         */
-        if (objP->bytes) {
-            /* Could have white space. Note unsigned char for isascii */
-            const unsigned char *s = (unsigned char *) objP->bytes;
-            /* Ignores unicode spaces *shrug* */
-            while (isspace(*s))
-                ++s;
-            /*
-             * If not a digit or plus, assume error. It could be a minus
-             * sign or \0 or something else (in which case one wonders why
-             * Tcl_GWIFO did not return an error)
-             */
-            if (*s != '+' && ! isdigit(*s)) {
-                return Tclh_ErrorInvalidValue(
-                    interp, objP, "Value is not a unsigned long long.");
-            }
-        }
-    }
-    *ullP = (unsigned long long)wide;
-    return TCL_OK;
-}
-
 Tcl_Obj *Tclh_ObjFromULongLong(unsigned long long ull)
 {
     TCLH_ASSERT(sizeof(Tcl_WideInt) == sizeof(unsigned long long));
