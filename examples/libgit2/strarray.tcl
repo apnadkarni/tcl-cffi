@@ -6,7 +6,7 @@
 ::cffi::Struct create git_strarray {
     strings {pointer.strings unsafe}
     count   size_t
-}
+} -clear
 
 libgit2 functions {
     git_strarray_dispose void {

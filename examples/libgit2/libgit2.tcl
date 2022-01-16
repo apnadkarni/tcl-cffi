@@ -57,6 +57,9 @@ namespace eval $GIT_NS {
             cert.tcl
             credential.tcl
             transport.tcl
+            pack.tcl
+            proxy.tcl
+            remote.tcl
         }
 
         if {$path eq ""} {
@@ -84,6 +87,8 @@ namespace eval $GIT_NS {
         # Standard error handler
         cffi::alias define GIT_ERROR_CODE \
             [list int nonnegative [list onerror [namespace current]::ErrorCodeHandler]]
+        cffi::alias define PSTRARRAY pointer.git_strarray
+        cffi::alias define CB_PAYLOAD {pointer unsafe}
         cffi::alias define git_object_size_t uint64_t
 
         # Note these are sourced into current namespace
