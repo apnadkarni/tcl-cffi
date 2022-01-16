@@ -103,6 +103,11 @@ int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag,
  *
  * The validity of a registered pointer can then be tested by with
  * <Tclh_PointerVerify> and reversed by calling <Tclh_PointerUnregister>.
+ * Registering a pointer that is already registered will raise an error if
+ * the tags do not match or if the previous registration was for a counted
+ * pointer. Otherwise the duplicate registration is a no-op and the pointer
+ * is unregistered on the next call to <Tclh_PointerUnregister> no matter
+ * how many times it has been registered.
  *
  * Returns:
  * TCL_OK    - pointer was successfully registered
@@ -114,7 +119,7 @@ int Tclh_PointerRegister(Tcl_Interp *interp, void *pointer,
 
 /* Function: Tclh_PointerRegisterCounted
  * Registers a pointer value as being "valid" permitting multiple registrations
- * for the same pointer.
+ * and unregistrations for the same pointer.
  *
  * Parameters:
  * interp  - Tcl interpreter in which the pointer is to be registered.
@@ -126,9 +131,12 @@ int Tclh_PointerRegister(Tcl_Interp *interp, void *pointer,
  *
  * The validity of a registered pointer can then be tested by with
  * <Tclh_PointerVerify> and reversed by calling <Tclh_PointerUnregister>.
- * Unlike <Tclh_PointerRegister>, this command allows a pointer to be
- * registered multiple times. It will be unregistered when
- * <Tclh_PointerUnregister> is called the same number of times.
+ * A counted pointer that is registered multiple times will be treated
+ * as valid until the same number of calls to <Tclh_PointerUnregister>.
+ *
+ * Registering a pointer that is already registered will raise an error if
+ * the tags do not match or if the previous registration was for an uncounted
+ * pointer.
  *
  * Returns:
  * TCL_OK    - pointer was successfully registered
@@ -713,13 +721,31 @@ TclhPointerRegister(Tcl_Interp *interp,
             Tcl_SetHashValue(he, ptrRecP);
         } else {
             ptrRecP = Tcl_GetHashValue(he);
-            if (!counted || ptrRecP->nRefs < 0) {
-                /* Registered or passed - at least one is not a counted pointer */
-                return Tclh_ErrorExists(interp, "Registered pointer", NULL, NULL);
-            }
+            /*
+             * If already existing, existing and passed-in pointer must
+             * - both must have the same type tag
+             * - both be counted or both single reference, and
+             */
             if (!PointerTypeSame(ptrRecP->tagObj, tag))
                 return PointerTypeError(interp, ptrRecP->tagObj, tag);
-            ptrRecP->nRefs += 1;
+            if (counted) {
+                if (ptrRecP->nRefs < 0)
+                    return Tclh_ErrorExists(
+                        interp,
+                        "Registered uncounted pointer",
+                        NULL,
+                        "Attempt to register a counted pointer.");
+                ptrRecP->nRefs += 1;
+            }
+            else {
+                if (ptrRecP->nRefs >= 0)
+                    return Tclh_ErrorExists(
+                        interp,
+                        "Registered counted pointer",
+                        NULL,
+                        "Attempt to register an uncounted pointer.");
+                /* Note ref count NOT incremented - not a counted pointer */
+            }
         }
         if (objPP)
             *objPP = Tclh_PointerWrap(pointer, tag);

@@ -249,16 +249,16 @@ namespace eval ${NS}::test {
         cffi::pointer safe $p
         list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
     } -result {1 {} 0}
-    test pointer-safe-error-0 "pointer safe dup" -body {
+    test pointer-safe-2 "pointer safe dup ok" -body {
         set p [makeptr 1 TAG]
         cffi::pointer safe $p
-        list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
-    } -result [list 1 1 1 {} 0 {Registered pointer already exists. }]
-    test pointer-safe-error-1 "pointer safe after counted" -body {
+        list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p}] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result {1 0 1 {} 0}
+    test pointer-safe-error-0 "pointer safe after counted" -body {
         set p [makeptr 1 TAG]
         cffi::pointer counted $p
         list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
-    } -result [list 1 1 1 {} 0 {Registered pointer already exists. }]
+    } -result [list 1 1 1 {} 0 {Registered counted pointer already exists. Attempt to register an uncounted pointer.}]
 
     ###
     # pointer counted
@@ -281,7 +281,7 @@ namespace eval ${NS}::test {
         set p [makeptr 1 TAG]
         cffi::pointer safe $p
         list [cffi::pointer isvalid $p] [catch {cffi::pointer counted $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
-    } -result [list 1 1 1 {} 0 {Registered pointer already exists. }]
+    } -result [list 1 1 1 {} 0 {Registered uncounted pointer already exists. Attempt to register a counted pointer.}]
     test pointer-counted-error-1 "pointer counted tag conflict" -body {
         set p [makeptr 1 TAG]
         cffi::pointer counted $p

@@ -1486,6 +1486,14 @@ namespace eval ${NS}::test {
             testDll function pointer_to_pointer [list $type nullok] {p {pointer nullok unsafe}}
             pointer_to_pointer [makeptr 0]
         } -result [makeptr 0 $tag]
+        test function-return-$type-safe-dup-0 "return type $type safe - dup" -cleanup {
+            cffi::pointer dispose $p
+        } -body {
+            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [catch {pointer_to_pointer 1^} result] [cffi::pointer isvalid $p]
+        } -result {1 0 1}
+
 
         # counted
         test function-return-$type-counted-0 "return type $type counted" -cleanup {
@@ -1596,14 +1604,6 @@ namespace eval ${NS}::test {
         } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
 
         # Error cases
-        test function-return-$type-safe-dup-0 "return type $type safe - dup" -cleanup {
-            cffi::pointer dispose $p
-        } -body {
-            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
-            list [cffi::pointer isvalid $p] [catch {pointer_to_pointer 1^} result] [cffi::pointer isvalid $p] $result
-        } -result [list 1 1 1 "Registered pointer already exists. "]
-
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function pointer_to_pointer $type\[2\] {}
         } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
