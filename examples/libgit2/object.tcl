@@ -26,7 +26,7 @@ libgit2 functions {
             path    STRING
             type    GIT_OBJECT_T
     }
-    git_object_id {pointer.git_oid unsafe} {
+    git_object_id {struct.git_oid byref} {
             pObj POBJECT
     }
     git_object_short_id GIT_ERROR_CODE {
@@ -36,7 +36,7 @@ libgit2 functions {
     git_object_type GIT_OBJECT_T {
             pObj POBJECT
     }
-    git_object_owner {PREPOSITORY unsafe} {
+    git_object_owner PREPOSITORY {
             pObj POBJECT
     }
     git_object_free void {

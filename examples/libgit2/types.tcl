@@ -89,6 +89,7 @@ cffi::Struct create git_signature {
     GIT_BRANCH_REMOTE  2
     GIT_BRANCH_ALL 3
 }
+::cffi::alias define GIT_BRANCH_T {int {enum git_branch_t}}
 
 ::cffi::enum define git_filemode_t {
     GIT_FILEMODE_UNREADABLE        0000000
@@ -98,7 +99,7 @@ cffi::Struct create git_signature {
     GIT_FILEMODE_LINK              0120000
     GIT_FILEMODE_COMMIT            0160000
 }
-::cffi::alias define GIT_FILEMODE_T {int {enum git_filemode_t}}
+::cffi::alias define GIT_FILEMODE_T {int {enum git_filemode_t} bitmask}
 
 ::cffi::alias define {
     PREFSPEC           pointer.git_refspec

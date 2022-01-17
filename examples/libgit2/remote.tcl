@@ -155,7 +155,7 @@ libgit2 functions {
         pRemote {PREMOTE out}
         psource PREMOTE
     }
-    git_remote_owner {PREPOSITORY unsafe} {
+    git_remote_owner PREPOSITORY {
         pRemote PREMOTE
     }
     git_remote_name STRING {

@@ -135,7 +135,7 @@ libgit2 functions {
     git_odb_object_free void {
         object {PODB_OBJECT dispose}
     }
-    git_odb_object_id {pointer.git_oid unsafe} {
+    git_odb_object_id {struct.git_oid byref} {
         odb PODB_OBJECT
     }
     git_odb_object_data {pointer unsafe} {

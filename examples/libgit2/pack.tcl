@@ -63,7 +63,7 @@ libgit2 functions {
         progress_cb {pointer.git_indexer_progress_cb}
         progress_cb_payload CB_PAYLOAD
     }
-    git_packbuilder_hash {pointer.git_oid unsafe} {
+    git_packbuilder_hash {struct.git_oid byref} {
         pb PPACKBUILDER
     }
     git_packbuilder_foreach GIT_ERROR_CODE {

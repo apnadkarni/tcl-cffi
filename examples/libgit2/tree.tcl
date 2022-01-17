@@ -51,10 +51,10 @@ libgit2 functions {
     git_tree_free void {
         pTree {PTREE dispose}
     }
-    git_tree_id {pointer.git_oid unsafe} {
+    git_tree_id {struct.git_oid byref} {
         pTree PTREE
     }
-    git_tree_owner {PREPOSITORY unsafe} {
+    git_tree_owner PREPOSITORY {
         pTree PTREE
     }
     git_tree_entrycount size_t {
@@ -96,7 +96,7 @@ libgit2 functions {
     git_tree_entry_name STRING {
         pTreeEntry {PTREE_ENTRY unsafe}
     }
-    git_tree_entry_id {pointer.git_oid unsafe} {
+    git_tree_entry_id {struct.git_oid byref} {
         pTreeEntry {PTREE_ENTRY unsafe}
     }
     git_tree_entry_type GIT_OBJECT_T {

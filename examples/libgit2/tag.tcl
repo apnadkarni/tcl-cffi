@@ -24,17 +24,17 @@ libgit2 functions {
     git_tag_free void {
         pTag {PTAG dispose}
     }
-    git_tag_id {pointer.git_oid unsafe} {
+    git_tag_id {struct.git_oid byref} {
         pTag PTAG
     }
-    git_tag_owner {PREPOSITORY unsafe} {
+    git_tag_owner PREPOSITORY {
         pTag PTAG
     }
     git_tag_target GIT_ERROR_CODE {
         target_out {POBJECT out}
         pTag PTAG
     }
-    git_tag_target_id {pointer.git_oid unsafe} {
+    git_tag_target_id {struct.git_oid byref} {
         pTag PTAG
     }
     git_tag_target_type GIT_OBJECT_T {

@@ -50,11 +50,4 @@ libgit2 functions {
     }
 }
 
-# TODO - should git_indexer_hash return a {struct.git_oid byref} once byref is
-# implemented for return values. For now do a proc wrapper
-libgit2 function {git_indexer_hash git_indexer_hash_internal} {POID unsafe} {pIndexer PINDEXER}
-proc git_indexer_hash {pIndexer} {
-    set pOid [git_indexer_hash_internal $pIndexer]
-    # pOid points INSIDE pIndexer, no need to free or dispose etc.
-    return [git_oid fromnative! $pOid]
-}
+libgit2 function git_indexer_hash {struct.git_oid byref} {pIndexer PINDEXER}

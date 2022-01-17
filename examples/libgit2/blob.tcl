@@ -36,10 +36,10 @@ libgit2 functions {
     git_blob_free void {
         pBlob {PBLOB dispose}
     }
-    git_blob_id {pointer.git_oid unsafe} {
+    git_blob_id {struct.git_oid byref} {
         pBlob PBLOB
     }
-    git_blob_owner {PREPOSITORY unsafe} {
+    git_blob_owner PREPOSITORY {
         pBlob PBLOB
     }
     git_blob_rawcontent {pointer unsafe} {

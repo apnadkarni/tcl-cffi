@@ -10,8 +10,6 @@
 # Edit build2\src\CMakeFiles\git2.dir linklibs.rsp to add -lbcrypt
 # For a verbose build, add "-- VERBOSE=1" before the cmake --build command
 
-# testrepo
-# object 323fae03f4606ea9991df8befbb2fca795e648fa
 
 
 
@@ -29,11 +27,13 @@ namespace eval $GIT_NS {
     # to the shared library to be wrapped. By default it will try
     # looking in a platform-specific dir on Windows only, otherwise leave
     # it up to the system loader to find one.
-    proc init {{path ""} {lazy 1}} {
+    proc init {{path ""}} {
         variable packageDirectory
         variable functionDefinitions
         variable libgit2Path
+
         # The order of loading these files is important!!!
+        # Later files depend on earlier ones, just like the C headers
         variable scriptFiles {
             common.tcl
             strarray.tcl
@@ -60,6 +60,15 @@ namespace eval $GIT_NS {
             pack.tcl
             proxy.tcl
             remote.tcl
+            apply.tcl
+            annotated_commit.tcl
+            attr.tcl
+            blame.tcl
+            branch.tcl
+            index.tcl
+            merge.tcl
+            cherrypick.tcl
+            commit.tcl
         }
 
         if {$path eq ""} {

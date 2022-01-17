@@ -4,10 +4,10 @@
 # be created in.
 
 ::cffi::Struct create git_buf {
-    ptr   {pointer unsafe {default NULL}}
-    asize {size_t {default 0}}
-    size  {size_t {default 0}}
-}
+    ptr   {pointer unsafe}
+    asize {size_t}
+    size  {size_t}
+} -clear
 
 # In the functions below, we could pass a struct.git_buf byref so it is seen
 # as a dictionary at the Tcl level. However, that is likely to be error-prone
