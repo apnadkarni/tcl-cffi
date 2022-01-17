@@ -43,6 +43,12 @@
     {                                                            \
         *inoutP = *inoutP + 1;                                   \
         return *inoutP + 1;                                      \
+    }                                                            \
+    EXTERN type_ *token_##_ret_byref(type_ in)                    \
+    {                                                            \
+        static type_ static_val;                                 \
+        static_val = in + 1;                                     \
+        return &static_val;                                      \
     }
 
 #define FNNUMERICARRAY(token_, type_)                                 \
@@ -403,6 +409,11 @@ EXTERN void pointer_out(int **ppint)
 }
 EXTERN void pointer_incr(char **pp) { *pp = *pp + 1; }
 EXTERN void *pointer_byref(void **pp) { return *pp; }
+EXTERN void ** pointer_ret_byref(void *p) {
+    static void *static_p;
+    static_p = p;
+    return &static_p;
+}
 EXTERN void pointer_noop(void *p) {}
 EXTERN void *pointer_to_pointer(void *p) { return p; }
 EXTERN void *pointer_add(void *p, int n) {
@@ -462,11 +473,23 @@ FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
     return "abc";
 }
+EXTERN const char **ascii_return_byref() {
+    static const char *s = "abc";
+    return &s;
+}
 EXTERN const char *utf8_return() {
     return utf8_test_string;
 }
+EXTERN const char **utf8_return_byref() {
+    static const char *s = utf8_test_string;
+    return &s;
+}
 EXTERN const char *jis0208_return() {
     return jis_test_string;
+}
+EXTERN const char **jis0208_return_byref() {
+    static const char *s = jis_test_string;
+    return &s;
 }
 EXTERN void string_param_out(char **strPP) {
     *strPP = "abc";
@@ -475,6 +498,10 @@ EXTERN void string_param_out(char **strPP) {
 FNSTRINGS(unistring, Tcl_UniChar)
 EXTERN const Tcl_UniChar *unistring_return() {
     return unichar_test_string;
+}
+EXTERN const Tcl_UniChar **unistring_return_byref() {
+    static const Tcl_UniChar *s = unichar_test_string;
+    return &s;
 }
 EXTERN void unistring_param_out(Tcl_UniChar **strPP) {
     *strPP = unichar_test_string;
@@ -590,6 +617,11 @@ EXTERN TestStruct  returnTestStruct() {
     struct TestStruct ts;
     getTestStruct(&ts);
     return ts;
+}
+EXTERN TestStruct *returnTestStructByRef() {
+    static struct TestStruct ts;
+    getTestStruct(&ts);
+    return &ts;
 }
 
 /* Increments every field value by 1 */

@@ -21,7 +21,6 @@
 
 #define TOKENANDLEN(t) # t , sizeof(#t) - 1
 
-typedef void (*CFFIARGPROC)();
 const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(void), CFFI_K_TYPE_VOID, 0, 0},
     {TOKENANDLEN(schar),
@@ -158,7 +157,11 @@ static CffiAttrs cffiAttrs[] = {
     {"in", PARAM_IN, CFFI_F_ATTR_IN, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"out", PARAM_OUT, CFFI_F_ATTR_OUT, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"inout", PARAM_INOUT, CFFI_F_ATTR_INOUT, CFFI_F_TYPE_PARSE_PARAM, 1},
-    {"byref", BYREF, CFFI_F_ATTR_BYREF, CFFI_F_TYPE_PARSE_PARAM, 1},
+    {"byref",
+     BYREF,
+     CFFI_F_ATTR_BYREF,
+     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN,
+     1},
     {"counted",
      COUNTED,
      CFFI_F_ATTR_COUNTED,
@@ -1043,13 +1046,17 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
-#ifdef CFFI_USE_DYNCALL
-        case CFFI_K_TYPE_STRUCT:
-#endif
-            /* return type not allowed even byref */
             message = typeInvalidForContextMsg;
             goto invalid_format;
-        break;
+        case CFFI_K_TYPE_STRUCT:
+#ifdef CFFI_USE_DYNCALL
+            if ((flags & CFFI_F_ATTR_BYREF) == 0) {
+                /* dyncall - return type not allowed unless byref */
+                message = typeInvalidForContextMsg;
+                goto invalid_format;
+            }
+#endif
+            /* FALLTHRU */
         case CFFI_K_TYPE_VOID: /* FALLTHRU */
         default:
             if (typeAttrP->dataType.count != 0) {

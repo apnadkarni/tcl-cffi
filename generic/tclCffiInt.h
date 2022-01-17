@@ -798,7 +798,11 @@ DEFINEFN_(long, CffiCallLongFunc, slong)
 DEFINEFN_(unsigned long, CffiCallULongFunc, ulong)
 DEFINEFN_(long long, CffiCallLongLongFunc, slonglong)
 DEFINEFN_(unsigned long long, CffiCallULongLongFunc, ulonglong)
-DEFINEFN_(void*, CffiCallPointerFunc, ptr)
+//DEFINEFN_(void*, CffiCallPointerFunc, ptr)
+CFFI_INLINE void* CffiCallPointerFunc(CffiCall *callP) {
+    CffiLibffiCall(callP);
+    return callP->retValue.u.ptr;
+}
 CFFI_INLINE float CffiCallFloatFunc(CffiCall *callP) {
     CffiLibffiCall(callP);
     return callP->retValue.u.flt;

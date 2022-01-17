@@ -413,7 +413,7 @@ namespace eval cffi::test {
         # Scalar tests - success
         testnumeric $type return ""
         if {$type in $intTypes} {
-            foreach attr [list {*}$errorAttrs] {
+            foreach attr [list byref {*}$errorAttrs] {
                 testnumeric "$type $attr" return $attr
             }
             catch {cffi::enum delete E}
@@ -466,7 +466,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attributes for parse mode
-        foreach attr [list {*}$paramAttrs storeonerror storealways] {
+        foreach attr [list {*}$paramDirectionAttrs storeonerror storealways] {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
@@ -518,7 +518,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attributes for parse mode
-        foreach attr [list {*}$paramAttrs storeonerror storealways] {
+        foreach attr $invalidFieldAttrs {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
 
@@ -628,7 +628,7 @@ namespace eval cffi::test {
 
         # Scalar tests - success
         testpointer $type return ""
-        foreach attr [list {*}$pointerAttrs] {
+        foreach attr [list {*}$pointerAttrs byref] {
             if {$attr ne "dispose"} {
                 testpointer "$type $attr" return $attr
             }
@@ -649,7 +649,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attribute for parse mode
-        foreach attr [list {*}$paramAttrs dispose storeonerror storealways] {
+        foreach attr [list {*}$paramDirectionAttrs dispose storeonerror storealways] {
             testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
@@ -689,7 +689,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attribute for parse mode
-        foreach attr [list {*}$paramAttrs dispose storeonerror storealways] {
+        foreach attr $invalidFieldAttrs {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
 
@@ -843,7 +843,7 @@ namespace eval cffi::test {
 
         ## return mode
         teststring "$type" return ""
-        foreach attr {errno {{onerror E}}} {
+        foreach attr {byref errno {{onerror E}}} {
             teststring "$type $attr" return "$attr"
         }
         teststring "$type lasterror" return "lasterror" -constraints win
@@ -935,7 +935,6 @@ namespace eval cffi::test {
             cffi::type info $typedecl $parse_mode
         } -result [list size [expr {$count ? ($count * $testStructSize) : $testStructSize}] count $count alignment 8 definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
     }
-    # Parse mode = param
     foreach parse_mode {param return field} {
         if {$parse_mode eq "param"} {
             testinvalidattr "struct.TestStruct" param $errorMessages(structbyref) -constraints dyncall
@@ -958,8 +957,10 @@ namespace eval cffi::test {
             if {$parse_mode eq "return"} {
                 testinvalidattr "struct.TestStruct" $parse_mode $errorMessages(typeparsemode) -constraints dyncall
                 teststruct "struct.::TestStruct" $parse_mode "" 0 -constraints libffi
+                teststruct "struct.::TestStruct byref" $parse_mode "byref" 0
             } else {
                 teststruct "struct.::TestStruct" $parse_mode ""
+                testinvalidattr "struct.TestStruct byref" $parse_mode $errorMessages(attrparsemode)
             }
         }
         # Failure tests - invalid attribute combinations

@@ -83,7 +83,7 @@ namespace eval cffi::test {
         set intMin(ulong) $intMin(uint)
     }
 
-    variable paramAttrs {in out inout byref}
+    variable paramDirectionAttrs {in out inout}
     variable pointerAttrs {nullok unsafe dispose counted}
     variable stringAttrs {nullok nullifempty}
     variable requirementAttrs {zero nonzero nonnegative positive}
@@ -93,7 +93,9 @@ namespace eval cffi::test {
         lappend errorHandlerAttrs winerror lasterror
     }
     variable errorAttrs [concat $requirementAttrs $errorHandlerAttrs]
-    variable typeAttrs [concat $paramAttrs $pointerAttrs $errorAttrs]
+    variable typeAttrs [concat $paramDirectionAttrs $pointerAttrs $errorAttrs byref]
+
+    variable invalidFieldAttrs [list {*}$paramDirectionAttrs byref storeonerror storealways]
 
     # Test strings to be used for various encodings
     set testStrings(ascii) "abc"

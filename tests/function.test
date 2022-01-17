@@ -1381,6 +1381,11 @@ namespace eval ${NS}::test {
                 $fn $val
             } -result $val
         }
+        test function-return-$type-byref-0 "return $type byref" -body {
+            set fn ${type}_ret_byref
+            testDll function $fn [list $type byref] [list param $type]
+            $fn 42
+        } -result 43
     }
     # Error cases
     foreach type $intTypes {
@@ -1397,16 +1402,25 @@ namespace eval ${NS}::test {
             set fn ${type}_to_$type
             testDll function $fn [list $type $attr] [list param $type]
             if {$val < 0 && $type in $unsignedIntTypes} continue
-            test function-return-$type-$attr-$val-error-[incr testnum] "return $type $attr - $val" -setup {
-            } -body {
+            test function-return-$type-$attr-$val-error-[incr testnum] "return $type $attr - $val" -body {
                 $fn $val
             } -result "Invalid value \"$val\". $message" -returnCodes error
         }
+        test function-return-$type-byref-error-0 "return $type byref - requirement error" -body {
+            set fn ${type}_ret_byref
+            testDll function $fn [list $type byref zero] [list param $type]
+            $fn 0
+        } -result {Invalid value "1". Function returned an error value.} -returnCodes error
+        test function-return-$type-byref-error-1 "return $type byref - return pointer null" -body {
+            set fn pointer_to_pointer
+            testDll function $fn [list $type byref] [list param {pointer unsafe nullok}]
+            $fn 0^
+        } -result {Invalid value. Function returned NULL pointer} -returnCodes error
 
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function ${type}_to_${type} $type\[2\] {}
         } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
-        foreach attr $paramAttrs {
+        foreach attr $paramDirectionAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
@@ -1462,7 +1476,7 @@ namespace eval ${NS}::test {
                 testDll function ${type}_to_${type} [list $type $attr] {}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
         }
-        foreach attr $paramAttrs {
+        foreach attr $paramDirectionAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
             } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
@@ -1482,10 +1496,6 @@ namespace eval ${NS}::test {
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
-        test function-return-$type-null-safe-0 "return type null $type safe" -body {
-            testDll function pointer_to_pointer [list $type nullok] {p {pointer nullok unsafe}}
-            pointer_to_pointer [makeptr 0]
-        } -result [makeptr 0 $tag]
         test function-return-$type-safe-dup-0 "return type $type safe - dup" -cleanup {
             cffi::pointer dispose $p
         } -body {
@@ -1493,7 +1503,11 @@ namespace eval ${NS}::test {
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p] [catch {pointer_to_pointer 1^} result] [cffi::pointer isvalid $p]
         } -result {1 0 1}
-
+        test function-return-$type-byref-safe-0 "return type $type byref safe" -body {
+            testDll function pointer_ret_byref [list $type byref] {p {pointer unsafe}}
+            set p [pointer_ret_byref 1^]
+            list $p [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+        } -result [list [makeptr 1 $tag] 1 {} 0]
 
         # counted
         test function-return-$type-counted-0 "return type $type counted" -cleanup {
@@ -1514,14 +1528,14 @@ namespace eval ${NS}::test {
             set p [pointer_to_pointer 1^]
             list [cffi::pointer isvalid $p]
         } -result 0
+        test function-return-$type-byref-unsafe-0 "return type $type byref unsafe" -body {
+            testDll function pointer_ret_byref [list $type byref unsafe] {p {pointer unsafe}}
+            set p [pointer_ret_byref 1^]
+            list $p [cffi::pointer isvalid $p]
+        } -result [list [makeptr 1 $tag] 0]
 
         # Pointer error attributes
         # safe
-        test function-return-$type-0 "return type $type" -body {
-            testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
-            list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
-        } -result {1 {} 0}
         test function-return-$type-nullok-0 "return type $type nullok" -body {
             testDll function pointer_to_pointer [list $type nullok] {p {pointer unsafe}}
             set p [pointer_to_pointer 1^]
@@ -1531,11 +1545,25 @@ namespace eval ${NS}::test {
             testDll function pointer_to_pointer [list $type] {p {pointer nullok unsafe}}
             pointer_to_pointer 0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
-        test function-return-$type-nullok-null-0 "return type $type nullok - NULL" -body {
+        test function-return-$type-nullok-null-0 "return type $type - NULL" -body {
             testDll function pointer_to_pointer [list $type nullok] {p {pointer nullok unsafe}}
             set p [pointer_to_pointer 0^]
             list [cffi::pointer isvalid $p] $p
         } -result [list 0 [makeptr 0 $tag]]
+
+        test function-return-$type-byref-nullok-null-0 "return type $type byref - nullok" -body {
+            testDll function pointer_ret_byref [list $type byref nullok] {p {pointer unsafe nullok}}
+            pointer_ret_byref 0^
+        } -result [makeptr 0 $tag]
+        test function-return-$type-byref-nullok-null-1 "return type $type byref - null" -body {
+            testDll function pointer_ret_byref [list $type byref] {p {pointer unsafe nullok}}
+            pointer_ret_byref 0^
+        } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
+        test function-return-$type-byref-nullok-null-2 "return type $type byref - null" -body {
+            # The returned pointer to be dereferenced is itself NULL
+            testDll function pointer_to_pointer [list $type byref] {p {pointer unsafe nullok}}
+            pointer_to_pointer 0^
+        } -result "Invalid value. Function returned NULL pointer" -returnCodes error -match glob
 
         test function-return-$type-errno-0 "return type $type - errno" -body {
             testDll function pointer_errno [list $type errno] {p {pointer unsafe nullok}}
@@ -1610,7 +1638,7 @@ namespace eval ${NS}::test {
         test function-return-$type-dispose-0 "return type $type dispose" -body {
             testDll function pointer_to_pointer [list $type dispose] {p {pointer unsafe}}
         } -result "Invalid value \"$type dispose\". $errorMessages(attrparsemode)" -returnCodes error
-        foreach attr $paramAttrs {
+        foreach attr $paramDirectionAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function pointer_to_pointer [list $type unsafe $attr] {p {pointer unsafe}}
             } -result "Invalid value \"$type unsafe $attr\". $errorMessages(attrparsemode)" -returnCodes error
@@ -1635,15 +1663,30 @@ namespace eval ${NS}::test {
     } -body {
         ascii_return
     } -result "abc"
+    test function-return-string-byref-1 "return string ascii byref" -setup {
+        testDll function ascii_return_byref {string byref} {}
+    } -body {
+        ascii_return_byref
+    } -result "abc"
     test function-return-string-2 "return string utf-8" -setup {
         testDll function utf8_return string.utf-8 {}
     } -body {
         utf8_return
     } -result "\xe0\xe1\xe2"
+    test function-return-string-byref-2 "return string utf-8 byref" -setup {
+        testDll function utf8_return_byref {string.utf-8 byref} {}
+    } -body {
+        utf8_return_byref
+    } -result "\xe0\xe1\xe2"
     test function-return-string-3 "return string jis0208" -setup {
         testDll function jis0208_return string.jis0208 {}
     } -body {
         jis0208_return
+    } -result "\u543e"
+    test function-return-string-byref-3 "return string jis0208 byref" -setup {
+        testDll function jis0208_return_byref {string.jis0208 byref} {}
+    } -body {
+        jis0208_return_byref
     } -result "\u543e"
     test function-return-string-4 "return string ascii - nullok" -setup {
         testDll function ascii_return {string nullok} {}
@@ -1655,11 +1698,31 @@ namespace eval ${NS}::test {
     } -body {
         unistring_return
     } -result "\xe0\xe1\xe2"
+    test function-return-unistring-byref-1 "return unistring byref" -setup {
+        testDll function unistring_return_byref {unistring byref} {}
+    } -body {
+        unistring_return_byref
+    } -result "\xe0\xe1\xe2"
     test function-return-unistring-2 "return unistring - nullok" -setup {
         testDll function unistring_return {unistring nullok} {}
     } -body {
         unistring_return
     } -result "\xe0\xe1\xe2"
+
+    test function-return-string-byref-null-0 "return string byref - NULL" -setup {
+        testDll function pointer_to_pointer {string byref nullok} {p {pointer nullok unsafe}}
+    } -body {
+        # THe "nullok" annotation should refer to dereferenced pointer, not
+        # returned pointer value
+        pointer_to_pointer 0^
+    } -result {Invalid value. Function returned NULL pointer} -returnCodes error
+    test function-return-string-byref-null-1 "return string byref - NULL" -setup {
+        testDll function pointer_ret_byref {string byref nullok} {p {pointer nullok unsafe}}
+    } -body {
+        # THe "nullok" annotation should refer to dereferenced pointer, not
+        # returned pointer value
+        pointer_ret_byref 0^
+    } -result ""
 
     # Return type - struct
     test function-struct-return-0 "Return struct with input struct" -constraints {
@@ -1679,12 +1742,17 @@ namespace eval ${NS}::test {
         returnStructWithStrings
     } -result [makeStructWithStrings]
 
+    test function-struct-return-byref-0 "return struct byref" -body {
+        testDll function returnTestStructByRef {struct.::TestStruct byref} {}
+        checkTestStruct [returnTestStructByRef]
+    } -result [list ]
     test function-struct-return-error-0 "Return type struct - error " -constraints {
         dyncall
     } -body {
         # Prototype does not match C. Does not have to!
         testDll function getTestStruct struct.TestStruct {}
     } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode)" -returnCodes error
+
 
     test function-struct-return-error-1 "Return struct containing array" -constraints {
         libffi

@@ -508,11 +508,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
-                 || (typeAttrsP->dataType.count == 0
-                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
-                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
-                     && baseType != CFFI_K_TYPE_BYTE_ARRAY
-                     && baseType != CFFI_K_TYPE_STRUCT));
+                || (typeAttrsP->dataType.count == 0
+#ifndef CFFI_USE_LIBFFI
+                    && baseType != CFFI_K_TYPE_STRUCT
+#endif
+                    && baseType != CFFI_K_TYPE_CHAR_ARRAY
+                    && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
+                    && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 
     /*
      * Modulo bugs, even dynamic array sizes are supposed to be initialized
@@ -1060,6 +1062,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
 CffiResult
 CffiReturnPrepare(CffiCall *callP)
 {
+    CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
 #ifdef CFFI_USE_DYNCALL
     /*
      * Nothing to do as no allocations needed.
@@ -1069,6 +1072,12 @@ CffiReturnPrepare(CffiCall *callP)
 #endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
+    /* Byref return values are basically pointers irrespective of base type */
+    if (retTypeAttrsP->flags & CFFI_F_ATTR_BYREF) {
+        callP->retValueP = &callP->retValue.u.ptr;
+        return TCL_OK;
+    }
+
     /*
      * For *integer* types, libffi has a quirk in how it returns values
      * via promotion. Values small enough to fit in a register (ffi_arg)
@@ -1087,7 +1096,7 @@ CffiReturnPrepare(CffiCall *callP)
     } while (0)
 
     /* Set up the pointer for the return storage.  */
-    switch (callP->fnP->protoP->returnType.typeAttrs.dataType.baseType) {
+    switch (retTypeAttrsP->dataType.baseType) {
     case CFFI_K_TYPE_VOID: callP->retValueP = NULL; break;
     case CFFI_K_TYPE_SCHAR: INITRETPTR(signed char, schar); break;
     case CFFI_K_TYPE_UCHAR: INITRETPTR(signed char, schar); break;
@@ -1107,7 +1116,7 @@ CffiReturnPrepare(CffiCall *callP)
     case CFFI_K_TYPE_STRUCT:
         callP->retValueP = MemLifoAlloc(
             &callP->fnP->libCtxP->ipCtxP->memlifo,
-            callP->fnP->protoP->returnType.typeAttrs.dataType.u.structP->size);
+            retTypeAttrsP->dataType.u.structP->size);
         break;
     default:
         Tcl_SetResult(callP->fnP->ipCtxP->interp,
@@ -1593,17 +1602,31 @@ CffiFunctionCall(ClientData cdata,
      * IMPORTANT: do not call any system or C functions until check done
      * to prevent GetLastError/errno etc. being overwritten
      */
-#define CALLFN(objfn_, dcfn_, fld_)                                            \
+#define CALLFN(objfn_, dcfn_, fld_, type_)                                     \
     do {                                                                       \
         CffiValue retval;                                                      \
-        retval.u.fld_ = dcfn_(&callCtx);                                       \
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {          \
+            type_ *p = CffiCallPointerFunc(&callCtx);                          \
+            if (p)                                                             \
+                retval.u.fld_ = *p;                                            \
+            else {                                                             \
+                fnCheckRet = Tclh_ErrorInvalidValue(                           \
+                    ip, NULL, "Function returned NULL pointer");               \
+                ret = TCL_ERROR;                                               \
+                break; /* Skip rest of macro */                                \
+            }                                                                  \
+        }                                                                      \
+        else                                                                   \
+            retval.u.fld_ = dcfn_(&callCtx);                                   \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
         if (fnCheckRet == TCL_OK) {                                            \
+            /* First try converting as enums, bitmasks etc. */                 \
             resultObj = CffiIntValueToObj(&protoP->returnType.typeAttrs,       \
                                           (Tcl_WideInt)retval.u.fld_);         \
+            /* If that did not work just use native value */                   \
             if (resultObj == NULL)                                             \
                 resultObj = objfn_(retval.u.fld_);                             \
         }                                                                      \
@@ -1611,8 +1634,7 @@ CffiFunctionCall(ClientData cdata,
             /* AFTER above Check to not lose GetLastError */                   \
             resultObj = objfn_(retval.u.fld_);                                 \
         }                                                                      \
-    } while (0);                                                               \
-    break
+    } while (0)
 
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
@@ -1620,23 +1642,57 @@ CffiFunctionCall(ClientData cdata,
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);
         resultObj = Tcl_NewObj();
         break;
-    case CFFI_K_TYPE_SCHAR: CALLFN(Tcl_NewIntObj, CffiCallSCharFunc, schar);
-    case CFFI_K_TYPE_UCHAR: CALLFN(Tcl_NewIntObj, CffiCallUCharFunc, uchar);
-    case CFFI_K_TYPE_SHORT: CALLFN(Tcl_NewIntObj, CffiCallShortFunc, sshort);
-    case CFFI_K_TYPE_USHORT: CALLFN(Tcl_NewIntObj, CffiCallUShortFunc, ushort);
-    case CFFI_K_TYPE_INT: CALLFN(Tcl_NewIntObj, CffiCallIntFunc, sint);
-    case CFFI_K_TYPE_UINT: CALLFN(Tcl_NewWideIntObj, CffiCallUIntFunc, uint);
-    case CFFI_K_TYPE_LONG: CALLFN(Tcl_NewLongObj, CffiCallLongFunc, slong);
-    case CFFI_K_TYPE_ULONG: CALLFN(Tclh_ObjFromULong, CffiCallULongFunc, ulong);
-    case CFFI_K_TYPE_LONGLONG: CALLFN(Tcl_NewWideIntObj, CffiCallLongLongFunc, slonglong);
-    case CFFI_K_TYPE_ULONGLONG: CALLFN(Tclh_ObjFromULongLong, CffiCallULongLongFunc, ulonglong);
-    case CFFI_K_TYPE_FLOAT: CALLFN(Tcl_NewDoubleObj, CffiCallFloatFunc, flt);
-    case CFFI_K_TYPE_DOUBLE: CALLFN(Tcl_NewDoubleObj, CffiCallDoubleFunc, dbl);
+    case CFFI_K_TYPE_SCHAR:
+        CALLFN(Tcl_NewIntObj, CffiCallSCharFunc, schar, signed char);
+        break;
+    case CFFI_K_TYPE_UCHAR:
+        CALLFN(Tcl_NewIntObj, CffiCallUCharFunc, uchar, unsigned char);
+        break;
+    case CFFI_K_TYPE_SHORT:
+        CALLFN(Tcl_NewIntObj, CffiCallShortFunc, sshort, short);
+        break;
+    case CFFI_K_TYPE_USHORT:
+        CALLFN(Tcl_NewIntObj, CffiCallUShortFunc, ushort, unsigned short);
+        break;
+    case CFFI_K_TYPE_INT:
+        CALLFN(Tcl_NewIntObj, CffiCallIntFunc, sint, int);
+        break;
+    case CFFI_K_TYPE_UINT:
+        CALLFN(Tcl_NewWideIntObj, CffiCallUIntFunc, uint, unsigned int);
+        break;
+    case CFFI_K_TYPE_LONG:
+        CALLFN(Tcl_NewLongObj, CffiCallLongFunc, slong, long);
+        break;
+    case CFFI_K_TYPE_ULONG:
+        CALLFN(Tclh_ObjFromULong, CffiCallULongFunc, ulong, unsigned long);
+        break;
+    case CFFI_K_TYPE_LONGLONG:
+        CALLFN(Tcl_NewWideIntObj, CffiCallLongLongFunc, slonglong, long long);
+        break;
+    case CFFI_K_TYPE_ULONGLONG:
+        CALLFN(Tclh_ObjFromULongLong, CffiCallULongLongFunc, ulonglong, unsigned long long);
+        break;
+    case CFFI_K_TYPE_FLOAT:
+        CALLFN(Tcl_NewDoubleObj, CffiCallFloatFunc, flt, float);
+        break;
+    case CFFI_K_TYPE_DOUBLE:
+        CALLFN(Tcl_NewDoubleObj, CffiCallDoubleFunc, dbl, double);
+        break;
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
         pointer = CffiCallPointerFunc(&callCtx);
-        /* Do IMMEDIATELY so as to not lose GetLastError */
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {
+            if (pointer)
+                pointer = *(void **)pointer; /* By ref so dereference */
+            else {
+                fnCheckRet = Tclh_ErrorInvalidValue(
+                    ip, NULL, "Function returned NULL pointer");
+                ret = TCL_ERROR;
+                break;
+            }
+        }
+        /* Do check IMMEDIATELY so as to not lose GetLastError */
         fnCheckRet = CffiCheckPointer(
             ip, &protoP->returnType.typeAttrs, pointer, &sysError);
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
@@ -1662,24 +1718,39 @@ CffiFunctionCall(ClientData cdata,
         }
         break;
     case CFFI_K_TYPE_STRUCT:
-#ifdef CFFI_USE_DYNCALL
-        /* Should not happen. If asserts disabled fallthru to error */
-        CFFI_ASSERT(0);
-#endif
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {
+            pointer = CffiCallPointerFunc(&callCtx);
+            if (pointer == NULL) {
+                fnCheckRet = Tclh_ErrorInvalidValue(
+                    ip, NULL, "Function returned NULL pointer");
+                ret = TCL_ERROR;
+                break;
+            }
+        }
+        else {
 #ifdef CFFI_USE_LIBFFI
-        CffiLibffiCall(&callCtx);
+            CffiLibffiCall(&callCtx);
+            pointer = callCtx.retValueP;
+#endif
+#ifdef CFFI_USE_DYNCALL
+            /* Should not really happen as checks made at definition time */
+            (void)Tclh_ErrorInvalidValue(
+                ipCtxP->interp, NULL, "Unsupported type for return.");
+            ret = TCL_ERROR;
+            break;
+#endif
+        }
         ret = CffiStructToObj(ip,
                               protoP->returnType.typeAttrs.dataType.u.structP,
-                              callCtx.retValueP,
+                              pointer,
                               &resultObj);
         break;
-#endif
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
 #if 0
-        /* Currently BYREF not allowed and DC does not support struct byval */
+        /* Currently BYREF not allowed for arrays and DC does not support struct byval */
         CFFI_ASSERT(protoP->returnType.flags & CFFI_F_PARAM_BYREF);
         callCtx.returnValue.ptr = dcCallPointer(vmP, protoP->fnP);
         if (CffiBinValueToObj(ipCtxP->interp,
