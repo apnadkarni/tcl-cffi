@@ -61,7 +61,7 @@ libgit2 functions {
         branch_name {STRING nullifempty}
     }
     git_branch_upstream_name GIT_ERROR_CODE {
-        buf     {struct.git_buf out}
+        buf     PBUF
         pRepo   PREPOSITORY
         refname STRING
     }
@@ -72,17 +72,17 @@ libgit2 functions {
         branch PREFERENCE
     }
     git_branch_remote_name GIT_ERROR_CODE {
-        buf     {struct.git_buf out}
+        buf     PBUF
         pRepo   PREPOSITORY
         refname STRING
     }
     git_branch_upstream_remote GIT_ERROR_CODE {
-        buf     {struct.git_buf out}
+        buf     PBUF
         pRepo   PREPOSITORY
         refname STRING
     }
     git_branch_upstream_merge GIT_ERROR_CODE {
-        buf     {struct.git_buf out}
+        buf     PBUF
         pRepo   PREPOSITORY
         refname STRING
     }

@@ -69,6 +69,17 @@ namespace eval $GIT_NS {
             merge.tcl
             cherrypick.tcl
             commit.tcl
+            config.tcl
+            credential_helpers.tcl
+            describe.tcl
+            email.tcl
+            filter.tcl
+            graph.tcl
+            ignore.tcl
+            mailmap.tcl
+            message.tcl
+            notes.tcl
+            pathspec.tcl
         }
 
         if {$path eq ""} {

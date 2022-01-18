@@ -93,13 +93,13 @@ libgit2 functions {
         n        uint
     }
     git_commit_header_field GIT_ERROR_CODE {
-        buf    {struct.git_buf out}
+        buf    PBUF
         commit PCOMMIT
         field  STRING
     }
     git_commit_extract_signature GIT_ERROR_CODE {
-        signature   {struct.git_buf out}
-        signed_data {struct.git_buf out}
+        signature   PBUF
+        signed_data PBUF
         pRepo       PREPOSITORY
         commit_id   {struct.git_oid byref}
         field       {STRING nullifempty nullok}
@@ -127,7 +127,7 @@ libgit2 functions {
         tree             PTREE
     }
     git_commit_create_buffer GIT_ERROR_CODE {
-        buf {struct.git_buf out}
+        buf PBUF
         pRepo            PREPOSITORY
         author           {struct.git_signature byref}
         committer        {struct.git_signature byref}
