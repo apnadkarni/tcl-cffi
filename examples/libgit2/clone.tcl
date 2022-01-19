@@ -28,7 +28,7 @@
 
 ::cffi::Struct create git_clone_options {
     version               uint
-    checkout_opts         struct.gitcheckout_options
+    checkout_opts         struct.git_checkout_options
     fetch_opts            struct.git_fetch_options
     bare                  int
     local                 GIT_CLONE_LOCAL_T

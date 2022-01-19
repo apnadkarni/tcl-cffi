@@ -46,6 +46,7 @@ namespace eval $GIT_NS {
             repository.tcl
             indexer.tcl
             odb.tcl
+            odb_backend.tcl
             object.tcl
             tree.tcl
             net.tcl
@@ -92,6 +93,11 @@ namespace eval $GIT_NS {
             signature.tcl
             stash.tcl
             status.tcl
+            submodule.tcl
+            trace.tcl
+            transaction.tcl
+            worktree.tcl
+            clone.tcl
         }
 
         if {$path eq ""} {
