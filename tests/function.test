@@ -715,6 +715,10 @@ namespace eval ${NS}::test {
         testDll function binary_inbyref_len int {bin {binary byref}}
         binary_inbyref_len abc\0
     } -result 3
+    test function-binary-in-nullifempty-0 "binary nullifempty" -body {
+        testDll function pointer_to_pointer {pointer nullok unsafe} {b {binary nullifempty}}
+        pointer_to_pointer ""
+    } -result [makeptr 0]
     test function-binary-out-error-0 "binary out" -body {
         testDll function bytes_out void [list n int input binary output [list binary out]]
     } -result {Invalid value "binary out". A type annotation is not valid for the data type.} -returnCodes error

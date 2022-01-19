@@ -635,7 +635,7 @@ namespace eval Concepts {
         convenience.
 
         The annotation `nullifempty` is available only
-        for `in` parameters of type `string`, `unistring` and `struct`. If
+        for `in` parameters of type `string`, `unistring`, `binary` and `struct`. If
         present, a NULL pointer is passed into the C function if the passed
         argument is an empty string in the case of `string` or `unistring` and
         an empty dictionary in the case of `struct`. This facility is useful for

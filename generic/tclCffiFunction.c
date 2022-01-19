@@ -444,6 +444,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
     int flags;
+    int len;
     char *p;
 
     /* Expected initialization to virgin state */
@@ -843,7 +844,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_BINARY:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
         CHECK(CffiArgPrepareInBinary(ip, typeAttrsP, valueObj, &argP->value));
-        argP->value.u.ptr = Tcl_GetByteArrayFromObj(argP->value.ancillary.baObj, NULL);
+        argP->value.u.ptr =
+            Tcl_GetByteArrayFromObj(argP->value.ancillary.baObj, &len);
+        if (len == 0 && (flags & CFFI_F_ATTR_NULLIFEMPTY))
+            argP->value.u.ptr = NULL;
         if (flags & CFFI_F_ATTR_BYREF)
             STOREARGBYREF(ptr);
         else

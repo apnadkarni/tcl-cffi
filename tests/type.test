@@ -904,11 +904,13 @@ namespace eval cffi::test {
         "{default 0}" "in {default 0}"
         "byref in" "in byref"
         "byref" "in byref"
+        "nullifempty in" "in nullifempty"
+        "nullifempty" "in nullifempty"
     } {
         teststring "binary $attr" param $expected
     }
     # out and inout params not allowed for binary
-    foreach attr {out inout {out byref} {inout byref} {nullifempty} {in nullifempty} structsize bitmask {{enum E}}} {
+    foreach attr {out inout {out byref} {inout byref} structsize bitmask {{enum E}}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
 

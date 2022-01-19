@@ -103,7 +103,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(binary),
      CFFI_K_TYPE_BINARY,
      /* Note binary cannot be OUT or INOUT parameters */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF,
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY,
      sizeof(unsigned char *)},
     {TOKENANDLEN(chars),
      CFFI_K_TYPE_CHAR_ARRAY,
