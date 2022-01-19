@@ -67,6 +67,7 @@ cffi::Struct create git_signature {
     email STRING
     when  struct.git_time
 }
+::cffi::alias define PSIGNATURE pointer.git_signature
 
 ::cffi::alias define {
     PREFERENCE           pointer.git_reference
@@ -83,6 +84,7 @@ cffi::Struct create git_signature {
     GIT_REFERENCE_SYMBOLIC  2
     GIT_REFERENCE_ALL       3
 }
+::cffi::alias define GIT_REFERENCE_T {int {enum git_reference_t}}
 
 ::cffi::enum define git_branch_t {
     GIT_BRANCH_LOCAL  1

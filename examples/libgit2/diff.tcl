@@ -210,7 +210,7 @@
     delta {struct.git_diff_delta byref}
     hunk  {struct.git_diff_hunk byref}
     line  {struct.git_diff_line byref}
-    paylog {pointer unsafe}
+    payload CB_PAYLOAD
 }
 
 ::cffi::enum define git_diff_find_t {

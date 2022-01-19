@@ -80,6 +80,18 @@ namespace eval $GIT_NS {
             message.tcl
             notes.tcl
             pathspec.tcl
+            patch.tcl
+            rebase.tcl
+            refdb.tcl
+            reflog.tcl
+            refs.tcl
+            reset.tcl
+            revert.tcl
+            revparse.tcl
+            revwalk.tcl
+            signature.tcl
+            stash.tcl
+            status.tcl
         }
 
         if {$path eq ""} {
