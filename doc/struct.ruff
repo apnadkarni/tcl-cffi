@@ -91,21 +91,18 @@ oo::class create ${NS}::Struct {
         # See also: fromnative tobinary
         #
     }
-    method Encode {initializer {count 0}} {
-        # Encodes the Tcl representation of a C struct value or an array
-        # of values to their native form.
-        #  initializer - if $count is 0, this is a single dictionary holding
-        #    the Tcl representation of a C struct value; if $count is greater
-        #    than 0, this is list of such structs.
-        # The method allocates memory for the required number of native
-        # C structs and initializes them. The dictionary
-        # (or dictionaries) keys correspond to the field names as
-        # in the struct definition.
+    method fieldpointer {pointer fieldname {tag ""} {index 0}} {
+        # Returns a pointer corresponding to the address of a field within a
+        # native structure
+        #  pointer - pointer to memory allocated for the C struct or array. Must be
+        #    a safe pointer tagged with the struct name.
+        #  fieldname - name of the field
+        #  tag - tag for the returned pointer
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
         #
-        # The returned memory must be freed by calling the [free] method.
+        # Note the returned pointer is not registered as a safe pointer.
         #
-        # Returns a safe, typed pointer to the allocated memory.
-        # 
     }
     method free {pointer} {
         # Frees memory that was allocated for a native C struct.

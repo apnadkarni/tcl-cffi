@@ -691,6 +691,96 @@ namespace eval cffi::test {
         S destroy
     } -result {i 256}
 
+    ###
+    # fieldpointer
+    testnumargs struct-fieldpointer "::TestStruct fieldpointer" "POINTER FIELD" "?TAG? ?INDEX?"
+
+    test struct-fieldpointer-0 "Address of first field in struct" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+        ::cffi::pointer safe $ptr
+    } -body {
+        S fieldpointer $ptr c
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result [makeptr 8]
+
+    test struct-fieldpointer-1 "Address of non-first field in struct, tag" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+        ::cffi::pointer safe $ptr
+    } -body {
+        set fldptr [S fieldpointer $ptr i TAG]
+        list $fldptr [::cffi::pointer isvalid $fldptr]
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result [list [makeptr 12 TAG] 0]
+
+    test struct-fieldpointer-2 "Address of field in struct, tag, index" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+        ::cffi::pointer safe $ptr
+    } -body {
+        set fldptr [S fieldpointer $ptr i TAG 2]
+        list $fldptr [::cffi::pointer isvalid $fldptr]
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result [list [makeptr 28 TAG] 0]
+    test struct-fieldpointer-3 "Address of field in struct, no tag, index" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+        ::cffi::pointer safe $ptr
+    } -body {
+        set fldptr [S fieldpointer $ptr c "" 1]
+        list $fldptr [::cffi::pointer isvalid $fldptr]
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result [list [makeptr 16] 0]
+
+    test struct-fieldpointer-error-0 "Address of invalid field name" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+        ::cffi::pointer safe $ptr
+    } -body {
+        S fieldpointer $ptr nosuchfield
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
+
+    test struct-fieldpointer-error-1 "Address of field - invalid index" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+        ::cffi::pointer safe $ptr
+    } -body {
+        S fieldpointer $ptr i TAG -1
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result {Value -1 not in range. Must be within [0,2147483647].} -returnCodes error
+    test struct-fieldpointer-error-2 "Address of field - wrong pointer type" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S2]
+        ::cffi::pointer safe $ptr
+    } -body {
+        S fieldpointer $ptr i
+    } -cleanup {
+        ::cffi::pointer dispose $ptr
+        S destroy
+    } -result "Value \"[scoped_ptr 8 S2]\" has the wrong type. Pointer type mismatch." -returnCodes error
+
+    test struct-fieldpointer-error-3 "Address of field - unsafe pointer" -setup {
+        ::cffi::Struct create S {c schar i int}
+        set ptr [scoped_ptr 8 S]
+    } -body {
+        S fieldpointer $ptr i
+    } -cleanup {
+        S destroy
+    } -result "Pointer [scoped_ptr 8 S] is not registered." -returnCodes error
 
     ###
     # Bug fixes

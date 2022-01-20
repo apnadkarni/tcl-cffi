@@ -161,7 +161,36 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     return TCL_OK;
 }
 
-/* Function: CffiStructDescribe
+/* Function: CffiStructFindField
+ * Returns the field index corresponding to a field name
+ *
+ * Parameters:
+ * ip - interpreter. May be NULL if error messages not required.
+ * structP - struct descriptor
+ * fieldNameP - name of field
+ *
+ * Returns:
+ * Index of field or -1 if not found.
+ */
+static int
+CffiStructFindField(Tcl_Interp *ip, CffiStruct *structP, const char *fieldNameP)
+{
+    int i;
+    char message[100];
+
+    for (i = 0; i < structP->nFields; ++i) {
+        if (!strcmp(fieldNameP, Tcl_GetString(structP->fields[i].nameObj)))
+            return i;
+    }
+    snprintf(message,
+             sizeof(message),
+             "No such field in struct definition %s.",
+             Tcl_GetString(structP->name));
+    Tclh_ErrorNotFoundStr(ip, "Field", fieldNameP, message);
+    return -1;
+}
+
+/* Function: CffiStructDescribeCmd
  * Stores a human readable description of the internal representation of
  * a <CffiStruct> as the interpreter result.
  *
@@ -725,6 +754,7 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+
 static CffiResult
 CffiStructFromNativePointer(Tcl_Interp *ip,
                         int objc,
@@ -870,6 +900,59 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
 
     return TCL_OK;
 }
+
+/* Function: CffiStructFieldPointerCmd
+ * Returns a pointer to a field in a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * scructCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - pointer to memory
+ * objv[3] - field name
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructFieldPointerCmd(Tcl_Interp *ip,
+                          int objc,
+                          Tcl_Obj *const objv[],
+                          CffiStructCmdCtx *structCtxP)
+{
+    CffiStruct *structP = structCtxP->structP;
+    char *fieldAddr;
+    int fieldIndex;
+
+    /* S fieldpointer POINTER FIELDNAME ?TAG? ?INDEX? */
+    CFFI_ASSERT(objc > 4);
+
+    fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
+    if (fieldIndex < 0)
+        return TCL_ERROR;
+
+    CHECK(Tclh_PointerObjVerify(ip, objv[2], &fieldAddr, structP->name));
+
+    /* TBD - check alignment of fieldP for the struct */
+    if (objc == 6) {
+        Tcl_WideInt wide;
+        CHECK(Tclh_ObjToRangedInt(ip, objv[5], 0, INT_MAX, &wide));
+        fieldAddr += structP->size * (int)wide;
+    }
+    fieldAddr += structP->fields[fieldIndex].offset;
+    Tcl_SetObjResult(ip,
+                     Tclh_PointerWrap(fieldAddr, objc > 4 ? objv[4] : NULL));
+
+    return TCL_OK;
+}
+
 
 /* Function: CffiStructFreeCmd
  * Releases the memory allocated for a struct instance.
@@ -1059,6 +1142,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
+        {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
         {NULL}
     };
     int cmdIndex;
