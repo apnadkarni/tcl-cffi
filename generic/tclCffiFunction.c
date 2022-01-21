@@ -72,12 +72,14 @@ CffiPointerArgsDispose(Tcl_Interp *ip,
                 int nptrs = argsP[i].actualCount;
                 /* Note no error checks because the CffiFunctionSetup calls
                    above would have already done validation */
-                if (nptrs <= 1) {
+                if (nptrs == 0) {
+                    /* Scalar */
                     if (argsP[i].savedValue.u.ptr != NULL)
                         Tclh_PointerUnregister(
                             ip, argsP[i].savedValue.u.ptr, NULL);
                 }
                 else {
+                    /* Array */
                     int j;
                     void **ptrArray = argsP[i].savedValue.u.ptr;
                     CFFI_ASSERT(ptrArray);

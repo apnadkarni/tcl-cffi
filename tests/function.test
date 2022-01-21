@@ -2082,6 +2082,18 @@ namespace eval ${NS}::test {
         pointer_array_exchange ptrs1 ptrs2 [llength $ptrs1]
         list $ptrs1 $ptrs2
     } -result [list [make_unsafe_pointers 4 5 6] [make_unsafe_pointers 0 1 2]]
+    test function-array-pointer-7 "Bug #95 - dispose array of size 1" -setup {
+        purge_pointers
+        set safe_ptrs [make_safe_pointers 1]
+        unset -nocomplain unsafe_ptrs
+    } -cleanup {
+        purge_pointers
+        unset -nocomplain safe_ptrs unsafe_ptrs
+    } -body {
+        testDll function pointer_array_incr void {inp {pointer[n] dispose} outp {pointer[n] out unsafe} n int}
+        pointer_array_incr $safe_ptrs unsafe_ptrs [llength $safe_ptrs]
+        list $unsafe_ptrs [cffi::pointer list]
+    } -result [list [make_unsafe_pointers 2] {}]
 
 
     ###
