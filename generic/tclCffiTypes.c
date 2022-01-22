@@ -9,15 +9,15 @@
 #include "tclCffiInt.h"
 #include <errno.h>
 
+#define CFFI_VALID_INTEGER_ATTRS                                       \
+    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK             \
+     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
+     | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NULLOK)
 
 /*
  * Basic type meta information. The order *MUST* match the order in
  * cffiTypeId.
  */
-#define CFFI_VALID_INTEGER_ATTRS                                       \
-    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK             \
-     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
-     | CFFI_F_ATTR_STRUCTSIZE)
 
 #define TOKENANDLEN(t) # t , sizeof(#t) - 1
 
@@ -67,17 +67,17 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_K_TYPE_FLOAT,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(float)},
     {TOKENANDLEN(double),
      CFFI_K_TYPE_DOUBLE,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(double)},
     {TOKENANDLEN(struct),
      CFFI_K_TYPE_STRUCT,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK,
      0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
     /*  */
@@ -107,15 +107,15 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      sizeof(unsigned char *)},
     {TOKENANDLEN(chars),
      CFFI_K_TYPE_CHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(char)},
     {TOKENANDLEN(unichars),
      CFFI_K_TYPE_UNICHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(Tcl_UniChar)},
     {TOKENANDLEN(bytes),
      CFFI_K_TYPE_BYTE_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(unsigned char)},
     {NULL}};
 
@@ -928,6 +928,22 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             }
             break;
         case NULLOK:
+            if (baseType != CFFI_K_TYPE_POINTER
+                && baseType != CFFI_K_TYPE_ASTRING
+                && baseType != CFFI_K_TYPE_UNISTRING
+                && baseType != CFFI_K_TYPE_BINARY
+                && !CffiTypeIsArray(&typeAttrP->dataType)) {
+#if 1
+            message = "A type annotation is not valid for the data type.";
+#else
+                message =
+                    "The \"nullok\" annotation is only valid for pointers and "
+                    "arguments passed by reference.";
+                goto invalid_format;
+#endif
+            goto invalid_format;
+            }
+
             flags |= CFFI_F_ATTR_NULLOK;
             break;
         case STRUCTSIZE:
@@ -983,7 +999,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
             /*
-             * NULLIFEMPTY never allowed for any output. DISPOSE*
+             * NULLIFEMPTY never allowed for any output.
              */
             if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
                 || ((flags & CFFI_F_ATTR_OUT)
@@ -1345,8 +1361,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
  * valueP - pointer to C binary value to wrap
  * count - number of values pointed to by valueP. *< 0* indicates a scalar
  *         positive number (even *1*) is size of array. Size of 0
- *         will panic (dynamic sizes should have been resolved before call)
- *         TODO - what about when passing NULL for empty array?
+ *         will raise error
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
  *    Following standard practice, the reference count on the Tcl_Obj is 0.
  *
@@ -1366,8 +1381,11 @@ CffiNativeValueToObj(Tcl_Interp *ip,
     Tcl_Obj *valueObj;
     CffiBaseType baseType = typeAttrsP->dataType.baseType;
 
-    CFFI_ASSERT(count != 0);
     CFFI_ASSERT(baseType != CFFI_K_TYPE_BINARY);
+    if (count == 0) {
+        Tcl_SetResult(ip, "Internal error: count=0 passed to CffiNativeValueToObj.", TCL_STATIC);
+        return TCL_ERROR;
+    }
 
     switch (baseType) {
     case CFFI_K_TYPE_STRUCT:

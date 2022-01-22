@@ -604,6 +604,7 @@ namespace eval ${NS}::test {
             set fn ${type}_to_void
         }
         foreach attr [linsert $pointerAttrs end nullifempty] {
+            if {$attr eq "nullok"} continue; # Skip nullok from pointerAttrs
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                 testDll function $fn void [list param [list $type\[2\] $attr]]
             } -result "Invalid value \"{$type\[2\]} $attr\". $errorMessages(attrtype)" -returnCodes error
@@ -1848,6 +1849,43 @@ namespace eval ${NS}::test {
         threeargs 1 2
     } -result {Syntax: threeargs a b c} -returnCodes error
 
+    ###
+    # Array tests - empty arrays, all types
+    foreach type [list {*}$numericTypes pointer struct.::TestStruct chars unichars bytes] {
+        # Test for zero size array with nullok
+        test function-array-count0-$type-in-0 {array input size 0} -setup {
+            # Fake out function as taking array. Doesn't matter as we pass NULL
+            set fn pointer_add
+            testDll function $fn {pointer nullok unsafe} [list inarray [list $type\[n\] nullok] n int]
+        } -body {
+            $fn {} 0
+        } -result [makeptr 0]
+        test function-array-count0-$type-in-1 {array input size 0, array not empty} -setup {
+            # Fake out function as taking array. Doesn't matter as we pass NULL
+            set fn pointer_add
+            testDll function $fn {pointer nullok unsafe} [list inarray [list $type\[n\] nullok] n int]
+        } -body {
+            $fn {1} 0
+        } -result [makeptr 0]
+
+        test function-array-count0-$type-out-0 {array output size 0} -setup {
+            # Fake out function as taking array. Doesn't matter as we pass NULL
+            set fn pointer_add
+            testDll function $fn {pointer nullok unsafe} [list inarray [list $type\[n\] nullok out] n int]
+            unset -nocomplain outvar
+        } -body {
+            list [$fn {} 0] [info exists outvar]
+        } -result [list [makeptr 0] 0]
+
+        test function-array-count0-$type-inout-0 {array inout size 0} -setup {
+            # Fake out function as taking array. Doesn't matter as we pass NULL
+            set fn pointer_add
+            testDll function $fn {pointer nullok unsafe} [list inarray [list $type\[n\] nullok out] n int]
+            unset -nocomplain outvar
+        } -body {
+            list [$fn {} 0] [info exists outvar]
+        } -result [list [makeptr 0] 0]
+    }
 
     ###
     # Array tests - numerics
@@ -1927,28 +1965,28 @@ namespace eval ${NS}::test {
         } -body {
             $fn {1 2 3} 3 outarr -1
             set outarr
-        } -result {Value -1 not in range. Must be within [0,2147483647].} -returnCodes error
+        } -result {Value -1 not in range. Must be within [1,2147483647].} -returnCodes error
         test function-array-count-$type-error-1 {Copy array when count param is AFTER array pointer} -setup {
             set fn ${type}_array_count_copy
             testDll function $fn void [list inparam $type\[n_in\] n_in int outparam [list $type\[n_out\] out] n_out int]
         } -body {
             $fn {1 2 3} 0 outarr 2
             set outarr
-        } -result {Value 0 not in range. Must be within [0,2147483647].} -returnCodes error
+        } -result {Passing a zero size array requires the nullok annotation.} -returnCodes error
         test function-count-array-$type-error-0 {Copy array when count param is BEFORE array pointer} -setup {
             set fn ${type}_count_array_copy
             testDll function $fn void [list n_out int outparam [list $type\[n_out\] out] n_in int inparam $type\[n_in\]]
         } -body {
             $fn -1 outarr 2 {1 2}
             set outarr
-        } -result {Value -1 not in range. Must be within [0,2147483647].} -returnCodes error
+        } -result {Value -1 not in range. Must be within [1,2147483647].} -returnCodes error
         test function-count-array-$type-error-1 {Copy array when count param is BEFORE array pointer} -setup {
             set fn ${type}_count_array_copy
             testDll function $fn void [list n_out int outparam [list $type\[n_out\] out] n_in int inparam $type\[n_in\]]
         } -body {
             $fn 2 outarr 0 {1 2}
             set outarr
-        } -result {Value 0 not in range. Must be within [0,2147483647].} -returnCodes error
+        } -result {Passing a zero size array requires the nullok annotation.} -returnCodes error
 
         # errors
         foreach direc {in out inout} {

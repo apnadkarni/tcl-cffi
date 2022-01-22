@@ -98,7 +98,8 @@ CffiPointerArgsDispose(Tcl_Interp *ip,
  *
  * Parameters:
  * callP - the call context
- * arg_index - index into argument array of call context
+ * arg_index - index into argument array of call context. Caller must
+ * ensure this is an array of size > 0.
  * valueObj - the value passed in from script. May be NULL for pure output.
  * valueP - location of native value to store
  *
@@ -122,8 +123,6 @@ CffiArgPrepareChars(CffiCall *callP,
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
     CFFI_ASSERT(argP->arraySize > 0);
-
-    /*TODO - handle arraySize == 0*/
 
     valueP->u.ptr =
         MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
@@ -154,7 +153,8 @@ CffiArgPrepareChars(CffiCall *callP,
  *
  * Parameters:
  * callP - the call context
- * arg_index - index into argument array of call context
+ * arg_index - index into argument array of call context. Caller must
+ * ensure this is an array of size > 0.
  * valueObj - the value passed in from script. May be NULL for pure output.
  * valueP - location of native value to store
  *
@@ -177,8 +177,6 @@ CffiArgPrepareUniChars(CffiCall *callP,
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
     CFFI_ASSERT(argP->arraySize > 0);
-
-    /*TODO - handle arraySize == 0*/
 
     valueP->u.ptr =
         MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(Tcl_UniChar));
@@ -333,7 +331,8 @@ CffiArgPrepareInBinary(Tcl_Interp *ip,
  *
  * Parameters:
  * callP - the call context
- * arg_index - index into argument array of call context
+ * arg_index - index into argument array of call context. Caller must
+ * ensure this is an array of size > 0.
  * valueObj - the value passed in from script. May be NULL for pure output.
  * valueP - location of native value to store
  *
@@ -356,8 +355,6 @@ CffiArgPrepareBytes(CffiCall *callP,
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
     CFFI_ASSERT(argP->arraySize > 0);
-
-    /*TODO - handle arraySize == 0*/
 
     valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_BYTE_ARRAY);
@@ -530,17 +527,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 
     /*
-     * Modulo bugs, even dynamic array sizes are supposed to be initialized
-     * before calling this function on an argument.
-     */
-    CFFI_ASSERT(argP->arraySize != 0);
-    if (argP->arraySize == 0) {
-        /* Should not happen. Just a failsafe. */
-        return ErrorInvalidValue(
-            ip, NULL, "Variable size array parameters not implemented.");
-    }
-
-    /*
      * STORENUM - for storing numerics only.
      * For storing an argument, if the parameter is byval, extract the
      * value into native form and pass it to dyncall via the specified
@@ -583,12 +569,11 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
 #endif /* CFFI_USE_LIBFFI */
 
-    /*TODO - handle arraysize 0*/
-
 #define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
     do {                                                                       \
         CFFI_ASSERT(argP->arraySize != 0);                                     \
         if (argP->arraySize < 0) {                                             \
+            /* Scalar */                                                       \
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
                 if (flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {        \
                     Tcl_WideInt wide;                                          \
@@ -605,10 +590,24 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             else                                                               \
                 STOREARG(dcfn_, fld_);                                         \
         }                                                                      \
+        else if (argP->arraySize == 0) {                                       \
+            /* Zero size array, pass as NULL */                                \
+            CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                             \
+            if ((flags & CFFI_F_ATTR_NULLOK) == 0) {                           \
+                return Tclh_ErrorGeneric(ip,                                   \
+                                         NULL,                                 \
+                                         "Passing a zero size array requires " \
+                                         "the nullok annotation.");            \
+            }                                                                  \
+            argP->value.u.ptr = NULL;                                          \
+            STOREARG(CffiStoreArgPointer, ptr);                                \
+        }                                                                      \
         else {                                                                 \
             /* Array - has to be byref */                                      \
             type_ *valueArray;                                                 \
             CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                             \
+            if (argP->arraySize == 0)                                          \
+                goto pass_null_array;                                          \
             valueArray =                                                       \
                 MemLifoAlloc(&ipCtxP->memlifo,                                 \
                              argP->arraySize * sizeof(argP->value.u.fld_));    \
@@ -662,7 +661,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_FLOAT: STORENUM(ObjToFloat, CffiStoreArgFloat, flt, float); break;
     case CFFI_K_TYPE_DOUBLE: STORENUM(ObjToDouble, CffiStoreArgDouble, dbl, double); break;
     case CFFI_K_TYPE_STRUCT:
-        /*TODO - handle arraySize 0*/
         CFFI_ASSERT(argP->arraySize != 0);
         if (argP->arraySize < 0) {
             /* Single struct */
@@ -709,6 +707,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             char *toP;
             int struct_size = typeAttrsP->dataType.u.structP->size;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            if (argP->arraySize == 0)
+                goto pass_null_array;
             valueArray =
                 MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize * struct_size);
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
@@ -738,7 +738,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_POINTER:
         /* TBD - can we just use STORENUM here ? */
-        /*TODO - handle array size 0*/
         CFFI_ASSERT(argP->arraySize != 0);
         if (argP->arraySize < 0) {
             if (flags & CFFI_F_ATTR_OUT)
@@ -753,9 +752,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 STOREARGBYREF(ptr);
             else
                 STOREARG(CffiStoreArgPointer, ptr);
-        } else {
+        }
+        else {
             void **valueArray;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+            if (argP->arraySize == 0)
+                goto pass_null_array;
             valueArray = MemLifoAlloc(&ipCtxP->memlifo,
                                       argP->arraySize * sizeof(void *));
             if (flags & CFFI_F_ATTR_OUT)
@@ -792,6 +794,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_CHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        if (argP->arraySize == 0)
+            goto pass_null_array;
         CHECK(CffiArgPrepareChars(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARG(CffiStoreArgPointer, ptr);
@@ -801,7 +805,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
         if (flags & CFFI_F_ATTR_OUT) {
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-            argP->value.u.ptr = NULL;
+            argP->value.u.ptr = NULL; /* Called function will store output here */
             STOREARGBYREF(ptr);
         }
         else {
@@ -852,6 +856,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_UNICHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        if (argP->arraySize == 0)
+            goto pass_null_array;
         CHECK(CffiArgPrepareUniChars(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARG(CffiStoreArgPointer, ptr);
@@ -872,6 +878,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_BYTE_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        if (argP->arraySize == 0)
+            goto pass_null_array;
         CHECK(CffiArgPrepareBytes(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARG(CffiStoreArgPointer, ptr);
@@ -881,9 +889,23 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         return ErrorInvalidValue( ip, NULL, "Unsupported type.");
     }
 
+success:
     callP->argsP[arg_index].flags |= CFFI_F_ARG_INITIALIZED;
-
     return TCL_OK;
+
+pass_null_array:
+    /* Zero size array, pass as NULL */
+    CFFI_ASSERT(argP->arraySize == 0);
+    CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+    if ((flags & CFFI_F_ATTR_NULLOK) == 0) {
+        return Tclh_ErrorGeneric(ip,
+                                 NULL,
+                                 "Passing a zero size array requires "
+                                 "the nullok annotation.");
+    }
+    argP->value.u.ptr = NULL;
+    STOREARG(CffiStoreArgPointer, ptr);
+    goto success;
 
 #undef STORENUM
 #undef STOREARG
@@ -896,6 +918,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
  * Post processing of the argument consists of checking if the parameter
  * was an *out* or *inout* parameter and storing it in the output Tcl variable.
  * Note no cleanup of argument storage is done.
+ *
+ * In the case of arrays, if the output array was specified as zero size,
+ * the output variable is not modified.
  *
  * Parameters:
  * callP - the call context
@@ -918,10 +943,14 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     Tcl_Obj *valueObj;
 
     CFFI_ASSERT(callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED);
-    CFFI_ASSERT(argP->arraySize != 0); /* Array size known */
-    /*TODO - handle arraySize 0*/
+
     if (typeAttrsP->flags & CFFI_F_ATTR_IN)
         return TCL_OK;
+
+    /* If output array size was zero, no output is to be stored */
+    if (argP->arraySize == 0) {
+        return TCL_OK;
+    }
 
     /*
      * There are three categories:
@@ -1419,9 +1448,9 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             continue;
         }
 
-        /*TODO - handle arraySize 0*/
-        /* Scalar or fixed size array */
+        /* Scalar or fixed size array. Type decl should have ensured size!=0 */
         argsP[i].arraySize = typeAttrsP->dataType.arraySize;
+        CFFI_ASSERT(argsP[i].arraySize != 0); /* Must be scalar or array of size > 0 */
         if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
             goto cleanup_and_error;
     }
@@ -1494,9 +1523,8 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             goto cleanup_and_error;
         }
 
-        /*TODO - handle arraySize 0 */
-        if (actualCount <= 0 || actualCount > INT_MAX) {
-            (void) Tclh_ErrorRange(ip, argObjs[j], 0, INT_MAX);
+        if (actualCount < 0 || actualCount > INT_MAX) {
+            (void) Tclh_ErrorRange(ip, argObjs[j], 1, INT_MAX);
             goto cleanup_and_error;
         }
 

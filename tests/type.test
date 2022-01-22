@@ -387,6 +387,7 @@ namespace eval cffi::test {
         # Scalar tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs nullifempty] {
             testinvalidattr "$type $attr" param $errorMessages(attrtype)
+            if {$attr eq "nullok"} continue
             testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
         }
         # Scalar tests - attributes invalid for param parse mode
@@ -724,7 +725,6 @@ namespace eval cffi::test {
         } -result [list size $size count $count alignment $alignment definition [list "$type\[$count\]" {*}$expected_typeattrs]] -match dict
     }
     foreach type {chars chars.utf-8 unichars bytes} {
-
         ### Parse mode = param, return, field
         foreach parse_mode {param return field} {
             # Scalar tests
@@ -771,6 +771,7 @@ namespace eval cffi::test {
 
             # Invalid attributes for type
             foreach attr [list {*}$pointerAttrs {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
+                if {$attr eq "nullok"} continue; # Skip nullok from pointerAttrs
                 testinvalidattr [list $type\[2\] $attr] $parse_mode $errorMessages(attrtype)
             }
 
