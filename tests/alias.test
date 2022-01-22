@@ -48,10 +48,10 @@ namespace eval cffi::test {
         cffi::alias define X Y
     } -result "Invalid value \"Y\". Invalid base type." -returnCodes error
 
-    testalias alias-define-0 "int" "size 4 count 0 alignment 4 definition int"
+    testalias alias-define-0 "int" "size 4 count -1 alignment 4 definition int"
     testalias alias-define-1 "double\[2\]" "size 16 count 2 alignment 8 definition {{double\[2\]}}"
 
-    testalias alias-define-nested-0 "nested" "size 4 count 0 alignment 4 definition {int out}" {
+    testalias alias-define-nested-0 "nested" "size 4 count -1 alignment 4 definition {int out}" {
         cffi::alias define nested {int out}
     }
 
@@ -71,7 +71,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias define {f float i {int nonzero}}
         list [lsort [cffi::alias list]] [cffi::type info f] [cffi::type info i]
-    } -result [list [lprefixns f i] {size 4 count 0 alignment 4 definition float} {size 4 count 0 alignment 4 definition {int nonzero}}]
+    } -result [list [lprefixns f i] {size 4 count -1 alignment 4 definition float} {size 4 count -1 alignment 4 definition {int nonzero}}]
 
     test alias-define-multi-error-0 "Missing definition" -setup {
         cffi::alias delete *
@@ -103,7 +103,7 @@ namespace eval cffi::test {
         cffi::alias body Y
     } -result int
 
-    testalias alias-define-merge-0 "merger nonzero" "size 4 count 0 alignment 4 definition {int nonzero errno}" {
+    testalias alias-define-merge-0 "merger nonzero" "size 4 count -1 alignment 4 definition {int nonzero errno}" {
         cffi::alias define merger {int errno}
     }
 

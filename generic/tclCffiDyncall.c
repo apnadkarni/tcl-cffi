@@ -243,33 +243,33 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
 
     CFFI_ASSERT(argP->flags & CFFI_F_ARG_INITIALIZED);
 
-#define STORESCALAR(dcfn_, fld_)                                      \
-    do {                                                           \
-        if (argP->actualCount == 0) {                              \
-            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)             \
-                dcArgPointer(vmP, (DCpointer)&argP->value.u.fld_); \
-            else                                                   \
-                dcfn_(vmP, argP->value.u.fld_);                    \
-        }                                                          \
-        else {                                                     \
-            CFFI_ASSERT(typeAttrsP->flags &CFFI_F_ATTR_BYREF);     \
-            dcArgPointer(vmP, (DCpointer)argP->value.u.ptr);       \
-        }                                                          \
+#define STORE_(dcfn_, fld_)                                             \
+    do {                                                                \
+        if (argP->arraySize < 0) {                                      \
+            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)                  \
+                dcArgPointer(vmP, (DCpointer)&argP->value.u.fld_);      \
+            else                                                        \
+                dcfn_(vmP, argP->value.u.fld_);                         \
+        }                                                               \
+        else {                                                          \
+            CFFI_ASSERT(typeAttrsP->flags &CFFI_F_ATTR_BYREF);          \
+            dcArgPointer(vmP, (DCpointer)argP->value.u.ptr);            \
+        }                                                               \
     } while (0)
     switch (typeAttrsP->dataType.baseType) {
-    case CFFI_K_TYPE_SCHAR: STORESCALAR(dcArgChar, schar); break;
-    case CFFI_K_TYPE_UCHAR: STORESCALAR(dcArgChar, uchar); break;
-    case CFFI_K_TYPE_SHORT: STORESCALAR(dcArgShort, sshort); break;
-    case CFFI_K_TYPE_USHORT: STORESCALAR(dcArgShort, ushort); break;
-    case CFFI_K_TYPE_INT: STORESCALAR(dcArgInt, sint); break;
-    case CFFI_K_TYPE_UINT: STORESCALAR(dcArgInt, uint); break;
-    case CFFI_K_TYPE_LONG: STORESCALAR(dcArgLong, slong); break;
-    case CFFI_K_TYPE_ULONG: STORESCALAR(dcArgLong, ulong); break;
-    case CFFI_K_TYPE_LONGLONG: STORESCALAR(dcArgLongLong, slonglong); break;
-    case CFFI_K_TYPE_ULONGLONG: STORESCALAR(dcArgLongLong, ulonglong); break;
-    case CFFI_K_TYPE_FLOAT: STORESCALAR(dcArgFloat, flt); break;
-    case CFFI_K_TYPE_DOUBLE: STORESCALAR(dcArgDouble, dbl); break;
-    case CFFI_K_TYPE_POINTER: STORESCALAR(dcArgDouble, dbl); break;
+    case CFFI_K_TYPE_SCHAR: STORE_(dcArgChar, schar); break;
+    case CFFI_K_TYPE_UCHAR: STORE_(dcArgChar, uchar); break;
+    case CFFI_K_TYPE_SHORT: STORE_(dcArgShort, sshort); break;
+    case CFFI_K_TYPE_USHORT: STORE_(dcArgShort, ushort); break;
+    case CFFI_K_TYPE_INT: STORE_(dcArgInt, sint); break;
+    case CFFI_K_TYPE_UINT: STORE_(dcArgInt, uint); break;
+    case CFFI_K_TYPE_LONG: STORE_(dcArgLong, slong); break;
+    case CFFI_K_TYPE_ULONG: STORE_(dcArgLong, ulong); break;
+    case CFFI_K_TYPE_LONGLONG: STORE_(dcArgLongLong, slonglong); break;
+    case CFFI_K_TYPE_ULONGLONG: STORE_(dcArgLongLong, ulonglong); break;
+    case CFFI_K_TYPE_FLOAT: STORE_(dcArgFloat, flt); break;
+    case CFFI_K_TYPE_DOUBLE: STORE_(dcArgDouble, dbl); break;
+    case CFFI_K_TYPE_POINTER: STORE_(dcArgDouble, dbl); break;
     case CFFI_K_TYPE_STRUCT: /* FALLTHRU */
     case CFFI_K_TYPE_CHAR_ARRAY: /* FALLTHRU */
     case CFFI_K_TYPE_BYTE_ARRAY: /* FALLTHRU */
@@ -289,7 +289,7 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
                    typeAttrsP->dataType.baseType);
         break;
     }
-#undef STORESCALAR
+#undef STORE_
 }
 
 void CffiDyncallFinit(CffiInterpCtx *ipCtxP)

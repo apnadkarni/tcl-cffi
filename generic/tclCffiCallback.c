@@ -94,7 +94,7 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
             "suitable for use in callbacks.");
     }
 
-    if (typeAttrsP->dataType.count != 0) {
+    if (CffiTypeIsArray(&typeAttrsP->dataType)) {
         return Tclh_ErrorInvalidValue(
             ipCtxP->interp,
             paramP->nameObj,

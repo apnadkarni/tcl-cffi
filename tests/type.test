@@ -47,7 +47,7 @@ namespace eval cffi::test {
         if {$type ni {chars unichars bytes}} {
             test type-info-$testlabel-0 "type info $typedecl" -body {
                 cffi::type info $typedecl
-            } -result [list size $size count 0 alignment $alignment definition $typedecl] -match dict
+            } -result [list size $size count -1 alignment $alignment definition $typedecl] -match dict
 
             test type-size-$testlabel-0 "type size $typedecl" -body {
                 cffi::type size $typedecl
@@ -55,7 +55,7 @@ namespace eval cffi::test {
 
             test type-count-$testlabel-0 "type count $typedecl" -body {
                 cffi::type count $typedecl
-            } -result 0
+            } -result -1
 
         } else {
             # chars, unichars, bytes
@@ -158,7 +158,7 @@ namespace eval cffi::test {
         # Scalar test for each parse mode
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size $size count 0 alignment $alignment definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
+        } -result [list size $size count -1 alignment $alignment definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
     }
 
     proc testnumericarray {typedecl count parse_mode expected_typeattrs args} {
@@ -231,7 +231,7 @@ namespace eval cffi::test {
         ### Parse mode = return
         test info-type-void-return-0 "void as return type" -body {
             cffi::type info void return
-        } -result [list size 0 count 0 alignment 0 definition void]
+        } -result [list size 0 count -1 alignment 0 definition void]
         test info-type-void-array-return-0 "void array as return type" -body {
             cffi::type info {void[2]} param
         } -result "Invalid value \"void\[2\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
@@ -547,7 +547,7 @@ namespace eval cffi::test {
 
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -constraints $constraints -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size [expr {$count ? ($count * $::tcl_platform(pointerSize)) : $::tcl_platform(pointerSize)}] count $count alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
+        } -result [list size [expr {$count ? ($count * $::tcl_platform(pointerSize)) : $::tcl_platform(pointerSize)}] count [expr {$count == 0 ? -1 : $count}] alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict
     }
 
     foreach type {pointer pointer.::TAG} {
@@ -797,7 +797,7 @@ namespace eval cffi::test {
 
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size $::tcl_platform(pointerSize) count 0 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
+        } -result [list size $::tcl_platform(pointerSize) count -1 alignment $::tcl_platform(pointerSize) definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
     }
 
     foreach type {string string.utf-8 unistring} {
@@ -935,7 +935,7 @@ namespace eval cffi::test {
         set testlabel type-info-[join $typedecl -]
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
-        } -result [list size [expr {$count ? ($count * $testStructSize) : $testStructSize}] count $count alignment 8 definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
+        } -result [list size [expr {$count ? ($count * $testStructSize) : $testStructSize}] count [expr {$count == 0 ? -1 : $count}] alignment 8 definition [list $type {*}$expected_typeattrs]] -match dict {*}$args
     }
     foreach parse_mode {param return field} {
         if {$parse_mode eq "param"} {
@@ -1013,7 +1013,7 @@ namespace eval cffi::test {
         cffi::alias delete type_info_test_alias_0
     } -body {
         cffi::type info type_info_test_alias_0 return
-    } -result {size 4 count 0 alignment 4 definition {int nonzero}} -match dict
+    } -result {size 4 count -1 alignment 4 definition {int nonzero}} -match dict
 
     test type-info-alias-1 "type info alias array" -setup {
         cffi::alias define type_info_test_alias_1 {int[2]}
@@ -1051,7 +1051,7 @@ namespace eval cffi::test {
         list \
             [cffi::type info INT] \
             [namespace eval ::ns {cffi::type info INT}]
-    } -result {{size 4 count 0 alignment 4 definition int} {size 8 count 0 alignment 8 definition longlong}}
+    } -result {{size 4 count -1 alignment 4 definition int} {size 8 count -1 alignment 8 definition longlong}}
 
 }
 

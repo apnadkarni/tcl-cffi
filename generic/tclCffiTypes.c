@@ -343,7 +343,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
 {
     if (fromP) {
         toP->baseType = fromP->baseType;
-        toP->count = fromP->count;
+        toP->arraySize = fromP->arraySize;
         toP->countHolderObj = fromP->countHolderObj;
         if (toP->countHolderObj)
             Tcl_IncrRefCount(toP->countHolderObj);
@@ -361,6 +361,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
     else {
         memset(toP, 0, sizeof(*toP));
         toP->baseType = CFFI_K_TYPE_VOID;
+        toP->arraySize = -1; /* Scalar */
     }
 }
 
@@ -402,7 +403,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     CFFI_ASSERT((sizeof(cffiBaseTypes)/sizeof(cffiBaseTypes[0]) - 1) == CFFI_K_NUM_TYPES);
 
     CffiTypeInit(typeP, NULL);
-    CFFI_ASSERT(typeP->count == 0); /* Code below assumes these values on init */
+    CFFI_ASSERT(typeP->arraySize < 0); /* Code below assumes these values on init */
     CFFI_ASSERT(typeP->countHolderObj == NULL);
     CFFI_ASSERT(typeP->u.tagObj == NULL);
     CFFI_ASSERT(typeP->u.structP == NULL);
@@ -511,7 +512,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         break;
     }
 
-    CFFI_ASSERT(typeP->count == 0);/* Should already be default init-ed */
+    CFFI_ASSERT(typeP->arraySize < 0);/* Should already be default init-ed */
     if (lbStr) {
         /* An array element count is specified, either as int or a symbol */
         char ch;
@@ -524,7 +525,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             /* Count specified as an integer */
             if (count <= 0 || rightbracket != ']')
                 goto invalid_array_size;
-            typeP->count = count;
+            typeP->arraySize = count;
         }
         else {
             /* Count specified as the name of some other thing */
@@ -535,7 +536,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             p = strchr(countStr, ']');
             if (p == NULL || p[1] != '\0' || p == countStr)
                 goto invalid_array_size;
-            typeP->count = -1;
+            typeP->arraySize = 0;/* Variable size array */
             typeP->countHolderObj =
                 Tcl_NewStringObj(countStr, (int) (p - countStr));
             Tcl_IncrRefCount(typeP->countHolderObj);
@@ -551,7 +552,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_BINARY:
-        if (typeP->count != 0) {
+        if (CffiTypeIsArray(typeP)) {
             message = "The specified type is invalid or unsupported for array "
                       "declarations.";
             goto invalid_type;
@@ -560,7 +561,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
-        if (typeP->count == 0) {
+        if (CffiTypeIsScalar(typeP)) {
             message = "Declarations of type chars, unichars and bytes must be arrays.";
             goto invalid_type;
         }
@@ -658,12 +659,12 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     if (alignP)
         *alignP = alignment;
     if (sizeP) {
-        if (typeP->count == 0)
+        if (CffiTypeIsScalar(typeP))
             *sizeP = baseSize;
-        else if (typeP->count < 0)
+        else if (CffiTypeIsVariableSizeArray(typeP))
             *sizeP = -1; /* Variable size array */
         else
-            *sizeP = typeP->count * baseSize;
+            *sizeP = typeP->arraySize * baseSize;
     }
 }
 
@@ -930,7 +931,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_NULLOK;
             break;
         case STRUCTSIZE:
-            if (typeAttrP->dataType.count != 0) {
+            if (CffiTypeIsArray(&typeAttrP->dataType)) {
                 message = "\"structsize\" annotation not valid for arrays.";
                 goto invalid_format;
             }
@@ -1003,7 +1004,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
 
-            if (typeAttrP->dataType.count != 0)
+            if (CffiTypeIsArray(&typeAttrP->dataType))
                 flags |= CFFI_F_ATTR_BYREF; /* Arrays always by reference */
             else {
                 /* Certain types always by reference */
@@ -1059,7 +1060,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             /* FALLTHRU */
         case CFFI_K_TYPE_VOID: /* FALLTHRU */
         default:
-            if (typeAttrP->dataType.count != 0) {
+            if (CffiTypeIsArray(&typeAttrP->dataType)) {
                 message = "Function return type must not be an array.";
                 goto invalid_format;
             }
@@ -1086,14 +1087,15 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
-            if (typeAttrP->dataType.count <= 0) {
+            if (CffiTypeIsScalar(&typeAttrP->dataType)
+                || CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
                 message = "Fields of type chars, unichars or bytes must be fixed size "
                           "arrays.";
                 goto invalid_format;
             }
             break;
         default:
-            if (typeAttrP->dataType.count < 0) {
+            if (CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
                 message = "Fields cannot be arrays of variable size.";
                 goto invalid_format;
             }
@@ -1341,9 +1343,10 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
  * ip - Interpreter
  * typeP - type descriptor for the binary value. Should not be of type binary
  * valueP - pointer to C binary value to wrap
- * count - number of values pointed to by valueP. *0* indicates a scalar
- *         positive number (even *1*) is size of array. Negative number
- *         will panic (dynamic sizes should have bee resolved before call)
+ * count - number of values pointed to by valueP. *< 0* indicates a scalar
+ *         positive number (even *1*) is size of array. Size of 0
+ *         will panic (dynamic sizes should have been resolved before call)
+ *         TODO - what about when passing NULL for empty array?
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
  *    Following standard practice, the reference count on the Tcl_Obj is 0.
  *
@@ -1363,12 +1366,12 @@ CffiNativeValueToObj(Tcl_Interp *ip,
     Tcl_Obj *valueObj;
     CffiBaseType baseType = typeAttrsP->dataType.baseType;
 
-    CFFI_ASSERT(count >= 0);
+    CFFI_ASSERT(count != 0);
     CFFI_ASSERT(baseType != CFFI_K_TYPE_BINARY);
 
     switch (baseType) {
     case CFFI_K_TYPE_STRUCT:
-        if (count == 0) {
+        if (count < 0) {
             return CffiStructToObj(
                 ip, typeAttrsP->dataType.u.structP, valueP, valueObjP);
         }
@@ -1410,7 +1413,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
          * A non-zero count indicates an array type except that for chars
          * and unichars base types, it is treated as a string scalar value.
          */
-        if (count == 0) {
+        if (count < 0) {
             return CffiNativeScalarToObj(ip, typeAttrsP, valueP, valueObjP);
         }
         else {
@@ -2040,7 +2043,7 @@ CffiTypeUnparse(const CffiType *typeP)
 {
     Tcl_Obj *typeObj;
     Tcl_Obj *suffix = NULL;
-    int count = typeP->count;
+    int count = typeP->arraySize;
 
 
     typeObj = Tcl_NewStringObj(cffiBaseTypes[typeP->baseType].token, -1);
@@ -2062,9 +2065,9 @@ CffiTypeUnparse(const CffiType *typeP)
     if (suffix)
         Tcl_AppendStringsToObj(typeObj, ".", Tcl_GetString(suffix), NULL);
 
-    if (count > 0 || (count < 0 && typeP->countHolderObj == NULL))
+    if (count > 0 || (count == 0 && typeP->countHolderObj == NULL))
         Tcl_AppendPrintfToObj(typeObj, "[%d]", count);
-    else if (count < 0)
+    else if (count == 0)
         Tcl_AppendPrintfToObj(
             typeObj, "[%s]", Tcl_GetString(typeP->countHolderObj));
     /* else scalar */
@@ -2176,8 +2179,8 @@ CffiTypeObjCmd(ClientData cdata,
 
     if (cmdIndex == COUNT) {
         /* type count */
-        if (typeAttrs.dataType.count >= 0 || typeAttrs.dataType.countHolderObj == NULL)
-            Tcl_SetObjResult(ip, Tcl_NewIntObj(typeAttrs.dataType.count));
+        if (typeAttrs.dataType.arraySize != 0 || typeAttrs.dataType.countHolderObj == NULL)
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(typeAttrs.dataType.arraySize));
         else
             Tcl_SetObjResult(ip, typeAttrs.dataType.countHolderObj);
     }
@@ -2191,9 +2194,9 @@ CffiTypeObjCmd(ClientData cdata,
             objs[0] = Tcl_NewStringObj("size", 4);
             objs[1] = Tcl_NewIntObj(size);
             objs[2] = Tcl_NewStringObj("count", 5);
-            if (typeAttrs.dataType.count >= 0
+            if (typeAttrs.dataType.arraySize != 0
                 || typeAttrs.dataType.countHolderObj == NULL)
-                objs[3] = Tcl_NewIntObj(typeAttrs.dataType.count);
+                objs[3] = Tcl_NewIntObj(typeAttrs.dataType.arraySize);
             else
                 objs[3] = typeAttrs.dataType.countHolderObj;
             objs[4] = Tcl_NewStringObj("alignment", 9);

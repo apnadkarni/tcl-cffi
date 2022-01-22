@@ -233,9 +233,9 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                     ".%s",
                     Tcl_GetString(fieldP->fieldType.dataType.u.tagObj));
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
-            if (fieldP->fieldType.dataType.count)
+            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
                 Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.count);
+                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
             break;
         case CFFI_K_TYPE_STRUCT:
             Tcl_AppendPrintfToObj(
@@ -244,9 +244,9 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                 cffiBaseTypes[baseType].token,
                 Tcl_GetString(fieldP->fieldType.dataType.u.structP->name),
                 Tcl_GetString(fieldP->nameObj));
-            if (fieldP->fieldType.dataType.count)
+            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
                 Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.count);
+                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
             break;
 
         default:
@@ -254,9 +254,9 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                                   "\n  %s %s",
                                   cffiBaseTypes[baseType].token,
                                   Tcl_GetString(fieldP->nameObj));
-            if (fieldP->fieldType.dataType.count)
+            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
                 Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.count);
+                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
             break;
         }
         Tcl_AppendPrintfToObj(
@@ -360,8 +360,8 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
         int indx;                                                              \
         type_ *valueP                      = (type_ *)fieldResultP;            \
         const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;               \
-        CFFI_ASSERT(count >= 0);                                               \
-        if (count == 0) {                                                      \
+        CFFI_ASSERT(count != 0); /* -1 for scalar, > 0 for arrays */           \
+        if (CffiTypeIsScalar(&typeAttrsP->dataType)) {                         \
             if (typeAttrsP->flags                                              \
                 & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {                  \
                 Tcl_WideInt wide;                                              \
@@ -417,9 +417,9 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
         Tcl_Obj *valueObj;
         const CffiField *fieldP = &structP->fields[i];
         void *fieldResultP      = fieldP->offset + (char *)resultP;
-        int count               = fieldP->fieldType.dataType.count;
+        int count               = fieldP->fieldType.dataType.arraySize;
 
-        CFFI_ASSERT(count >= 0);/* No dynamic size arrays in structs */
+        CFFI_ASSERT(count != 0);/* No dynamic size arrays in structs */
 
         if (Tcl_DictObjGet(ip,structValueObj, fieldP->nameObj, &valueObj) != TCL_OK)
             return TCL_ERROR; /* Invalid dictionary. Note TCL_OK does not mean found */
@@ -515,7 +515,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
             STOREFIELD(ObjToDouble, double);
             break;
         case CFFI_K_TYPE_STRUCT:
-            if (count == 0) {
+            if (CffiTypeIsScalar(&fieldP->fieldType.dataType)) {
                 ret = CffiStructFromObj(ipCtxP,
                                         fieldP->fieldType.dataType.u.structP,
                                         valueObj,
@@ -553,7 +553,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 return ret;
             break;
         case CFFI_K_TYPE_POINTER:
-            if (count == 0) {
+            if (count < 0) {
                 ret = CffiPointerFromObj(
                     ip, &fieldP->fieldType, valueObj, &pv);
                 if (ret != TCL_OK)
@@ -687,11 +687,11 @@ CffiResult CffiStructToObj(Tcl_Interp        *ip,
         const CffiField *fieldP  = &structP->fields[i];
         Tcl_Obj          *fieldObj;
         /* fields within structs cannot be dynamic size */
-        CFFI_ASSERT(fieldP->fieldType.dataType.count >= 0);
+        CFFI_ASSERT(! CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType));
         ret = CffiNativeValueToObj(ip,
                                    &fieldP->fieldType,
                                    fieldP->offset + (char *)valueP,
-                                   fieldP->fieldType.dataType.count,
+                                   fieldP->fieldType.dataType.arraySize,
                                    &fieldObj);
         if (ret != TCL_OK)
             goto error_return;
@@ -928,6 +928,7 @@ CffiStructFieldPointerCmd(Tcl_Interp *ip,
                           CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
+    void *pv;
     char *fieldAddr;
     int fieldIndex;
 
@@ -938,7 +939,8 @@ CffiStructFieldPointerCmd(Tcl_Interp *ip,
     if (fieldIndex < 0)
         return TCL_ERROR;
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &fieldAddr, structP->name));
+    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    fieldAddr = pv;
 
     /* TBD - check alignment of fieldP for the struct */
     if (objc == 6) {

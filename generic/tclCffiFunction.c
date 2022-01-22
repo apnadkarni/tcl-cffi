@@ -69,10 +69,10 @@ CffiPointerArgsDispose(Tcl_Interp *ip,
             if ((typeAttrsP->flags & CFFI_F_ATTR_DISPOSE)
                 || ((typeAttrsP->flags & CFFI_F_ATTR_DISPOSEONSUCCESS)
                     && !callFailed)) {
-                int nptrs = argsP[i].actualCount;
+                int nptrs = argsP[i].arraySize;
                 /* Note no error checks because the CffiFunctionSetup calls
                    above would have already done validation */
-                if (nptrs == 0) {
+                if (nptrs < 0) {
                     /* Scalar */
                     if (argsP[i].savedValue.u.ptr != NULL)
                         Tclh_PointerUnregister(
@@ -121,10 +121,12 @@ CffiArgPrepareChars(CffiCall *callP,
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
-    CFFI_ASSERT(argP->actualCount > 0);
+    CFFI_ASSERT(argP->arraySize > 0);
+
+    /*TODO - handle arraySize == 0*/
 
     valueP->u.ptr =
-        MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
+        MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
 
     /* If input, we need to encode appropriately */
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
@@ -132,7 +134,7 @@ CffiArgPrepareChars(CffiCall *callP,
                                 typeAttrsP->dataType.u.tagObj,
                                 valueObj,
                                 valueP->u.ptr,
-                                argP->actualCount);
+                                argP->arraySize);
     else {
         /*
          * To protect against the called C function leaving the output
@@ -141,7 +143,7 @@ CffiArgPrepareChars(CffiCall *callP,
          */
         *(char *)valueP->u.ptr = '\0';
         /* In case encoding employs double nulls */
-        if (argP->actualCount > 1)
+        if (argP->arraySize > 1)
             *(1 + (char *)valueP->u.ptr) = '\0';
         return TCL_OK;
     }
@@ -174,13 +176,17 @@ CffiArgPrepareUniChars(CffiCall *callP,
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
+    CFFI_ASSERT(argP->arraySize > 0);
+
+    /*TODO - handle arraySize == 0*/
+
     valueP->u.ptr =
-        MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount * sizeof(Tcl_UniChar));
+        MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(Tcl_UniChar));
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNICHAR_ARRAY);
 
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
         return CffiUniCharsFromObj(
-            ipCtxP->interp, valueObj, valueP->u.ptr, argP->actualCount);
+            ipCtxP->interp, valueObj, valueP->u.ptr, argP->arraySize);
     }
     else {
         /*
@@ -349,13 +355,17 @@ CffiArgPrepareBytes(CffiCall *callP,
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
 
-    valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount);
+    CFFI_ASSERT(argP->arraySize > 0);
+
+    /*TODO - handle arraySize == 0*/
+
+    valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_BYTE_ARRAY);
 
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
         /* NOTE: because of shimmering possibility, we need to copy */
         return CffiBytesFromObj(
-            ipCtxP->interp, valueObj, valueP->u.ptr, argP->actualCount);
+            ipCtxP->interp, valueObj, valueP->u.ptr, argP->arraySize);
     }
     else
         return TCL_OK;
@@ -459,7 +469,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     flags = typeAttrsP->flags;
     baseType = typeAttrsP->dataType.baseType;
-    if (typeAttrsP->dataType.count != 0) {
+    if (CffiTypeIsArray(&typeAttrsP->dataType)) {
         switch (baseType) {
         case CFFI_K_TYPE_ASTRING:
         case CFFI_K_TYPE_UNISTRING:
@@ -511,7 +521,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
-                || (typeAttrsP->dataType.count == 0
+                || (CffiTypeIsScalar(&typeAttrsP->dataType)
 #ifndef CFFI_USE_LIBFFI
                     && baseType != CFFI_K_TYPE_STRUCT
 #endif
@@ -523,8 +533,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * Modulo bugs, even dynamic array sizes are supposed to be initialized
      * before calling this function on an argument.
      */
-    CFFI_ASSERT(argP->actualCount >= 0);
-    if (argP->actualCount < 0) {
+    CFFI_ASSERT(argP->arraySize != 0);
+    if (argP->arraySize == 0) {
         /* Should not happen. Just a failsafe. */
         return ErrorInvalidValue(
             ip, NULL, "Variable size array parameters not implemented.");
@@ -573,10 +583,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
 #endif /* CFFI_USE_LIBFFI */
 
+    /*TODO - handle arraysize 0*/
+
 #define STORENUM(objfn_, dcfn_, fld_, type_)                                   \
     do {                                                                       \
-        CFFI_ASSERT(argP->actualCount >= 0);                                   \
-        if (argP->actualCount == 0) {                                          \
+        CFFI_ASSERT(argP->arraySize != 0);                                     \
+        if (argP->arraySize < 0) {                                             \
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
                 if (flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {        \
                     Tcl_WideInt wide;                                          \
@@ -599,7 +611,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             CFFI_ASSERT(flags &CFFI_F_ATTR_BYREF);                             \
             valueArray =                                                       \
                 MemLifoAlloc(&ipCtxP->memlifo,                                 \
-                             argP->actualCount * sizeof(argP->value.u.fld_));  \
+                             argP->arraySize * sizeof(argP->value.u.fld_));    \
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {                \
                 Tcl_Obj **valueObjList;                                        \
                 int i, nvalues;                                                \
@@ -610,8 +622,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 /* Note - if caller has specified too few values, it's ok */   \
                 /* because perhaps the actual count is specified in another */ \
                 /* parameter. If too many, only up to array size */            \
-                if (nvalues > argP->actualCount)                               \
-                    nvalues = argP->actualCount;                               \
+                if (nvalues > argP->arraySize)                                 \
+                    nvalues = argP->arraySize;                                 \
                 if (flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {        \
                     for (i = 0; i < nvalues; ++i) {                            \
                         Tcl_WideInt wide;                                      \
@@ -626,7 +638,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     }                                                          \
                 }                                                              \
                 /* Fill additional elements with 0 */                          \
-                for (; i < argP->actualCount; ++i)                             \
+                for (; i < argP->arraySize; ++i)                               \
                     valueArray[i] = 0;                                         \
             }                                                                  \
             argP->value.u.ptr = valueArray;                                    \
@@ -650,8 +662,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_FLOAT: STORENUM(ObjToFloat, CffiStoreArgFloat, flt, float); break;
     case CFFI_K_TYPE_DOUBLE: STORENUM(ObjToDouble, CffiStoreArgDouble, dbl, double); break;
     case CFFI_K_TYPE_STRUCT:
-        CFFI_ASSERT(argP->actualCount >= 0);
-        if (argP->actualCount == 0) {
+        /*TODO - handle arraySize 0*/
+        CFFI_ASSERT(argP->arraySize != 0);
+        if (argP->arraySize < 0) {
             /* Single struct */
             void *structValueP;
             if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
@@ -697,15 +710,15 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             int struct_size = typeAttrsP->dataType.u.structP->size;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             valueArray =
-                MemLifoAlloc(&ipCtxP->memlifo, argP->actualCount * struct_size);
+                MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize * struct_size);
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
                 /* IN or INOUT */
                 Tcl_Obj **valueObjList;
                 int i, nvalues;
                 CHECK(Tcl_ListObjGetElements(
                     ip, valueObj, &nvalues, &valueObjList));
-                if (nvalues > argP->actualCount)
-                    nvalues = argP->actualCount;
+                if (nvalues > argP->arraySize)
+                    nvalues = argP->arraySize;
                 for (toP = valueArray, i = 0; i < nvalues;
                      toP += struct_size, ++i) {
                     CHECK(CffiStructFromObj(ipCtxP,
@@ -713,9 +726,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                             valueObjList[i],
                                             toP, &ipCtxP->memlifo));
                 }
-                if (i < argP->actualCount) {
+                if (i < argP->arraySize) {
                     /* Fill uninitialized with 0 */
-                    memset(toP, 0, (argP->actualCount - i) * struct_size);
+                    memset(toP, 0, (argP->arraySize - i) * struct_size);
                 }
             }
             argP->value.u.ptr = valueArray;
@@ -725,8 +738,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_POINTER:
         /* TBD - can we just use STORENUM here ? */
-        CFFI_ASSERT(argP->actualCount >= 0);
-        if (argP->actualCount == 0) {
+        /*TODO - handle array size 0*/
+        CFFI_ASSERT(argP->arraySize != 0);
+        if (argP->arraySize < 0) {
             if (flags & CFFI_F_ATTR_OUT)
                 argP->value.u.ptr = NULL;
             else {
@@ -743,7 +757,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             void **valueArray;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             valueArray = MemLifoAlloc(&ipCtxP->memlifo,
-                                      argP->actualCount * sizeof(void *));
+                                      argP->arraySize * sizeof(void *));
             if (flags & CFFI_F_ATTR_OUT)
                 argP->value.u.ptr = valueArray;
             else {
@@ -751,22 +765,22 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 int i, nvalues;
                 CHECK(Tcl_ListObjGetElements(
                     ip, valueObj, &nvalues, &valueObjList));
-                if (nvalues > argP->actualCount)
-                    nvalues = argP->actualCount;
+                if (nvalues > argP->arraySize)
+                    nvalues = argP->arraySize;
                 for (i = 0; i < nvalues; ++i) {
                     CHECK(CffiPointerFromObj(
                         ip, typeAttrsP, valueObjList[i], &valueArray[i]));
                 }
                 CFFI_ASSERT(i == nvalues);
-                for ( ; i < argP->actualCount; ++i)
+                for ( ; i < argP->arraySize; ++i)
                     valueArray[i] = NULL;/* Fill additional elements */
                 argP->value.u.ptr = valueArray;
                 if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS)) {
                     /* Save pointers to dispose after call completion */
                     void **savedValueArray;
                     savedValueArray = MemLifoAlloc(
-                        &ipCtxP->memlifo, argP->actualCount * sizeof(void *));
-                    for (i = 0; i < argP->actualCount; ++i)
+                        &ipCtxP->memlifo, argP->arraySize * sizeof(void *));
+                    for (i = 0; i < argP->arraySize; ++i)
                         savedValueArray[i] = valueArray[i];
                     argP->savedValue.u.ptr = savedValueArray;
                 }
@@ -904,8 +918,8 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
     Tcl_Obj *valueObj;
 
     CFFI_ASSERT(callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED);
-    CFFI_ASSERT(argP->actualCount >= 0); /* Array size known */
-
+    CFFI_ASSERT(argP->arraySize != 0); /* Array size known */
+    /*TODO - handle arraySize 0*/
     if (typeAttrsP->flags & CFFI_F_ATTR_IN)
         return TCL_OK;
 
@@ -934,25 +948,25 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
         /* TBD - this might be broken for small integers on big-endian
         since they are promoted by libffi to ffi_arg */
-        if (argP->actualCount == 0)
+        if (argP->arraySize < 0)
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP, argP->actualCount, &valueObj);
+                ip, typeAttrsP, valueP, argP->arraySize, &valueObj);
         else
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
+                ip, typeAttrsP, valueP->u.ptr, argP->arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, argP->arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_STRUCT:
         /* Arrays not supported for struct currently  - TBD still true? */
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, argP->actualCount, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, argP->arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_ASTRING:
@@ -988,7 +1002,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         && typeAttrsP->dataType.u.tagObj) {
         Tcl_Obj *enumValueObj;
         Tcl_WideInt wide;
-        if (typeAttrsP->dataType.count == 0) {
+        if (CffiTypeIsScalar(&typeAttrsP->dataType)) {
             /* Note on error, keep the value */
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
                 enumValueObj = CffiIntValueToObj(typeAttrsP, wide);
@@ -1398,14 +1412,16 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
      */
     need_pass2 = 0;
     for (i = 0; i < callP->nArgs; ++i) {
-        int actualCount;
-        actualCount = protoP->params[i].typeAttrs.dataType.count;
-        if (actualCount < 0) {
+        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        if (CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
             /* Dynamic array. */
             need_pass2 = 1;
             continue;
         }
-        argsP[i].actualCount = actualCount;
+
+        /*TODO - handle arraySize 0*/
+        /* Scalar or fixed size array */
+        argsP[i].arraySize = typeAttrsP->dataType.arraySize;
         if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
             goto cleanup_and_error;
     }
@@ -1426,20 +1442,19 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         int j;
         long long actualCount;
         CffiValue *actualValueP;
-        actualCount = protoP->params[i].typeAttrs.dataType.count;
-        if (actualCount >= 0) {
+        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+
+        if (! CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
             /* This arg already been parsed successfully. Just load it. */
             CFFI_ASSERT(argsP[i].flags & CFFI_F_ARG_INITIALIZED);
-            CffiReloadArg(callP, &argsP[i], &protoP->params[i].typeAttrs);
+            CffiReloadArg(callP, &argsP[i], typeAttrsP);
             continue;
         }
         CFFI_ASSERT((argsP[i].flags & CFFI_F_ARG_INITIALIZED) == 0);
 
         /* Need to find the parameter corresponding to this dynamic count */
-        CFFI_ASSERT(
-            protoP->params[i].typeAttrs.dataType.countHolderObj);
-        name = Tcl_GetString(
-            protoP->params[i].typeAttrs.dataType.countHolderObj);
+        CFFI_ASSERT(typeAttrsP->dataType.countHolderObj);
+        name = Tcl_GetString(typeAttrsP->dataType.countHolderObj);
 
         /*
          * Loop through initialized parameters looking for a match. A match
@@ -1448,7 +1463,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
          */
         for (j = 0; j < callP->nArgs; ++j) {
             if ((argsP[j].flags & CFFI_F_ARG_INITIALIZED)
-                && argsP[j].actualCount == 0 &&
+                && CffiTypeIsScalar(&protoP->params[j].typeAttrs.dataType) &&
                 !strcmp(name, Tcl_GetString(protoP->params[j].nameObj)))
                 break;
         }
@@ -1456,7 +1471,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             (void)Tclh_ErrorNotFound(
                 ip,
                 "Parameter",
-                protoP->params[i].typeAttrs.dataType.countHolderObj,
+                typeAttrsP->dataType.countHolderObj,
                 "Could not find referenced count for dynamic array, possibly wrong type or not scalar.");
             goto cleanup_and_error;
         }
@@ -1479,12 +1494,13 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             goto cleanup_and_error;
         }
 
+        /*TODO - handle arraySize 0 */
         if (actualCount <= 0 || actualCount > INT_MAX) {
             (void) Tclh_ErrorRange(ip, argObjs[j], 0, INT_MAX);
             goto cleanup_and_error;
         }
 
-        argsP[i].actualCount = (int) actualCount;
+        argsP[i].arraySize = (int) actualCount;
         if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
             goto cleanup_and_error;
     }

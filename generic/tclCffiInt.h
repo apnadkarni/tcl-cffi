@@ -143,10 +143,10 @@ extern const CffiBaseTypeInfo cffiBaseTypes[];
 
 typedef struct CffiType {
     enum CffiBaseType baseType;
-    int               count;    /* 0->scalar
-                                    <0 -> array of unknown size specified
-                                          through countHolderObj
-                                    >0 -> array of count base type elements */
+    int               arraySize;    /* -1 ->scalar
+                                       0 -> array of unknown size specified
+                                       through countHolderObj
+                                       >0 -> array of count base type elements */
     union {
         /* tagObj -
          * POINTER - pointer tag (may be NULL)
@@ -159,6 +159,15 @@ typedef struct CffiType {
     Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
                                 that contains the actual count at call time */
 } CffiType;
+CFFI_INLINE int CffiTypeIsArray(const CffiType *typeP) {
+    return typeP->arraySize >= 0;
+}
+CFFI_INLINE int CffiTypeIsScalar(const CffiType *typeP) {
+    return ! CffiTypeIsArray(typeP);
+}
+CFFI_INLINE int CffiTypeIsVariableSizeArray(const CffiType *typeP) {
+    return typeP->arraySize == 0;
+}
 
 /*
  * Function parameter descriptor
@@ -426,8 +435,9 @@ typedef struct CffiArgument {
                              which needs an additional level of indirection for
                              byref parameters. Only set as needed in CffiPrepareArg */
 #endif
-    int actualCount;      /* For dynamic arrays, stores the actual size.
-                             Always > = 0 (0 being scalar) */
+    int arraySize;      /* For arrays, stores the actual size of an
+                           array parameter, > 0 for arrays, < 0  for scalars.
+                           Should never be 0. */
     int flags;
 #define CFFI_F_ARG_INITIALIZED 0x1
 } CffiArgument;
