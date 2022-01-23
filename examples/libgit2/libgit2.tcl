@@ -32,6 +32,7 @@ namespace eval $GIT_NS {
         variable functionDefinitions
         variable libgit2Path
 
+
         # The order of loading these files is important!!!
         # Later files depend on earlier ones, just like the C headers
         variable scriptFiles {
@@ -135,6 +136,8 @@ namespace eval $GIT_NS {
         }
 
         set ret [git_libgit2_init]
+
+        # TBD - check version using git_libgit2_version
 
         # Redefine to no-op
         proc init args "return $ret"

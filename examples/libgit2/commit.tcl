@@ -114,7 +114,7 @@ libgit2 functions {
         encoded_message  pointer
         tree             PTREE
         parent_count     size_t
-        parents          {pointer.git_commit[parent_count]}
+        parents          {pointer.git_commit[parent_count] nullok}
     }
     git_commit_amend GIT_ERROR_CODE {
         id               {struct.git_oid       out}
@@ -135,7 +135,7 @@ libgit2 functions {
         encoded_message  pointer
         tree             PTREE
         parent_count     size_t
-        parents          pointer.git_commit[parent_count]
+        parents          {pointer.git_commit[parent_count] nullok}
     }
     git_commit_create_with_signature GIT_ERROR_CODE {
         id               {struct.git_oid out}
