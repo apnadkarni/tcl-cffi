@@ -361,7 +361,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
         type_ *valueP                      = (type_ *)fieldResultP;            \
         const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;               \
         CFFI_ASSERT(count != 0); /* -1 for scalar, > 0 for arrays */           \
-        if (CffiTypeIsScalar(&typeAttrsP->dataType)) {                         \
+        if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {                       \
             if (typeAttrsP->flags                                              \
                 & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {                  \
                 Tcl_WideInt wide;                                              \
@@ -515,7 +515,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
             STOREFIELD(ObjToDouble, double);
             break;
         case CFFI_K_TYPE_STRUCT:
-            if (CffiTypeIsScalar(&fieldP->fieldType.dataType)) {
+            if (CffiTypeIsNotArray(&fieldP->fieldType.dataType)) {
                 ret = CffiStructFromObj(ipCtxP,
                                         fieldP->fieldType.dataType.u.structP,
                                         valueObj,

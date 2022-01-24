@@ -561,7 +561,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
-        if (CffiTypeIsScalar(typeP)) {
+        if (CffiTypeIsNotArray(typeP)) {
             message = "Declarations of type chars, unichars and bytes must be arrays.";
             goto invalid_type;
         }
@@ -659,7 +659,7 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     if (alignP)
         *alignP = alignment;
     if (sizeP) {
-        if (CffiTypeIsScalar(typeP))
+        if (CffiTypeIsNotArray(typeP))
             *sizeP = baseSize;
         else if (CffiTypeIsVariableSizeArray(typeP))
             *sizeP = -1; /* Variable size array */
@@ -1103,7 +1103,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
         case CFFI_K_TYPE_BYTE_ARRAY:
-            if (CffiTypeIsScalar(&typeAttrP->dataType)
+            if (CffiTypeIsNotArray(&typeAttrP->dataType)
                 || CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
                 message = "Fields of type chars, unichars or bytes must be fixed size "
                           "arrays.";

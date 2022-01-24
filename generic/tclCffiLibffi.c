@@ -202,7 +202,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     CffiValue val;
     CffiTypeAndAttrs *typeAttrsP = &cbP->protoP->params[argIndex].typeAttrs;
 
-    CFFI_ASSERT(CffiTypeIsScalar(&typeAttrsP->dataType));
+    CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));
 
 #define EXTRACTINT_(type_, fld_)                                               \
     do {                                                                       \
@@ -311,7 +311,7 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
             *(type_ *)retP = (type_)wide;                                \
     } while (0)
 
-    CFFI_ASSERT(CffiTypeIsScalar(&typeAttrsP->dataType));
+    CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));
     CFFI_ASSERT((typeAttrsP->flags & CFFI_F_ATTR_BYREF) == 0);
 
     switch (typeAttrsP->dataType.baseType) {

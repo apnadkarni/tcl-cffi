@@ -162,7 +162,7 @@ typedef struct CffiType {
 CFFI_INLINE int CffiTypeIsArray(const CffiType *typeP) {
     return typeP->arraySize >= 0;
 }
-CFFI_INLINE int CffiTypeIsScalar(const CffiType *typeP) {
+CFFI_INLINE int CffiTypeIsNotArray(const CffiType *typeP) {
     return ! CffiTypeIsArray(typeP);
 }
 CFFI_INLINE int CffiTypeIsVariableSizeArray(const CffiType *typeP) {

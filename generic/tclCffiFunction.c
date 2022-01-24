@@ -518,7 +518,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
-                || (CffiTypeIsScalar(&typeAttrsP->dataType)
+                || (CffiTypeIsNotArray(&typeAttrsP->dataType)
 #ifndef CFFI_USE_LIBFFI
                     && baseType != CFFI_K_TYPE_STRUCT
 #endif
@@ -1031,7 +1031,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         && typeAttrsP->dataType.u.tagObj) {
         Tcl_Obj *enumValueObj;
         Tcl_WideInt wide;
-        if (CffiTypeIsScalar(&typeAttrsP->dataType)) {
+        if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
             /* Note on error, keep the value */
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK) {
                 enumValueObj = CffiIntValueToObj(typeAttrsP, wide);
@@ -1492,7 +1492,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
          */
         for (j = 0; j < callP->nArgs; ++j) {
             if ((argsP[j].flags & CFFI_F_ARG_INITIALIZED)
-                && CffiTypeIsScalar(&protoP->params[j].typeAttrs.dataType) &&
+                && CffiTypeIsNotArray(&protoP->params[j].typeAttrs.dataType) &&
                 !strcmp(name, Tcl_GetString(protoP->params[j].nameObj)))
                 break;
         }
