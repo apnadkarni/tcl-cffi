@@ -158,6 +158,7 @@ typedef struct CffiType {
     } u;
     Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
                                 that contains the actual count at call time */
+    int baseTypeSize; /* size of baseType */
 } CffiType;
 CFFI_INLINE int CffiTypeIsArray(const CffiType *typeP) {
     return typeP->arraySize >= 0;
@@ -504,7 +505,7 @@ void CffiStructUnref(CffiStruct *structP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult
-CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize);
+CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, int toSize);
 CffiResult CffiUniCharsFromObj(Tcl_Interp *ip,
                                Tcl_Obj *fromObj,
                                Tcl_UniChar *toP,
@@ -534,6 +535,12 @@ CffiResult CffiStructToObj(Tcl_Interp *ip,
                            const CffiStruct *structP,
                            void *valueP,
                            Tcl_Obj **valueObjP);
+CffiResult CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
+                                   const CffiTypeAndAttrs *typeAttrsP,
+                                   Tcl_Obj *valueObj,
+                                   void *resultP,
+                                   int indx,
+                                   MemLifo *memlifoP);
 CffiResult CffiNativeScalarToObj(Tcl_Interp *ip,
                                  const CffiTypeAndAttrs *typeAttrsP,
                                  void *valueP,

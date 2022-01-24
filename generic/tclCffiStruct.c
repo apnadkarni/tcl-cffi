@@ -351,60 +351,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                   MemLifo *memlifoP)
 {
     int i;
-    void *pv;
-    CffiResult ret;
     Tcl_Interp *ip = ipCtxP->interp;
-
-#define STOREFIELD(objfn_, type_)                                              \
-    do {                                                                       \
-        int indx;                                                              \
-        type_ *valueP                      = (type_ *)fieldResultP;            \
-        const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;               \
-        CFFI_ASSERT(count != 0); /* -1 for scalar, > 0 for arrays */           \
-        if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {                       \
-            if (typeAttrsP->flags                                              \
-                & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {                  \
-                Tcl_WideInt wide;                                              \
-                CHECK(                                                         \
-                    CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide)); \
-                *valueP = (type_)wide;                                         \
-            }                                                                  \
-            else {                                                             \
-                CHECK(objfn_(ip, valueObj, valueP));                           \
-            }                                                                  \
-        }                                                                      \
-        else {                                                                 \
-            Tcl_Obj **valueObjList;                                            \
-            int nvalues;                                                       \
-            if (Tcl_ListObjGetElements(ip, valueObj, &nvalues, &valueObjList)  \
-                != TCL_OK)                                                     \
-                return TCL_ERROR;                                              \
-            /* Note - if caller has specified too few values, it's ok          \
-             * because perhaps the actual count is specified in another        \
-             * parameter. If too many, only up to array size */                \
-            if (nvalues > count)                                               \
-                nvalues = count;                                               \
-            if (typeAttrsP->flags                                              \
-                & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {                  \
-                for (indx = 0; indx < nvalues; ++indx) {                       \
-                    Tcl_WideInt wide;                                          \
-                    CHECK(CffiIntValueFromObj(                                 \
-                        ipCtxP, typeAttrsP, valueObjList[indx], &wide));       \
-                    valueP[indx] = (type_)wide;                                \
-                }                                                              \
-            }                                                                  \
-            else {                                                             \
-                for (indx = 0; indx < nvalues; ++indx) {                       \
-                    CHECK(objfn_(ip, valueObjList[indx], &valueP[indx]));      \
-                    if (ret != TCL_OK)                                         \
-                        return ret;                                            \
-                }                                                              \
-            }                                                                  \
-            /* Fill additional unspecified elements with 0 */                  \
-            for (indx = nvalues; indx < count; ++indx)                         \
-                valueP[indx] = 0;                                              \
-        }                                                                      \
-    } while (0)
 
     if (structP->flags & CFFI_F_STRUCT_CLEAR)
         memset(resultP, 0, structP->size);
@@ -418,6 +365,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
         const CffiField *fieldP = &structP->fields[i];
         void *fieldResultP      = fieldP->offset + (char *)resultP;
         int count               = fieldP->fieldType.dataType.arraySize;
+        const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;
 
         CFFI_ASSERT(count != 0);/* No dynamic size arrays in structs */
 
@@ -477,183 +425,60 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 fieldP->nameObj,
                 "Field missing in struct dictionary value.");
         }
-        switch (fieldP->fieldType.dataType.baseType) {
-        case CFFI_K_TYPE_SCHAR:
-            STOREFIELD(ObjToChar, signed char);
-            break;
-        case CFFI_K_TYPE_UCHAR:
-            STOREFIELD(ObjToUChar, unsigned char);
-            break;
-        case CFFI_K_TYPE_SHORT:
-            STOREFIELD(ObjToShort, short);
-            break;
-        case CFFI_K_TYPE_USHORT:
-            STOREFIELD(ObjToUShort, unsigned short);
-            break;
-        case CFFI_K_TYPE_INT:
-            STOREFIELD(ObjToInt, int);
-            break;
-        case CFFI_K_TYPE_UINT:
-            STOREFIELD(ObjToUInt, unsigned int);
-            break;
-        case CFFI_K_TYPE_LONG:
-            STOREFIELD(ObjToLong, long);
-            break;
-        case CFFI_K_TYPE_ULONG:
-            STOREFIELD(ObjToULong, unsigned long);
-            break;
-        case CFFI_K_TYPE_LONGLONG:
-            STOREFIELD(ObjToLongLong, long long);
-            break;
-        case CFFI_K_TYPE_ULONGLONG:
-            STOREFIELD(ObjToULongLong, unsigned long long);
-            break;
-        case CFFI_K_TYPE_FLOAT:
-            STOREFIELD(ObjToFloat, float);
-            break;
-        case CFFI_K_TYPE_DOUBLE:
-            STOREFIELD(ObjToDouble, double);
-            break;
-        case CFFI_K_TYPE_STRUCT:
-            if (CffiTypeIsNotArray(&fieldP->fieldType.dataType)) {
-                ret = CffiStructFromObj(ipCtxP,
-                                        fieldP->fieldType.dataType.u.structP,
-                                        valueObj,
-                                        fieldResultP,
-                                        memlifoP);
-            }
-            else {
-                /* Nested array of structs */
-                char *valueP;
-                Tcl_Obj **valueObjList;
-                int nvalues;
-                int indx;
-                int struct_size = fieldP->fieldType.dataType.u.structP->size;
+        if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
+            CHECK(CffiNativeScalarFromObj(
+                ipCtxP, typeAttrsP, valueObj, fieldResultP, 0, memlifoP));
+        }
+        else {
+            Tcl_Obj **valueObjList;
+            int indx;
+            int nvalues;
+            CFFI_ASSERT(count > 0);
+            switch (fieldP->fieldType.dataType.baseType) {
+            case CFFI_K_TYPE_CHAR_ARRAY:
+                CHECK(CffiCharsFromObj(ip,
+                                       fieldP->fieldType.dataType.u.tagObj,
+                                       valueObj,
+                                       (char *)fieldResultP,
+                                       count));
+                break;
+            case CFFI_K_TYPE_UNICHAR_ARRAY:
+                CHECK(CffiUniCharsFromObj(
+                    ip, valueObj, (Tcl_UniChar *)fieldResultP, count));
+                break;
+            case CFFI_K_TYPE_BYTE_ARRAY:
+                CHECK(CffiBytesFromObj(ip, valueObj, fieldResultP, count));
+                break;
+            default:
                 if (Tcl_ListObjGetElements(
                         ip, valueObj, &nvalues, &valueObjList)
                     != TCL_OK)
-                    return TCL_ERROR;
-                valueP = (char *)fieldResultP;
-                if (nvalues > count)
-                    nvalues = count;
-                for (indx = 0; indx < nvalues; ++indx, valueP += struct_size) {
-                    ret = CffiStructFromObj(ipCtxP,
-                                            fieldP->fieldType.dataType.u.structP,
-                                            valueObjList[indx],
-                                            valueP, memlifoP);
-                    if (ret != TCL_OK)
-                        return ret;
-                }
-                /* Fill additional unspecified elements with 0 */
-                if (indx < count) {
-                    memset(valueP, 0, struct_size * (count - indx));
-                }
-            }
-            if (ret != TCL_OK)
-                return ret;
-            break;
-        case CFFI_K_TYPE_POINTER:
-            if (count < 0) {
-                ret = CffiPointerFromObj(
-                    ip, &fieldP->fieldType, valueObj, &pv);
-                if (ret != TCL_OK)
-                    return ret;
-                *(void **)fieldResultP = pv;
-            }
-            else {
-                void **valueP;
-                Tcl_Obj **valueObjList;
-                int nvalues;
-                int indx;
-                if (Tcl_ListObjGetElements(
-                        ip, valueObj, &nvalues, &valueObjList)
-                    != TCL_OK)
-                    return TCL_ERROR;
-                valueP = (void **)fieldResultP;
+                    return TCL_ERROR; /* Note - if caller has specified too
+                                       * few values, it's ok         \
+                                       * because perhaps the actual count is
+                                       * specified in another       \
+                                       * parameter. If too many, only up to
+                                       * array size */
                 if (nvalues > count)
                     nvalues = count;
                 for (indx = 0; indx < nvalues; ++indx) {
-                    ret = CffiPointerFromObj(ip,
-                                             &fieldP->fieldType,
-                                             valueObjList[indx],
-                                             &valueP[indx]);
-                    if (ret != TCL_OK)
-                        return ret;
+                    CHECK(CffiNativeScalarFromObj(ipCtxP,
+                                                  typeAttrsP,
+                                                  valueObjList[indx],
+                                                  fieldResultP,
+                                                  indx,
+                                                  memlifoP));
                 }
                 /* Fill additional unspecified elements with 0 */
-                for (indx = nvalues; indx < count; ++indx)
-                    valueP[indx] = NULL;
-            }
-            break;
-        case CFFI_K_TYPE_CHAR_ARRAY:
-            CFFI_ASSERT(count > 0);
-            ret =
-                CffiCharsFromObj(ip,
-                                 fieldP->fieldType.dataType.u.tagObj,
-                                 valueObj,
-                                 (char *)fieldResultP,
-                                 count);
-            if (ret != TCL_OK)
-                return ret;
-            break;
-        case CFFI_K_TYPE_UNICHAR_ARRAY:
-            CFFI_ASSERT(count > 0);
-            ret = CffiUniCharsFromObj(
-                ip, valueObj, (Tcl_UniChar *)fieldResultP, count);
-            if (ret != TCL_OK)
-                return ret;
-            break;
-        case CFFI_K_TYPE_BYTE_ARRAY:
-            CFFI_ASSERT(count > 0);
-            ret = CffiBytesFromObj(
-                ip, valueObj, fieldResultP, count);
-            if (ret != TCL_OK)
-                return ret;
-            break;
-        case CFFI_K_TYPE_ASTRING:
-            if (memlifoP == NULL) {
-                return ErrorInvalidValue(
-                    ip,
-                    NULL,
-                    "string type not supported in this struct context.");
-            }
-            ret = CffiCharsInMemlifoFromObj(
-                ip,
-                fieldP->fieldType.dataType.u.tagObj,
-                valueObj,
-                memlifoP,
-                (char **)fieldResultP);
-            if (ret != TCL_OK)
-                return ret;
-            if ((fieldP->fieldType.flags & CFFI_F_ATTR_NULLIFEMPTY)
-                && (*(*(char **)fieldResultP) == 0)) {
-                *(char **)fieldResultP = 0;
-            }
-            break;
-        case CFFI_K_TYPE_UNISTRING:
-            if (memlifoP) {
-                int space;
-                Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(valueObj, &space);
-                Tcl_UniChar *toP;
-                if (space == 0
-                    && (fieldP->fieldType.flags
-                        & CFFI_F_ATTR_NULLIFEMPTY)) {
-                    *(Tcl_UniChar **)fieldResultP = NULL;
+                if (indx < count) {
+                    int size = typeAttrsP->dataType.baseTypeSize;
+                    memset((size * indx) + (char *)fieldResultP,
+                           0,
+                           size * (count - indx));
                 }
-                else {
-                    space = sizeof(Tcl_UniChar) * (space + 1);
-                    toP   = MemLifoAlloc(memlifoP, space);
-                    memcpy(toP, fromP, space);
-                    *(Tcl_UniChar **)fieldResultP = toP;
-                }
+
+                break;
             }
-            else {
-                return ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
-            }
-            break;
-        default:
-            return ErrorInvalidValue(
-                ip, NULL, "Unsupported type.");
         }
     }
     return TCL_OK;

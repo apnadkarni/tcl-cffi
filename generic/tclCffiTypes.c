@@ -357,6 +357,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
                 Tcl_IncrRefCount(fromP->u.tagObj);
             toP->u.tagObj = fromP->u.tagObj;
         }
+        toP->baseTypeSize = fromP->baseTypeSize;
     }
     else {
         memset(toP, 0, sizeof(*toP));
@@ -478,6 +479,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             goto error_return;
         CffiStructRef(typeP->u.structP);
         typeP->baseType = CFFI_K_TYPE_STRUCT;
+        typeP->baseTypeSize = typeP->u.structP->size;
         break;
 
     case CFFI_K_TYPE_POINTER:
@@ -486,11 +488,13 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
                 Tcl_IncrRefCount(typeP->u.tagObj);
         }
         typeP->baseType = CFFI_K_TYPE_POINTER;
+        typeP->baseTypeSize = baseTypeInfoP->size;
         break;
 
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_CHAR_ARRAY:
         typeP->baseType = baseType; /* So type->u.tagObj freed on error */
+        typeP->baseTypeSize = baseTypeInfoP->size; /* pointer or sizeof(char) */
         if (tagLen) {
             Tcl_Encoding encoding;
             /* Verify the encoding exists */
@@ -503,12 +507,15 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         }
         break;
 
-    default:
+    case CFFI_K_TYPE_UNISTRING:
+    case CFFI_K_TYPE_UNICHAR_ARRAY:
+    default: /* Numerics */
         if (tagLen) {
             message = "Tags are not permitted for this base type.";
             goto invalid_type;
         }
         typeP->baseType = baseType;
+        typeP->baseTypeSize = baseTypeInfoP->size;
         break;
     }
 
@@ -1246,6 +1253,182 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
     return NULL;
 }
 
+/* Function: CffiNativeScalarFromObj
+ * Stores a native value from Tcl_Obj wrapper
+ *
+ * Parameters:
+ * ipCtxP - Interpreter context
+ * typeAttrsP - type attributes. The base type is used without
+ *   considering the BYREF flag.
+ * valueObj - the *Tcl_Obj* containing the script level struct value
+ * valueBaseP - the base location where the native value is to be stored.
+ * indx - the index at which the value is to be stored i.e. valueP[index]
+ *         is the final target
+ * memlifoP - the memory allocator for fields that are typed as *string*
+ *            or *unistring*. If *NULL*, fields of these types will
+ *            result in an error being raised. Caller is responsible
+ *            for ensuring the memory allocated from *memlifoP* stays
+ *            allocated as long as the stored pointer is live.
+ *
+ * Note this stores a single value of the type indicated in *typeAttrsP*, even
+ * if the *count* field in the descriptor indicates an array.
+ *
+ * Returns:
+ * *TCL_OK* on success with a pointer to the structure stored in *structPP* or
+ * *TCL_ERROR* on error with message stored in the interpreter.
+ */
+CffiResult
+CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
+                        const CffiTypeAndAttrs *typeAttrsP,
+                        Tcl_Obj *valueObj,
+                        void *valueBaseP,
+                        int indx,
+                        MemLifo *memlifoP)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
+        Tcl_SetResult(ip,
+                      "Internal error: BYREF flag set in type passed to "
+                      "NativeScalarFromObj",
+                      TCL_STATIC);
+        return TCL_ERROR;
+    }
+#define STOREINT_(objfn_, type_)                                             \
+    do {                                                                     \
+        if (typeAttrsP->flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {  \
+            Tcl_WideInt wide;                                                \
+            CHECK(CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide)); \
+            *(indx + (type_ *)valueBaseP) = (type_)wide;                     \
+        }                                                                    \
+        else {                                                               \
+            CHECK(objfn_(ip, valueObj, indx + (type_ *)valueBaseP));         \
+        }                                                                    \
+    } while (0)
+
+    switch (typeAttrsP->dataType.baseType) {
+        case CFFI_K_TYPE_SCHAR:
+            STOREINT_(ObjToChar, signed char);
+            break;
+        case CFFI_K_TYPE_UCHAR:
+            STOREINT_(ObjToUChar, unsigned char);
+            break;
+        case CFFI_K_TYPE_SHORT:
+            STOREINT_(ObjToShort, short);
+            break;
+        case CFFI_K_TYPE_USHORT:
+            STOREINT_(ObjToUShort, unsigned short);
+            break;
+        case CFFI_K_TYPE_INT:
+            STOREINT_(ObjToInt, int);
+            break;
+        case CFFI_K_TYPE_UINT:
+            STOREINT_(ObjToUInt, unsigned int);
+            break;
+        case CFFI_K_TYPE_LONG:
+            STOREINT_(ObjToLong, long);
+            break;
+        case CFFI_K_TYPE_ULONG:
+            STOREINT_(ObjToULong, unsigned long);
+            break;
+        case CFFI_K_TYPE_LONGLONG:
+            STOREINT_(ObjToLongLong, long long);
+            break;
+        case CFFI_K_TYPE_ULONGLONG:
+            STOREINT_(ObjToULongLong, unsigned long long);
+            break;
+        case CFFI_K_TYPE_FLOAT:
+            CHECK(ObjToFloat(ip, valueObj, indx + (float *)valueBaseP));
+            break;
+        case CFFI_K_TYPE_DOUBLE:
+            CHECK(ObjToDouble(ip, valueObj, indx + (double *)valueBaseP));
+            break;
+        case CFFI_K_TYPE_STRUCT:
+            CHECK(
+                CffiStructFromObj(ipCtxP,
+                                  typeAttrsP->dataType.u.structP,
+                                  valueObj,
+                                  (indx * typeAttrsP->dataType.u.structP->size)
+                                      + (char *)valueBaseP,
+                                  memlifoP));
+            break;
+        case CFFI_K_TYPE_POINTER:
+            CHECK(CffiPointerFromObj(
+                ip, typeAttrsP, valueObj, indx + (void **)valueBaseP));
+            break;
+        case CFFI_K_TYPE_CHAR_ARRAY:
+            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
+            CHECK(CffiCharsFromObj(ip,
+                                   typeAttrsP->dataType.u.tagObj,
+                                   valueObj,
+                                   (indx * typeAttrsP->dataType.arraySize)
+                                       + (char *)valueBaseP,
+                                   typeAttrsP->dataType.arraySize));
+            break;
+        case CFFI_K_TYPE_UNICHAR_ARRAY:
+            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
+            CHECK(CffiUniCharsFromObj(ip,
+                                      valueObj,
+                                      (indx * typeAttrsP->dataType.arraySize)
+                                          + (Tcl_UniChar *)valueBaseP,
+                                      typeAttrsP->dataType.arraySize));
+            break;
+        case CFFI_K_TYPE_BYTE_ARRAY:
+            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
+            CHECK(CffiBytesFromObj(ip,
+                                   valueObj,
+                                   (indx * typeAttrsP->dataType.arraySize)
+                                       + (unsigned char *)valueBaseP,
+                                   typeAttrsP->dataType.arraySize));
+            break;
+        case CFFI_K_TYPE_ASTRING:
+            if (memlifoP == NULL) {
+                return Tclh_ErrorInvalidValue(
+                    ip,
+                    NULL,
+                    "string type not supported in this struct context.");
+            }
+            else {
+                char **charPP = indx + (char **)valueBaseP;
+                CHECK(CffiCharsInMemlifoFromObj(ip,
+                                                typeAttrsP->dataType.u.tagObj,
+                                                valueObj,
+                                                memlifoP,
+                                                charPP));
+                if ((typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY)
+                    && (*(*charPP) == 0)) {
+                    *charPP = NULL;
+                }
+            }
+            break;
+        case CFFI_K_TYPE_UNISTRING:
+            if (memlifoP == NULL) {
+                return ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
+            }
+            else {
+                int space;
+                Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(valueObj, &space);
+                Tcl_UniChar *toP;
+                Tcl_UniChar **uniPP = indx + (Tcl_UniChar **)valueBaseP;
+                if (space == 0
+                    && (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY)) {
+                    *uniPP = NULL;
+                }
+                else {
+                    space = sizeof(Tcl_UniChar) * (space + 1);
+                    toP   = MemLifoAlloc(memlifoP, space);
+                    memcpy(toP, fromP, space);
+                    *uniPP = toP;
+                }
+            }
+            break;
+        default:
+            return ErrorInvalidValue(
+                ip, NULL, "Unsupported type.");
+    }
+    return TCL_OK;
+#undef STOREINT_
+}
+
 /* Function: CffiNativeScalarToObj
  * Wraps a scalar C binary value into a Tcl_Obj.
  *
@@ -1256,9 +1439,10 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
  *    Following standard practice, the reference count on the Tcl_Obj is 0.
  *
- * Note this wraps a single value of the type indicated in *typeAttrsP*, even
- * if the *count* field in the descriptor indicates an array. Exception
- * is the chars, unichars and bytes types.
+ * This function handles single values that are void (function return),
+ * numerics and pointers (astring, binary are pointers and hence scalars).
+ * Note this wraps a single value of the type indicated in *typeAttrsP*,
+ * even if the *count* field in the descriptor indicates an array.
  *
  * Returns:
  * *TCL_OK* on success with a pointer to the *Tcl_Obj* stored in *valueObjP*
@@ -1286,6 +1470,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
 
     switch (baseType) {
     case CFFI_K_TYPE_VOID:
+        /* basically for functions returning void */
         valueObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR:
@@ -1944,7 +2129,7 @@ CffiUniCharsFromObj(
  * in the interpreter.
  */
 CffiResult
-CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, char *toP, int toSize)
+CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, int toSize)
 {
     int fromLen;
     unsigned char *fromP;
