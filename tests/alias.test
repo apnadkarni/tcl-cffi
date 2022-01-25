@@ -48,10 +48,10 @@ namespace eval cffi::test {
         cffi::alias define X Y
     } -result "Invalid value \"Y\". Invalid base type." -returnCodes error
 
-    testalias alias-define-0 "int" "size 4 count -1 alignment 4 definition int"
-    testalias alias-define-1 "double\[2\]" "size 16 count 2 alignment 8 definition {{double\[2\]}}"
+    testalias alias-define-0 "int" "Size 4 Count -1 Alignment 4 Definition int BaseSize 4"
+    testalias alias-define-1 "double\[2\]" "Size 16 Count 2 Alignment 8 Definition {{double\[2\]}} BaseSize 8"
 
-    testalias alias-define-nested-0 "nested" "size 4 count -1 alignment 4 definition {int out}" {
+    testalias alias-define-nested-0 "nested" "Size 4 Count -1 Alignment 4 Definition {int out} BaseSize 4" {
         cffi::alias define nested {int out}
     }
 
@@ -71,7 +71,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias define {f float i {int nonzero}}
         list [lsort [cffi::alias list]] [cffi::type info f] [cffi::type info i]
-    } -result [list [lprefixns f i] {size 4 count -1 alignment 4 definition float} {size 4 count -1 alignment 4 definition {int nonzero}}]
+    } -result [list [lprefixns f i] {Size 4 Count -1 Alignment 4 Definition float BaseSize 4} {Size 4 Count -1 Alignment 4 Definition {int nonzero} BaseSize 4}]
 
     test alias-define-multi-error-0 "Missing definition" -setup {
         cffi::alias delete *
@@ -103,7 +103,7 @@ namespace eval cffi::test {
         cffi::alias body Y
     } -result int
 
-    testalias alias-define-merge-0 "merger nonzero" "size 4 count -1 alignment 4 definition {int nonzero errno}" {
+    testalias alias-define-merge-0 "merger nonzero" "Size 4 Count -1 Alignment 4 Definition {int nonzero errno} BaseSize 4" {
         cffi::alias define merger {int errno}
     }
 
@@ -292,9 +292,9 @@ namespace eval cffi::test {
         namespace eval :: {cffi::alias define INT long}
         cffi::alias define ::ns::ns2::INT longlong
         list \
-            [dict get [cffi::type info ::ns::INT] definition] \
-            [dict get [cffi::type info ::INT] definition] \
-            [dict get [cffi::type info ::ns::ns2::INT] definition]
+            [dict get [cffi::type info ::ns::INT] Definition] \
+            [dict get [cffi::type info ::INT] Definition] \
+            [dict get [cffi::type info ::ns::ns2::INT] Definition]
     } -result {int long longlong}
 
     test alias-define-scope-1 "Resolve aliases in multiple scopes" -setup {
@@ -304,9 +304,9 @@ namespace eval cffi::test {
         cffi::alias define ::ns::ns2::INT longlong
     } -body {
         list \
-            [dict get [namespace eval ::ns {cffi::type info INT}] definition] \
-            [dict get [namespace eval :: {cffi::type info INT}] definition] \
-            [dict get [namespace eval ::ns::ns2 {cffi::type info INT}] definition]
+            [dict get [namespace eval ::ns {cffi::type info INT}] Definition] \
+            [dict get [namespace eval :: {cffi::type info INT}] Definition] \
+            [dict get [namespace eval ::ns::ns2 {cffi::type info INT}] Definition]
     } -result {int long longlong}
  
     test alias-list-scope-0 "alias list in scope" -setup {

@@ -644,22 +644,13 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     CffiBaseType baseType;
 
     baseType = typeP->baseType;
-    baseSize = cffiBaseTypes[baseType].size;
-    alignment = baseSize;
-    if (baseSize == 0) {
-        switch (baseType) {
-        case CFFI_K_TYPE_STRUCT:
-            baseSize  = typeP->u.structP->size;
-            alignment = typeP->u.structP->alignment;
-            break;
-        case CFFI_K_TYPE_VOID:
-            baseSize  = 0;
-            alignment = 0;
-            break;
-        default:
-            TCLH_PANIC("Unexpected 0 size type %d", baseType);
-            break;
-        }
+    baseSize = typeP->baseTypeSize;
+    if (baseType == CFFI_K_TYPE_STRUCT)
+        alignment = typeP->u.structP->alignment;
+    else
+        alignment = baseSize;
+    if (baseSize == 0 && baseType != CFFI_K_TYPE_VOID) {
+        TCLH_PANIC("Unexpected 0 size type %d", baseType);
     }
     if (baseSizeP)
         *baseSizeP = baseSize;
@@ -669,7 +660,7 @@ CffiTypeLayoutInfo(const CffiType *typeP,
         if (CffiTypeIsNotArray(typeP))
             *sizeP = baseSize;
         else if (CffiTypeIsVariableSizeArray(typeP))
-            *sizeP = -1; /* Variable size array */
+            *sizeP = 0; /* Variable size array */
         else
             *sizeP = typeP->arraySize * baseSize;
     }
@@ -2349,7 +2340,7 @@ CffiTypeObjCmd(ClientData cdata,
     CffiResult ret;
     enum cmdIndex { INFO, SIZE, COUNT };
     int cmdIndex;
-    int size, alignment;
+    int baseSize, size, alignment;
     int parse_mode;
     static const Tclh_SubCommand subCommands[] = {
         {"info", 1, 2, "TYPE ?PARSEMODE?", NULL},
@@ -2388,25 +2379,27 @@ CffiTypeObjCmd(ClientData cdata,
             Tcl_SetObjResult(ip, typeAttrs.dataType.countHolderObj);
     }
     else {
-        CffiTypeLayoutInfo(&typeAttrs.dataType, NULL, &size, &alignment);
+        CffiTypeLayoutInfo(&typeAttrs.dataType, &baseSize, &size, &alignment);
         if (cmdIndex == SIZE)
             Tcl_SetObjResult(ip, Tcl_NewIntObj(size));
         else {
             /* type info */
-            Tcl_Obj *objs[8];
-            objs[0] = Tcl_NewStringObj("size", 4);
+            Tcl_Obj *objs[10];
+            objs[0] = Tcl_NewStringObj("Size", 4);
             objs[1] = Tcl_NewIntObj(size);
-            objs[2] = Tcl_NewStringObj("count", 5);
+            objs[2] = Tcl_NewStringObj("Count", 5);
             if (typeAttrs.dataType.arraySize != 0
                 || typeAttrs.dataType.countHolderObj == NULL)
                 objs[3] = Tcl_NewIntObj(typeAttrs.dataType.arraySize);
             else
                 objs[3] = typeAttrs.dataType.countHolderObj;
-            objs[4] = Tcl_NewStringObj("alignment", 9);
+            objs[4] = Tcl_NewStringObj("Alignment", 9);
             objs[5] = Tcl_NewIntObj(alignment);
-            objs[6] = Tcl_NewStringObj("definition", 10);
+            objs[6] = Tcl_NewStringObj("Definition", 10);
             objs[7] = CffiTypeAndAttrsUnparse(&typeAttrs);
-            Tcl_SetObjResult(ip, Tcl_NewListObj(8, objs));
+            objs[8] = Tcl_NewStringObj("BaseSize", 8);
+            objs[9] = Tcl_NewIntObj(baseSize);
+            Tcl_SetObjResult(ip, Tcl_NewListObj(10, objs));
         }
     }
 

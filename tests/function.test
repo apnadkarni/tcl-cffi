@@ -1321,7 +1321,7 @@ namespace eval ${NS}::test {
     test function-struct-field-structsize-0 "field structsize" -body {
         cffi::Struct create SimpleWithStructSize {c {uchar structsize} ll {longlong structsize} s {short {default 43}}}
         testDll function {structCheck fn} int {s {struct.SimpleWithStructSize byref} c schar ll longlong s short}
-        set size [dict get [SimpleWithStructSize info] size]
+        set size [dict get [SimpleWithStructSize info] Size]
         fn {ll 42} $size 42 43
     } -cleanup {
         rename fn {}
@@ -1335,7 +1335,7 @@ namespace eval ${NS}::test {
     } -body {
         cffi::Struct create SimpleWithStructSize {c uchar ll {longlong {enum E}} s {short {enum E} {default B}}}
         testDll function {structCheck fn} int {s {struct.SimpleWithStructSize byref} c schar ll longlong s short}
-        set size [dict get [SimpleWithStructSize info] size]
+        set size [dict get [SimpleWithStructSize info] Size]
         fn {c 0 ll A} 0 1 2
     } -cleanup {
         cffi::enum delete E
@@ -1350,7 +1350,7 @@ namespace eval ${NS}::test {
     } -body {
         cffi::Struct create SimpleWithStructSize {c {uchar bitmask} ll {longlong bitmask {enum E}} s {short {enum E} {default 1}}}
         testDll function {structCheck fn} int {s {struct.SimpleWithStructSize byref} c schar ll longlong s short}
-        set size [dict get [SimpleWithStructSize info] size]
+        set size [dict get [SimpleWithStructSize info] Size]
         fn {c {1 2} ll {A 4}} 3 5 1
     } -cleanup {
         cffi::enum delete E

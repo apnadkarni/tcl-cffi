@@ -160,17 +160,17 @@ namespace eval cffi::test {
         set sinfo [::TestStruct info]
         set mismatches {}
         foreach fld {c i shrt ui ushrt l uc ul c3 ll unic ull f d} {
-            if {[expr {[dict get $sdict $fld] != [dict get $sinfo fields $fld offset]}]} {
-                puts "$fld: [dict get $sdict $fld] != [dict get $sinfo fields $fld offset]"
+            if {[expr {[dict get $sdict $fld] != [dict get $sinfo Fields $fld Offset]}]} {
+                puts "$fld: [dict get $sdict $fld] != [dict get $sinfo Fields $fld Offset]"
                 lappend mismatches $fld
             }
         }
         binary scan [dict get $sdict b] cucucu byte0 byte1 byte2
-        set off [dict get $sinfo fields b offset]
+        set off [dict get $sinfo Fields b Offset]
         if {$byte0 != $off || $byte1 != [incr off] || $byte2 != [incr off]} {
             lappend mismatches b
         }
-        if {[dict get [dict get $sdict s] c] != [dict get $sinfo fields s offset]} {
+        if {[dict get [dict get $sdict s] c] != [dict get $sinfo Fields s Offset]} {
             lappend mismatches s
         }
         return $mismatches

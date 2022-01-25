@@ -34,11 +34,11 @@ namespace eval cffi::test {
 
         # Skip scalar tests for these
         if {$type in {chars bytes}} {
-            set size 1
-            set alignment 1
+            set Size 1
+            set Alignment 1
         } elseif {$type eq "unichars"} {
-            set size 2
-            set alignment 2
+            set Size 2
+            set Alignment 2
         } else {
             set tinfo [cffi::type info $type]
             dict with tinfo {}
@@ -47,21 +47,21 @@ namespace eval cffi::test {
             } -body {
                 set s [cffi::Struct new "fld $type"]
                 $s info
-            } -result [list size $size alignment $alignment flags 0 fields [list fld [list size $size offset 0 definition $type]]] -match dict
+            } -result [list Size $Size Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $type]]] -match dict
 
             test struct-$type-1 "struct create {schar $type}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "c schar fld $type"
                 S info
-            } -result [list size [expr {2*$size}] alignment $alignment flags 0 fields [list c [list size 1 offset 0 definition schar] fld [list size $size offset $size definition $type]]] -match dict
+            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset $Size Definition $type]]] -match dict
 
             test struct-$type-2 "struct create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "fld $type c uchar"
                 S info
-            } -result [list size [expr {2*$size}] alignment $alignment flags 0 fields [list fld [list size $size offset 0 definition $type] c [list size 1 offset $size definition uchar] ]] -match dict
+            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $type] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
         }
         if {$type ni {string unistring}} {
             test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
@@ -70,12 +70,12 @@ namespace eval cffi::test {
                 cffi::Struct create S "c schar fld $type\[2\] c2 schar"
                 S info
             } -result [list \
-                           size [expr {4*$size}] \
-                           alignment $alignment \
-                           flags 0 fields [list \
-                                       c [list size 1 offset 0 definition schar] \
-                                       fld [list size [expr {2*$size}] offset $size definition [list "$type\[2\]"]] \
-                                       c2 [list size 1 offset [expr {3*$size}] definition schar]]]
+                           Size [expr {4*$Size}] \
+                           Alignment $Alignment \
+                           Flags 0 Fields [list \
+                                       c [list Size 1 Offset 0 Definition schar] \
+                                       fld [list Size [expr {2*$Size}] Offset $Size Definition [list "$type\[2\]"]] \
+                                       c2 [list Size 1 Offset [expr {3*$Size}] Definition schar]]]
         } else {
             test struct-$type-3 "struct create {schar $type\[2\]}" -body {
                 cffi::Struct create S "c schar fld $type\[2\] c2 schar"
@@ -101,7 +101,7 @@ namespace eval cffi::test {
     } -body {
         set sinfo [::TestStruct info]
         set mismatches [list ]
-        if {[getTestStruct s] != [dict get $sinfo size]} {
+        if {[getTestStruct s] != [dict get $sinfo Size]} {
             lappend mismatches size
         }
         lappend mismatches {*}[checkTestStruct $s]
@@ -513,14 +513,14 @@ namespace eval cffi::test {
         cffi::Struct create S {x int p Pointer}
     } -body {
         S info
-    } -result "size [expr {2*$::tcl_platform(pointerSize)}] alignment $::tcl_platform(pointerSize) flags 0 fields {x {size 4 offset 0 definition int} p {size $::tcl_platform(pointerSize) offset $::tcl_platform(pointerSize) definition {pointer unsafe}}}"
+    } -result "Size [expr {2*$::tcl_platform(pointerSize)}] Alignment $::tcl_platform(pointerSize) Flags 0 Fields {x {Size 4 Offset 0 Definition int} p {Size $::tcl_platform(pointerSize) Offset $::tcl_platform(pointerSize) Definition {pointer unsafe}}}"
 
     test struct-alias-1 "struct field array alias" -setup {
         cffi::alias define Array {int[4]}
         cffi::Struct create S {x schar a Array}
     } -body {
         S info
-    } -result {size 20 alignment 4 flags 0 fields {x {size 1 offset 0 definition schar} a {size 16 offset 4 definition {{int[4]}}}}}
+    } -result {Size 20 Alignment 4 Flags 0 Fields {x {Size 1 Offset 0 Definition schar} a {Size 16 Offset 4 Definition {{int[4]}}}}}
 
 
     ###
@@ -576,7 +576,7 @@ namespace eval cffi::test {
             $s frombinary [$s tobinary {}]
         } -cleanup {
             $s destroy
-        } -result [list fld [dict get [cffi::type info $type] size]]
+        } -result [list fld [dict get [cffi::type info $type] Size]]
     }
     foreach type {float double pointer chars[2] unichars[2] string unistring binary struct.::TestStruct} {
         test struct-field-structsize-$type-error-0 "$type field structsize" -body {

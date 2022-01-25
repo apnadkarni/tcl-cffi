@@ -298,23 +298,23 @@ CffiStructInfoCmd(Tcl_Interp *ip,
     CffiStruct *structP = structCtxP->structP;
     Tcl_Obj *objs[8];
 
-    objs[0] = Tcl_NewStringObj("size", 4);
+    objs[0] = Tcl_NewStringObj("Size", 4);
     objs[1] = Tcl_NewLongObj(structP->size);
-    objs[2] = Tcl_NewStringObj("alignment", 9);
+    objs[2] = Tcl_NewStringObj("Alignment", 9);
     objs[3] = Tcl_NewLongObj(structP->alignment);
-    objs[4] = Tcl_NewStringObj("flags", 5);
+    objs[4] = Tcl_NewStringObj("Flags", 5);
     objs[5] = Tcl_NewLongObj(structP->flags);
-    objs[6] = Tcl_NewStringObj("fields", 6);
+    objs[6] = Tcl_NewStringObj("Fields", 6);
     objs[7] = Tcl_NewListObj(structP->nFields, NULL);
 
     for (i = 0; i < structP->nFields; ++i) {
         CffiField *fieldP = &structP->fields[i];
         Tcl_Obj *attrObjs[6];
-        attrObjs[0] = Tcl_NewStringObj("size", 4);
+        attrObjs[0] = Tcl_NewStringObj("Size", 4);
         attrObjs[1] = Tcl_NewLongObj(fieldP->size);
-        attrObjs[2] = Tcl_NewStringObj("offset", 6);
+        attrObjs[2] = Tcl_NewStringObj("Offset", 6);
         attrObjs[3] = Tcl_NewLongObj(fieldP->offset);
-        attrObjs[4] = Tcl_NewStringObj("definition", 10);
+        attrObjs[4] = Tcl_NewStringObj("Definition", 10);
         attrObjs[5] = CffiTypeAndAttrsUnparse(&fieldP->fieldType);
         Tcl_ListObjAppendElement(NULL, objs[7], fieldP->nameObj);
         Tcl_ListObjAppendElement(NULL, objs[7], Tcl_NewListObj(6, attrObjs));
