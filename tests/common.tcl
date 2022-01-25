@@ -49,6 +49,11 @@ namespace eval cffi::test {
 
     variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes]
 
+    proc makeptr {p {tag {}}} {
+        set width [expr {$::tcl_platform(pointerSize) * 2}]
+        return [format "0x%.${width}lx" $p]^$tag
+    }
+
     variable intMax
     variable intMin
     array set intMax {
@@ -83,6 +88,35 @@ namespace eval cffi::test {
         set intMin(ulong) $intMin(uint)
     }
 
+    # Test strings to be used for various encodings
+    set testStrings(ascii) "abc"
+    set testStrings(jis0208) \u543e
+    set testStrings(unicode) \u00e0\u00e1\u00e2
+    set testStrings(bytes) \x01\x02\x03
+
+    cffi::Struct create ::StructValue {
+        c schar
+        i int
+    } -clear
+    # Generic test values for all types
+    variable testValues
+    foreach type {schar short int long longlong} {
+        set testValues($type) $intMin($type)
+    }
+    foreach type {uchar ushort uint ulong ulonglong} {
+        set testValues($type) $intMax($type)
+    }
+    set testValues(float) 42.0
+    set testValues(double) 42.0
+    set testValues(pointer\ unsafe) [makeptr 1]
+    set testValues(chars\[[expr {[string length $testStrings(ascii)]+1}]\]) $testStrings(ascii)
+    set testValues(unichars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
+    set testValues(bytes\[[string length $testStrings(bytes)]\]) $testStrings(bytes)
+    set testValues(string) $testStrings(ascii)
+    set testValues(unistring) $testStrings(unicode)
+    set testValues(binary) $testStrings(bytes)
+    set testValues(struct.::StructValue) {c 42 i 4242}
+
     variable paramDirectionAttrs {in out inout}
     variable pointerAttrs {nullok unsafe dispose counted}
     variable stringAttrs {nullok nullifempty}
@@ -97,11 +131,6 @@ namespace eval cffi::test {
 
     variable invalidFieldAttrs [list {*}$paramDirectionAttrs byref storeonerror storealways]
 
-    # Test strings to be used for various encodings
-    set testStrings(ascii) "abc"
-    set testStrings(jis0208) \u543e
-    set testStrings(unicode) \u00e0\u00e1\u00e2
-    set testStrings(bytes) \x01\x02\x03
 
     # Error messages
     variable errorMessages
@@ -192,11 +221,6 @@ proc nsqualify {name {ns {}}} {
     return ${ns}::$name
 }
 
-
-proc cffi::test::makeptr {p {tag {}}} {
-    set width [expr {$::tcl_platform(pointerSize) * 2}]
-    return [format "0x%.${width}lx" $p]^$tag
-}
 
 proc cffi::test::scoped_ptr {p tag} {
     return [makeptr $p [nsqualify $tag [uplevel 1 namespace current]]]

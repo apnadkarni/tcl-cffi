@@ -43,6 +43,71 @@ namespace eval ${NS}::memory {
         #
         # Returns a safe pointer to the allocated memory.
     }
+    proc get {pointer typespec {index 0}} {
+        # Converts a native value in memory into a Tcl script level value
+        #  pointer - base address of memory location. The pointer must be a
+        #   safe pointer but the tag is immaterial.
+        #  typespec - type specification to use for conversion
+        #  index - the index in memory at which the value is to be stored. Care must
+        #   be taken this is within bounds of the allocated space.
+        #
+        # The command converts the data at a memory location into a Tcl script
+        # object as per the type specification $typespec. The memory address of
+        # the data is given by $pointer if $index is unspecified or `0`.
+        # Otherwise $index is treated as an index into an array based at
+        # $pointer whose elements are of the type defined by $typespec and
+        # memory address used is that of the slot given by $index.
+        #
+        # See also: "memory get!" "memory put"
+    }
+    proc get! {pointer typespec {index 0}} {
+        # Converts a value as per a type specification and stores it in memory
+        # in native form
+        #  pointer - base address of memory location. The pointer is not checked
+        #   for validity.
+        #
+        # This command is identical to the [memory get] command except that it does
+        # not require $pointer to be a safe pointer. See the documentation of
+        # that command for details.
+        #
+        # See also: "memory get" "memory put"
+    }
+    proc put {pointer typespec value {index 0}} {
+        # Converts a value as per a type specification and stores it in memory
+        # in native form
+        #  pointer - base address of memory location. The pointer must be a
+        #   safe pointer but the tag is immaterial.
+        #  typespec - type specification
+        #  value - the script level value to be stored
+        #  index - the index in memory at which the value is to be stored. Care must
+        #   be taken this is within bounds of the allocated space.
+        #
+        # The command converts $value into the native form corresponding to
+        # the type specification $typespec. If $index is unspecified or `0`, the
+        # native value is stored at the memory address given by $pointer.
+        # Otherwise $index is the treated as an index into an array whose elements
+        # are of the type defined by $typespec and the value is stored in the slot
+        # given by $index.
+        #
+        # See also: "memory get" "memory put!"
+    }
+    proc put! {pointer typespec value {index 0}} {
+        # Converts a value as per a type specification and stores it in memory
+        # in native form
+        #  pointer - base address of memory location. The pointer is not checked
+        #   for validity.
+        #  typespec - type specification
+        #  value - the script level value to be stored
+        #  index - the index in memory at which the value is to be stored. Care must
+        #   be taken this is within bounds of the allocated space.
+        #
+        # This command is identical to the [memory put] command except that it does
+        # not require $pointer to be a safe pointer. See the documentation of that
+        # command for details.
+        #
+        # See also: "memory get" "memory put"
+    }
+
     proc tobinary {pointer size} {
         # Returns the content of a memory block as a Tcl binary string.
         #  pointer - safe pointer to memory
