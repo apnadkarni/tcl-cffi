@@ -460,6 +460,7 @@ CffiResult CffiStructToObj(Tcl_Interp        *ip,
         ret = CffiNativeValueToObj(ip,
                                    &fieldP->fieldType,
                                    fieldP->offset + (char *)valueP,
+                                   0,
                                    fieldP->fieldType.dataType.arraySize,
                                    &fieldObj);
         if (ret != TCL_OK)

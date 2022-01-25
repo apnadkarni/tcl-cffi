@@ -486,6 +486,7 @@ CffiResult CffiTypeParse(Tcl_Interp *ip,
                          Tcl_Obj *typeObj,
                          CffiType *typeP);
 void CffiTypeCleanup(CffiType *);
+int CffiTypeActualSize(const CffiType *typeP);
 void CffiTypeLayoutInfo(const CffiType *typeP,
                         int *baseSizeP,
                         int *sizeP,
@@ -550,10 +551,12 @@ CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
 CffiResult CffiNativeScalarToObj(Tcl_Interp *ip,
                                  const CffiTypeAndAttrs *typeAttrsP,
                                  void *valueP,
+                                 int indx,
                                  Tcl_Obj **valueObjP);
 CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 const CffiTypeAndAttrs *typeAttrsP,
                                 void *valueP,
+                                int startIndex,
                                 int count,
                                 Tcl_Obj **valueObjP);
 Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj);
@@ -586,7 +589,8 @@ Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);
 
 int CffiAliasGet(CffiInterpCtx *ipCtxP,
                  Tcl_Obj *aliasNameObj,
-                 CffiTypeAndAttrs *typeAttrP);
+                 CffiTypeAndAttrs *typeAttrP,
+                 int flags);
 CffiResult CffiAliasAdd(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *nameObj,
                         Tcl_Obj *typedefObj,

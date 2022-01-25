@@ -7,6 +7,41 @@
 
 #include "tclCffiInt.h"
 
+/* Function: CffiMemoryAddressFromObj
+ * Calculates the memory address for an object in memory
+ *
+ * Parameters:
+ * ip - interpreter. Must not be NULL if verify is true.
+ * ptrObj - *Tcl_Obj* holding a pointer
+ * verify - if true, the pointer is verified
+ * addressP - location where address is to be stored
+ *
+ * In addition to errors from passed Tcl_Obj values not being the right type
+ * etc.  the function will also return an error if the calculated address is NULL
+ * or verification fails when requested.
+ *
+ * Returns:
+ * *TCL_OK* or *TCL_ERROR*.
+ */
+static CffiResult
+CffiMemoryAddressFromObj(Tcl_Interp *ip,
+                         Tcl_Obj *ptrObj,
+                         int verify,
+                         void **addressP)
+{
+    void *pv;
+    if (verify)
+        CHECK(Tclh_PointerUnwrap(ip, ptrObj, &pv, NULL));
+    else
+        CHECK(Tclh_PointerObjVerify(ip, ptrObj, &pv, NULL));
+
+    if (pv == NULL) {
+        Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+        return TCL_ERROR;
+    }
+    *addressP = pv;
+    return TCL_OK;
+}
 
 /* Function: CffiMemoryAllocateCmd
  * Implements the *memory allocate* script level command.
@@ -301,6 +336,120 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
     return TCL_OK;
 }
 
+/* Function: CffiMemoryGetCmd
+ * Implements the *memory get* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[]. Should be 4-5 including command
+ *        and subcommand.
+ * objv - argument array.
+ * flags - if the low bit is set, the pointer is treated as unsafe and not
+ *        checked for validity.
+ *
+ * The objv[2] element is the pointer to the memory address from where
+ * a value of type objv[3] is to be retrieved. If objv[4]
+ * is specified, it is the index into an array starting at objv[2] and
+ * the value is retrieved from that corresponding location.
+ *
+ * The passed in pointer should be registered unless the low bit of *flags*
+ * is set. A *NULL* pointer will raise an error.
+ *
+ * Returns:
+ * *TCL_OK* on success with Tcl string value as interpreter result,
+ * *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
+                 int objc,
+                 Tcl_Obj *const objv[],
+                 int flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    void *pv;
+    unsigned int indx;
+    CffiTypeAndAttrs typeAttrs;
+    Tcl_Obj *resultObj;
+    CffiResult ret;
+
+    if (objc > 4) {
+        CHECK(Tclh_ObjToUInt(ip, objv[4], &indx));
+    }
+    else
+        indx = 0;
+
+    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & 1, &pv));
+
+    CHECK(CffiTypeAndAttrsParse(
+        ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
+    /* Note typeAttrs needs to be cleaned up beyond this point */
+
+    ret = CffiNativeValueToObj(ipCtxP->interp,
+                               &typeAttrs,
+                               pv,
+                               indx,
+                               typeAttrs.dataType.arraySize,
+                               &resultObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    CffiTypeAndAttrsCleanup(&typeAttrs);
+    return ret;
+}
+
+
+/* Function: CffiMemoryPutCmd
+ * Implements the *memory put* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[]. Should be 5-6 including command
+ *        and subcommand.
+ * objv - argument array.
+ * flags - if the low bit is set, the pointer is treated as unsafe and not
+ *        checked for validity.
+ *
+ * The objv[2] element is the pointer to the location where the native
+ * value of type objv[3] contained in objv[4] is to be stored. If objv[5]
+ * is specified, it is the index into an array starting at objv[2] and
+ * the value is stored in that corresponding location.
+ *
+ * The passed in pointer should be registered unless the low bit of *flags*
+ * is set. A *NULL* pointer will raise an error.
+ *
+ * Returns:
+ * *TCL_OK* on success with Tcl string value as interpreter result,
+ * *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryPutCmd(CffiInterpCtx *ipCtxP,
+                 int objc,
+                 Tcl_Obj *const objv[],
+                 int flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    void *pv;
+    unsigned int indx;
+    CffiTypeAndAttrs typeAttrs;
+    CffiResult ret;
+
+    if (objc > 5) {
+        CHECK(Tclh_ObjToUInt(ip, objv[5], &indx));
+    }
+    else
+        indx = 0;
+
+    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & 1, &pv));
+
+    CHECK(CffiTypeAndAttrsParse(
+        ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
+    /* Note typeAttrs needs to be cleaned up beyond this point */
+
+    ret = CffiNativeValueFromObj(ipCtxP, &typeAttrs, objv[4], pv, indx, NULL);
+
+    CffiTypeAndAttrsCleanup(&typeAttrs);
+    return ret;
+}
+
 /* Function: CffiMemorySetCmd
  * Implements the *memory set* script level command.
  *
@@ -344,6 +493,10 @@ CffiMemoryObjCmd(ClientData cdata,
         {"free", 1, 1, "POINTER", CffiMemoryFreeCmd, 0},
         {"frombinary", 1, 2, "BINARY ?TYPETAG?", CffiMemoryFromBinaryCmd, 0},
         {"fromstring", 1, 2, "STRING ?ENCODING?", CffiMemoryFromStringCmd, 0},
+        {"put", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemoryPutCmd, 0},
+        {"put!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemoryPutCmd, 1},
+        {"get", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 0},
+        {"get!", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 1},
         {"set", 3, 3, "POINTER BYTEVALUE COUNT", CffiMemorySetCmd, 0},
         {"tobinary", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 0},
         {"tobinary!", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 1},
@@ -357,4 +510,3 @@ CffiMemoryObjCmd(ClientData cdata,
     return subCommands[cmdIndex].cmdFn(
         ipCtxP, objc, objv, subCommands[cmdIndex].flags);
 }
-

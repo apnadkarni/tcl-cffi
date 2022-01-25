@@ -617,6 +617,33 @@ void CffiTypeCleanup (CffiType *typeP)
     typeP->baseType = CFFI_K_TYPE_VOID;
 }
 
+/* Function: CffiTypeActualSize
+ * Returns the size of a concrete type.
+ *
+ * Parameters:
+ * typeP - type descriptor
+ *
+ * The size returned for arrays is the size of the whole array not just the
+ * base size.
+ *
+ * The type must not be CFFI_K_TYPE_VOID and must not be a variable size
+ * array.
+ *
+ * Returns:
+ * Size of the type.
+ */
+int
+CffiTypeActualSize(const CffiType *typeP)
+{
+    CFFI_ASSERT(typeP->baseTypeSize != 0);
+    CFFI_ASSERT(typeP->arraySize != 0); /* Not variable size array */
+    if (CffiTypeIsArray(typeP))
+        return typeP->arraySize * typeP->baseTypeSize;
+    else
+        return typeP->baseTypeSize;
+}
+
+
 /* Function: CffiTypeLayoutInfo
  * Returns size and alignment information for a type.
  *
@@ -737,7 +764,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /* First check for a type definition before base types */
-    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP);
+    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP, CFFI_F_NAME_SKIP_MESSAGES);
     if (temp)
         baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
@@ -1245,15 +1272,15 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
 }
 
 /* Function: CffiNativeScalarFromObj
- * Stores a native value from Tcl_Obj wrapper
+ * Stores a native scalar value from Tcl_Obj wrapper
  *
  * Parameters:
  * ipCtxP - Interpreter context
  * typeAttrsP - type attributes. The base type is used without
  *   considering the BYREF flag.
- * valueObj - the *Tcl_Obj* containing the script level struct value
+ * valueObj - the *Tcl_Obj* containing the script level value
  * valueBaseP - the base location where the native value is to be stored.
- * indx - the index at which the value is to be stored i.e. valueP[index]
+ * indx - the index at which the value is to be stored i.e. valueBaseP[indx]
  *         is the final target
  * memlifoP - the memory allocator for fields that are typed as *string*
  *            or *unistring*. If *NULL*, fields of these types will
@@ -1420,6 +1447,27 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
 #undef STOREINT_
 }
 
+/* Function: CffiNativeValueFromObj
+ * Stores a native value of any type from Tcl_Obj wrapper
+ *
+ * Parameters:
+ * ipCtxP - Interpreter context
+ * typeAttrsP - type attributes. The base type is used without
+ *   considering the BYREF flag.
+ * valueObj - the *Tcl_Obj* containing the script level value
+ * valueBaseP - the base location where the native value is to be stored.
+ * valueIndex - the index at which the value is to be stored
+ * i.e. valueBaseP[valueIndex] is the final target
+ * memlifoP - the memory allocator for fields that are typed as *string*
+ *            or *unistring*. If *NULL*, fields of these types will
+ *            result in an error being raised. Caller is responsible
+ *            for ensuring the memory allocated from *memlifoP* stays
+ *            allocated as long as the stored pointer is live.
+ *
+ * Returns:
+ * *TCL_OK* on success with a pointer to the structure stored in *structPP* or
+ * *TCL_ERROR* on error with message stored in the interpreter.
+ */
 CffiResult
 CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                        const CffiTypeAndAttrs *typeAttrsP,
@@ -1437,8 +1485,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
     CFFI_ASSERT(typeAttrsP->dataType.baseTypeSize != 0);
 
     /* Calculate offset into memory where this value is to be stored */
-    CffiTypeLayoutInfo(&typeAttrsP->dataType, NULL, &offset, NULL);
-    offset *= valueIndex;
+    offset = valueIndex * CffiTypeActualSize(&typeAttrsP->dataType);
     valueP = offset + (char *)valueBaseP;
 
     if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
@@ -1467,6 +1514,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
             CHECK(CffiBytesFromObj(ip, valueObj, valueP, count));
             break;
         default:
+            /* Store each contained element */
             if (Tcl_ListObjGetElements(ip, valueObj, &nvalues, &valueObjList)
                 != TCL_OK)
                 return TCL_ERROR; /* Note - if caller has specified too
@@ -1505,7 +1553,8 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
  * Parameters:
  * ip - Interpreter
  * typeP - type descriptor for the binary value
- * valueP - pointer to C binary value to wrap
+ * valueBaseP - value to be wrapped in valueBaseP[valueIndex]
+ * valueIndex - index as above
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
  *    Following standard practice, the reference count on the Tcl_Obj is 0.
  *
@@ -1521,7 +1570,8 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
 CffiResult
 CffiNativeScalarToObj(Tcl_Interp *ip,
                       const CffiTypeAndAttrs *typeAttrsP,
-                      void *valueP,
+                      void *valueBaseP,
+                      int indx,
                       Tcl_Obj **valueObjP)
 {
     int ret;
@@ -1532,7 +1582,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
 
 #define MAKEINTOBJ_(objfn_, type_)                                         \
     do {                                                                   \
-        type_ value_ = *(type_ *)valueP;                                   \
+        type_ value_ = *(indx + (type_ *)valueBaseP);                      \
         valueObj     = CffiIntValueToObj(typeAttrsP, (Tcl_WideInt)value_); \
         if (valueObj == NULL)                                              \
             valueObj = objfn_(value_);                                     \
@@ -1575,23 +1625,24 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
         MAKEINTOBJ_(Tclh_ObjFromULongLong,unsigned long long);
         break;
     case CFFI_K_TYPE_FLOAT:
-        valueObj = Tcl_NewDoubleObj(*(float *)valueP);
+        valueObj = Tcl_NewDoubleObj(*(indx + (float *)valueBaseP));
         break;
     case CFFI_K_TYPE_DOUBLE:
-        valueObj = Tcl_NewDoubleObj(*(double *)valueP);
+        valueObj = Tcl_NewDoubleObj(*(indx + (double *)valueBaseP));
         break;
     case CFFI_K_TYPE_POINTER:
-        ret = CffiPointerToObj(ip, typeAttrsP, *(void **)valueP, &valueObj);
+        ret = CffiPointerToObj(
+            ip, typeAttrsP, *(indx + (void **)valueBaseP), &valueObj);
         if (ret != TCL_OK)
             return ret;
         break;
     case CFFI_K_TYPE_ASTRING:
-        ret = CffiCharsToObj(ip, typeAttrsP, *(char **)valueP, &valueObj);
+        ret = CffiCharsToObj(ip, typeAttrsP, *(indx + (char **)valueBaseP), &valueObj);
         if (ret != TCL_OK)
             return ret;
         break;
     case CFFI_K_TYPE_UNISTRING:
-        valueObj = Tcl_NewUnicodeObj(*(Tcl_UniChar **)valueP, -1);
+        valueObj = Tcl_NewUnicodeObj(*(indx + (Tcl_UniChar **)valueBaseP), -1);
         break;
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
@@ -1613,8 +1664,9 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
  * Parameters:
  * ip - Interpreter
  * typeP - type descriptor for the binary value. Should not be of type binary
- * valueP - pointer to C binary value to wrap
- * count - number of values pointed to by valueP. *< 0* indicates a scalar
+ * valueBaseP - pointer to base of C binary value to wrap
+ * startIndex - starting index into valueBaseP
+ * count - number of values pointed to by valueP. *< 0* indicates a scalar,
  *         positive number (even *1*) is size of array. Size of 0
  *         will raise error
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
@@ -1628,11 +1680,14 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
 CffiResult
 CffiNativeValueToObj(Tcl_Interp *ip,
                      const CffiTypeAndAttrs *typeAttrsP,
-                     void *valueP,
+                     void *valueBaseP,
+                     int startIndex,
                      int count,
                      Tcl_Obj **valueObjP)
 {
     int ret;
+    int offset;
+    void *valueP;
     Tcl_Obj *valueObj;
     CffiBaseType baseType = typeAttrsP->dataType.baseType;
 
@@ -1641,6 +1696,10 @@ CffiNativeValueToObj(Tcl_Interp *ip,
         Tcl_SetResult(ip, "Internal error: count=0 passed to CffiNativeValueToObj.", TCL_STATIC);
         return TCL_ERROR;
     }
+
+    /* Calculate offset into memory where this value is to be stored */
+    offset = startIndex * CffiTypeActualSize(&typeAttrsP->dataType);
+    valueP = offset + (char *)valueBaseP;
 
     switch (baseType) {
     case CFFI_K_TYPE_STRUCT:
@@ -1687,7 +1746,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
          * and unichars base types, it is treated as a string scalar value.
          */
         if (count < 0) {
-            return CffiNativeScalarToObj(ip, typeAttrsP, valueP, valueObjP);
+            return CffiNativeScalarToObj(ip, typeAttrsP, valueP, 0, valueObjP);
         }
         else {
             /* Array, possible even a single element, still represent as list */
@@ -1701,7 +1760,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
             listObj = Tcl_NewListObj(count, NULL);
             for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
                 ret = CffiNativeScalarToObj(
-                    ip, typeAttrsP, offset + (char *)valueP, &valueObj);
+                    ip, typeAttrsP, offset + (char *)valueP, 0, &valueObj);
                 if (ret != TCL_OK) {
                     Tcl_DecrRefCount(listObj);
                     return ret;

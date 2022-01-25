@@ -260,7 +260,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         /* args[argIndex] is the location of the pointer to the struct */
         valueP = *(void **)args[argIndex];
         return CffiNativeValueToObj(
-            cbP->ipCtxP->interp, typeAttrsP, valueP, -1, argObjP);
+            cbP->ipCtxP->interp, typeAttrsP, valueP, 0, -1, argObjP);
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -273,7 +273,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     }
 
     return CffiNativeScalarToObj(
-        cbP->ipCtxP->interp, typeAttrsP, valueP, argObjP);
+        cbP->ipCtxP->interp, typeAttrsP, valueP, 0, argObjP);
 
 #undef EXTRACT_
 #undef EXTRACT_INT_

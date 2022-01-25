@@ -50,7 +50,7 @@ invalid_alias_syntax:
  * nameP - name to use as the key
  * nameTypeP - the type of name being looked up. Only used for error
  *    messages. May be NULL.
- * flags - if the CFFI_F_NAME_SKIP_ERROR_MESSAGES bit is set,
+ * flags - if the CFFI_F_NAME_SKIP_MESSAGES bit is set,
  *    errors are not record even if ip is not NULL.
  * valueP - location to store the retrieved value if found.
  * fqnObjP - location to store the fully qualified name of the found entry.

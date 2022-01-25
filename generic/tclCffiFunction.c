@@ -979,23 +979,23 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         since they are promoted by libffi to ffi_arg */
         if (argP->arraySize < 0)
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP, argP->arraySize, &valueObj);
+                ip, typeAttrsP, valueP, 0, argP->arraySize, &valueObj);
         else
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP->u.ptr, argP->arraySize, &valueObj);
+                ip, typeAttrsP, valueP->u.ptr, 0, argP->arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, argP->arraySize, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, 0, argP->arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_STRUCT:
         /* Arrays not supported for struct currently  - TBD still true? */
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, argP->arraySize, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, 0, argP->arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_ASTRING:
