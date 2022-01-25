@@ -1420,6 +1420,85 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
 #undef STOREINT_
 }
 
+CffiResult
+CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
+                       const CffiTypeAndAttrs *typeAttrsP,
+                       Tcl_Obj *valueObj,
+                       void *valueBaseP,
+                       int valueIndex,
+                       MemLifo *memlifoP)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    void *valueP; /* Where value should be stored */
+    int offset;
+
+    /* Must be scalar (-1) or fixed array (>0) */
+    CFFI_ASSERT(typeAttrsP->dataType.arraySize != 0);
+    CFFI_ASSERT(typeAttrsP->dataType.baseTypeSize != 0);
+
+    /* Calculate offset into memory where this value is to be stored */
+    CffiTypeLayoutInfo(&typeAttrsP->dataType, NULL, &offset, NULL);
+    offset *= valueIndex;
+    valueP = offset + (char *)valueBaseP;
+
+    if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
+        CHECK(CffiNativeScalarFromObj(
+            ipCtxP, typeAttrsP, valueObj, valueP, 0, memlifoP));
+    }
+    else {
+        Tcl_Obj **valueObjList;
+        int indx;
+        int nvalues;
+        int count = typeAttrsP->dataType.arraySize;
+        CFFI_ASSERT(count > 0);
+        switch (typeAttrsP->dataType.baseType) {
+        case CFFI_K_TYPE_CHAR_ARRAY:
+            CHECK(CffiCharsFromObj(ip,
+                                   typeAttrsP->dataType.u.tagObj,
+                                   valueObj,
+                                   (char *)valueP,
+                                   count));
+            break;
+        case CFFI_K_TYPE_UNICHAR_ARRAY:
+            CHECK(CffiUniCharsFromObj(
+                ip, valueObj, (Tcl_UniChar *)valueP, count));
+            break;
+        case CFFI_K_TYPE_BYTE_ARRAY:
+            CHECK(CffiBytesFromObj(ip, valueObj, valueP, count));
+            break;
+        default:
+            if (Tcl_ListObjGetElements(ip, valueObj, &nvalues, &valueObjList)
+                != TCL_OK)
+                return TCL_ERROR; /* Note - if caller has specified too
+                                   * few values, it's ok         \
+                                   * because perhaps the actual count is
+                                   * specified in another       \
+                                   * parameter. If too many, only up to
+                                   * array size */
+            if (nvalues > count)
+                nvalues = count;
+            for (indx = 0; indx < nvalues; ++indx) {
+                CHECK(CffiNativeScalarFromObj(ipCtxP,
+                                              typeAttrsP,
+                                              valueObjList[indx],
+                                              valueP,
+                                              indx,
+                                              memlifoP));
+            }
+            /* Fill additional unspecified elements with 0 */
+            if (indx < count) {
+                int size = typeAttrsP->dataType.baseTypeSize;
+                memset((size * indx) + (char *)valueP,
+                       0,
+                       size * (count - indx));
+            }
+
+            break;
+        }
+    }
+    return TCL_OK;
+}
+
 /* Function: CffiNativeScalarToObj
  * Wraps a scalar C binary value into a Tcl_Obj.
  *

@@ -364,10 +364,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
         Tcl_Obj *valueObj;
         const CffiField *fieldP = &structP->fields[i];
         void *fieldResultP      = fieldP->offset + (char *)resultP;
-        int count               = fieldP->fieldType.dataType.arraySize;
         const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;
-
-        CFFI_ASSERT(count != 0);/* No dynamic size arrays in structs */
 
         if (Tcl_DictObjGet(ip,structValueObj, fieldP->nameObj, &valueObj) != TCL_OK)
             return TCL_ERROR; /* Invalid dictionary. Note TCL_OK does not mean found */
@@ -425,61 +422,8 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 fieldP->nameObj,
                 "Field missing in struct dictionary value.");
         }
-        if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
-            CHECK(CffiNativeScalarFromObj(
-                ipCtxP, typeAttrsP, valueObj, fieldResultP, 0, memlifoP));
-        }
-        else {
-            Tcl_Obj **valueObjList;
-            int indx;
-            int nvalues;
-            CFFI_ASSERT(count > 0);
-            switch (fieldP->fieldType.dataType.baseType) {
-            case CFFI_K_TYPE_CHAR_ARRAY:
-                CHECK(CffiCharsFromObj(ip,
-                                       fieldP->fieldType.dataType.u.tagObj,
-                                       valueObj,
-                                       (char *)fieldResultP,
-                                       count));
-                break;
-            case CFFI_K_TYPE_UNICHAR_ARRAY:
-                CHECK(CffiUniCharsFromObj(
-                    ip, valueObj, (Tcl_UniChar *)fieldResultP, count));
-                break;
-            case CFFI_K_TYPE_BYTE_ARRAY:
-                CHECK(CffiBytesFromObj(ip, valueObj, fieldResultP, count));
-                break;
-            default:
-                if (Tcl_ListObjGetElements(
-                        ip, valueObj, &nvalues, &valueObjList)
-                    != TCL_OK)
-                    return TCL_ERROR; /* Note - if caller has specified too
-                                       * few values, it's ok         \
-                                       * because perhaps the actual count is
-                                       * specified in another       \
-                                       * parameter. If too many, only up to
-                                       * array size */
-                if (nvalues > count)
-                    nvalues = count;
-                for (indx = 0; indx < nvalues; ++indx) {
-                    CHECK(CffiNativeScalarFromObj(ipCtxP,
-                                                  typeAttrsP,
-                                                  valueObjList[indx],
-                                                  fieldResultP,
-                                                  indx,
-                                                  memlifoP));
-                }
-                /* Fill additional unspecified elements with 0 */
-                if (indx < count) {
-                    int size = typeAttrsP->dataType.baseTypeSize;
-                    memset((size * indx) + (char *)fieldResultP,
-                           0,
-                           size * (count - indx));
-                }
-
-                break;
-            }
-        }
+        CHECK(CffiNativeValueFromObj(
+            ipCtxP, typeAttrsP, valueObj, fieldResultP, 0, memlifoP));
     }
     return TCL_OK;
 #undef STOREFIELD
