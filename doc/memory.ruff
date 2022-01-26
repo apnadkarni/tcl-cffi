@@ -57,6 +57,12 @@ namespace eval ${NS}::memory {
         # Otherwise $index is treated as an index into an array based at
         # $pointer whose elements are of the type defined by $typespec and
         # memory address used is that of the slot given by $index.
+        # For example, if $typespec is `int` and $index is 2,
+        # the memory address from which the value is read is at byte offset 8
+        # assuming ints occupy 4 bytes. If $typespec is `int[3]`, then the size
+        # of the type specification is 12, and an index of 2 will correspond to
+        # a byte offset of 24, not 8. Be aware of these semantics when reading
+        # arrays using non-0 indices.
         #
         # See also: "memory get!" "memory put"
     }
@@ -87,7 +93,12 @@ namespace eval ${NS}::memory {
         # native value is stored at the memory address given by $pointer.
         # Otherwise $index is the treated as an index into an array whose elements
         # are of the type defined by $typespec and the value is stored in the slot
-        # given by $index.
+        # given by $index. For example, if $typespec is `int` and $index is 2,
+        # the memory address at which the value is written is at byte offset 8
+        # assuming ints occupy 4 bytes. If $typespec is `int[3]`, then the size
+        # of the type specification is 12, and an index of 2 will correspond to
+        # a byte offset of 24, not 8. Be aware of these semantics when writing
+        # arrays to non-0 indices to avoid memory corruption.
         #
         # See also: "memory get" "memory put!"
     }

@@ -28,12 +28,14 @@ namespace eval ${NS}::type {
         #
         # The returned dictionary contains the following keys:
         #
-        # alignment - the memory alignment needed for a value of that type
-        # count - `0` for scalar values, else indicates the type is an array
+        # Alignment - the memory alignment needed for a value of that type
+        # BaseSize - the number of bytes to store a single value of the type
+        #  when the type is an array. For scalars, same as `Size`.
+        # Count - `0` for scalar values, else indicates the type is an array
         #  with that number of elements
-        # size - the number of bytes of memory needed to store a value of that
+        # Size - the number of bytes of memory needed to store a value of that
         #  type.
-        # definition - the type declaration after applying any defaults.
+        # Definition - the type declaration after applying any defaults.
         #  For type aliases, this is the resolved type definition.
     }
     namespace export *

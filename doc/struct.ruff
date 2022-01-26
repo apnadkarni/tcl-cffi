@@ -37,19 +37,6 @@ oo::class create ${NS}::Struct {
         # Returns a safe pointer to the allocated memory tagged with the
         # struct name.
     }
-    method Decode {pointer {count 0}} {
-        # Decodes native C struct(s) in memory into a Tcl dictionary.
-        #  pointer - safe pointer to the C struct in memory
-        #  count - If non-0, then it is treated as the number of elements
-        #   in an array of structs referenced by $pointer. If 0,
-        #   $pointer is assumed to point to a single struct.
-        #
-        # The decoded dictionary or dictionaries are keyed by the field
-        # names of the struct.
-        #
-        # Returns a dictionary of the decoded struct if $count is 0,
-        # or a list of $count such struct if greater than 0.
-    }
     method fromnative {pointer {index 0}} {
         # Decodes native C struct(s) in memory into a Tcl dictionary.
         #  pointer - safe pointer to the C struct or array of structs in memory
@@ -112,10 +99,10 @@ oo::class create ${NS}::Struct {
         # Returns a dictionary containing information about the struct layout
         #
         # The returned dictionary has the following fields:
-        # size - size of the struct
-        # alignment - struct alignment
-        # fields - dictionary of fields keyed by field name. The value is another
-        #   nested dictionary with keys *size*, *offset*, and *definition*
+        # Size - size of the struct
+        # Alignment - struct alignment
+        # Fields - dictionary of fields keyed by field name. The value is another
+        #   nested dictionary with keys *Size*, *Offset*, and *Definition*
         #   containing the size, offset in struct, and type definition of the field.
     }
     method describe {} {
