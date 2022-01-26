@@ -53,9 +53,9 @@ CffiMemoryAddressFromObj(Tcl_Interp *ip,
  * objv - argument array.
  * flags - unused
  *
- * Allocated memory using *ckalloc* and returns a wrapped pointer to it.
- * The *objv[2]* argument contains the allocation size. Optionally, the
- * *objv[3]* argument may be passed as the pointer type tag.
+ * Allocated memory using *ckalloc* and returns a wrapped pointer to it. The
+ * *objv[2]* argument contains the allocation size or a type specification.
+ * Optionally, the *objv[3]* argument may be passed as the pointer type tag.
  *
  * Returns:
  * *TCL_OK* on success with wrapped pointer as interpreter result,
@@ -65,14 +65,30 @@ static CffiResult
 CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
+    CffiTypeAndAttrs typeAttrs;
     Tcl_WideInt size;
     CffiResult ret;
     Tcl_Obj *ptrObj;
     Tcl_Obj *tagObj;
     void *p;
 
-    CHECK(Tclh_ObjToRangedInt(ip, objv[2], 1, INT_MAX, &size));
-    p = ckalloc((int)size);
+    /* Check first if it is a type specification. */
+    ret = CffiTypeAndAttrsParse(
+        ipCtxP, objv[2], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs);
+    if (ret == TCL_OK) {
+        p = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
+        CffiTypeAndAttrsCleanup(&typeAttrs);
+    }
+    else {
+        ret = Tclh_ObjToRangedInt(ip, objv[2], 1, INT_MAX, &size);
+        if (ret != TCL_OK)
+            return Tclh_ErrorInvalidValue(
+                ip,
+                objv[2],
+                "Allocation size argument must be a positive 32-bit integer or "
+                "a type specification.");
+        p = ckalloc((int)size);
+    }
     if (objc == 4) {
         tagObj = CffiMakePointerTagFromObj(ip, objv[3]);
         Tcl_IncrRefCount(tagObj);

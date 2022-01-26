@@ -2,10 +2,12 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::memory {
-    proc allocate {size {tag {}}} {
+    proc allocate {sizespec {tag {}}} {
         # Allocates memory of the specified size
-        #  size - requested size of memory block
+        #  specsize - requested size of memory block. This may be specified
+        #   either as an integer value or a type specification.
         #  tag - Tag for the returned pointer.
+        #
         # The returned memory must be eventually freed by calling [memory free].
         #
         # See also: "memory free"

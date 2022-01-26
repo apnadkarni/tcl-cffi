@@ -24,9 +24,35 @@ namespace eval cffi::test {
         set p [cffi::memory allocate 1 TAG]
     } -result {^0x[[:xdigit:]]{8,16}\^::cffi::test::TAG$} -match regexp
 
+
+    foreach {type val} [array get testValues] {
+        if {$type ni {string unistring binary}} {
+            test memory-allocate-$type-0 "allocate $type" -setup {
+                set p [cffi::memory allocate $type]
+            } -cleanup {
+                cffi::memory free $p
+            } -body {
+                cffi::memory put $p $type $val
+                cffi::memory get $p $type
+            } -result $val
+            if {$type in [list {*}$numericTypes struct.::StructValue]} {
+                # In array tests, use [lindex $type 0] since testValues contains
+                # "pointer unsafe" and we only want pointer
+                test memory-allocate-$type-array-0 "allocate $type array" -setup {
+                    set p [cffi::memory allocate $type\[2\]]
+                } -cleanup {
+                    cffi::memory free $p
+                } -body {
+                    cffi::memory put $p $type\[2\] [list $val $val]
+                    cffi::memory get $p $type\[2\]
+                } -result [list $val $val]
+            }
+        }
+    }
+
     test memory-allocate-error-0 {Allocate zero bytes} -body {
         list [catch {cffi::memory allocate 0} result] $result $::errorCode
-    } -result {1 {Value 0 not in range. Must be within [1,2147483647].} {cffi RANGE {Value 0 not in range. Must be within [1,2147483647].}}}
+    } -result {1 {Invalid value "0". Allocation size argument must be a positive 32-bit integer or a type specification.} {cffi INVALID_VALUE {Invalid value "0". Allocation size argument must be a positive 32-bit integer or a type specification.}}}
 
     test memory-allocate-error-1 {Missing args} -body {
         list [catch {cffi::memory allocate} result] $result $::errorCode
@@ -389,8 +415,6 @@ namespace eval cffi::test {
             cffi::memory get $p unistring
         } -result $testValues($type)
     }
-
-
 }
 
 ::tcltest::cleanupTests
