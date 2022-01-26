@@ -1971,13 +1971,14 @@ CffiUniStringToObj(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiCharsFromObj
- * Encodes a Tcl_Obj to a character array based on a type encoding.
+/* Function: CffiCharsFromTclString
+ * Encodes a Tcl utf8 string to a character array based on a type encoding.
  *
  * Parameters:
  * ip - interpreter
  * encObj - *Tcl_Obj* holding encoding or *NULL*
- * fromObj - *Tcl_Obj* containing value to be stored
+ * fromP - Tcl utf8 string to be converted
+ * fromLen - length of the Tcl string. If < 0, null terminated
  * toP - buffer to store the encoded string
  * toSize - size of buffer
  *
@@ -1986,15 +1987,19 @@ CffiUniStringToObj(Tcl_Interp *ip,
  * in the interpreter.
  */
 CffiResult
-CffiCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize)
+CffiCharsFromTclString(Tcl_Interp *ip,
+                       Tcl_Obj *encObj,
+                       const char *fromP,
+                       int fromLen,
+                       char *toP,
+                       int toSize)
 {
-    int fromLen;
-    const char *fromP;
     Tcl_Encoding encoding;
     CffiResult ret;
 
-    fromP = Tcl_GetStringFromObj(fromObj, &fromLen);
+    if (fromLen < 0)
+        fromLen = Tclh_strlen(fromP);
+
     /*
      * Note this encoding step is required even for UTF8 since Tcl's
      * internal UTF8 is not exactly UTF8
@@ -2075,29 +2080,34 @@ CffiCharsFromObj(
     }
     if (encoding)
         Tcl_FreeEncoding(encoding);
-    if (ret != TCL_OK) {
-        const char *message;
-        switch (ret) {
-        case TCL_CONVERT_NOSPACE:
-            message =
-                "String length is greater than specified maximum buffer size.";
-            break;
-        case TCL_CONVERT_MULTIBYTE:
-            message = "String ends in a partial multibyte encoding fragment.";
-            break;
-        case TCL_CONVERT_SYNTAX:
-            message = "String contains invalid character sequence";
-            break;
-        case TCL_CONVERT_UNKNOWN:
-            message = "String cannot be encoded in target encoding.";
-            break;
-        default:
-            message = NULL;
-            break;
-        }
-        return Tclh_ErrorInvalidValue(ip, fromObj, message);
-    }
-    return TCL_OK;
+    if (ret == TCL_OK)
+        return TCL_OK;
+    return Tclh_ErrorEncodingFromUtf8(ip, ret, fromP, fromLen);
+}
+
+/* Function: CffiCharsFromObj
+ * Encodes a Tcl_Obj to a character array based on a type encoding.
+ *
+ * Parameters:
+ * ip - interpreter
+ * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * fromObj - *Tcl_Obj* containing value to be stored
+ * toP - buffer to store the encoded string
+ * toSize - size of buffer
+ *
+ * Returns:
+ * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
+ * in the interpreter.
+ */
+CffiResult
+CffiCharsFromObj(
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize)
+{
+    int fromLen;
+    const char *fromP;
+
+    fromP = Tcl_GetStringFromObj(fromObj, &fromLen);
+    return CffiCharsFromTclString(ip, encObj, fromP, fromLen, toP, toSize);
 }
 
 /* Function: CffiCharsInMemlifoFromObj
@@ -2116,19 +2126,22 @@ CffiCharsFromObj(
  * in the interpreter.
  */
 CffiResult
-CffiCharsInMemlifoFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, MemLifo *memlifoP, char **outPP)
+CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
+                          Tcl_Obj *encObj,
+                          Tcl_Obj *fromObj,
+                          MemLifo *memlifoP,
+                          char **outPP)
 {
-    Tcl_DString ds;
+    const char *fromP;
+    int fromLen, dstLen, srcLen, dstSpace;
+    int srcLatestRead, dstLatestWritten;
+    const char *srcP;
+    char *dstP;
+    int flags;
+    int status;
+    Tcl_EncodingState state;
     Tcl_Encoding encoding;
-    char *fromP;
-    char *p;
-    int len;
 
-    /*
-     * Note this encoding step is required even for UTF8 since Tcl's
-     * internal UTF8 is not exactly UTF8
-     */
     if (encObj) {
         /* Should not really fail since check should have happened at
          * prototype parsing time */
@@ -2137,27 +2150,52 @@ CffiCharsInMemlifoFromObj(
     else
         encoding = NULL;
 
-    fromP = Tcl_UtfToExternalDString(encoding, Tcl_GetString(fromObj), -1, &ds);
+    fromP = Tcl_GetStringFromObj(fromObj, &fromLen);
+    srcP = fromP;               /* Keep fromP unchanged for error messages */
+    srcLen = fromLen;
+
+    flags = TCL_ENCODING_START | TCL_ENCODING_END;
+
+    dstSpace = srcLen + 2; /* Possibly two nuls */
+    dstP = MemLifoAlloc(memlifoP, dstSpace);
+    dstLen = 0;
+    while (1) {
+        /* dstP is buffer. dstLen is what's written so far */
+        status = Tcl_UtfToExternal(ip, encoding, srcP, srcLen, flags, &state,
+                                   dstP+dstLen,
+                                dstSpace-dstLen, &srcLatestRead,
+                                &dstLatestWritten, NULL);
+        CFFI_ASSERT(dstSpace >= dstLatestWritten);
+        dstLen += dstLatestWritten;
+        /* Terminate loop on any  */
+        if (status != TCL_CONVERT_NOSPACE) {
+            if (status != TCL_OK)
+                break;
+            /* Tack on two nuls because we don't know how many nuls encoding uses */
+            if ((dstSpace-dstLen) < 2)
+                dstP = MemLifoResizeLast(memlifoP, dstSpace+(dstSpace-dstLen), 0);
+            dstP[dstLen] = 0;
+            dstP[dstLen+1] = 0;
+            *outPP = dstP;
+            if (encoding)
+                Tcl_FreeEncoding(encoding);
+            return TCL_OK;
+        }
+        flags &= ~ TCL_ENCODING_START;
+
+        CFFI_ASSERT(srcLatestRead <= srcLen);
+        srcP += srcLatestRead;
+        srcLen -= srcLatestRead;
+        if ((INT_MAX-dstSpace) < dstSpace)
+            dstSpace = INT_MAX;
+        else
+            dstSpace = 2 * dstSpace;
+        dstP = MemLifoResizeLast(memlifoP, dstSpace, 0);
+    }
     if (encoding)
         Tcl_FreeEncoding(encoding);
-    len = Tcl_DStringLength(&ds);
-
-    /*
-     * The encoded string in ds may be terminated by one or two nulls
-     * depending on the encoding. We do not know which. Moreover,
-     * Tcl_DStringLength does not tell us either. So we just tack on an
-     * extra two null bytes;
-     */
-    p = MemLifoAlloc(memlifoP, len+2);
-    memmove(p, fromP, len);
-    p[len]     = 0;
-    p[len + 1] = 0;
-    *outPP = p;
-
-    Tcl_DStringFree(&ds);
-    return TCL_OK;
+    return Tclh_ErrorEncodingFromUtf8(ip, status, fromP, fromLen);
 }
-
 
 /* Function: CffiCharsToObj
  * Wraps an encoded chars into a Tcl_Obj

@@ -384,6 +384,24 @@ int Tclh_ErrorRange(Tcl_Interp *interp,
                     Tcl_WideInt low,
                     Tcl_WideInt high);
 
+/* Function: Tclh_ErrorEncodingFailed
+ * Reports an encoding failure converting from utf8
+ *
+ * Parameters:
+ * interp  - Tcl interpreter in which to report the error.
+ * encoding_status - an encoding status value as returned by Tcl_ExternalToUtf
+ * utf8 - Tcl internal string that failed to be transformed
+ * utf8Len - length of the string. If < 0, treated as nul terminated.
+ *
+ * Returns:
+ * TCL_ERROR - Always returns this value so caller can just pass on the return
+ *             value from this function.
+ */
+int Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
+                               int encoding_status,
+                               const char *utf8,
+                               int utf8Len);
+
 #ifdef _WIN32
 /* Function: Tclh_ErrorWindowsError
  * Reports a Windows error code message.
@@ -414,6 +432,7 @@ Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *me
 #define ErrorOperFailed Tclh_ErrorOperFailed
 #define ErrorAllocation Tclh_ErrorAllocation
 #define ErrorRange      Tclh_ErrorRange
+#define ErrorEncodingFromUtf8 Tclh_ErrorEncodingFromUtf8
 #ifdef _WIN32
 #define ErrorWindowsError Tclh_ErrorWindowsError
 #endif
@@ -664,6 +683,44 @@ char *TclhPrintAddress(const void *address, char *buf, int buflen)
     }
     return buf;
 }
+
+int
+Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
+                           int encoding_status,
+                           const char *utf8,
+                           int utf8Len)
+{
+    const char *message;
+    char limited[80];
+    if (utf8Len < 0)
+        utf8Len = Tclh_strlen(utf8);
+    switch (encoding_status) {
+    case TCL_CONVERT_NOSPACE:
+        message =
+            "String length is greater than specified maximum buffer size.";
+        break;
+    case TCL_CONVERT_MULTIBYTE:
+        message = "String ends in a partial multibyte encoding fragment.";
+        break;
+    case TCL_CONVERT_SYNTAX:
+        message = "String contains invalid character sequence";
+        break;
+    case TCL_CONVERT_UNKNOWN:
+        message = "String cannot be encoded in target encoding.";
+        break;
+    default:
+        message = NULL;
+        break;
+    }
+    /* Remember fromLen does not include nul */
+    _snprintf(limited,
+              utf8Len < sizeof(limited) ? utf8Len : sizeof(limited),
+              "%s",
+              utf8);
+    return Tclh_ErrorInvalidValueStr(ip, utf8, message);
+}
+
+
 
 #ifdef _WIN32
 Tcl_Obj *TclhMapWindowsError(

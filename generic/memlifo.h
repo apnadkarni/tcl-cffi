@@ -124,7 +124,7 @@ Returns pointer to allocated memory on success, a null pointer on failure.
 MEMLIFO_EXTERN void* MemLifoCopy
     (
      MemLifo *lifoP,    /* LIFO pool to allocate from */
-     void *srcP,        /* Source to copy from */
+     const void *srcP,        /* Source to copy from */
      MemlifoUSizeT nbytes      /* Number of bytes to copy */
     );
 
@@ -229,7 +229,7 @@ allocated block cannot be expanded without moving and dontMove is set,
 if it is not the last allocation from the LIFO memory pool, or if a mark
 has been allocated after this block, or if there is insufficient memory.
 
-On failure, the function return a NULL pointer. 
+On failure, the function return a NULL pointer.
 Note the function does not panic even if MEMLIFO_F_PANIC_ON_FAIL
 is set for the pool.
 

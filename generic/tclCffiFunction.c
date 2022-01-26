@@ -215,39 +215,25 @@ CffiArgPrepareUniChars(CffiCall *callP,
  * on failure with error message in the interpreter.
  */
 static CffiResult
-CffiArgPrepareInString(Tcl_Interp *ip,
+CffiArgPrepareInString(CffiInterpCtx *ipCtxP,
                      const CffiTypeAndAttrs *typeAttrsP,
                      Tcl_Obj *valueObj,
-                     CffiValue *valueP)
+                     void **valueP)
 {
-    int len;
-    const char *s;
-    Tcl_Encoding encoding;
+    char *encodedP;
+    CffiResult ret;
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_ASTRING);
     CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
 
-    Tcl_DStringInit(&valueP->ancillary.ds);
-    s = Tcl_GetStringFromObj(valueObj, &len);
-    /*
-     * Note this encoding step is required even for UTF8 since Tcl's
-     * internal UTF8 is not exactly UTF8
-     */
-    if (typeAttrsP->dataType.u.tagObj) {
-        CHECK(Tcl_GetEncodingFromObj(
-            ip, typeAttrsP->dataType.u.tagObj, &encoding));
-    }
-    else
-        encoding = NULL;
-    /*
-     * NOTE: UtfToExternalDString will append more than one null byte
-     * for multibyte encodings if necessary. These are NOT included
-     * in the DString length.
-     */
-    Tcl_UtfToExternalDString(encoding, s, len, &valueP->ancillary.ds);
-    if (encoding)
-        Tcl_FreeEncoding(encoding);
-    return TCL_OK;
+    ret = CffiCharsInMemlifoFromObj(ipCtxP->interp,
+                              typeAttrsP->dataType.u.tagObj,
+                              valueObj,
+                              &ipCtxP->memlifo,
+                              &encodedP);
+    if (ret == TCL_OK)
+        *valueP = encodedP;
+    return ret;
 }
 
 /* Function: CffiArgPrepareInUniString
@@ -267,10 +253,10 @@ CffiArgPrepareInString(Tcl_Interp *ip,
  * on failure with error message in the interpreter.
  */
 static CffiResult
-CffiArgPrepareInUniString(Tcl_Interp *ip,
-                        const CffiTypeAndAttrs *typeAttrsP,
-                        Tcl_Obj *valueObj,
-                        CffiValue *valueP)
+CffiArgPrepareInUniString(CffiInterpCtx *ipCtxP,
+                          const CffiTypeAndAttrs *typeAttrsP,
+                          Tcl_Obj *valueObj,
+                          void **valueP)
 {
     int len = 0;
     const Tcl_UniChar *s;
@@ -278,11 +264,8 @@ CffiArgPrepareInUniString(Tcl_Interp *ip,
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNISTRING);
     CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
 
-    /* TBD - why do we need valueP->ds at all? Copy straight into memlifo */
-    Tcl_DStringInit(&valueP->ancillary.ds);
     s = Tcl_GetUnicodeFromObj(valueObj, &len);
-    /* Note we copy the terminating two-byte end of string null as well */
-    Tcl_DStringAppend(&valueP->ancillary.ds, (char *)s, (len + 1) * sizeof(*s));
+    *valueP = MemLifoCopy(&ipCtxP->memlifo, s, (len + 1) * sizeof(*s));
     return TCL_OK;
 }
 
@@ -391,13 +374,11 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
      */
 
     switch (typeAttrsP->dataType.baseType) {
-    case CFFI_K_TYPE_ASTRING:
-    case CFFI_K_TYPE_UNISTRING:
-        Tcl_DStringFree(&valueP->ancillary.ds);
-        break;
     case CFFI_K_TYPE_BINARY:
         Tclh_ObjClearPtr(&valueP->ancillary.baObj);
         break;
+    case CFFI_K_TYPE_UNISTRING:
+    case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
@@ -810,14 +791,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         }
         else {
             CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-            CHECK(CffiArgPrepareInString(ip, typeAttrsP, valueObj, &argP->value));
+            CHECK(CffiArgPrepareInString(
+                ipCtxP, typeAttrsP, valueObj, &argP->value.u.ptr));
             if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
                     == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
-                && Tcl_DStringLength(&argP->value.ancillary.ds) == 0) {
+                && *(char*)argP->value.u.ptr == 0) {
                 argP->value.u.ptr = NULL; /* Null if empty */
             }
-            else
-                argP->value.u.ptr = Tcl_DStringValue(&argP->value.ancillary.ds);
             if (flags & CFFI_F_ATTR_BYREF)
                 STOREARGBYREF(ptr);
             else
@@ -839,8 +819,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         }
         else {
             CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-            CHECK(CffiArgPrepareInUniString(ip, typeAttrsP, valueObj, &argP->value));
-            p = Tcl_DStringValue(&argP->value.ancillary.ds);
+            CHECK(CffiArgPrepareInUniString(ipCtxP, typeAttrsP, valueObj, &p));
             if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
                     == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
                 && p[0] == 0 && p[1] == 0) {
