@@ -574,8 +574,16 @@ namespace eval Concepts {
         of these annotations.
 
         - For `string` and `unistring` types, the `nonzero`, `errno` and
-        `lasterror` annotations may be specified. See [Error handling] for
+        `lasterror` error annotations may be specified. See [Error handling] for
         details on these.
+
+        In addition to the above, when the C function returns a pointer to a
+        type `TYPE`, its return value may be declared as `TYPE byref`. In this
+        case the wrapped script level command returns the dereferenced value,
+        not the pointer. Note however that in this case the original pointer
+        value is not accessible at the script level and so this should only be
+        used when that is is acceptable, e.g. the pointer is to static or
+        internal storage that does not need to be freed.
 
         ### Parameters
 
