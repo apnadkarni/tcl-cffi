@@ -191,10 +191,10 @@ MemLifoAlloc(MemLifo *l, MemlifoUSizeT sz)
         return NULL;
     }
 
-    /* 
-     * NOTE: note that when called from MemLifoExpandLast(), on entry the 
-     * lm_last_alloc field may not be set correctly since that function 
-     * may remove the last allocation from the big block list under 
+    /*
+     * NOTE: note that when called from MemLifoExpandLast(), on entry the
+     * lm_last_alloc field may not be set correctly since that function
+     * may remove the last allocation from the big block list under
      * some circumstances. We do not use that field here, only set it.
      */
 
@@ -216,21 +216,21 @@ MemLifoAlloc(MemLifo *l, MemlifoUSizeT sz)
         return m->lm_last_alloc;
     }
 
-    /* 
+    /*
      * Insufficient space in current chunk.
-     * Decide whether to allocate a new chunk or allocate a separate 
+     * Decide whether to allocate a new chunk or allocate a separate
      * block for the request. We allocate a chunk if
      * if there is little space available in the current chunk,
-     * `little' being defined as less than 1/8th chunk size. Note 
-     * this also ensures we will not allocate separate blocks that 
+     * `little' being defined as less than 1/8th chunk size. Note
+     * this also ensures we will not allocate separate blocks that
      * are smaller than 1/8th the chunk size.
-     * Otherwise, we satisfy the request by allocating a separate 
+     * Otherwise, we satisfy the request by allocating a separate
      * block.
-     * 
-     * This strategy is intended to balance conflicting goals: on one 
-     * hand, we do not want to allocate a new chunk aggressively as 
-     * this will result in too much wasted space in the current chunk. 
-     * On the other hand, allocating a separate block results in wasted 
+     *
+     * This strategy is intended to balance conflicting goals: on one
+     * hand, we do not want to allocate a new chunk aggressively as
+     * this will result in too much wasted space in the current chunk.
+     * On the other hand, allocating a separate block results in wasted
      * space due to external fragmentation as well slower execution.
      *
      * TBD - if using our default windows based heap, try and HeapReAlloc
@@ -241,8 +241,8 @@ MemLifoAlloc(MemLifo *l, MemlifoUSizeT sz)
         < (int)l->lifo_chunk_size / 8) {
         /* Little space in the current chunk
          * Allocate a new chunk and suballocate from it.
-         * 
-	 * As a heuristic, we will allocate extra space in the chunk 
+         *
+	 * As a heuristic, we will allocate extra space in the chunk
 	 * if the requested size is greater than half the default chunk size.
 	 */
         if (sz > (l->lifo_chunk_size / 2))
@@ -284,8 +284,8 @@ MemLifoAlloc(MemLifo *l, MemlifoUSizeT sz)
 
         c->lc_prev = m->lm_big_blocks; /* Place on the list of big blocks */
         m->lm_big_blocks = c;
-        /* 
-         * Note we do not modify m->m_freeptr since it still refers to 
+        /*
+         * Note we do not modify m->m_freeptr since it still refers to
          * the current "mainstream" chunk.
          */
         m->lm_last_alloc = ALIGNPTR(c, sizeof(*c), void *);
@@ -295,7 +295,7 @@ MemLifoAlloc(MemLifo *l, MemlifoUSizeT sz)
 }
 
 void *
-MemLifoCopy(MemLifo *l, void *srcP, MemlifoUSizeT nbytes)
+MemLifoCopy(MemLifo *l, const void *srcP, MemlifoUSizeT nbytes)
 {
     void *dstP = MemLifoAlloc(l, nbytes);
     if (dstP)
@@ -338,9 +338,9 @@ MemLifoPushMark(MemLifo *l)
         n->lm_freeptr = p;
         n->lm_chunks  = m->lm_chunks;
     } else {
-        /* 
-	     * No room in current chunk. Have to allocate a new chunk. Note 
-	     * we do not use MemLifoAlloc to allocate the mark since that 
+        /*
+	     * No room in current chunk. Have to allocate a new chunk. Note
+	     * we do not use MemLifoAlloc to allocate the mark since that
 	     * would change the state of the previous mark.
 	     */
         MEMLIFO_ASSERT(l->lifo_chunk_size);
@@ -353,9 +353,9 @@ MemLifoPushMark(MemLifo *l)
         }
         c->lc_end = ADDPTR(c, l->lifo_chunk_size, void *);
 
-        /* 
-	 * Place on the list of chunks. Note however, that we do NOT 
-	 * modify m->lm_chunkList since that should hold the original lifo 
+        /*
+	 * Place on the list of chunks. Note however, that we do NOT
+	 * modify m->lm_chunkList since that should hold the original lifo
 	 * state. We'll put this chunk on the list headed by the new mark.
 	 */
         c->lc_prev = m->lm_chunks; /* Place on the list of chunks */
@@ -400,8 +400,8 @@ MemLifoPopMark(MemLifoMarkHandle m)
         MemLifoChunk *c1, *c2, *end;
         MemLifo *     l = m->lm_lifo;
 
-        /* 
-	 * Free big block lists before freeing chunks since freeing up 
+        /*
+	 * Free big block lists before freeing chunks since freeing up
 	 * chunks might free up the mark m itself.
 	 */
         c1  = m->lm_big_blocks;
@@ -450,10 +450,10 @@ MemLifoPushFrame(MemLifo *l, MemlifoUSizeT sz)
     MEMLIFO_ASSERT(ALIGNED(m->lm_freeptr));
     MEMLIFO_ASSERT(ALIGNED(m->lm_chunks->lc_end));
 
-    /* 
-     * Optimize for the case that the request can be satisfied from 
-     * the current block. Also, we do two compares with 
-     * m->lm_free to guard against possible overflows if we simply do 
+    /*
+     * Optimize for the case that the request can be satisfied from
+     * the current block. Also, we do two compares with
+     * m->lm_free to guard against possible overflows if we simply do
      * the add and a single compare.
      */
     MEMLIFO_ASSERT(ALIGNED(m->lm_freeptr));
@@ -508,9 +508,9 @@ MemLifoExpandLast(MemLifo *l, MemlifoUSizeT incr, int fix)
 
     incr = ROUNDUP(incr);
 
-    /* 
-     * Fast path. Allocation can be satisfied in place if the last 
-     * allocation was not a big block and there is enough room in the 
+    /*
+     * Fast path. Allocation can be satisfied in place if the last
+     * allocation was not a big block and there is enough room in the
      * current chunk
      */
     is_big_block
@@ -563,8 +563,8 @@ MemLifoExpandLast(MemLifo *l, MemlifoUSizeT incr, int fix)
         c->lc_prev = m->lm_big_blocks->lc_prev;
         l->lifo_freeFn(m->lm_big_blocks);
         m->lm_big_blocks = c;
-        /* 
-	 * Note we do not modify m->m_freeptr since it still refers to 
+        /*
+	 * Note we do not modify m->m_freeptr since it still refers to
 	 * the current "mainstream" chunk.
 	 */
         m->lm_last_alloc = p2;
@@ -625,8 +625,8 @@ MemLifoResizeLast(MemLifo *l, MemlifoUSizeT new_sz, int fix)
     is_big_block = (m->lm_last_alloc
                     == ADDPTR(m->lm_big_blocks, sizeof(MemLifoChunk), void *));
 
-    /* 
-     * Special fast path when allocation is not a big block and can be 
+    /*
+     * Special fast path when allocation is not a big block and can be
      * done from current chunk
      */
     new_sz = ROUNDUP(new_sz);

@@ -259,15 +259,6 @@ typedef struct CffiValue {
     ffi_arg ffi_val;
 #endif
     } u;
-    union {
-        #ifdef OBSOLETE
-        /* TBD - Tcl_DString has 200 bytes static storage. Memory wasteful? */
-        /* Maybe make it a pointer onto memlifo? */
-        Tcl_DString ds;  /* CFFI_K_TYPE_ASTRING */
-        #endif
-        Tcl_Obj *baObj;  /* CFFI_K_TYPE_BINARY */
-        Tcl_Obj *uniObj; /* CFFI_K_TYPE_UNISTRING */
-    } ancillary ; /* Ancillary data needed for some types */
 } CffiValue;
 
 /*

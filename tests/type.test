@@ -39,7 +39,6 @@ namespace eval cffi::test {
     proc basictypetest {typedecl} {
         variable typeInfo
         variable errorMessages
-
         set testlabel [join $typedecl -]
         set typeattrs [lassign $typedecl type]
         lassign $typeInfo($type) size alignment
@@ -901,11 +900,11 @@ namespace eval cffi::test {
 
     ## binary - param mode
     foreach {attr expected} {
-        "" "in"
-        "in"  "in"
-        "{default 0}" "in {default 0}"
-        "byref in" "in byref"
-        "byref" "in byref"
+        "" "in nullifempty"
+        "in"  "in nullifempty"
+        "{default 0}" "in nullifempty {default 0}"
+        "byref in" "in byref nullifempty"
+        "byref" "in byref nullifempty"
         "nullifempty in" "in nullifempty"
         "nullifempty" "in nullifempty"
     } {

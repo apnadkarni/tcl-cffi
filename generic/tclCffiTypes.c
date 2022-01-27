@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Ashok P. Nadkarni
+ * Copyright (c) 2021-2022, Ashok P. Nadkarni
  * All rights reserved.
  *
  * See the file LICENSE for license
@@ -1050,6 +1050,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             else {
                 /* Certain types always by reference */
                 switch (baseType) {
+                case CFFI_K_TYPE_BINARY:
+                    flags |= CFFI_F_ATTR_NULLIFEMPTY;
+                    break;
                 case CFFI_K_TYPE_CHAR_ARRAY:
                 case CFFI_K_TYPE_UNICHAR_ARRAY:
                 case CFFI_K_TYPE_BYTE_ARRAY:

@@ -326,8 +326,10 @@ namespace eval Concepts {
         between Tcl values and C values with the `Tcl_GetByteArrayFromObj` and
         `Tcl_NewByteArrayFromObj` functions.
 
-        The `binary` value can only be used as an input parameter to a function.
-        It is not permitted in any other declaration context.
+        The `binary` type can only be used as an input parameter to a function.
+        It is not permitted in any other declaration context. It also has an
+        implied `nullifempty` annotation so that 0-length binaries are always
+        passed as NULL pointers.
 
         ### Structs
 
@@ -647,7 +649,8 @@ namespace eval Concepts {
         present, a NULL pointer is passed into the C function if the passed
         argument is an empty string in the case of `string` or `unistring` and
         an empty dictionary in the case of `struct`. This facility is useful for
-        API's where NULL pointers signify default options.
+        API's where NULL pointers signify default options. Note that the `binary`
+        type always has `nullifempty` implied even if not explicitly specified.
 
         The annotation `enum` is available for integer types. It has an
         associated argument that specifies an [Enum][Enumerations]. When the

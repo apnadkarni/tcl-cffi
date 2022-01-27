@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Ashok P. Nadkarni
+ * Copyright (c) 2021-2022 Ashok P. Nadkarni
  * All rights reserved.
  *
  * See the file LICENSE for license
@@ -197,160 +197,6 @@ CffiArgPrepareUniChars(CffiCall *callP,
     }
 }
 
-/* Function: CffiArgPrepareInString
- * Initializes a CffiValue to pass a string input argument.
- *
- * Parameters:
- * ip - interpreter
- * typeAttrsP - parameter type descriptor
- * valueObj - the Tcl_Obj containing string to pass. May be NULL for pure
- *   output parameters
- * valueP - location to store the argument
- *
- * The function may allocate storage which must be freed by calling
- * CffiArgCleanup when no longer needed.
- *
- * Returns:
- * *TCL_OK* on success with string in *valueP* or *TCL_ERROR*
- * on failure with error message in the interpreter.
- */
-static CffiResult
-CffiArgPrepareInString(CffiInterpCtx *ipCtxP,
-                     const CffiTypeAndAttrs *typeAttrsP,
-                     Tcl_Obj *valueObj,
-                     void **valueP)
-{
-    char *encodedP;
-    CffiResult ret;
-
-    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_ASTRING);
-    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
-
-    ret = CffiCharsInMemlifoFromObj(ipCtxP->interp,
-                              typeAttrsP->dataType.u.tagObj,
-                              valueObj,
-                              &ipCtxP->memlifo,
-                              &encodedP);
-    if (ret == TCL_OK)
-        *valueP = encodedP;
-    return ret;
-}
-
-/* Function: CffiArgPrepareInUniString
- * Initializes a CffiValue to pass a input unistring argument.
- *
- * Parameters:
- * ip - interpreter
- * typeAttrsP - parameter type descriptor
- * valueObj - the Tcl_Obj containing string to pass.
- * valueP - location to store the argument
- *
- * The function may allocate storage which must be freed by calling
- * CffiArgCleanup when no longer needed.
- *
- * Returns:
- * *TCL_OK* on success with string in *valueP* or *TCL_ERROR*
- * on failure with error message in the interpreter.
- */
-static CffiResult
-CffiArgPrepareInUniString(CffiInterpCtx *ipCtxP,
-                          const CffiTypeAndAttrs *typeAttrsP,
-                          Tcl_Obj *valueObj,
-                          void **valueP)
-{
-    int len = 0;
-    const Tcl_UniChar *s;
-
-    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNISTRING);
-    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
-
-    s = Tcl_GetUnicodeFromObj(valueObj, &len);
-    *valueP = MemLifoCopy(&ipCtxP->memlifo, s, (len + 1) * sizeof(*s));
-    return TCL_OK;
-}
-
-
-/* Function: CffiArgPrepareInBinary
- * Initializes a CffiValue to pass a input byte array argument.
- *
- * Parameters:
- * ip - interpreter
- * paramP - parameter descriptor
- * valueObj - the Tcl_Obj containing the byte array to pass. May be NULL
- *   for pure output parameters
- * valueP - location to store the argument
- *
- * The function may allocate storage which must be freed by calling
- * CffiArgCleanup when no longer needed.
- *
- * Returns:
- * *TCL_OK* on success with string in *valueP* or *TCL_ERROR*
- * on failure with error message in the interpreter.
- */
-static CffiResult
-CffiArgPrepareInBinary(Tcl_Interp *ip,
-                     const CffiTypeAndAttrs *typeAttrsP,
-                     Tcl_Obj *valueObj,
-                     CffiValue *valueP)
-{
-    Tcl_Obj *objP;
-
-    CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
-    /*
-     * Pure input but could still shimmer so dup it. Potential
-     * future optimizations TBD:
-     *  - dup only if shared (ref count > 1)
-     *  - use memlifo to copy bytes instead of duping
-     */
-    objP = Tcl_DuplicateObj(valueObj);
-    Tcl_IncrRefCount(objP);
-    valueP->ancillary.baObj = objP;
-
-    return TCL_OK;
-}
-
-/* Function: CffiArgPrepareBytes
- * Initializes a CffiValue to pass a bytes argument.
- *
- * Parameters:
- * callP - the call context
- * arg_index - index into argument array of call context. Caller must
- * ensure this is an array of size > 0.
- * valueObj - the value passed in from script. May be NULL for pure output.
- * valueP - location of native value to store
- *
- * The function may allocate storage which must be freed by calling
- * CffiArgCleanup when no longer needed.
- *
- * Returns:
- * *TCL_OK* on success with pointer to bytes in *valueP* or *TCL_ERROR*
- * on failure with error message in the interpreter.
- */
-static CffiResult
-CffiArgPrepareBytes(CffiCall *callP,
-                       int arg_index,
-                       Tcl_Obj *valueObj,
-                       CffiValue *valueP)
-{
-    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
-    CffiArgument *argP    = &callP->argsP[arg_index];
-    const CffiTypeAndAttrs *typeAttrsP =
-        &callP->fnP->protoP->params[arg_index].typeAttrs;
-
-    CFFI_ASSERT(argP->arraySize > 0);
-
-    valueP->u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
-    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_BYTE_ARRAY);
-
-    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
-        /* NOTE: because of shimmering possibility, we need to copy */
-        return CffiBytesFromObj(
-            ipCtxP->interp, valueObj, valueP->u.ptr, argP->arraySize);
-    }
-    else
-        return TCL_OK;
-}
-
 /* Function: CffiArgCleanup
  * Releases any resources stored within a CffiValue
  *
@@ -359,35 +205,14 @@ CffiArgPrepareBytes(CffiCall *callP,
  */
 void CffiArgCleanup(CffiCall *callP, int arg_index)
 {
-    const CffiTypeAndAttrs *typeAttrsP;
-    CffiValue *valueP;
-
-    if ((callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED) == 0)
-        return;
-
-    typeAttrsP = &callP->fnP->protoP->params[arg_index].typeAttrs;
-    valueP = &callP->argsP[arg_index].value;
-
     /*
-     * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
-     * and CffiArgPrepare. Any changes here should be reflected there too.
+     * No argument types need to be any resource clean up.
+     * In the future, if any clean up is needed, remember to check
+     * the INITIALIZE flag first as follows.
+     * if ((callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED) == 0)
+     *     return;
      */
 
-    switch (typeAttrsP->dataType.baseType) {
-    case CFFI_K_TYPE_BINARY:
-        Tclh_ObjClearPtr(&valueP->ancillary.baObj);
-        break;
-    case CFFI_K_TYPE_UNISTRING:
-    case CFFI_K_TYPE_ASTRING:
-    case CFFI_K_TYPE_CHAR_ARRAY:
-    case CFFI_K_TYPE_UNICHAR_ARRAY:
-    case CFFI_K_TYPE_BYTE_ARRAY:
-        /* valueP->u.{charP,unicharP,bytesP} points to memlifo storage */
-        /* FALLTHRU */
-    default:
-        /* Scalars have no storage to deallocate */
-        break;
-    }
 }
 
 /* Function: CffiArgPrepare
@@ -791,13 +616,15 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         }
         else {
             CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-            CHECK(CffiArgPrepareInString(
-                ipCtxP, typeAttrsP, valueObj, &argP->value.u.ptr));
-            if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
-                    == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
-                && *(char*)argP->value.u.ptr == 0) {
+            CHECK(CffiCharsInMemlifoFromObj(ipCtxP->interp,
+                                            typeAttrsP->dataType.u.tagObj,
+                                            valueObj,
+                                            &ipCtxP->memlifo,
+                                            &p));
+            if (p[0] == 0 && (flags & CFFI_F_ATTR_NULLIFEMPTY))
                 argP->value.u.ptr = NULL; /* Null if empty */
-            }
+            else
+                argP->value.u.ptr = p;
             if (flags & CFFI_F_ATTR_BYREF)
                 STOREARGBYREF(ptr);
             else
@@ -807,25 +634,20 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_UNISTRING:
         CFFI_ASSERT(!(flags & CFFI_F_ATTR_INOUT));
-        /*
-         * Code below is written to support OUT and BYREF (not INOUT) despite
-         * the asserts above which are maintained in the type declaration
-         * parsing code.
-         */
         if (flags & CFFI_F_ATTR_OUT) {
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             argP->value.u.ptr = NULL;
             STOREARGBYREF(ptr);
         }
         else {
+            Tcl_UniChar *uniP;
             CFFI_ASSERT(flags & CFFI_F_ATTR_IN);
-            CHECK(CffiArgPrepareInUniString(ipCtxP, typeAttrsP, valueObj, &p));
-            if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
-                    == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
-                && p[0] == 0 && p[1] == 0) {
-                p = NULL; /* Null if empty */
-            }
-            argP->value.u.ptr = p;
+            uniP = Tcl_GetUnicodeFromObj(valueObj, &len);
+            if (len == 0 && (flags & CFFI_F_ATTR_NULLIFEMPTY))
+                argP->value.u.ptr = NULL; /* Null if empty */
+            else
+                argP->value.u.ptr = MemLifoCopy(
+                    &ipCtxP->memlifo, uniP, (len + 1) * sizeof(*uniP));
             if (flags & CFFI_F_ATTR_BYREF)
                 STOREARGBYREF(ptr);
             else
@@ -844,10 +666,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_BINARY:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);
-        CHECK(CffiArgPrepareInBinary(ip, typeAttrsP, valueObj, &argP->value));
-        argP->value.u.ptr =
-            Tcl_GetByteArrayFromObj(argP->value.ancillary.baObj, &len);
-        if (len == 0 && (flags & CFFI_F_ATTR_NULLIFEMPTY))
+        /* Pure input but could still shimmer so copy to memlifo */
+        p = (char *)Tcl_GetByteArrayFromObj(valueObj, &len);
+        /* If zero length, always store null pointer regardless of nullifempty */
+        if (len)
+            argP->value.u.ptr = MemLifoCopy(&ipCtxP->memlifo, p, len);
+        else
             argP->value.u.ptr = NULL;
         if (flags & CFFI_F_ATTR_BYREF)
             STOREARGBYREF(ptr);
@@ -857,9 +681,14 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_BYTE_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        if (argP->arraySize == 0)
+        if (argP->arraySize <= 0)
             goto pass_null_array;
-        CHECK(CffiArgPrepareBytes(callP, arg_index, valueObj, &argP->value));
+        argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
+        if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
+            /* NOTE: because of shimmering possibility, we need to copy */
+            CHECK(CffiBytesFromObj(
+                ipCtxP->interp, valueObj, argP->value.u.ptr, argP->arraySize));
+        }
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARG(CffiStoreArgPointer, ptr);
         break;

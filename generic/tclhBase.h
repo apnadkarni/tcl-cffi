@@ -713,7 +713,7 @@ Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
         break;
     }
     /* Remember fromLen does not include nul */
-    _snprintf(limited,
+    snprintf(limited,
               utf8Len < sizeof(limited) ? utf8Len : sizeof(limited),
               "%s",
               utf8);
