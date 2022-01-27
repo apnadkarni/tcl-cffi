@@ -63,24 +63,18 @@ namespace eval cffi::test {
                 S info
             } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $type] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
         }
-        if {$type ni {string unistring}} {
-            test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
-                S destroy
-            } -body {
-                cffi::Struct create S "c schar fld $type\[2\] c2 schar"
-                S info
-            } -result [list \
-                           Size [expr {4*$Size}] \
-                           Alignment $Alignment \
-                           Flags 0 Fields [list \
-                                       c [list Size 1 Offset 0 Definition schar] \
-                                       fld [list Size [expr {2*$Size}] Offset $Size Definition [list "$type\[2\]"]] \
-                                       c2 [list Size 1 Offset [expr {3*$Size}] Definition schar]]]
-        } else {
-            test struct-$type-3 "struct create {schar $type\[2\]}" -body {
-                cffi::Struct create S "c schar fld $type\[2\] c2 schar"
-            } -result "Invalid value \"$type\[2\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
-        }
+        test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
+            S destroy
+        } -body {
+            cffi::Struct create S "c schar fld $type\[2\] c2 schar"
+            S info
+        } -result [list \
+                       Size [expr {4*$Size}] \
+                       Alignment $Alignment \
+                       Flags 0 Fields [list \
+                                           c [list Size 1 Offset 0 Definition schar] \
+                                           fld [list Size [expr {2*$Size}] Offset $Size Definition [list "$type\[2\]"]] \
+                                           c2 [list Size 1 Offset [expr {3*$Size}] Definition schar]]]
     }
 
     # Struct size, offset and alignment tests

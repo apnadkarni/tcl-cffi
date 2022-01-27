@@ -468,6 +468,7 @@ EXTERN void struct_pointer_array_exchange(struct struct_with_pointer_array *a, s
 static char utf8_test_string[] = {0xc3,0xa0,0xc3,0xa1,0xc3,0xa2, 0};
 static char jis_test_string[]  = {'8', 'c', 0, 0};
 static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
+static Tcl_UniChar unichar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
 
 FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
@@ -494,6 +495,18 @@ EXTERN const char **jis0208_return_byref() {
 EXTERN void string_param_out(char **strPP) {
     *strPP = "abc";
 }
+EXTERN const char *string_array_in (const char *strings[], int index)
+{
+    return strings[index];
+}
+EXTERN void string_array_out (char *strings[], int n)
+{
+    int i;
+    static char *strs[] = {"abc", "def", "ghi"};
+    for (i = 0; i < n; ++i) {
+        strings[i] = strs[i%3];
+    }
+}
 
 FNSTRINGS(unistring, Tcl_UniChar)
 EXTERN const Tcl_UniChar *unistring_return() {
@@ -507,6 +520,17 @@ EXTERN void unistring_param_out(Tcl_UniChar **strPP) {
     *strPP = unichar_test_string;
 }
 
+EXTERN const Tcl_UniChar *unistring_array_in (const Tcl_UniChar *strings[], int index)
+{
+    return strings[index];
+}
+EXTERN void unistring_array_out (Tcl_UniChar *strings[], int n)
+{
+    int i;
+    static Tcl_UniChar *strs[] = {unichar_test_string, unichar_test_string2};
+    for (i = 0; i < n; ++i)
+        strings[i] = strs[i%2];
+}
 
 FNSTRINGS(binary, unsigned char)
 
@@ -819,7 +843,33 @@ EXTERN void getStructWithNullStrings(struct StructWithStrings *sP) {
     sP->uni  = NULL;
 }
 
-EXTERN void getEinvalString(char *bufP)
+struct StructWithStringArrays {
+    char *strings[3];
+    Tcl_UniChar *unistrings[3];
+};
+
+EXTERN void
+getStringFromStructStringArray(const struct StructWithStringArrays *structP,
+                               int i,
+                               char **stringP,
+                               Tcl_UniChar **unistringP)
+{
+    *stringP = structP->strings[i];
+    *unistringP = structP->unistrings[i];
+}
+EXTERN void
+getStringFromStructByvalStringArray(
+    struct StructWithStringArrays s,
+    int i,
+    char **stringP,
+    Tcl_UniChar **unistringP)
+{
+    *stringP = s.strings[i];
+    *unistringP = s.unistrings[i];
+}
+
+EXTERN void
+getEinvalString(char *bufP)
 {
     strcpy(bufP, strerror(EINVAL));
 }

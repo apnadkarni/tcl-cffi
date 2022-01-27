@@ -536,6 +536,68 @@ namespace eval ${NS}::test {
         testDll function jis0208_in int [list x string.nosuchencoding]
     } -result {unknown encoding "nosuchencoding"} -returnCodes error
 
+    # string array parameter tests
+    test function-string-array-in-0 "string input array" -body {
+        testDll function string_array_in string {strings string[3] n int}
+        string_array_in {abc def ghi} 1
+    } -result def
+    test function-unistring-array-in-0 "unistring input array" -body {
+        testDll function unistring_array_in unistring {strings unistring[3] n int}
+        string_array_in [list abc $testStrings(unicode) ghi] 1
+    } -result $testStrings(unicode)
+    test function-string-array-out-0 "string output array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function string_array_out void {strings {string[n] out} n int}
+        string_array_out s 4
+        set s
+    } -result {abc def ghi abc}
+    test function-string-array-out-1 "string output array - zero size array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function string_array_out void {strings {string[n] out nullok} n int}
+        string_array_out s 0
+        info exists s
+    } -result 0
+    test function-string-array-out-2 "string output array - uninitialized output" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function string_array_out void {strings {string[3] out nullok} n int}
+        string_array_out s 0
+        set s
+    } -result {{} {} {}}
+    test function-unistring-array-out-0 "unistring output array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function unistring_array_out void {strings {unistring[n] out} n int}
+        unistring_array_out s 2
+        set s
+    } -result [list $testStrings(unicode) "\u00e3\u00e4\u00e5"]
+    test function-unistring-array-out-1 "unistring output array - zero size array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function unistring_array_out void {strings {unistring[n] out nullok} n int}
+        unistring_array_out s 0
+        info exists s
+    } -result 0
+    test function-unistring-array-out-2 "unistring output array - uninitialized output" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function unistring_array_out void {strings {unistring[3] out nullok} n int}
+        unistring_array_out s 0
+        set s
+    } -result {{} {} {}}
+    test function-string-array-inout-0 "string inout array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function string_array_out void {strings {string[3] inout} n int}
+    } -result {Invalid value "string[3] inout". A type annotation is not valid for the data type.} -returnCodes error
+    test function-unistring-array-inout-0 "unistring inout array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function unistring_array_out void {strings {unistring[3] inout} n int}
+    } -result {Invalid value "unistring[3] inout". A type annotation is not valid for the data type.} -returnCodes error
+
 
     ## Parameter tests - chars, unichars
     # NOTE:  use only ascii for utf8 test here because of the buflen calculation

@@ -73,7 +73,7 @@ namespace eval cffi::test {
         }
 
         # Array tests
-        if {$type ni {struct.TypeTestStruct string unistring binary void}} {
+        if {$type ni {struct.TypeTestStruct  binary void}} {
 
             test type-info-$testlabel-array-1 "type info $typedecl array" -body {
                 cffi::type info "$type\[10\] $typeattrs"
@@ -800,6 +800,15 @@ namespace eval cffi::test {
             cffi::type info $typedecl $parse_mode
         } -result [list Size $::tcl_platform(pointerSize) Count -1 Alignment $::tcl_platform(pointerSize) Definition [list $type {*}$expected_typeattrs] BaseSize $::tcl_platform(pointerSize)] -match dict {*}$args
     }
+    proc teststringarray {typedecl count parse_mode expected_typeattrs args} {
+        variable typeInfo
+        set typeattrs [lassign $typedecl type]
+        set testlabel type-info-[join $typedecl -]-count$count
+
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl \[$count\]" -body {
+            cffi::type info $typedecl\[$count\] $parse_mode
+        } -result [list Size [expr {2*$::tcl_platform(pointerSize)}] Count $count Alignment $::tcl_platform(pointerSize) Definition [list $type\[$count\] {*}$expected_typeattrs] BaseSize $::tcl_platform(pointerSize)] -match dict {*}$args
+    }
 
     foreach type {string string.utf-8 unistring} {
         ## param mode
@@ -825,6 +834,7 @@ namespace eval cffi::test {
         } {
             teststring "$type $attr" param $expected
         }
+        teststringarray $type 2 param "in byref"
 
         foreach {attr expected} {
             "in lasterror" "in"
@@ -881,8 +891,12 @@ namespace eval cffi::test {
             # none - no attrs are invalid solely for param mode
 
             # array invalid count spec failure
-            testinvalidattr "$type\[2\]" $parse_mode $errorMessages(unsupportedarraytype)
-            testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(unsupportedarraytype)
+            if {$parse_mode eq "return"} {
+                testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(arrayreturn)
+                testinvalidattr "$type\[2\]" $parse_mode $errorMessages(arrayreturn)
+            } elseif {$parse_mode eq "field"} {
+                testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(fieldvararray)
+            }
             foreach count {[0] [-2] [] [2x] \[2 [2]x} {
                 testinvalidattr "$type$count" $parse_mode "$errorMessages(arraysize)"
             }

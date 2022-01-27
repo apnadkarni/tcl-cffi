@@ -556,8 +556,6 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
      */
     switch (typeP->baseType) {
     case CFFI_K_TYPE_VOID:
-    case CFFI_K_TYPE_ASTRING:
-    case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_BINARY:
         if (CffiTypeIsArray(typeP)) {
             message = "The specified type is invalid or unsupported for array "
@@ -1307,7 +1305,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                         MemLifo *memlifoP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
-    if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
+    if (0 && typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
         Tcl_SetResult(ip,
                       "Internal error: BYREF flag set in type passed to "
                       "NativeScalarFromObj",
@@ -1457,6 +1455,8 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
  * ipCtxP - Interpreter context
  * typeAttrsP - type attributes. The base type is used without
  *   considering the BYREF flag.
+ * realArraySize - the actual array size to use when typeAttrsP specifies
+ *   a dynamic array (typeAttrsP->dataType.arraySize == 0). Ignored otherwise.
  * valueObj - the *Tcl_Obj* containing the script level value
  * valueBaseP - the base location where the native value is to be stored.
  * valueIndex - the index at which the value is to be stored
@@ -1474,6 +1474,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
 CffiResult
 CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                        const CffiTypeAndAttrs *typeAttrsP,
+                       int realArraySize,
                        Tcl_Obj *valueObj,
                        void *valueBaseP,
                        int valueIndex,
@@ -1483,8 +1484,6 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
     void *valueP; /* Where value should be stored */
     int offset;
 
-    /* Must be scalar (-1) or fixed array (>0) */
-    CFFI_ASSERT(typeAttrsP->dataType.arraySize != 0);
     CFFI_ASSERT(typeAttrsP->dataType.baseTypeSize != 0);
 
     /* Calculate offset into memory where this value is to be stored */
@@ -1499,8 +1498,18 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
         Tcl_Obj **valueObjList;
         int indx;
         int nvalues;
-        int count = typeAttrsP->dataType.arraySize;
-        CFFI_ASSERT(count > 0);
+        int count;
+
+        count = typeAttrsP->dataType.arraySize;
+        if (count == 0)
+            count = realArraySize;
+        if (count <= 0)
+            return Tclh_ErrorGeneric(
+                ip,
+                NULL,
+                "Internal error: array size passed to "
+                "CffiNativeValueFromObj is not a positive number.");
+
         switch (typeAttrsP->dataType.baseType) {
         case CFFI_K_TYPE_CHAR_ARRAY:
             CHECK(CffiCharsFromObj(ip,

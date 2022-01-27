@@ -423,7 +423,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 "Field missing in struct dictionary value.");
         }
         CHECK(CffiNativeValueFromObj(
-            ipCtxP, typeAttrsP, valueObj, fieldResultP, 0, memlifoP));
+            ipCtxP, typeAttrsP, 0, valueObj, fieldResultP, 0, memlifoP));
     }
     return TCL_OK;
 #undef STOREFIELD

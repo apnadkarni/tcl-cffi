@@ -543,6 +543,7 @@ CffiResult CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                    MemLifo *memlifoP);
 CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                   const CffiTypeAndAttrs *typeAttrsP,
+                                  int realArraySize,
                                   Tcl_Obj *valueObj,
                                   void *valueBaseP,
                                   int valueIndex,
