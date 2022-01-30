@@ -413,8 +413,8 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
 }
 
 
-/* Function: CffiMemoryPutCmd
- * Implements the *memory put* script level command.
+/* Function: CffiMemorySetCmd
+ * Implements the *memory set* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -437,7 +437,7 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryPutCmd(CffiInterpCtx *ipCtxP,
+CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
                  int objc,
                  Tcl_Obj *const objv[],
                  int flags)
@@ -467,8 +467,8 @@ CffiMemoryPutCmd(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
-/* Function: CffiMemorySetCmd
- * Implements the *memory set* script level command.
+/* Function: CffiMemoryFillCmd
+ * Implements the *memory fill* script level command.
  *
  * Parameters:
  * ip - interpreter
@@ -482,7 +482,7 @@ CffiMemoryPutCmd(CffiInterpCtx *ipCtxP,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemorySetCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFillCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
@@ -510,11 +510,11 @@ CffiMemoryObjCmd(ClientData cdata,
         {"free", 1, 1, "POINTER", CffiMemoryFreeCmd, 0},
         {"frombinary", 1, 2, "BINARY ?TYPETAG?", CffiMemoryFromBinaryCmd, 0},
         {"fromstring", 1, 2, "STRING ?ENCODING?", CffiMemoryFromStringCmd, 0},
-        {"put", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemoryPutCmd, 0},
-        {"put!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemoryPutCmd, 1},
+        {"set", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 0},
+        {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 1},
         {"get", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 0},
         {"get!", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 1},
-        {"set", 3, 3, "POINTER BYTEVALUE COUNT", CffiMemorySetCmd, 0},
+        {"fill", 3, 3, "POINTER BYTEVALUE COUNT", CffiMemoryFillCmd, 0},
         {"tobinary", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 0},
         {"tobinary!", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 1},
         {"tostring", 1, 2, "POINTER ?ENCODING?", CffiMemoryToStringCmd, 0},

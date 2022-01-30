@@ -66,7 +66,7 @@ namespace eval ${NS}::memory {
         # a byte offset of 24, not 8. Be aware of these semantics when reading
         # arrays using non-0 indices.
         #
-        # See also: "memory get!" "memory put"
+        # See also: "memory get!" "memory set"
     }
     proc get! {pointer typespec {index 0}} {
         # Converts a value as per a type specification and stores it in memory
@@ -78,9 +78,9 @@ namespace eval ${NS}::memory {
         # not require $pointer to be a safe pointer. See the documentation of
         # that command for details.
         #
-        # See also: "memory get" "memory put"
+        # See also: "memory get" "memory set"
     }
-    proc put {pointer typespec value {index 0}} {
+    proc set {pointer typespec value {index 0}} {
         # Converts a value as per a type specification and stores it in memory
         # in native form
         #  pointer - base address of memory location. The pointer must be a
@@ -102,9 +102,9 @@ namespace eval ${NS}::memory {
         # a byte offset of 24, not 8. Be aware of these semantics when writing
         # arrays to non-0 indices to avoid memory corruption.
         #
-        # See also: "memory get" "memory put!"
+        # See also: "memory get" "memory set!"
     }
-    proc put! {pointer typespec value {index 0}} {
+    proc set! {pointer typespec value {index 0}} {
         # Converts a value as per a type specification and stores it in memory
         # in native form
         #  pointer - base address of memory location. The pointer is not checked
@@ -114,11 +114,11 @@ namespace eval ${NS}::memory {
         #  index - the index in memory at which the value is to be stored. Care must
         #   be taken this is within bounds of the allocated space.
         #
-        # This command is identical to the [memory put] command except that it does
+        # This command is identical to the [memory set] command except that it does
         # not require $pointer to be a safe pointer. See the documentation of that
         # command for details.
         #
-        # See also: "memory get" "memory put"
+        # See also: "memory get" "memory set"
     }
 
     proc tobinary {pointer size} {
@@ -158,11 +158,11 @@ namespace eval ${NS}::memory {
         #
         # See also: "memory tostring!" "memory fromstring"
     }
-    proc set {pointer bytevalue count} {
-        # Sets the memory locations to a specified value
+    proc fill {pointer bytevalue count} {
+        # Fills memory locations to a specified value
         #  pointer - safe pointer to memory
         #  bytevalue - a value in the range `0`-`255`
-        #  count - number of bytes to be set
+        #  count - number of bytes to be fill
     }
     namespace export *
     namespace ensemble create

@@ -32,7 +32,7 @@ namespace eval cffi::test {
             } -cleanup {
                 cffi::memory free $p
             } -body {
-                cffi::memory put $p $type $val
+                cffi::memory set $p $type $val
                 cffi::memory get $p $type
             } -result $val
             if {$type in [list {*}$numericTypes struct.::StructValue]} {
@@ -43,7 +43,7 @@ namespace eval cffi::test {
                 } -cleanup {
                     cffi::memory free $p
                 } -body {
-                    cffi::memory put $p $type\[2\] [list $val $val]
+                    cffi::memory set $p $type\[2\] [list $val $val]
                     cffi::memory get $p $type\[2\]
                 } -result [list $val $val]
             }
@@ -218,93 +218,93 @@ namespace eval cffi::test {
     } -result {Pointer is NULL.} -returnCodes error
 
     ###
-    # memory set
-    testnumargs memory-set "::cffi::memory set" "POINTER BYTEVALUE COUNT" ""
-    test memory-set-0 {memory set} -setup {
+    # memory fill
+    testnumargs memory-fill "::cffi::memory fill" "POINTER BYTEVALUE COUNT" ""
+    test memory-fill-0 {memory fill} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
-        cffi::memory set $p 1 2
+        cffi::memory fill $p 1 2
         cffi::memory tobinary $p 2
     } -result \x01\x01
-    test memory-set-1 {memory set 0 bytes} -setup {
+    test memory-fill-1 {memory fill 0 bytes} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
-        cffi::memory set $p 1 0
+        cffi::memory fill $p 1 0
         cffi::memory tobinary $p 2
     } -result \x00\xff
-    test memory-set-2 {memory set lowest value} -setup {
+    test memory-fill-2 {memory fill lowest value} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
-        cffi::memory set $p 0 2
+        cffi::memory fill $p 0 2
         cffi::memory tobinary $p 2
     } -result \x00\x00
-    test memory-set-3 {memory set highest value} -setup {
+    test memory-fill-3 {memory fill highest value} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
-        cffi::memory set $p 255 2
+        cffi::memory fill $p 255 2
         cffi::memory tobinary $p 2
     } -result \xFF\xFF
-    test memory-set-error-0 {memory set negative bytes} -setup {
+    test memory-fill-error-0 {memory fill negative bytes} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
         list \
-            [catch {cffi::memory set $p 1 -1} result] \
+            [catch {cffi::memory fill $p 1 -1} result] \
             $result \
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value -1 not in range. Must be within [0,2147483647].} \x00\xFF]
-    test memory-set-error-1 {memory set > int-max bytes} -setup {
+    test memory-fill-error-1 {memory fill > int-max bytes} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
         list \
-            [catch {cffi::memory set $p 1 2147483648} result] \
+            [catch {cffi::memory fill $p 1 2147483648} result] \
             $result \
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value 2147483648 not in range. Must be within [0,2147483647].} \x00\xFF]
-    test memory-set-error-2 {memory set negative value} -setup {
+    test memory-fill-error-2 {memory fill negative value} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
         list \
-            [catch {cffi::memory set $p -1 1} result] \
+            [catch {cffi::memory fill $p -1 1} result] \
             $result \
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value -1 not in range. Must be within [0,255].} \x00\xFF]
-    test memory-set-error-3 {memory set too high value} -setup {
+    test memory-fill-error-3 {memory fill too high value} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
         cffi::memory free $p
     } -body {
         list \
-            [catch {cffi::memory set $p 256 1} result] \
+            [catch {cffi::memory fill $p 256 1} result] \
             $result \
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value 256 not in range. Must be within [0,255].} \x00\xFF]
 
 
     #
-    # memory put/get
+    # memory set/get
     testnumargs memory-get "cffi::memory get" "POINTER TYPE" "?INDEX?"
-    testnumargs memory-put "cffi::memory put" "POINTER TYPE VALUE" "?INDEX?"
+    testnumargs memory-set "cffi::memory set" "POINTER TYPE VALUE" "?INDEX?"
 
     foreach type [array names testValues] {
-        test memory-put-$type-null-0 "put $type NULL" -body {
-            cffi::memory put NULL $type $testValues($type)
+        test memory-set-$type-null-0 "set $type NULL" -body {
+            cffi::memory set NULL $type $testValues($type)
         } -result "Pointer [makeptr 0] is not registered." -returnCodes error
-        test memory-put-$type-unregistered-0 "put $type unregistered" -body {
-            cffi::memory put [makeptr 1] $type $testValues($type)
+        test memory-set-$type-unregistered-0 "set $type unregistered" -body {
+            cffi::memory set [makeptr 1] $type $testValues($type)
         } -result "Pointer [makeptr 1] is not registered." -returnCodes error
         test memory-get-$type-null-0 "get $type NULL" -body {
             cffi::memory get NULL $type
@@ -312,8 +312,8 @@ namespace eval cffi::test {
         test memory-get-$type-unregistered-0 "get $type unregistered" -body {
             cffi::memory get [makeptr 1] $type
         } -result "Pointer [makeptr 1] is not registered." -returnCodes error
-        test memory-put!-$type-null-0 "put! $type NULL" -body {
-            cffi::memory put! NULL $type $testValues($type)
+        test memory-set!-$type-null-0 "set! $type NULL" -body {
+            cffi::memory set! NULL $type $testValues($type)
         } -result {Pointer is NULL.} -returnCodes error
         test memory-get!-$type-null-0 "get! $type NULL" -body {
             cffi::memory get! NULL $type
@@ -321,21 +321,21 @@ namespace eval cffi::test {
     }
     foreach {type val} [array get testValues] {
         if {$type ni {string unistring binary}} {
-            test memory-put-get-$type-0 "put/get $type" -setup {
+            test memory-set-get-$type-0 "set/get $type" -setup {
                 set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
             } -cleanup {
                 cffi::memory free $p
             } -body {
-                cffi::memory put $p $type $val
+                cffi::memory set $p $type $val
                 cffi::memory get $p $type
             } -result $val
 
-            test memory-put-$type-badindex-0 "put $type badindex" -setup {
+            test memory-set-$type-badindex-0 "set $type badindex" -setup {
                 set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
             } -cleanup {
                 cffi::memory free $p
             } -body {
-                cffi::memory put $p $type $val notanint
+                cffi::memory set $p $type $val notanint
             } -result {expected integer but got "notanint"} -returnCodes error
 
             test memory-get-$type-badindex-0 "get $type badindex" -setup {
@@ -346,68 +346,68 @@ namespace eval cffi::test {
                 cffi::memory get $p $type notanint
             } -result {expected integer but got "notanint"} -returnCodes error
 
-            test memory-put!-get!-$type-0 "put!/get! $type" -setup {
+            test memory-set!-get!-$type-0 "set!/get! $type" -setup {
                 set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
                 cffi::pointer dispose $p;#Make unsafe
             } -cleanup {
                 cffi::pointer safe $p
                 cffi::memory free $p
             } -body {
-                cffi::memory put! $p $type $val
+                cffi::memory set! $p $type $val
                 cffi::memory get! $p $type
             } -result $val
         }
         if {$type in $numericTypes} {
-            test memory-put-get-$type-1 "put/get $type index" -setup {
+            test memory-set-get-$type-1 "set/get $type index" -setup {
                 set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
             } -cleanup {
                 cffi::memory free $p
             } -body {
-                cffi::memory put $p $type\[2\] [list 1 $val]
+                cffi::memory set $p $type\[2\] [list 1 $val]
                 cffi::memory get $p $type 1
             } -result $val
 
-            test memory-put-get-$type-array-0 "put/get $type array" -setup {
+            test memory-set-get-$type-array-0 "set/get $type array" -setup {
                 set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
             } -cleanup {
                 cffi::memory free $p
             } -body {
-                cffi::memory put $p $type\[2\] [list 1 $val]
+                cffi::memory set $p $type\[2\] [list 1 $val]
                 cffi::memory get $p $type\[2\]
             } -result [list [expr {$type in $realTypes ? 1.0 : 1}] $val]
         }
     }
     set type struct.::StructValue
     set val $testValues($type)
-    test memory-put-get-$type-array-0 "put/get $type array" -setup {
+    test memory-set-get-$type-array-0 "set/get $type array" -setup {
         set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
     } -cleanup {
         cffi::memory free $p
     } -body {
-        cffi::memory put $p $type\[2\] [list {} $val]
+        cffi::memory set $p $type\[2\] [list {} $val]
         cffi::memory get $p $type\[2\]
     } -result [list {c 0 i 0} $val]
-    test memory-put-get-$type-array-0 "put/get $type index" -setup {
+    test memory-set-get-$type-array-0 "set/get $type index" -setup {
         set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
     } -cleanup {
         cffi::memory free $p
     } -body {
-        cffi::memory put $p $type\[2\] [list {} $val]
+        cffi::memory set $p $type\[2\] [list {} $val]
         cffi::memory get $p $type 1
     } -result $val
 
     foreach type {string unistring binary} {
-        test memory-put-$type-0 "put $type" -setup {
+        test memory-set-$type-0 "set $type" -setup {
             set p [cffi::memory allocate 8]
         } -cleanup {
             cffi::memory free $p
         } -body {
-            cffi::memory put $p $type $testValues($type)
+            cffi::memory set $p $type $testValues($type)
         } -result "Invalid value*" -returnCodes error -match glob
         test memory-get-$type-0 "get $type" -setup {
             set s [cffi::memory fromstring $testValues($type) unicode]
             set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
-            cffi::memory put $p pointer $s
+            cffi::memory set $p pointer $s
         } -cleanup {
             cffi::memory free $s
             cffi::memory free $p
