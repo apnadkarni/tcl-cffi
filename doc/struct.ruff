@@ -78,6 +78,27 @@ oo::class create ${NS}::Struct {
         # See also: fromnative tobinary
         #
     }
+    method get {pointer fieldname {index 0}} {
+        # Returns the value of a field in a native structure in memory
+        #  pointer - pointer to memory allocated for the C struct or array. Must be
+        #    a safe pointer tagged with the struct name.
+        #  fieldname - name of the field
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
+        #
+        # In the case of fields of type pointer, the returned pointer is registered
+        # as a safe pointer unless the field was marked with the `unsafe` annotation.
+    }
+    method set {pointer fieldname value {index 0}} {
+        # Sets the value of a field in a native structure in memory
+        #  pointer - pointer to memory allocated for the C struct or array. Must be
+        #    a safe pointer tagged with the struct name.
+        #  fieldname - name of the field
+        #  value - value to store in the field
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
+        #
+    }
     method fieldpointer {pointer fieldname {tag ""} {index 0}} {
         # Returns a pointer corresponding to the address of a field within a
         # native structure

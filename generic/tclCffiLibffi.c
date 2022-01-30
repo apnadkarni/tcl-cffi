@@ -300,15 +300,16 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
 {
     double dbl;
 
-#define RETURNINT_(type_)                                                \
-    do {                                                                 \
-        Tcl_WideInt wide;                                                \
-        CHECK(CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide)); \
-        /* libffi promotes smaller integers to ffi_arg */                \
-        if (sizeof(type_) <= sizeof(ffi_arg))                            \
-            *(ffi_arg *)retP = (ffi_arg)wide;                            \
-        else                                                             \
-            *(type_ *)retP = (type_)wide;                                \
+#define RETURNINT_(type_)                                                      \
+    do {                                                                       \
+        Tcl_WideInt wide;                                                      \
+        CHECK(                                                                 \
+            CffiIntValueFromObj(ipCtxP->interp, typeAttrsP, valueObj, &wide)); \
+        /* libffi promotes smaller integers to ffi_arg */                      \
+        if (sizeof(type_) <= sizeof(ffi_arg))                                  \
+            *(ffi_arg *)retP = (ffi_arg)wide;                                  \
+        else                                                                   \
+            *(type_ *)retP = (type_)wide;                                      \
     } while (0)
 
     CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));

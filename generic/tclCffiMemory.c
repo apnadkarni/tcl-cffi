@@ -461,7 +461,7 @@ CffiMemoryPutCmd(CffiInterpCtx *ipCtxP,
     /* Note typeAttrs needs to be cleaned up beyond this point */
 
     ret =
-        CffiNativeValueFromObj(ipCtxP, &typeAttrs, 0, objv[4], pv, indx, NULL);
+        CffiNativeValueFromObj(ip, &typeAttrs, 0, objv[4], pv, indx, NULL);
 
     CffiTypeAndAttrsCleanup(&typeAttrs);
     return ret;

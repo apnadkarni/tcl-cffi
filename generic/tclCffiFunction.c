@@ -399,7 +399,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         if (argP->arraySize < 0) {
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 /* NOTE - &argP->value is start of all field values */
-                CHECK(CffiNativeScalarFromObj(ipCtxP,
+                CHECK(CffiNativeScalarFromObj(ip,
                                               typeAttrsP,
                                               valueObj,
                                               &argP->value,
@@ -441,7 +441,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 valuesP = MemLifoAlloc(&ipCtxP->memlifo,
                                        argP->arraySize
                                            * typeAttrsP->dataType.baseTypeSize);
-                CHECK(CffiNativeValueFromObj(ipCtxP,
+                CHECK(CffiNativeValueFromObj(ip,
                                              typeAttrsP,
                                              argP->arraySize,
                                              valueObj,
@@ -481,7 +481,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             structValueP = MemLifoAlloc(&ipCtxP->memlifo,
                                         typeAttrsP->dataType.u.structP->size);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
-                CHECK(CffiStructFromObj(ipCtxP,
+                CHECK(CffiStructFromObj(ip,
                                         typeAttrsP->dataType.u.structP,
                                         valueObj,
                                         structValueP, &ipCtxP->memlifo));
@@ -520,7 +520,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     nvalues = argP->arraySize;
                 for (toP = valueArray, i = 0; i < nvalues;
                      toP += struct_size, ++i) {
-                    CHECK(CffiStructFromObj(ipCtxP,
+                    CHECK(CffiStructFromObj(ip,
                                             typeAttrsP->dataType.u.structP,
                                             valueObjList[i],
                                             toP, &ipCtxP->memlifo));

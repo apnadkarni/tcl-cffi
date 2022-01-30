@@ -114,7 +114,8 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
         if (isReturn && valueObj)  {
             /* Check that the value is valid for the type */
             Tcl_WideInt wide;
-            CHECK(CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide));
+            CHECK(CffiIntValueFromObj(
+                ipCtxP->interp, typeAttrsP, valueObj, &wide));
         }
         return TCL_OK;
     case CFFI_K_TYPE_FLOAT:

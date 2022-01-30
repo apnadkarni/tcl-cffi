@@ -1202,7 +1202,7 @@ void CffiTypeAndAttrsCleanup (CffiTypeAndAttrs *typeAttrsP)
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
+CffiIntValueFromObj(Tcl_Interp *ip,
                     const CffiTypeAndAttrs *typeAttrsP,
                     Tcl_Obj *valueObj,
                     Tcl_WideInt *valueP)
@@ -1213,11 +1213,11 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
 
     if (flags & CFFI_F_ATTR_BITMASK) {
         /* TBD - Does not handle size truncation */
-        return
-            CffiEnumMemberBitmask(ipCtxP->interp,
-                            lookup_enum ? typeAttrsP->dataType.u.tagObj : NULL,
-                            valueObj,
-                            valueP);
+        return CffiEnumMemberBitmask(ip,
+                                     lookup_enum ? typeAttrsP->dataType.u.tagObj
+                                                 : NULL,
+                                     valueObj,
+                                     valueP);
     }
     if (lookup_enum) {
         Tcl_Obj *enumValueObj;
@@ -1227,7 +1227,7 @@ CffiIntValueFromObj(CffiInterpCtx *ipCtxP,
                                &enumValueObj) == TCL_OK)
             valueObj = enumValueObj;
     }
-    if (Tcl_GetWideIntFromObj(ipCtxP->interp, valueObj, &value) == TCL_OK) {
+    if (Tcl_GetWideIntFromObj(ip, valueObj, &value) == TCL_OK) {
         *valueP = value;
         return TCL_OK;
     }
@@ -1276,7 +1276,7 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
  * Stores a native scalar value from Tcl_Obj wrapper
  *
  * Parameters:
- * ipCtxP - Interpreter context
+ * ip - interpreter
  * typeAttrsP - type attributes. The base type is used without
  *   considering the BYREF flag.
  * valueObj - the *Tcl_Obj* containing the script level value
@@ -1297,14 +1297,13 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
+CffiNativeScalarFromObj(Tcl_Interp *ip,
                         const CffiTypeAndAttrs *typeAttrsP,
                         Tcl_Obj *valueObj,
                         void *valueBaseP,
                         int indx,
                         MemLifo *memlifoP)
 {
-    Tcl_Interp *ip = ipCtxP->interp;
     if (0 && typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
         Tcl_SetResult(ip,
                       "Internal error: BYREF flag set in type passed to "
@@ -1312,16 +1311,16 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                       TCL_STATIC);
         return TCL_ERROR;
     }
-#define STOREINT_(objfn_, type_)                                             \
-    do {                                                                     \
-        if (typeAttrsP->flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) {  \
-            Tcl_WideInt wide;                                                \
-            CHECK(CffiIntValueFromObj(ipCtxP, typeAttrsP, valueObj, &wide)); \
-            *(indx + (type_ *)valueBaseP) = (type_)wide;                     \
-        }                                                                    \
-        else {                                                               \
-            CHECK(objfn_(ip, valueObj, indx + (type_ *)valueBaseP));         \
-        }                                                                    \
+#define STOREINT_(objfn_, type_)                                            \
+    do {                                                                    \
+        if (typeAttrsP->flags & (CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_ENUM)) { \
+            Tcl_WideInt wide;                                               \
+            CHECK(CffiIntValueFromObj(ip, typeAttrsP, valueObj, &wide));    \
+            *(indx + (type_ *)valueBaseP) = (type_)wide;                    \
+        }                                                                   \
+        else {                                                              \
+            CHECK(objfn_(ip, valueObj, indx + (type_ *)valueBaseP));        \
+        }                                                                   \
     } while (0)
 
     switch (typeAttrsP->dataType.baseType) {
@@ -1363,7 +1362,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             break;
         case CFFI_K_TYPE_STRUCT:
             CHECK(
-                CffiStructFromObj(ipCtxP,
+                CffiStructFromObj(ip,
                                   typeAttrsP->dataType.u.structP,
                                   valueObj,
                                   (indx * typeAttrsP->dataType.u.structP->size)
@@ -1452,7 +1451,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
  * Stores a native value of any type from Tcl_Obj wrapper
  *
  * Parameters:
- * ipCtxP - Interpreter context
+ * ip - interpreter
  * typeAttrsP - type attributes. The base type is used without
  *   considering the BYREF flag.
  * realArraySize - the actual array size to use when typeAttrsP specifies
@@ -1472,7 +1471,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
+CffiNativeValueFromObj(Tcl_Interp *ip,
                        const CffiTypeAndAttrs *typeAttrsP,
                        int realArraySize,
                        Tcl_Obj *valueObj,
@@ -1480,7 +1479,6 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                        int valueIndex,
                        MemLifo *memlifoP)
 {
-    Tcl_Interp *ip = ipCtxP->interp;
     void *valueP; /* Where value should be stored */
     int offset;
 
@@ -1492,7 +1490,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
 
     if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
         CHECK(CffiNativeScalarFromObj(
-            ipCtxP, typeAttrsP, valueObj, valueP, 0, memlifoP));
+            ip, typeAttrsP, valueObj, valueP, 0, memlifoP));
     }
     else {
         Tcl_Obj **valueObjList;
@@ -1538,7 +1536,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
             if (nvalues > count)
                 nvalues = count;
             for (indx = 0; indx < nvalues; ++indx) {
-                CHECK(CffiNativeScalarFromObj(ipCtxP,
+                CHECK(CffiNativeScalarFromObj(ip,
                                               typeAttrsP,
                                               valueObjList[indx],
                                               valueP,

@@ -329,7 +329,7 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * Constructs a C struct from a *Tcl_Obj* wrapper.
  *
  * Parameters:
- * ipCtxP - Interpreter context
+ * ip - interpreter
  * structP - pointer to the struct definition internal form
  * structValueObj - the *Tcl_Obj* containing the script level struct value
  * resultP - the location where the struct is to be constructed. Caller
@@ -344,14 +344,13 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiStructFromObj(CffiInterpCtx *ipCtxP,
+CffiStructFromObj(Tcl_Interp *ip,
                   const CffiStruct *structP,
                   Tcl_Obj *structValueObj,
                   void *resultP,
                   MemLifo *memlifoP)
 {
     int i;
-    Tcl_Interp *ip = ipCtxP->interp;
 
     if (structP->flags & CFFI_F_STRUCT_CLEAR)
         memset(resultP, 0, structP->size);
@@ -423,7 +422,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 "Field missing in struct dictionary value.");
         }
         CHECK(CffiNativeValueFromObj(
-            ipCtxP, typeAttrsP, 0, valueObj, fieldResultP, 0, memlifoP));
+            ip, typeAttrsP, 0, valueObj, fieldResultP, 0, memlifoP));
     }
     return TCL_OK;
 #undef STOREFIELD
@@ -662,7 +661,7 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
         index = 0;
 
     /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructFromObj(structCtxP->ipCtxP,
+    CHECK(CffiStructFromObj(ip,
                             structP,
                             objv[3],
                             (index * structP->size) + (char *)valueP,
@@ -670,6 +669,130 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
 
     return TCL_OK;
 }
+
+/* Function: CffiStructGetCmd
+ * Gets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * scructCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - pointer to memory holding the struct value
+ * objv[3] - field name
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructGetCmd(Tcl_Interp *ip,
+                      int objc,
+                      Tcl_Obj *const objv[],
+                      CffiStructCmdCtx *structCtxP)
+{
+    CffiStruct *structP = structCtxP->structP;
+    char *fieldAddr;
+    int fieldIndex;
+    Tcl_Obj *valueObj;
+    void *pv;
+
+    /* S fieldpointer POINTER FIELDNAME ?INDEX? */
+    CFFI_ASSERT(objc >= 4);
+
+    fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
+    if (fieldIndex < 0)
+        return TCL_ERROR;
+
+    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    fieldAddr = pv;
+
+    /* TBD - check alignment of fieldP for the struct */
+
+    if (objc > 4) {
+        Tcl_WideInt wide;
+        CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
+        fieldAddr += structP->size * (int)wide;
+    }
+    fieldAddr += structP->fields[fieldIndex].offset;
+
+    CHECK(CffiNativeValueToObj(
+        ip,
+        &structP->fields[fieldIndex].fieldType,
+        fieldAddr,
+        0,
+        structP->fields[fieldIndex].fieldType.dataType.arraySize,
+        &valueObj));
+    Tcl_SetObjResult(ip, valueObj);
+    return TCL_OK;
+}
+
+/* Function: CffiStructSetCmd
+ * Gets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 5-6 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * scructCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - pointer to memory holding the struct value
+ * objv[3] - field name
+ * objv[4] - value to store
+ * objv[5] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructSetCmd(Tcl_Interp *ip,
+                      int objc,
+                      Tcl_Obj *const objv[],
+                      CffiStructCmdCtx *structCtxP)
+{
+    CffiStruct *structP = structCtxP->structP;
+    char *fieldAddr;
+    int fieldIndex;
+    void *pv;
+
+    /* S fieldpointer POINTER FIELDNAME VALUE ?INDEX? */
+    CFFI_ASSERT(objc >= 5);
+
+    fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
+    if (fieldIndex < 0)
+        return TCL_ERROR;
+
+    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    fieldAddr = pv;
+
+    /* TBD - check alignment of fieldP for the struct */
+
+    if (objc > 5) {
+        Tcl_WideInt wide;
+        CHECK(Tclh_ObjToRangedInt(ip, objv[5], 0, INT_MAX, &wide));
+        fieldAddr += structP->size * (int)wide;
+    }
+    fieldAddr += structP->fields[fieldIndex].offset;
+
+    CHECK(CffiNativeValueFromObj(ip,
+                                 &structP->fields[fieldIndex].fieldType,
+                                 0,
+                                 objv[4],
+                                 fieldAddr,
+                                 0,
+                                 NULL));
+    return TCL_OK;
+}
+
 
 /* Function: CffiStructFieldPointerCmd
  * Returns a pointer to a field in a native struct.
@@ -685,7 +808,8 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory
  * objv[3] - field name
- * objv[4] - optional, index into array of structs pointed to by objv[2]
+ * objv[4] - tag for returned pointer, optional
+ * objv[5] - index into array of structs pointed to by objv[2], optional
  *
  * Returns:
  * *TCL_OK* on success with an empty interp result;
@@ -788,7 +912,7 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
 
     resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
     valueP    = Tcl_GetByteArrayFromObj(resultObj, NULL);
-    ret = CffiStructFromObj(structCtxP->ipCtxP, structP, objv[2], valueP, NULL);
+    ret = CffiStructFromObj(ip, structP, objv[2], valueP, NULL);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     else
@@ -904,17 +1028,19 @@ CffiStructInstanceCmd(ClientData cdata,
     CffiStructCmdCtx *structCtxP = (CffiStructCmdCtx *)cdata;
     static const Tclh_SubCommand subCommands[] = {
         {"allocate", 0, 1, "?COUNT?", CffiStructAllocateCmd}, /* Same command as Encode */
-        {"destroy", 0, 0, "", CffiStructDestroyCmd},
-        {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},
-        {"fromnative!", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeUnsafeCmd},
         {"describe", 0, 0, "", CffiStructDescribeCmd},
-        {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
+        {"destroy", 0, 0, "", CffiStructDestroyCmd},
+        {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
+        {"get", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetCmd},
+        {"set", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
         {"frombinary", 1, 1, "BINARY", CffiStructFromBinaryCmd},
+        {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},
+        {"fromnative!", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeUnsafeCmd},
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
-        {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
+        {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
         {NULL}
     };
     int cmdIndex;
