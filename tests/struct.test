@@ -876,14 +876,13 @@ namespace eval cffi::test {
     testnumargs struct-set "::TestStruct set" "POINTER FIELD VALUE" "?INDEX?"
     test struct-set-0 "Set each field struct" -setup {
         set p [::TestStruct allocate]
-        unset -nocomplain testval
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+        getTestStruct ts
     } -cleanup {
         ::TestStruct free $p
     } -body {
-        foreach {fld val} {
-            c 0 i 4 shrt 8 ui 12 ushrt 16 l 20 uc 24 ul 28 c3 32 ll 48 unic 56 ull 88 b `ab f 100.0 s {c 104} d 120.0
-        } {
-            ::TestStruct set $p $fld $val
+        dict for {key val} $ts {
+            ::TestStruct set $p $key $val
         }
         checkTestStruct [::TestStruct fromnative $p]
     } -result ""
