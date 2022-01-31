@@ -1910,41 +1910,6 @@ CffiPointerFromObj(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-
-/* Function: CffiExternalDStringToObj
- * Wraps an encoded string/chars into a Tcl_Obj
- *
- * Parameters:
- * ip - interpreter
- * typeAttrsP - descriptor for type and encoding
- * dsP - contains encoded string to wrap
- * resultObjP - location to store pointer to Tcl_Obj wrapping the string
- *
- * The string contained in *dsP* is converted to Tcl's internal form before
- * storing into the returned Tcl_Obj.
- *
- * Returns:
- * *TCL_OK* on success with wrapped pointer in *resultObjP* or *TCL_ERROR*
- * on failure with error message in the interpreter.
- */
-CffiResult
-CffiExternalDStringToObj(Tcl_Interp *ip,
-                         const CffiTypeAndAttrs *typeAttrsP,
-                         Tcl_DString *dsP,
-                         Tcl_Obj **resultObjP)
-{
-    const char *srcP;
-    int outbuf_size;
-
-    srcP = Tcl_DStringValue(dsP);
-    outbuf_size = Tcl_DStringLength(dsP); /* ORIGINAL size */
-    if (srcP[outbuf_size]) {
-        TCLH_PANIC("Buffer for output argument overrun.");
-    }
-
-    return CffiCharsToObj(ip, typeAttrsP, srcP, resultObjP);
-}
-
 /* Function: CffiUniStringToObj
  * Wraps an encoded unistring/unichars into a *Tcl_Obj*
  *
@@ -1981,6 +1946,8 @@ CffiUniStringToObj(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+
+
 /* Function: CffiCharsFromTclString
  * Encodes a Tcl utf8 string to a character array based on a type encoding.
  *
@@ -1991,6 +1958,8 @@ CffiUniStringToObj(Tcl_Interp *ip,
  * fromLen - length of the Tcl string. If < 0, null terminated
  * toP - buffer to store the encoded string
  * toSize - size of buffer
+ *
+ * Note that the output buffer contents may be overwritten even on error.
  *
  * Returns:
  * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
@@ -2105,6 +2074,9 @@ CffiCharsFromTclString(Tcl_Interp *ip,
  * toP - buffer to store the encoded string
  * toSize - size of buffer
  *
+ * Note that the output buffer contents may be overwritten even on error.
+ * Use CffiCharsFromObjSafe if this is not acceptable.
+ *
  * Returns:
  * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
  * in the interpreter.
@@ -2207,6 +2179,49 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
     return Tclh_ErrorEncodingFromUtf8(ip, status, fromP, fromLen);
 }
 
+/* Function: CffiCharsFromObjSafe
+ * Encodes a Tcl_Obj to a character array based on a type encoding.
+ *
+ * Parameters:
+ * ip - interpreter
+ * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * fromObj - *Tcl_Obj* containing value to be stored
+ * toP - buffer to store the encoded string
+ * toSize - size of buffer
+ *
+ * Note that the output buffer contents will not be overwritten on error.
+ * Use CffiCharsFromObj for efficiency if overwriting on error is not a
+ * problem.
+ *
+ * Returns:
+ * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
+ * in the interpreter.
+ */
+CffiResult
+CffiCharsFromObjSafe(
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize)
+{
+    Tcl_DString ds;
+    char *dsBuf;
+    CffiResult ret;
+
+    Tcl_DStringInit(&ds);
+    Tcl_DStringSetLength(&ds, toSize);
+    dsBuf = Tcl_DStringValue(&ds);
+
+    /*
+     * Note as always we cannot use Tcl_UtfToExternalDString here because
+     * of the usual string termination reasons - see comments in
+     * CffiCharsFromTclString
+     */
+    ret = CffiCharsFromObj(ip, encObj, fromObj, dsBuf, toSize);
+    if (ret == TCL_OK)
+        memcpy(toP, dsBuf, toSize);
+    Tcl_DStringFree(&ds);
+    return ret;
+}
+
+
 /* Function: CffiCharsToObj
  * Wraps an encoded chars into a Tcl_Obj
  *
@@ -2289,8 +2304,6 @@ CffiUniCharsFromObj(
     memmove(toP, fromP, fromLen * sizeof(Tcl_UniChar));
     return TCL_OK;
 }
-
-
 
 /* Function: CffiBytesFromObj
  * Encodes a Tcl_Obj to a C array of bytes
