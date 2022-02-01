@@ -332,7 +332,9 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * ip - interpreter
  * structP - pointer to the struct definition internal form
  * structValueObj - the *Tcl_Obj* containing the script level struct value
- * resultP - the location where the struct is to be constructed. Caller
+ * flags - if CFFI_F_PRESERVE_ON_ERROR is set, the target location will
+ *   be preserved in case of errors.
+ * structResultP - the location where the struct is to be constructed. Caller
  *           has to ensure size is large enough (as per *structP->size*)
  * memlifoP - the memory allocator for fields that are typed as *string*
  *            or *unistring*. If *NULL*, fields of these types will
@@ -347,59 +349,79 @@ CffiResult
 CffiStructFromObj(Tcl_Interp *ip,
                   const CffiStruct *structP,
                   Tcl_Obj *structValueObj,
-                  void *resultP,
+                  int flags,
+                  void *structResultP,
                   MemLifo *memlifoP)
 {
     int i;
+    Tcl_DString ds;
+    CffiResult ret;
+    void *structAddress;
+
+    /*
+     * If we have to preserve, make a copy. Note we cannot just rely on
+     * flags passed to NativeValueFromObj because we are clearing the
+     * target first if -clear option was enabled
+     */
+    if (flags & CFFI_F_PRESERVE_ON_ERROR) {
+        Tcl_DStringInit(&ds);
+        Tcl_DStringSetLength(&ds, structP->size);
+        structAddress = Tcl_DStringValue(&ds);
+    }
+    else
+        structAddress = structResultP;
 
     if (structP->flags & CFFI_F_STRUCT_CLEAR)
-        memset(resultP, 0, structP->size);
+        memset(structAddress, 0, structP->size);
 
     /*
      * NOTE: On failure, we can just return as there are no allocations
      * for any fields that need to be cleaned up.
      */
+    ret = TCL_OK;
     for (i = 0; i < structP->nFields; ++i) {
         Tcl_Obj *valueObj;
         const CffiField *fieldP = &structP->fields[i];
-        void *fieldResultP      = fieldP->offset + (char *)resultP;
+        void *fieldAddress      = fieldP->offset + (char *)structAddress;
         const CffiTypeAndAttrs *typeAttrsP = &fieldP->fieldType;
 
-        if (Tcl_DictObjGet(ip,structValueObj, fieldP->nameObj, &valueObj) != TCL_OK)
-            return TCL_ERROR; /* Invalid dictionary. Note TCL_OK does not mean found */
+        if ((ret =
+                 Tcl_DictObjGet(ip, structValueObj, fieldP->nameObj, &valueObj))
+            != TCL_OK)
+            break; /* Invalid dictionary. Note TCL_OK does not mean found */
         if (valueObj == NULL) {
             if (fieldP->fieldType.flags & CFFI_F_ATTR_STRUCTSIZE) {
                 /* Fill in struct size */
                 switch (fieldP->fieldType.dataType.baseType) {
                 case CFFI_K_TYPE_SCHAR:
-                    *(signed char *)fieldResultP = (signed char)structP->size;
+                    *(signed char *)fieldAddress = (signed char)structP->size;
                     continue;
                 case CFFI_K_TYPE_UCHAR:
-                    *(unsigned char *)fieldResultP = (unsigned char)structP->size;
+                    *(unsigned char *)fieldAddress = (unsigned char)structP->size;
                     continue;
                 case CFFI_K_TYPE_SHORT:
-                    *(short *)fieldResultP = (short)structP->size;
+                    *(short *)fieldAddress = (short)structP->size;
                     continue;
                 case CFFI_K_TYPE_USHORT:
-                    *(unsigned short *)fieldResultP = (unsigned short)structP->size;
+                    *(unsigned short *)fieldAddress = (unsigned short)structP->size;
                     continue;
                 case CFFI_K_TYPE_INT:
-                    *(int *)fieldResultP = (int)structP->size;
+                    *(int *)fieldAddress = (int)structP->size;
                     continue;
                 case CFFI_K_TYPE_UINT:
-                    *(unsigned int *)fieldResultP = (unsigned int)structP->size;
+                    *(unsigned int *)fieldAddress = (unsigned int)structP->size;
                     continue;
                 case CFFI_K_TYPE_LONG:
-                    *(long *)fieldResultP = (long)structP->size;
+                    *(long *)fieldAddress = (long)structP->size;
                     continue;
                 case CFFI_K_TYPE_ULONG:
-                    *(unsigned long *)fieldResultP = (unsigned long)structP->size;
+                    *(unsigned long *)fieldAddress = (unsigned long)structP->size;
                     continue;
                 case CFFI_K_TYPE_LONGLONG:
-                    *(long long *)fieldResultP = (long long)structP->size;
+                    *(long long *)fieldAddress = (long long)structP->size;
                     continue;
                 case CFFI_K_TYPE_ULONGLONG:
-                    *(unsigned long long *)fieldResultP = (unsigned long long)structP->size;
+                    *(unsigned long long *)fieldAddress = (unsigned long long)structP->size;
                     continue;
                 default:
                     break; /* Just fall thru looking for default */
@@ -415,17 +437,33 @@ CffiStructFromObj(Tcl_Interp *ip,
              */
             if (structP->flags & CFFI_F_STRUCT_CLEAR)
                 continue;/* Move on to next field leaving this cleared */
-            return Tclh_ErrorNotFound(
+            ret = Tclh_ErrorNotFound(
                 ip,
                 "Struct field",
                 fieldP->nameObj,
                 "Field missing in struct dictionary value.");
+            break;
         }
-        CHECK(CffiNativeValueFromObj(
-            ip, typeAttrsP, 0, valueObj, fieldResultP, 0, memlifoP));
+        /* Turn off PRESERVE_ON_ERROR as we are already taken care to preserve */
+        ret = CffiNativeValueFromObj(ip,
+                                     typeAttrsP,
+                                     0,
+                                     valueObj,
+                                     flags & ~CFFI_F_PRESERVE_ON_ERROR,
+                                     fieldAddress,
+                                     0,
+                                     memlifoP);
+        if (ret != TCL_OK)
+            break;
     }
-    return TCL_OK;
-#undef STOREFIELD
+
+    if (flags & CFFI_F_PRESERVE_ON_ERROR) {
+        /* If preserving, result was built in temp storage, copy it */
+        if (ret == TCL_OK)
+            memcpy(structResultP, structAddress, structP->size);
+        Tcl_DStringFree(&ds);
+    }
+    return ret;
 }
 
 /* Function: CffiStructToObj
@@ -664,6 +702,7 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
     CHECK(CffiStructFromObj(ip,
                             structP,
                             objv[3],
+                            CFFI_F_PRESERVE_ON_ERROR,
                             (index * structP->size) + (char *)valueP,
                             NULL));
 
@@ -774,7 +813,7 @@ CffiStructSetCmd(Tcl_Interp *ip,
     CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
     fieldAddr = pv;
 
-    /* TBD - check alignment of fieldP for the struct */
+    /* TBD - sanity check alignment of fieldP for the struct */
 
     if (objc > 5) {
         Tcl_WideInt wide;
@@ -787,6 +826,7 @@ CffiStructSetCmd(Tcl_Interp *ip,
                                  &structP->fields[fieldIndex].fieldType,
                                  0,
                                  objv[4],
+                                 CFFI_F_PRESERVE_ON_ERROR,
                                  fieldAddr,
                                  0,
                                  NULL));
@@ -912,7 +952,7 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
 
     resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
     valueP    = Tcl_GetByteArrayFromObj(resultObj, NULL);
-    ret = CffiStructFromObj(ip, structP, objv[2], valueP, NULL);
+    ret = CffiStructFromObj(ip, structP, objv[2], 0, valueP, NULL);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     else

@@ -499,8 +499,8 @@ void CffiStructUnref(CffiStruct *structP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult
-CffiBytesFromObj(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, int toSize);
-CffiResult CffiUniCharsFromObj(Tcl_Interp *ip,
+CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, int toSize);
+CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
                                Tcl_Obj *fromObj,
                                Tcl_UniChar *toP,
                                int toSize);
@@ -530,15 +530,19 @@ CffiResult CffiUniStringToObj(Tcl_Interp *ip,
 CffiResult CffiStructFromObj(Tcl_Interp *ip,
                              const CffiStruct *structP,
                              Tcl_Obj *structValueObj,
+                             int flags,
                              void *resultP,
                              MemLifo *memlifoP);
 CffiResult CffiStructToObj(Tcl_Interp *ip,
                            const CffiStruct *structP,
                            void *valueP,
                            Tcl_Obj **valueObjP);
+
+#define CFFI_F_PRESERVE_ON_ERROR 0x1
 CffiResult CffiNativeScalarFromObj(Tcl_Interp *ip,
                                    const CffiTypeAndAttrs *typeAttrsP,
                                    Tcl_Obj *valueObj,
+                                   int flags,
                                    void *resultP,
                                    int indx,
                                    MemLifo *memlifoP);
@@ -546,6 +550,7 @@ CffiResult CffiNativeValueFromObj(Tcl_Interp *ip,
                                   const CffiTypeAndAttrs *typeAttrsP,
                                   int realArraySize,
                                   Tcl_Obj *valueObj,
+                                  int flags,
                                   void *valueBaseP,
                                   int valueIndex,
                                   MemLifo *memlifoP);

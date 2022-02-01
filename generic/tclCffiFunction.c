@@ -183,7 +183,7 @@ CffiArgPrepareUniChars(CffiCall *callP,
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNICHAR_ARRAY);
 
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
-        return CffiUniCharsFromObj(
+        return CffiUniCharsFromObjSafe(
             ipCtxP->interp, valueObj, valueP->u.ptr, argP->arraySize);
     }
     else {
@@ -402,6 +402,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 CHECK(CffiNativeScalarFromObj(ip,
                                               typeAttrsP,
                                               valueObj,
+                                              0,
                                               &argP->value,
                                               0,
                                               &ipCtxP->memlifo));
@@ -445,6 +446,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                              typeAttrsP,
                                              argP->arraySize,
                                              valueObj,
+                                             0,
                                              valuesP,
                                              0,
                                              &ipCtxP->memlifo));
@@ -483,7 +485,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 CHECK(CffiStructFromObj(ip,
                                         typeAttrsP->dataType.u.structP,
-                                        valueObj,
+                                        valueObj, 0,
                                         structValueP, &ipCtxP->memlifo));
             }
             if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
@@ -522,7 +524,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                      toP += struct_size, ++i) {
                     CHECK(CffiStructFromObj(ip,
                                             typeAttrsP->dataType.u.structP,
-                                            valueObjList[i],
+                                            valueObjList[i], 0,
                                             toP, &ipCtxP->memlifo));
                 }
                 if (i < argP->arraySize) {
@@ -629,7 +631,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
         if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
             /* NOTE: because of shimmering possibility, we need to copy */
-            CHECK(CffiBytesFromObj(
+            CHECK(CffiBytesFromObjSafe(
                 ipCtxP->interp, valueObj, argP->value.u.ptr, argP->arraySize));
         }
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */

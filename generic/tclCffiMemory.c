@@ -460,8 +460,8 @@ CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
         ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
     /* Note typeAttrs needs to be cleaned up beyond this point */
 
-    ret =
-        CffiNativeValueFromObj(ip, &typeAttrs, 0, objv[4], pv, indx, NULL);
+    ret = CffiNativeValueFromObj(
+        ip, &typeAttrs, 0, objv[4], CFFI_F_PRESERVE_ON_ERROR, pv, indx, NULL);
 
     CffiTypeAndAttrsCleanup(&typeAttrs);
     return ret;
