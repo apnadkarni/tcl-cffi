@@ -349,7 +349,7 @@ CffiResult
 CffiStructFromObj(Tcl_Interp *ip,
                   const CffiStruct *structP,
                   Tcl_Obj *structValueObj,
-                  int flags,
+                  CffiFlags flags,
                   void *structResultP,
                   MemLifo *memlifoP)
 {

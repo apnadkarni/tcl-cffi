@@ -170,43 +170,41 @@ CFFI_INLINE int CffiTypeIsVariableSizeArray(const CffiType *typeP) {
     return typeP->arraySize == 0;
 }
 
+typedef enum CffiAttrFlags {
+    CFFI_F_ATTR_IN               = 0x00000001,   /* In parameter */
+    CFFI_F_ATTR_OUT              = 0x00000002,   /* Out parameter */
+    CFFI_F_ATTR_INOUT            = 0x00000004,   /* Out parameter */
+    CFFI_F_ATTR_BYREF            = 0x00000008,   /* Parameter is a reference */
+    CFFI_F_ATTR_DISPOSE          = 0x00000010,   /* Unregister the pointer */
+    CFFI_F_ATTR_COUNTED          = 0x00000020,   /* Counted safe pointer */
+    CFFI_F_ATTR_UNSAFE           = 0x00000040,   /* Pointers need not be checked */
+    CFFI_F_ATTR_DISPOSEONSUCCESS = 0x00000080,   /* Unregister on success */
+    CFFI_F_ATTR_ZERO             = 0x00000100,   /* Must be zero/null */
+    CFFI_F_ATTR_NONZERO          = 0x00000200,   /* Must be nonzero/nonnull */
+    CFFI_F_ATTR_NONNEGATIVE      = 0x00000400,   /* Must be >= 0 */
+    CFFI_F_ATTR_POSITIVE         = 0x00000800,   /* Must be >= 0 */
+    CFFI_F_ATTR_LASTERROR        = 0x00001000,   /* Windows GetLastError handler */
+    CFFI_F_ATTR_ERRNO            = 0x00002000,   /* Error in errno */
+    CFFI_F_ATTR_WINERROR         = 0x00004000,   /* Windows error code */
+    CFFI_F_ATTR_ONERROR          = 0x00008000,   /* Error handler */
+    CFFI_F_ATTR_STOREONERROR     = 0x00010000,   /* Store only on error */
+    CFFI_F_ATTR_STOREALWAYS      = 0x00020000,   /* Store on success and error */
+    CFFI_F_ATTR_ENUM             = 0x00100000,   /* Use enum names */
+    CFFI_F_ATTR_BITMASK          = 0x00200000,   /* Treat as a bitmask */
+    CFFI_F_ATTR_NULLIFEMPTY      = 0x00400000,   /* Empty -> null pointer */
+    CFFI_F_ATTR_NULLOK           = 0x00800000,   /* Null pointers allowed */
+    CFFI_F_ATTR_STRUCTSIZE       = 0x01000000,   /* Field contains struct size */
+} CffiAttrFlags;
+
 /*
- * Function parameter descriptor
+ * Type descriptor
  */
 typedef struct CffiTypeAndAttrs {
     Tcl_Obj *parseModeSpecificObj; /* Parameter - Default for parameter,
                                       Field - Default for field
                                       Return parse - error handler */
     CffiType dataType;         /* Data type */
-    int flags;
-#define CFFI_F_ATTR_IN    0x0001 /* In parameter */
-#define CFFI_F_ATTR_OUT   0x0002 /* Out parameter */
-#define CFFI_F_ATTR_INOUT 0x0004 /* Out parameter */
-#define CFFI_F_ATTR_BYREF 0x0008 /* Parameter is a reference */
-
-#define CFFI_F_ATTR_DISPOSE     0x0010 /* Unregister the pointer */
-#define CFFI_F_ATTR_COUNTED     0x0020 /* Counted safe pointer */
-#define CFFI_F_ATTR_UNSAFE      0x0040 /* Pointers need not be checked */
-#define CFFI_F_ATTR_DISPOSEONSUCCESS 0x0080 /* Unregister on successful call */
-
-#define CFFI_F_ATTR_ZERO        0x0100 /* Must be zero/null */
-#define CFFI_F_ATTR_NONZERO     0x0200 /* Must be nonzero/nonnull */
-#define CFFI_F_ATTR_NONNEGATIVE 0x0400 /* Must be >= 0 */
-#define CFFI_F_ATTR_POSITIVE    0x0800 /* Must be >= 0 */
-#define CFFI_F_ATTR_LASTERROR 0x10000 /* Windows GetLastError for error message */
-#define CFFI_F_ATTR_ERRNO     0x20000 /* Error in errno */
-#define CFFI_F_ATTR_WINERROR  0x40000 /* Windows error code */
-#define CFFI_F_ATTR_ONERROR   0x80000 /* Error handler */
-
-#define CFFI_F_ATTR_STOREONERROR 0x100000 /* Store only on error */
-#define CFFI_F_ATTR_STOREALWAYS  0x200000 /* Store on success and error */
-
-#define CFFI_F_ATTR_ENUM        0x1000000 /* Use enum names */
-#define CFFI_F_ATTR_BITMASK     0x2000000 /* Treat as a bitmask */
-#define CFFI_F_ATTR_NULLIFEMPTY 0x4000000 /* Empty value -> null pointer */
-#define CFFI_F_ATTR_NULLOK      0x8000000 /* Null pointers permissible */
-
-#define CFFI_F_ATTR_STRUCTSIZE 0x10000000 /* Field contains size of struct */
+    CffiAttrFlags flags;
 } CffiTypeAndAttrs;
 
 /* Attributes allowed on a parameter declaration */
@@ -469,6 +467,15 @@ void CffiCallbackCleanupAndFree(CffiCallback *cbP);
 #endif
 
 /*
+ * Common flags used across multiple functions.
+ */
+typedef enum CffiFlags {
+    CFFI_F_ALLOW_UNSAFE        = 0x1, /* No pointer validity check */
+    CFFI_F_PRESERVE_ON_ERROR   = 0x2, /* Preserve original content on error */
+    CFFI_F_SKIP_ERROR_MESSAGES = 0x4, /* Don't store error in interp */
+} CffiFlags;
+
+/*
  * Prototypes
  */
 CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
@@ -530,7 +537,7 @@ CffiResult CffiUniStringToObj(Tcl_Interp *ip,
 CffiResult CffiStructFromObj(Tcl_Interp *ip,
                              const CffiStruct *structP,
                              Tcl_Obj *structValueObj,
-                             int flags,
+                             CffiFlags flags,
                              void *resultP,
                              MemLifo *memlifoP);
 CffiResult CffiStructToObj(Tcl_Interp *ip,
@@ -538,11 +545,10 @@ CffiResult CffiStructToObj(Tcl_Interp *ip,
                            void *valueP,
                            Tcl_Obj **valueObjP);
 
-#define CFFI_F_PRESERVE_ON_ERROR 0x1
 CffiResult CffiNativeScalarFromObj(Tcl_Interp *ip,
                                    const CffiTypeAndAttrs *typeAttrsP,
                                    Tcl_Obj *valueObj,
-                                   int flags,
+                                   CffiFlags flags,
                                    void *resultP,
                                    int indx,
                                    MemLifo *memlifoP);
@@ -550,7 +556,7 @@ CffiResult CffiNativeValueFromObj(Tcl_Interp *ip,
                                   const CffiTypeAndAttrs *typeAttrsP,
                                   int realArraySize,
                                   Tcl_Obj *valueObj,
-                                  int flags,
+                                  CffiFlags flags,
                                   void *valueBaseP,
                                   int valueIndex,
                                   MemLifo *memlifoP);
@@ -592,7 +598,7 @@ Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);
 int CffiAliasGet(CffiInterpCtx *ipCtxP,
                  Tcl_Obj *aliasNameObj,
                  CffiTypeAndAttrs *typeAttrP,
-                 int flags);
+                 CffiFlags flags);
 CffiResult CffiAliasAdd(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *nameObj,
                         Tcl_Obj *typedefObj,
@@ -619,13 +625,10 @@ void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj)
 CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
 Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
 
-/* Flags for CffiEnum* calls */
-#define CFFI_F_ENUM_SKIP_ERROR_MESSAGE 0x1 /* No error in interp if not found */
-#define CFFI_F_ENUM_INCLUDE_GLOBAL     0x2 /* Include global enums in search */
 
 CffiResult CffiEnumGetMap(CffiInterpCtx *ipCtxP,
                           Tcl_Obj *enumObj,
-                          int flags,
+                          CffiFlags flags,
                           Tcl_Obj **mapObjP);
 void CffiEnumsCleanup(CffiInterpCtx *ipCtxP);
 CffiResult CffiEnumMemberFind(Tcl_Interp *ip,
@@ -635,7 +638,7 @@ CffiResult CffiEnumMemberFind(Tcl_Interp *ip,
 CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *enumObj,
                         Tcl_Obj *nameObj,
-                        int flags,
+                        CffiFlags flags,
                         Tcl_Obj **valueObjP);
 CffiResult CffiEnumMemberFindReverse(Tcl_Interp *ip,
                                      Tcl_Obj *mapObj,
@@ -644,7 +647,7 @@ CffiResult CffiEnumMemberFindReverse(Tcl_Interp *ip,
 CffiResult CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
                                Tcl_Obj *enumNameObj,
                                Tcl_WideInt needle,
-                               int flags,
+                               CffiFlags flags,
                                Tcl_Obj **nameObjP);
 CffiResult CffiEnumMemberBitmask(Tcl_Interp *ip,
                                  Tcl_Obj *enumObj,
@@ -666,12 +669,11 @@ CffiResult CffiScopesInit(CffiInterpCtx *ipCtxP);
 void CffiScopesCleanup(CffiInterpCtx *ipCtxP);
 
 /* Name management API */
-#define CFFI_F_NAME_SKIP_MESSAGES 0x1
 CffiResult CffiNameLookup(Tcl_Interp *ip,
                           Tcl_HashTable *htP,
                           const char *nameP,
                           const char *nameTypeP,
-                          int flags,
+                          CffiFlags flags,
                           ClientData *valueP,
                           Tcl_Obj **fqnObjP);
 CffiResult CffiNameAdd(Tcl_Interp *ip,

@@ -13,7 +13,7 @@
  * Parameters:
  * ipCtxP - interpreter context
  * nameObj - name of the enum
- * flags - if CFFI_F_NAME_SKIP_MESSAGES is set, no errors are
+ * flags - if CFFI_F_SKIP_ERROR_MESSAGES is set, no errors are
  *   recorded in the interpreter
  * mapObjP - location to store the dictionary holding the mapping. May be
  *   *NULL* if only existence is being checked
@@ -27,7 +27,7 @@
 CffiResult
 CffiEnumGetMap(CffiInterpCtx *ipCtxP,
                Tcl_Obj *nameObj,
-               int flags,
+               CffiFlags flags,
                Tcl_Obj **mapObjP)
 {
     return CffiNameLookup(ipCtxP->interp,
@@ -81,7 +81,7 @@ CffiEnumMemberFind(Tcl_Interp *ip,
  * ipCtxP - context in which the enum is defined
  * enumNameObj - name of the enum
  * memberNameObj - name of the member
- * flags - if CFFI_F_NAME_SKIP_MESSAGES is set, no errors are
+ * flags - if CFFI_F_SKIP_ERROR_MESSAGES is set, no errors are
  *   recorded in the interpreter
  * valueObjP - location to store the value of the member. If *NULL*,
  *   only a check is made as to existence.
@@ -98,14 +98,14 @@ CffiResult
 CffiEnumFind(CffiInterpCtx *ipCtxP,
              Tcl_Obj *enumNameObj,
              Tcl_Obj *memberNameObj,
-             int flags,
+             CffiFlags flags,
              Tcl_Obj **valueObjP)
 {
     Tcl_Obj *entries;
 
     CHECK(CffiEnumGetMap(ipCtxP, enumNameObj, flags, &entries));
     return CffiEnumMemberFind(
-        flags & CFFI_F_NAME_SKIP_MESSAGES ? NULL : ipCtxP->interp,
+        flags & CFFI_F_SKIP_ERROR_MESSAGES ? NULL : ipCtxP->interp,
         entries,
         memberNameObj,
         valueObjP);
@@ -157,7 +157,7 @@ CffiEnumMemberFindReverse(Tcl_Interp *ip,
  * ipCtxP - Context in which the enum is defined
  * enumNameObj - name of the enum
  * needleObj - Value to map to a name
- * flags - if CFFI_F_NAME_SKIP_MESSAGES is set, no errors are
+ * flags - if CFFI_F_SKIP_ERROR_MESSAGES is set, no errors are
  *   recorded in the interpreter and the original needle itself is returned
  *   in nameObjP.
  * nameObjP - location to store the name of the member
@@ -174,7 +174,7 @@ CffiResult
 CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
                     Tcl_Obj *enumNameObj,
                     Tcl_WideInt needle,
-                    int flags,
+                    CffiFlags flags,
                     Tcl_Obj **nameObjP)
 {
     Tcl_Obj *entries;
@@ -182,7 +182,7 @@ CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
 
     ret = CffiEnumGetMap(ipCtxP, enumNameObj, flags, &entries);
     if (ret == TCL_OK) {
-        if (flags & CFFI_F_NAME_SKIP_MESSAGES) {
+        if (flags & CFFI_F_SKIP_ERROR_MESSAGES) {
             if (CffiEnumMemberFindReverse(NULL, entries, needle, nameObjP)
                 != TCL_OK)
                 *nameObjP = Tcl_NewWideIntObj(needle); /* Not found, return needle */

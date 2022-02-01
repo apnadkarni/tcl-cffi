@@ -62,7 +62,10 @@ CffiMemoryAddressFromObj(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
+                      int objc,
+                      Tcl_Obj *const objv[],
+                      CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     CffiTypeAndAttrs typeAttrs;
@@ -126,7 +129,10 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], in
  *
  */
 static CffiResult
-CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP,
+                  int objc,
+                  Tcl_Obj *const objv[],
+                  CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
@@ -160,7 +166,10 @@ CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int fl
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP,
+                        int objc,
+                        Tcl_Obj *const objv[],
+                        CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     CffiResult ret;
@@ -197,12 +206,12 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], 
  * objc - count of elements in objv[]. Should be 3 or 4 including command
  *        and subcommand.
  * objv - argument array.
- * flags - if the low bit is set, the pointer is treated as unsafe and not
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
  *        checked for validity.
  *
  * Returns the *objv[3]* bytes of memory referenced by the wrapped pointer
  * in *objv[2]* as a *Tcl_Obj* byte array. The passed in pointer should be
- * registered unless the low bit of *flags* is set.
+ * registered unless the CFFI_F_ALLOW_UNSAFE of *flags* is set.
  * If the pointer is *NULL*, the returned byte array is empty.
  *
  * Returns:
@@ -210,13 +219,16 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], 
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
+                      int objc,
+                      Tcl_Obj *const objv[],
+                      CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     unsigned int len;
 
-    if (flags & 1)
+    if (flags & CFFI_F_ALLOW_UNSAFE)
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
     else
         CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
@@ -250,7 +262,10 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], in
  * interpreter result, *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
+                        int objc,
+                        Tcl_Obj *const objv[],
+                        CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Encoding encoding;
@@ -299,14 +314,14 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], 
  * objc - count of elements in objv[]. Should be 3-5 including command
  *        and subcommand.
  * objv - argument array.
- * flags - if the low bit is set, the pointer is treated as unsafe and not
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
  *        checked for validity.
  *
  * The memory pointed to by *objv[2]* is treated as a null-terminated string
  * in the encoding specified by *objv[3]*. If *objv[3]* is not specified,
  * the system encoding is used.
  *
- * The passed in pointer should be registered unless the low bit of *flags*
+ * The passed in pointer should be registered unless the CFFI_F_ALLOW_UNSAFE of *flags*
  * is set. A *NULL* pointer will raise an error.
  *
  * Returns:
@@ -317,14 +332,14 @@ static CffiResult
 CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
                       int objc,
                       Tcl_Obj *const objv[],
-                      int flags)
+                      CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     Tcl_Encoding encoding;
     Tcl_DString ds;
 
-    if (flags & 1)
+    if (flags & CFFI_F_ALLOW_UNSAFE)
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
     else
         CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
@@ -360,7 +375,7 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
  * objc - count of elements in objv[]. Should be 4-5 including command
  *        and subcommand.
  * objv - argument array.
- * flags - if the low bit is set, the pointer is treated as unsafe and not
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
  *        checked for validity.
  *
  * The objv[2] element is the pointer to the memory address from where
@@ -368,7 +383,7 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
  * is specified, it is the index into an array starting at objv[2] and
  * the value is retrieved from that corresponding location.
  *
- * The passed in pointer should be registered unless the low bit of *flags*
+ * The passed in pointer should be registered unless the CFFI_F_ALLOW_UNSAFE of *flags*
  * is set. A *NULL* pointer will raise an error.
  *
  * Returns:
@@ -379,7 +394,7 @@ static CffiResult
 CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
                  int objc,
                  Tcl_Obj *const objv[],
-                 int flags)
+                 CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
@@ -394,7 +409,7 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
     else
         indx = 0;
 
-    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & 1, &pv));
+    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & CFFI_F_ALLOW_UNSAFE, &pv));
 
     CHECK(CffiTypeAndAttrsParse(
         ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
@@ -421,7 +436,7 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
  * objc - count of elements in objv[]. Should be 5-6 including command
  *        and subcommand.
  * objv - argument array.
- * flags - if the low bit is set, the pointer is treated as unsafe and not
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
  *        checked for validity.
  *
  * The objv[2] element is the pointer to the location where the native
@@ -429,7 +444,7 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
  * is specified, it is the index into an array starting at objv[2] and
  * the value is stored in that corresponding location.
  *
- * The passed in pointer should be registered unless the low bit of *flags*
+ * The passed in pointer should be registered unless the CFFI_F_ALLOW_UNSAFE of *flags*
  * is set. A *NULL* pointer will raise an error.
  *
  * Returns:
@@ -440,7 +455,7 @@ static CffiResult
 CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
                  int objc,
                  Tcl_Obj *const objv[],
-                 int flags)
+                 CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
@@ -454,7 +469,7 @@ CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
     else
         indx = 0;
 
-    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & 1, &pv));
+    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & CFFI_F_ALLOW_UNSAFE, &pv));
 
     CHECK(CffiTypeAndAttrsParse(
         ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
@@ -482,7 +497,10 @@ CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
  * *TCL_ERROR* on failure with error message in interpreter.
  */
 static CffiResult
-CffiMemoryFillCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], int flags)
+CffiMemoryFillCmd(CffiInterpCtx *ipCtxP,
+                  int objc,
+                  Tcl_Obj *const objv[],
+                  CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
@@ -504,21 +522,21 @@ CffiMemoryObjCmd(ClientData cdata,
                  Tcl_Obj *const objv[])
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
-    /* The flags field low bit is set for unsafe pointer operation */
+    /* The flags field CFFI_F_ALLOW_UNSAFE is set for unsafe pointer operation */
     static const Tclh_SubCommand subCommands[] = {
         {"allocate", 1, 2, "SIZE ?TYPETAG?", CffiMemoryAllocateCmd, 0},
         {"free", 1, 1, "POINTER", CffiMemoryFreeCmd, 0},
         {"frombinary", 1, 2, "BINARY ?TYPETAG?", CffiMemoryFromBinaryCmd, 0},
         {"fromstring", 1, 2, "STRING ?ENCODING?", CffiMemoryFromStringCmd, 0},
         {"set", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 0},
-        {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 1},
+        {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, CFFI_F_ALLOW_UNSAFE},
         {"get", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 0},
-        {"get!", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 1},
+        {"get!", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, CFFI_F_ALLOW_UNSAFE},
         {"fill", 3, 3, "POINTER BYTEVALUE COUNT", CffiMemoryFillCmd, 0},
         {"tobinary", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 0},
-        {"tobinary!", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 1},
+        {"tobinary!", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, CFFI_F_ALLOW_UNSAFE},
         {"tostring", 1, 2, "POINTER ?ENCODING?", CffiMemoryToStringCmd, 0},
-        {"tostring!", 1, 2, "POINTER ?ENCODING?", CffiMemoryToStringCmd, 1},
+        {"tostring!", 1, 2, "POINTER ?ENCODING?", CffiMemoryToStringCmd, CFFI_F_ALLOW_UNSAFE},
         {NULL}
     };
     int cmdIndex;

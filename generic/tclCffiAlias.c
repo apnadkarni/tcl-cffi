@@ -16,7 +16,7 @@
  *   aliasNameObj - alias name
  *   typeAttrP - pointer to structure to hold parsed information. Note this
  *               structure is *overwritten*, not merged.
- *   flags - if CFFI_F_NAME_SKIP_MESSAGES is set, error messages
+ *   flags - if CFFI_F_SKIP_ERROR_MESSAGES is set, error messages
  *           are not stored in the interpreter.
  * Returns:
  * If a type definition of the specified name is found, it is stored
@@ -27,7 +27,7 @@ int
 CffiAliasGet(CffiInterpCtx *ipCtxP,
              Tcl_Obj *aliasNameObj,
              CffiTypeAndAttrs *typeAttrP,
-             int flags)
+             CffiFlags flags)
 {
     CffiTypeAndAttrs *aliasTypeAttrP;
     CffiResult ret;
@@ -35,7 +35,7 @@ CffiAliasGet(CffiInterpCtx *ipCtxP,
                          &ipCtxP->scope.aliases,
                          Tcl_GetString(aliasNameObj),
                          "Alias",
-                         flags & CFFI_F_NAME_SKIP_MESSAGES,
+                         flags & CFFI_F_SKIP_ERROR_MESSAGES,
                          (ClientData *)&aliasTypeAttrP,
                          NULL);
     if (ret == TCL_ERROR)
@@ -109,7 +109,7 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP,
                              &ipCtxP->scope.aliases,
                              Tcl_GetString(nameObj),
                              "Alias",
-                             CFFI_F_NAME_SKIP_MESSAGES,
+                             CFFI_F_SKIP_ERROR_MESSAGES,
                              (ClientData *)&oldP,
                              &fqnObj);
         if (ret == TCL_OK) {

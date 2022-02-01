@@ -258,7 +258,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     CffiArgument *argP    = &callP->argsP[arg_index];
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
-    int flags;
+    CffiAttrFlags flags;
     int len;
     char *p;
 
@@ -970,7 +970,7 @@ CffiDefaultErrorHandler(Tcl_Interp *ip,
                         Tcl_Obj *valueObj,
                         Tcl_WideInt sysError)
 {
-    int flags = typeAttrsP->flags;
+    CffiAttrFlags flags = typeAttrsP->flags;
 
 #ifdef _WIN32
     if (flags & (CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_WINERROR)) {
@@ -1065,7 +1065,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     outputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
     for (i = 0; i < protoP->nParams; ++i) {
         CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
-        int flags                    = typeAttrsP->flags;
+        CffiAttrFlags flags          = typeAttrsP->flags;
         if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
             Tcl_ListObjAppendElement(
                 NULL, inputArgsObj, protoP->params[i].nameObj);
@@ -1605,7 +1605,7 @@ CffiFunctionCall(ClientData cdata,
          * Errors storing parameters are ignored (what else to do?)
          */
         for (i = 0; i < protoP->nParams; ++i) {
-            int flags = protoP->params[i].typeAttrs.flags;
+            CffiAttrFlags flags = protoP->params[i].typeAttrs.flags;
             if ((flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT))) {
                 if ((fnCheckRet == TCL_OK
                      && !(flags & CFFI_F_ATTR_STOREONERROR))

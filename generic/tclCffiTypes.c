@@ -742,11 +742,11 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj **objs;
     int nobjs;
-    int flags;
-    int i;
-    enum CffiBaseType baseType;
-    int validAttrs;
     int temp;
+    int i;
+    CffiAttrFlags flags;
+    CffiAttrFlags validAttrs;
+    enum CffiBaseType baseType;
     static const char *paramAnnotClashMsg = "Unknown, repeated or conflicting type annotations specified.";
     static const char *defaultNotAllowedMsg =
         "Defaults are not allowed in this declaration context.";
@@ -762,7 +762,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /* First check for a type definition before base types */
-    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP, CFFI_F_NAME_SKIP_MESSAGES);
+    temp = CffiAliasGet(ipCtxP, objs[0], typeAttrP, CFFI_F_SKIP_ERROR_MESSAGES);
     if (temp)
         baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
@@ -1208,7 +1208,7 @@ CffiIntValueFromObj(Tcl_Interp *ip,
                     Tcl_WideInt *valueP)
 {
     Tcl_WideInt value;
-    int flags       = typeAttrsP ? typeAttrsP->flags : 0;
+    CffiAttrFlags flags = typeAttrsP ? typeAttrsP->flags : 0;
     int lookup_enum = flags & CFFI_F_ATTR_ENUM;
 
     if (flags & CFFI_F_ATTR_BITMASK) {
@@ -1306,7 +1306,7 @@ CffiResult
 CffiNativeScalarFromObj(Tcl_Interp *ip,
                         const CffiTypeAndAttrs *typeAttrsP,
                         Tcl_Obj *valueObj,
-                        int flags,
+                        CffiFlags flags,
                         void *valueBaseP,
                         int indx,
                         MemLifo *memlifoP)
@@ -1534,7 +1534,7 @@ CffiNativeValueFromObj(Tcl_Interp *ip,
                        const CffiTypeAndAttrs *typeAttrsP,
                        int realArraySize,
                        Tcl_Obj *valueObj,
-                       int flags,
+                       CffiFlags flags,
                        void *valueBaseP,
                        int valueIndex,
                        MemLifo *memlifoP)
@@ -1913,7 +1913,7 @@ CffiCheckPointer(Tcl_Interp *ip,
                   Tcl_WideInt *sysErrorP)
 
 {
-    int flags = typeAttrsP->flags;
+    CffiAttrFlags flags = typeAttrsP->flags;
 
     if (pointer || (flags & CFFI_F_ATTR_NULLOK))
         return TCL_OK;
@@ -2472,7 +2472,7 @@ CffiCheckNumeric(Tcl_Interp *ip,
                   Tcl_WideInt *sysErrorP
                   )
 {
-    int flags = typeAttrsP->flags;
+    CffiAttrFlags flags = typeAttrsP->flags;
     int is_signed;
     Tcl_WideInt value;
 
@@ -2598,7 +2598,7 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
 {
     Tcl_Obj *resultObj;
     CffiAttrs *attrsP;
-    int flags;
+    CffiAttrFlags flags;
 
     resultObj = Tcl_NewListObj(0, NULL);
 

@@ -156,7 +156,7 @@ CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj)
                          &ipCtxP->scope.prototypes,
                          Tcl_GetString(protoNameObj),
                          "Prototype",
-                         CFFI_F_NAME_SKIP_MESSAGES,
+                         CFFI_F_SKIP_ERROR_MESSAGES,
                          (ClientData *)&protoP,
                          NULL);
     return ret == TCL_OK ? protoP : NULL;

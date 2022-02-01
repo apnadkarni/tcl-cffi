@@ -50,7 +50,7 @@ invalid_alias_syntax:
  * nameP - name to use as the key
  * nameTypeP - the type of name being looked up. Only used for error
  *    messages. May be NULL.
- * flags - if the CFFI_F_NAME_SKIP_MESSAGES bit is set,
+ * flags - if the CFFI_F_SKIP_ERROR_MESSAGES bit is set,
  *    errors are not record even if ip is not NULL.
  * valueP - location to store the retrieved value if found.
  * fqnObjP - location to store the fully qualified name of the found entry.
@@ -69,7 +69,7 @@ CffiNameLookup(Tcl_Interp *ip,
                Tcl_HashTable *htP,
                const char *nameP,
                const char *nameTypeP,
-               int flags,
+               CffiFlags flags,
                ClientData *valueP,
                Tcl_Obj **fqnObjP)
 {
@@ -112,7 +112,7 @@ CffiNameLookup(Tcl_Interp *ip,
         return TCL_OK;
 
 notfound:
-    if (ip && (flags & CFFI_F_NAME_SKIP_MESSAGES) == 0)
+    if (ip && (flags & CFFI_F_SKIP_ERROR_MESSAGES) == 0)
         Tclh_ErrorNotFoundStr(ip, nameTypeP, nameP, NULL);
     return TCL_ERROR;
 }
