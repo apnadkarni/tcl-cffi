@@ -204,6 +204,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
 
     CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));
 
+    /* TBD - can we not use CffiNative|ScalarFromObj here? */
 #define EXTRACTINT_(type_, fld_)                                               \
     do {                                                                       \
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \

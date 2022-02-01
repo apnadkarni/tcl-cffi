@@ -982,3 +982,8 @@ manyargs_callback_stdcall(signed char ch,
 {
     return fn(ch, uch, shrt, ushort, i, ui, l, ul, ll, ull, f, d);
 }
+
+DLLEXPORT
+int callback_int2 (int i, int j, int(*fn)(int, int)) {
+    return fn(i, j);
+}

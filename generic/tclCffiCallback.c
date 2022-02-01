@@ -67,7 +67,7 @@ CffiCallbackAllocAndInit(CffiInterpCtx *ipCtxP,
  * ipCtxP - interpreter context
  * paramP - parameter.
  * isReturn - 0 if param, non-0 if return type
- * valueObj - if non-NULL, checked against the type if isReturn is true.
+ * valueObj - checked against the type if isReturn is true.
  *
  * Returns:
  * *TCL_OK* if type is ok, else *TCL_ERROR*
@@ -100,6 +100,16 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
             paramP->nameObj,
             "Array parameters not permitted in callback functions.");
     }
+
+    if (isReturn && typeAttrsP->dataType.baseType != CFFI_K_TYPE_VOID
+        && valueObj == NULL) {
+        return Tclh_ErrorInvalidValue(
+            ipCtxP->interp,
+            NULL,
+            "A default error value must be specified in a callback if return "
+            "type is not void.");
+    }
+
     switch (typeAttrsP->dataType.baseType) {
     case CFFI_K_TYPE_SCHAR:
     case CFFI_K_TYPE_UCHAR:
@@ -111,7 +121,7 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
     case CFFI_K_TYPE_ULONG:
     case CFFI_K_TYPE_LONGLONG:
     case CFFI_K_TYPE_ULONGLONG:
-        if (isReturn && valueObj)  {
+        if (isReturn)  {
             /* Check that the value is valid for the type */
             Tcl_WideInt wide;
             CHECK(CffiIntValueFromObj(
@@ -120,7 +130,7 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
         return TCL_OK;
     case CFFI_K_TYPE_FLOAT:
     case CFFI_K_TYPE_DOUBLE:
-        if (isReturn && valueObj)  {
+        if (isReturn)  {
             double dbl;
             CHECK(Tcl_GetDoubleFromObj(ipCtxP->interp, valueObj, &dbl));
         }
@@ -132,7 +142,7 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
                 paramP->nameObj,
                 "Pointer types in callbacks must have the unsafe annotation.");
         }
-        if (isReturn && valueObj) {
+        if (isReturn) {
             void *pv;
             CHECK(Tclh_PointerUnwrap(ipCtxP->interp, valueObj, &pv, NULL));
         }
@@ -270,25 +280,13 @@ CffiCallbackObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiCallback *cbP = NULL;
     CffiProto *protoP;
+    Tcl_Obj *protoFqnObj = NULL;
     Tcl_Obj **cmdObjs;
     int nCmdObjs;
     Tcl_Obj *cbObj;
     CffiResult ret;
     void *closureP;
     void *executableAddr;
-
-    CHECK_NARGS(ip, 3, 4, "PROTOTYPENAME CMDPREFIX ?ERROR_RESULT?");
-
-    CHECK(Tcl_ListObjGetElements(ip, objv[2], &nCmdObjs, &cmdObjs));
-    if (nCmdObjs == 0)
-        return Tclh_ErrorInvalidValue(ip, NULL, "Empty command specified.");
-
-    protoP = CffiProtoGet(ipCtxP, objv[1]);
-    if (protoP == NULL) {
-        return Tclh_ErrorNotFound(ip, "Prototype", objv[1], NULL);
-    }
-
-    CHECK(CffiCallbackCheckProto(ipCtxP, protoP, objc < 4 ? NULL : objv[3]));
 
 #ifdef CFFI_USE_DYNCALL
     Tcl_SetResult(
@@ -297,12 +295,36 @@ CffiCallbackObjCmd(ClientData cdata,
 #endif
 
 #ifdef CFFI_USE_LIBFFI
-    CHECK(CffiLibffiInitProtoCif(ip, protoP));
+
+    CHECK_NARGS(ip, 3, 4, "PROTOTYPENAME CMDPREFIX ?ERROR_RESULT?");
+
+    CHECK(Tcl_ListObjGetElements(ip, objv[2], &nCmdObjs, &cmdObjs));
+    if (nCmdObjs == 0)
+        return Tclh_ErrorInvalidValue(ip, NULL, "Empty command specified.");
+
+    /* We will need fqn for tagging pointer */
+    protoFqnObj = Tclh_NsQualifyNameObj(ip, objv[1], NULL);
+    Tcl_IncrRefCount(protoFqnObj);
+    protoP = CffiProtoGet(ipCtxP, protoFqnObj);
+
+    if (protoP == NULL) {
+        Tclh_ErrorNotFound(ip, "Prototype", objv[1], NULL);
+        goto error_handler;
+    }
+
+    /* Verify prototype is usable as a callback */
+    if (CffiCallbackCheckProto(ipCtxP, protoP, objc < 4 ? NULL : objv[3])
+            != TCL_OK)
+        goto error_handler;
+
+    /* Translate Cffi definition to libffi definiiotn */
+    if (CffiLibffiInitProtoCif(ip, protoP) != TCL_OK)
+        goto error_handler;
 
     cbP = CffiCallbackAllocAndInit(
         ipCtxP, protoP, objv[2], objc < 4 ? NULL : objv[3]);
     if (cbP == NULL)
-        return TCL_ERROR;
+        goto error_handler;
 
     /* Allocate the libffi closure */
     closureP = ffi_closure_alloc(sizeof(ffi_closure), &executableAddr);
@@ -321,7 +343,7 @@ CffiCallbackObjCmd(ClientData cdata,
              * Construct return function pointer value. This pointer is passed
              * as the callback function address.
              */
-            ret = Tclh_PointerRegister(ip, executableAddr, objv[1], &cbObj);
+            ret = Tclh_PointerRegister(ip, executableAddr, protoFqnObj, &cbObj);
             if (ret == TCL_OK) {
                 /* We need to map from the function pointer to callback context */
                 Tcl_HashEntry *heP;
@@ -331,6 +353,7 @@ CffiCallbackObjCmd(ClientData cdata,
                 if (isNew) {
                     Tcl_SetHashValue(heP, cbP);
                     Tcl_SetObjResult(ip, cbObj);
+                    Tcl_DecrRefCount(protoFqnObj);
                     return TCL_OK;
                 }
                 /* Entry exists? Something wrong */
@@ -345,10 +368,14 @@ CffiCallbackObjCmd(ClientData cdata,
         }
     }
 
-    CFFI_ASSERT(cbP);
-    CffiCallbackCleanupAndFree(cbP);
+error_handler:
+    if (protoFqnObj)
+        Tcl_DecrRefCount(protoFqnObj);
+    if (cbP)
+        CffiCallbackCleanupAndFree(cbP);
     return TCL_ERROR;
-#endif
+
+#endif /* CFFI_USE_LIBFFI */
 }
 
 #endif /* CFFI_ENABLE_CALLBACKS */

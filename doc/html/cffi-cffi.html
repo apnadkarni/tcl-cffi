@@ -29,7 +29,12 @@ package require cffi
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>alias_name</code></td><td>Name of alias to be retrieved.</td></tr>
 </table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The alias must be one defined in the current <a href="cffi-Concepts.html#::Concepts-Scopes" title="scope" >scope</a>.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the resolved body of an alias.</p>
+<h4 class='ruffproc'><a name='::cffi::alias clear'>alias clear</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Deletes all aliases from the interpreter</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>alias clear</span> <br></div>
 <h4 class='ruffproc'><a name='::cffi::alias define'>alias define</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Defines one or more type aliases.</p>
@@ -40,26 +45,34 @@ package require cffi
 <tr><td><code>name</code></td><td>Name for type alias. Must begin with an alphabetic character and may contain alphanumerics and underscore.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>Given two arguments, creates an alias of the given name for passed definition. If a single argument is provided, it must be a dictionary mapping alias names to their definitions.</p>
-<p class='ruff'>An error will be raised if an alias name matches a built-in type or if an alias of that name already exists with a different definition.</p>
+<p class='ruff'>An error will be raised if an alias name matches a built-in type or if an alias of that name already exists with a different definition in the same scope.</p>
 <p class='ruff'>The definition may itself be based on an existing alias. In this case the existing alias is immediately resolved and expanded as part of the definition so further changes to it are not reflected in the alias being defined.</p>
 <p class='ruff'>See <a href="cffi-Concepts.html#::Concepts-Type aliases" title="Type aliases" >Type aliases</a> for more on type aliases.</p>
 <h4 class='ruffproc'><a name='::cffi::alias delete'>alias delete</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Deletes type aliases matching a pattern.</p>
+<p class='ruff'>Deletes aliases matching a pattern.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>alias delete</span> <span class='ruff_arg'>pattern</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pattern</code></td><td>Pattern to match against aliases.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The pattern matching algorithm is the same as that of Tcl's <code>string match</code> command. It is not an error if the pattern does not match any aliasses.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command deletes all aliases whose name matches the specified pattern. The conditions for matching the pattern are:</p>
+<ul class='ruff'>
+<li>the tail of the pattern must match the tail of the alias name using Tcl's glob pattern matching rules.</li>
+<li>the scope component of the alias name must match exactly.</li>
+</ul>
 <h4 class='ruffproc'><a name='::cffi::alias list'>alias list</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Returns a list of aliases matching the specified pattern.</p>
+<p class='ruff'>Returns a list of aliases that match the specified pattern.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>alias list</span> <span class='ruff_arg'>?pattern?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pattern</code></td><td>Pattern to match against aliases. Optional, default <code>*</code>.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The pattern matching algorithm is the same as that of Tcl's <code>string match</code> command.</p>
-<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of aliases matching the specified pattern.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command returns the alias names that match the specified pattern. The conditions for matching the pattern are:</p>
+<ul class='ruff'>
+<li>the tail of the pattern must match the tail of the alias name using Tcl's glob pattern matching rules.</li>
+<li>the scope component of the alias name must match exactly.</li>
+</ul>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of aliases that match the specified pattern.</p>
 <h4 class='ruffproc'><a name='::cffi::alias load'>alias load</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Loads predefined type aliases.</p>
@@ -67,9 +80,10 @@ package require cffi
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>alias_set</code></td><td>The alias set to load.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The possible values of <code>$alias_set</code> are <code>C</code>, <code>win32</code> (Windows only), or <code>posix</code> (platform dependent).</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The aliases are loaded into the calling scope.</p>
+<p class='ruff'>The possible values of <code>$alias_set</code> are <code>C</code>, <code>win32</code> (Windows only), or <code>posix</code> (platform dependent).</p>
 <p class='ruff'>The <code>C</code> predefined alias set includes <code>int8_t</code> <code>uint8_t</code> <code>int16_t</code> <code>uint16_t</code> <code>int32_t</code> <code>uint32_t</code> <code>int64_t</code> <code>uint64_t</code> <code>size_t</code></p>
-<p class='ruff'>The <code>win32</code> predefined alias set includes <code>BOOL</code> <code>BOOLEAN</code> <code>BYTE</code> <code>CHAR</code> <code>DWORD</code> <code>DWORDLONG</code> <code>DWORD_PTR</code> <code>HALF_PTR</code> <code>HANDLE</code> <code>INT</code> <code>INT_PTR</code> <code>LONG</code> <code>LONGLONG</code> <code>LONG_PTR</code> <code>LPARAM</code> <code>LPSTR</code> <code>LPVOID</code> <code>LPWSTR</code> <code>LRESULT</code> <code>SHORT</code> <code>SIZE_T</code> <code>SSIZE_T</code> <code>UCHAR</code> <code>UINT</code> <code>UINT_PTR</code> <code>ULONG</code> <code>ULONGLONG</code> <code>ULONG_PTR</code> <code>USHORT</code> <code>WORD</code> <code>WPARAM</code></p>
+<p class='ruff'>The <code>win32</code> predefined alias set includes <code>BOOL</code> <code>BOOLEAN</code> <code>BYTE</code> <code>CHAR</code> <code>DWORD</code> <code>DWORDLONG</code> <code>DWORD_PTR</code> <code>HALF_PTR</code> <code>HANDLE</code> <code>INT</code> <code>INT_PTR</code> <code>LONG</code> <code>LONGLONG</code> <code>LONG_PTR</code> <code>LPARAM</code> <code>LPVOID</code> <code>LRESULT</code> <code>SHORT</code> <code>SIZE_T</code> <code>SSIZE_T</code> <code>UCHAR</code> <code>UINT</code> <code>UINT_PTR</code> <code>ULONG</code> <code>ULONGLONG</code> <code>ULONG_PTR</code> <code>USHORT</code> <code>WORD</code> <code>WPARAM</code></p>
 <p class='ruff'>The <code>posix</code> alias set is platform dependent. In POSIX compliant environments, it includes <code>blkcnt_t</code> <code>blksize_t</code> <code>clock_t</code> <code>dev_t</code> <code>fsblkcnt_t</code> <code>fsfilcnt_t</code> <code>gid_t</code> <code>id_t</code> <code>ino_t</code> <code>key_t</code> <code>mode_t</code> <code>nlink_t</code> <code>off_t</code> <code>pid_t</code> <code>size_t</code> <code>ssize_t</code> <code>suseconds_t</code> <code>time_t</code> <code>uid_t</code>. On Windows, it only includes <code>dev_t</code> <code>ino_t</code> <code>off_t</code> <code>time_t</code>.</p>
 <h4 class='ruffproc'><a name='::cffi::call'>call</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -81,6 +95,10 @@ package require cffi
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The passed pointer <code>$fnptr</code> tag must corresponding to a function prototype defined through the <a href="cffi-cffi.html#::cffi::prototype function" title="prototype function" class='ruff_cmd'>prototype function</a> or <a href="cffi-cffi.html#::cffi::prototype stdcall" title="prototype stdcall" class='ruff_cmd'>prototype stdcall</a> commands.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the value returned by the invoked C function.</p>
+<h4 class='ruffproc'><a name='::cffi::enum clear'>enum clear</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Deletes all enumerations from the interpreter</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum clear</span> <br></div>
 <h4 class='ruffproc'><a name='::cffi::enum define'>enum define</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Defines a new enumeration.</p>
@@ -95,34 +113,65 @@ package require cffi
 <p class='ruff'>Deletes enumerations.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>enum delete</span> <span class='ruff_arg'>pattern</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pattern</code></td><td>A glob-style pattern.</td></tr>
+<tr><td><code>pattern</code></td><td>Pattern to match.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The command deletes all enumerations whose name matches the specified pattern.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command deletes all enumerations whose name matches the specified pattern. The conditions for matching the pattern are:</p>
+<ul class='ruff'>
+<li>the tail of the pattern must match the tail of the enumeration name using Tcl's glob pattern matching rules.</li>
+<li>the scope component of the enumeration name must match exactly.</li>
+</ul>
+<h4 class='ruffproc'><a name='::cffi::enum flags'>enum flags</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Defines an enumeration as bit flags</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum flags</span> <span class='ruff_arg'>enumname membernames</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>enumname</code></td><td>Name of the enumeration.</td></tr>
+<tr><td><code>membernames</code></td><td>List of names of the enumeration members.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>For example,</p>
+<pre class='ruff'>
+enum flags E {A B C}
+</pre>
+<p class='ruff'>would define an enumeration with <code>A</code>, <code>B</code>, <code>C</code> values being 1, 2 and 4.</p>
 <h4 class='ruffproc'><a name='::cffi::enum list'>enum list</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Lists enumerations.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>enum list</span> <span class='ruff_arg'>pattern</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pattern</code></td><td>A glob-style pattern.</td></tr>
+<tr><td><code>pattern</code></td><td>Pattern to match.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The command returns names of all enumerations with names matching the specified pattern.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command returns the names of all enumerations whose name matches the specified pattern. The conditions for matching the pattern are:</p>
+<ul class='ruff'>
+<li>the tail of the pattern must match the tail of the enumeration name using Tcl's glob pattern matching rules.</li>
+<li>the scope component of the enumeration name must match exactly.</li>
+</ul>
+<h4 class='ruffproc'><a name='::cffi::enum mask'>enum mask</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns an integer mask formed by bitwise OR-ing the passed enumeration members</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum mask</span> <span class='ruff_arg'>enumname membernames</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>enumname</code></td><td>Name of the enumeration in the current <a href="cffi-Concepts.html#::Concepts-Scopes" title="scope" >scope</a></td></tr>
+<tr><td><code>membernames</code></td><td>List of member names and integer values.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns an integer mask formed by bitwise OR-ing the passed enumeration members</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::enum unmask" title="enum unmask" class='ruff_cmd'>enum unmask</a></p>
 <h4 class='ruffproc'><a name='::cffi::enum members'>enum members</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Returns a dictionary containing the definitions in an enumerations.</p>
+<p class='ruff'>Returns a dictionary containing the members in an enumeration.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>enum members</span> <span class='ruff_arg'>enumname</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>enumname</code></td><td>Name of the enumeration whose elements are to be returned.</td></tr>
 </table>
-<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary containing the definitions in an enumerations.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary containing the members in an enumeration.</p>
 <h4 class='ruffproc'><a name='::cffi::enum name'>enum name</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Returns the symbolic name of a value in an enumeration</p>
+<p class='ruff'>Returns the symbolic name of a value in an enumeration.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>enum name</span> <span class='ruff_arg'>enumname membervalue</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>enumname</code></td><td>Name of the enumeration.</td></tr>
 <tr><td><code>membervalue</code></td><td>Value of an enumeration member.</td></tr>
 </table>
-<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the symbolic name of a value in an enumeration</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the symbolic name of a value in an enumeration.</p>
 <h4 class='ruffproc'><a name='::cffi::enum sequence'>enum sequence</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Defines an enumeration with consecutive member values</p>
@@ -133,6 +182,17 @@ package require cffi
 <tr><td><code>start 0</code></td><td>Not documented.</td></tr>
 <tr><td><code>start</code></td><td>Value of first enumeration member.</td></tr>
 </table>
+<h4 class='ruffproc'><a name='::cffi::enum unmask'>enum unmask</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns a list of enumeration member names corresponding to the bits set in <code>$mask</code>. enumeration members</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum unmask</span> <span class='ruff_arg'>enumname mask</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>enumname</code></td><td>Name of the enumeration.</td></tr>
+<tr><td><code>mask</code></td><td>Integer bit mask value.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The last element of the returned list is an integer containing the bits that were not matched against an enumberation member. Generally, the enumeration should consist of values that do not have overlapping bits set (commonly a single bit is set in each member value). This is not enforced but results might not be as expected if this condition is not met.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of enumeration member names corresponding to the bits set in <code>$mask</code>. enumeration members</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::enum mask" title="enum mask" class='ruff_cmd'>enum mask</a></p>
 <h4 class='ruffproc'><a name='::cffi::enum value'>enum value</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the value of an enumeration member</p>
@@ -162,17 +222,35 @@ package require cffi
 cffi::help functions ::libzip::*
 </pre>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code></p>
+<h4 class='ruffproc'><a name='::cffi::limits'>limits</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Get the lower and upper limits for an integral base type</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>limits</span> <span class='ruff_arg'>type</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>type</code></td><td>The base type.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a pair containing the minimum and maximum values for the specified type.</p>
 <h4 class='ruffproc'><a name='::cffi::memory allocate'>memory allocate</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Allocates memory of the specified size</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory allocate</span> <span class='ruff_arg'>size ?tag?</span><br></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory allocate</span> <span class='ruff_arg'>sizespec ?tag?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>size</code></td><td>Requested size of memory block.</td></tr>
+<tr><td><code>sizespec</code></td><td>Not documented.</td></tr>
 <tr><td><code>tag</code></td><td>Tag for the returned pointer. Optional, default <code>&quot;&quot;</code>.</td></tr>
+<tr><td><code>specsize</code></td><td>Requested size of memory block. This may be specified either as an integer value or a type specification.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory fill'>memory fill</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Fills memory locations to a specified value</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory fill</span> <span class='ruff_arg'>pointer bytevalue count</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
+<tr><td><code>bytevalue</code></td><td>A value in the range <code>0</code>-<code>255</code></td></tr>
+<tr><td><code>count</code></td><td>Number of bytes to be fill.</td></tr>
+</table>
 <h4 class='ruffproc'><a name='::cffi::memory free'>memory free</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Frees the memory referenced by the passed pointer</p>
@@ -180,7 +258,7 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Safe pointer to memory to free.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The memory must have been allocated using <a href="cffi-cffi.html#::cffi::memory allocate" title="memory allocate" class='ruff_cmd'>memory allocate</a>, <a href="cffi-cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a> or one of the methods of a <a href="cffi-cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a> object. Null pointers are silently ignored.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The memory must have been allocated using <a href="cffi-cffi.html#::cffi::memory allocate" title="memory allocate" class='ruff_cmd'>memory allocate</a>, <a href="cffi-cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a>, <a href="cffi-cffi.html#::cffi::memory fromstring" title="memory fromstring" class='ruff_cmd'>memory fromstring</a> or one of the methods of a <a href="cffi-cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a> object. Null pointers are silently ignored.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory allocate" title="memory allocate" class='ruff_cmd'>memory allocate</a></p>
 <h4 class='ruffproc'><a name='::cffi::memory frombinary'>memory frombinary</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -204,15 +282,52 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tostring" title="memory tostring" class='ruff_cmd'>memory tostring</a>, <a href="cffi-cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory get'>memory get</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Converts a native value in memory into a Tcl script level value</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory get</span> <span class='ruff_arg'>pointer typespec ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Base address of memory location. The pointer must be a safe pointer but the tag is immaterial.</td></tr>
+<tr><td><code>typespec</code></td><td>Type specification to use for conversion.</td></tr>
+<tr><td><code>index</code></td><td>The index in memory at which the value is to be stored. Care must be taken this is within bounds of the allocated space. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command converts the data at a memory location into a Tcl script object as per the type specification <code>$typespec</code>. The memory address of the data is given by <code>$pointer</code> if <code>$index</code> is unspecified or <code>0</code>. Otherwise <code>$index</code> is treated as an index into an array based at <code>$pointer</code> whose elements are of the type defined by <code>$typespec</code> and memory address used is that of the slot given by <code>$index</code>. For example, if <code>$typespec</code> is <code>int</code> and <code>$index</code> is 2, the memory address from which the value is read is at byte offset 8 assuming ints occupy 4 bytes. If <code>$typespec</code> is <code>int[3]</code>, then the size of the type specification is 12, and an index of 2 will correspond to a byte offset of 24, not 8. Be aware of these semantics when reading arrays using non-0 indices.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory get!" title="memory get!" class='ruff_cmd'>memory get!</a>, <a href="cffi-cffi.html#::cffi::memory set" title="memory set" class='ruff_cmd'>memory set</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory get!'>memory get!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Converts a value as per a type specification and stores it in memory in native form</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory get!</span> <span class='ruff_arg'>pointer typespec ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Base address of memory location. The pointer is not checked for validity.</td></tr>
+<tr><td><code>typespec</code></td><td>Not documented.</td></tr>
+<tr><td><code>index</code></td><td>Not documented. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>This command is identical to the <a href="cffi-cffi.html#::cffi::memory get" title="memory get" class='ruff_cmd'>memory get</a> command except that it does not require <code>$pointer</code> to be a safe pointer. See the documentation of that command for details.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory get" title="memory get" class='ruff_cmd'>memory get</a>, <a href="cffi-cffi.html#::cffi::memory set" title="memory set" class='ruff_cmd'>memory set</a></p>
 <h4 class='ruffproc'><a name='::cffi::memory set'>memory set</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
-<p class='ruff'>Sets the memory locations to a specified value</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory set</span> <span class='ruff_arg'>pointer bytevalue count</span><br></div>
+<p class='ruff'>Converts a value as per a type specification and stores it in memory in native form</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory set</span> <span class='ruff_arg'>pointer typespec value ?index?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
-<tr><td><code>bytevalue</code></td><td>A value in the range <code>0</code>-<code>255</code></td></tr>
-<tr><td><code>count</code></td><td>Number of bytes to be set.</td></tr>
+<tr><td><code>pointer</code></td><td>Base address of memory location. The pointer must be a safe pointer but the tag is immaterial.</td></tr>
+<tr><td><code>typespec</code></td><td>Type specification.</td></tr>
+<tr><td><code>value</code></td><td>The script level value to be stored.</td></tr>
+<tr><td><code>index</code></td><td>The index in memory at which the value is to be stored. Care must be taken this is within bounds of the allocated space. Optional, default <code>0</code>.</td></tr>
 </table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command converts <code>$value</code> into the native form corresponding to the type specification <code>$typespec</code>. If <code>$index</code> is unspecified or <code>0</code>, the native value is stored at the memory address given by <code>$pointer</code>. Otherwise <code>$index</code> is the treated as an index into an array whose elements are of the type defined by <code>$typespec</code> and the value is stored in the slot given by <code>$index</code>. For example, if <code>$typespec</code> is <code>int</code> and <code>$index</code> is 2, the memory address at which the value is written is at byte offset 8 assuming ints occupy 4 bytes. If <code>$typespec</code> is <code>int[3]</code>, then the size of the type specification is 12, and an index of 2 will correspond to a byte offset of 24, not 8. Be aware of these semantics when writing arrays to non-0 indices to avoid memory corruption.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory get" title="memory get" class='ruff_cmd'>memory get</a>, <a href="cffi-cffi.html#::cffi::memory set!" title="memory set!" class='ruff_cmd'>memory set!</a></p>
+<h4 class='ruffproc'><a name='::cffi::memory set!'>memory set!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Converts a value as per a type specification and stores it in memory in native form</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory set!</span> <span class='ruff_arg'>pointer typespec value ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Base address of memory location. The pointer is not checked for validity.</td></tr>
+<tr><td><code>typespec</code></td><td>Type specification.</td></tr>
+<tr><td><code>value</code></td><td>The script level value to be stored.</td></tr>
+<tr><td><code>index</code></td><td>The index in memory at which the value is to be stored. Care must be taken this is within bounds of the allocated space. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>This command is identical to the <a href="cffi-cffi.html#::cffi::memory set" title="memory set" class='ruff_cmd'>memory set</a> command except that it does not require <code>$pointer</code> to be a safe pointer. See the documentation of that command for details.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory get" title="memory get" class='ruff_cmd'>memory get</a>, <a href="cffi-cffi.html#::cffi::memory set" title="memory set" class='ruff_cmd'>memory set</a></p>
 <h4 class='ruffproc'><a name='::cffi::memory tobinary'>memory tobinary</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
@@ -426,10 +541,11 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Description</h5><p class='ruff'>The type is parsed as a parameter type declaration, a function return type declaration or a structure field type declaration depending on the <code>$parse_mode</code> argument. If this is unspecified or an empty string, it is parsed in generic fashion and no context-specific validation is done.</p>
 <p class='ruff'>The returned dictionary contains the following keys:</p>
 <table class='ruff_deflist'>
-<tr><td>alignment</td><td>The memory alignment needed for a value of that type.</td></tr>
-<tr><td>count</td><td><code>0</code> for scalar values, else indicates the type is an array with that number of elements.</td></tr>
-<tr><td>size</td><td>The number of bytes of memory needed to store a value of that type.</td></tr>
-<tr><td>definition</td><td>The type declaration after applying any defaults. For type aliases, this is the resolved type definition.</td></tr>
+<tr><td>Alignment</td><td>The memory alignment needed for a value of that type.</td></tr>
+<tr><td>BaseSize</td><td>The number of bytes to store a single value of the type when the type is an array. For scalars, same as <code>Size</code>.</td></tr>
+<tr><td>Count</td><td><code>0</code> for scalar values, else indicates the type is an array with that number of elements.</td></tr>
+<tr><td>Size</td><td>The number of bytes of memory needed to store a value of that type.</td></tr>
+<tr><td>Definition</td><td>The type declaration after applying any defaults. For type aliases, this is the resolved type definition.</td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary containing various information about a type declaration</p>
 <h4 class='ruffproc'><a name='::cffi::type size'>type size</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi'>cffi</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
@@ -449,24 +565,30 @@ cffi::help functions ::libzip::*
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td>Constructor for the class.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::allocate" title="allocate" class='ruff_cmd'>allocate</a></td><td>Allocates memory for one or more C structs.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::describe" title="describe" class='ruff_cmd'>describe</a></td><td>Returns a human-readable description of the C struct definition.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::fieldpointer" title="fieldpointer" class='ruff_cmd'>fieldpointer</a></td><td>Returns a pointer corresponding to the address of a field within a native structure.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::free" title="free" class='ruff_cmd'>free</a></td><td>Frees memory that was allocated for a native C struct.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::frombinary" title="frombinary" class='ruff_cmd'>frombinary</a></td><td>Decodes a Tcl binary string containing a native C struct into a Tcl dictionary.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::fromnative" title="fromnative" class='ruff_cmd'>fromnative</a></td><td>Decodes native C struct(s) in memory into a Tcl dictionary.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::fromnative!" title="fromnative!" class='ruff_cmd'>fromnative!</a></td><td>Decodes native C struct(s) in memory into a Tcl dictionary.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::get" title="get" class='ruff_cmd'>get</a></td><td>Returns the value of a field in a native structure in memory.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::info" title="info" class='ruff_cmd'>info</a></td><td>Returns a dictionary containing information about the struct layout.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::name" title="name" class='ruff_cmd'>name</a></td><td>Returns the name of the struct.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::set" title="set" class='ruff_cmd'>set</a></td><td>Sets the value of a field in a native structure in memory.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::tobinary" title="tobinary" class='ruff_cmd'>tobinary</a></td><td>Encodes the Tcl representation of a C struct value into a Tcl binary string.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::tonative" title="tonative" class='ruff_cmd'>tonative</a></td><td>Writes the Tcl dictionary representation of a C struc value to memory in native form.</td></tr>
 </table>
 <h4 class='ruffmethod'><a name='::cffi::Struct::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Constructs a script level object that maps to a C struct definition.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>Struct create OBJNAME</span> <span class='ruff_arg'>definition</span><br><span class='ruff_cmd'>Struct new</span> <span class='ruff_arg'>definition</span><br></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>Struct create OBJNAME</span> <span class='ruff_arg'>definition ?args?</span><br><span class='ruff_cmd'>Struct new</span> <span class='ruff_arg'>definition ?args?</span><br></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>definition</code></td><td>Defines the layout and type of the C struct fields.</td></tr>
+<tr><td><code>args</code></td><td>Options. Currently the only option is <code>-clear</code></td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The created object can be used to pass arguments to and from functions, allocate memory, encode and decode native C structs in memory etc.</p>
 <p class='ruff'>The <code>$definition</code> argument is a dictionary mapping field names to the corresponding types. See <a href="cffi-Concepts.html#::Concepts-Structs" title="Structs" >Structs</a> for more information.</p>
 <p class='ruff'>The name of the created struct is the same as the name of the returned object without the initial <code>::</code> global namespace qualifier. This name can be retrieved with the <a href="cffi-cffi.html#::cffi::Struct::name" title="name" class='ruff_cmd'>name</a> method and is used to identify the struct when tagging pointers and for typing function parameters and nested struct fields.</p>
+<p class='ruff'>If the <code>-clear</code> option is present, the memory of structures of this type is cleared before the field values are initialized. In this case, missing field values in a struct value will not result in an error being raised even if no default annotation is included for the field.</p>
 <h4 class='ruffmethod'><a name='::cffi::Struct::allocate'>allocate</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Allocates memory for one or more C structs.</p>
@@ -483,6 +605,18 @@ cffi::help functions ::libzip::*
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT describe</span> <br></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>This is primarily for debugging and troubleshooting purposes.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a human-readable description of the C struct definition.</p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::fieldpointer'>fieldpointer</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns a pointer corresponding to the address of a field within a native structure</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT fieldpointer</span> <span class='ruff_arg'>pointer fieldname ?tag? ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be a safe pointer tagged with the struct name.</td></tr>
+<tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
+<tr><td><code>tag</code></td><td>Tag for the returned pointer. Optional, default <code>&quot;&quot;</code>.</td></tr>
+<tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>Note the returned pointer is not registered as a safe pointer.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a pointer corresponding to the address of a field within a native structure</p>
 <h4 class='ruffmethod'><a name='::cffi::Struct::free'>free</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Frees memory that was allocated for a native C struct.</p>
@@ -508,16 +642,38 @@ cffi::help functions ::libzip::*
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The decoded dictionary or dictionaries are keyed by the field names of the struct.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary of the decoded struct.</p>
-<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Struct::tonative" title="tonative" class='ruff_cmd'>tonative</a>, <a href="cffi-cffi.html#::cffi::Struct::frombinary" title="frombinary" class='ruff_cmd'>frombinary</a></p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Struct::fromnative!" title="fromnative!" class='ruff_cmd'>fromnative!</a>, <a href="cffi-cffi.html#::cffi::Struct::tonative" title="tonative" class='ruff_cmd'>tonative</a>, <a href="cffi-cffi.html#::cffi::Struct::frombinary" title="frombinary" class='ruff_cmd'>frombinary</a></p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::fromnative!'>fromnative!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Decodes native C struct(s) in memory into a Tcl dictionary.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT fromnative!</span> <span class='ruff_arg'>pointer ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Unsafe pointer to the C struct or array of structs in memory.</td></tr>
+<tr><td><code>index</code></td><td>The index position at which the struct is to be written. Note this interpreted as an <strong>index</strong> into an array of structs, not as a byte offset into memory. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The decoded dictionary or dictionaries are keyed by the field names of the struct.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary of the decoded struct.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Struct::fromnative" title="fromnative" class='ruff_cmd'>fromnative</a>, <a href="cffi-cffi.html#::cffi::Struct::tonative" title="tonative" class='ruff_cmd'>tonative</a>, <a href="cffi-cffi.html#::cffi::Struct::frombinary" title="frombinary" class='ruff_cmd'>frombinary</a></p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::get'>get</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the value of a field in a native structure in memory</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT get</span> <span class='ruff_arg'>pointer fieldname ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be a safe pointer tagged with the struct name.</td></tr>
+<tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
+<tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>In the case of fields of type pointer, the returned pointer is registered as a safe pointer unless the field was marked with the <code>unsafe</code> annotation.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the value of a field in a native structure in memory</p>
 <h4 class='ruffmethod'><a name='::cffi::Struct::info'>info</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns a dictionary containing information about the struct layout</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT info</span> <br></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned dictionary has the following fields:</p>
 <table class='ruff_deflist'>
-<tr><td>size</td><td>Size of the struct.</td></tr>
-<tr><td>alignment</td><td>Struct alignment.</td></tr>
-<tr><td>fields</td><td>Dictionary of fields keyed by field name. The value is another nested dictionary with keys <em>size</em>, <em>offset</em>, and <em>definition</em> containing the size, offset in struct, and type definition of the field.</td></tr>
+<tr><td>Size</td><td>Size of the struct.</td></tr>
+<tr><td>Alignment</td><td>Struct alignment.</td></tr>
+<tr><td>Fields</td><td>Dictionary of fields keyed by field name. The value is another nested dictionary with keys <em>Size</em>, <em>Offset</em>, and <em>Definition</em> containing the size, offset in struct, and type definition of the field.</td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a dictionary containing information about the struct layout</p>
 <h4 class='ruffmethod'><a name='::cffi::Struct::name'>name</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
@@ -526,6 +682,16 @@ cffi::help functions ::libzip::*
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT name</span> <br></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>Note the name of the struct is different from the name of the object name.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the struct.</p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::set'>set</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Sets the value of a field in a native structure in memory</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT set</span> <span class='ruff_arg'>pointer fieldname value ?index?</span><br></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be a safe pointer tagged with the struct name.</td></tr>
+<tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
+<tr><td><code>value</code></td><td>Value to store in the field.</td></tr>
+<tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
+</table>
 <h4 class='ruffmethod'><a name='::cffi::Struct::tobinary'>tobinary</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Encodes the Tcl representation of a C struct value into a Tcl binary string.</p>
@@ -636,25 +802,35 @@ cffi::help functions ::libzip::*
 <li class='ruff-toc1'><a href='cffi-Concepts.html'>Concepts</a></li>
 <li class='ruff-toc1'><a class='ruff-highlight' href='cffi-cffi.html'>cffi</a></li>
 <hr><li class='ruff-toc1'><a href='#::cffi'>cffi</a></li><li class='ruff-toc2'><a href='#::cffi-Commands'>Commands</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias body'>alias body</a><span class='ruff-tiptext'>Returns the resolved body of an alias.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias clear'>alias clear</a><span class='ruff-tiptext'>Deletes all aliases from the interpreter
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias define'>alias define</a><span class='ruff-tiptext'>Defines one or more type aliases.
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias delete'>alias delete</a><span class='ruff-tiptext'>Deletes type aliases matching a pattern.
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias list'>alias list</a><span class='ruff-tiptext'>Returns a list of aliases matching the specified pattern.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias delete'>alias delete</a><span class='ruff-tiptext'>Deletes aliases matching a pattern.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias list'>alias list</a><span class='ruff-tiptext'>Returns a list of aliases that match the specified pattern.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::alias load'>alias load</a><span class='ruff-tiptext'>Loads predefined type aliases.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::call'>call</a><span class='ruff-tiptext'>Invokes a C function through a function pointer.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum clear'>enum clear</a><span class='ruff-tiptext'>Deletes all enumerations from the interpreter
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum define'>enum define</a><span class='ruff-tiptext'>Defines a new enumeration.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum delete'>enum delete</a><span class='ruff-tiptext'>Deletes enumerations.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum flags'>enum flags</a><span class='ruff-tiptext'>Defines an enumeration as bit flags
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum list'>enum list</a><span class='ruff-tiptext'>Lists enumerations.
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum members'>enum members</a><span class='ruff-tiptext'>Returns a dictionary containing the definitions in an enumerations.
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum name'>enum name</a><span class='ruff-tiptext'>Returns the symbolic name of a value in an enumeration
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum mask'>enum mask</a><span class='ruff-tiptext'>Returns an integer mask formed by bitwise OR-ing the passed enumeration members
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum members'>enum members</a><span class='ruff-tiptext'>Returns a dictionary containing the members in an enumeration.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum name'>enum name</a><span class='ruff-tiptext'>Returns the symbolic name of a value in an enumeration.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum sequence'>enum sequence</a><span class='ruff-tiptext'>Defines an enumeration with consecutive member values
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum unmask'>enum unmask</a><span class='ruff-tiptext'>Returns a list of enumeration member names corresponding to the bits set in <code>$mask</code>. enumeration members
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::enum value'>enum value</a><span class='ruff-tiptext'>Returns the value of an enumeration member
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::help function'>help function</a><span class='ruff-tiptext'>Returns a string describing the syntax for a CFFI wrapped function
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::help functions'>help functions</a><span class='ruff-tiptext'>Returns a list of CFFI-wrapped functions matching the pattern <code>FUNCPATTERN</code>
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::limits'>limits</a><span class='ruff-tiptext'>Get the lower and upper limits for an integral base type
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory allocate'>memory allocate</a><span class='ruff-tiptext'>Allocates memory of the specified size
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fill'>memory fill</a><span class='ruff-tiptext'>Fills memory locations to a specified value
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory free'>memory free</a><span class='ruff-tiptext'>Frees the memory referenced by the passed pointer
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory frombinary'>memory frombinary</a><span class='ruff-tiptext'>Allocates memory and copied the passed Tcl binary string into it.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fromstring'>memory fromstring</a><span class='ruff-tiptext'>Allocates memory and stores a Tcl string in it in the specified encoding.
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory set'>memory set</a><span class='ruff-tiptext'>Sets the memory locations to a specified value
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory get'>memory get</a><span class='ruff-tiptext'>Converts a native value in memory into a Tcl script level value
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory get!'>memory get!</a><span class='ruff-tiptext'>Converts a value as per a type specification and stores it in memory in native form
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory set'>memory set</a><span class='ruff-tiptext'>Converts a value as per a type specification and stores it in memory in native form
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory set!'>memory set!</a><span class='ruff-tiptext'>Converts a value as per a type specification and stores it in memory in native form
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary'>memory tobinary</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl binary string.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary!'>memory tobinary!</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl binary string.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring'>memory tostring</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl string.
@@ -680,11 +856,15 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc2'><a href='#::cffi-Classes'>Classes</a></li><li class='ruff-toc3'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::constructor'>constructor</a><span class='ruff-tiptext'>Constructs a script level object that maps to a C struct definition.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::allocate'>allocate</a><span class='ruff-tiptext'>Allocates memory for one or more C structs.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::describe'>describe</a><span class='ruff-tiptext'>Returns a human-readable description of the C struct definition.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fieldpointer'>fieldpointer</a><span class='ruff-tiptext'>Returns a pointer corresponding to the address of a field within a native structure
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::free'>free</a><span class='ruff-tiptext'>Frees memory that was allocated for a native C struct.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::frombinary'>frombinary</a><span class='ruff-tiptext'>Decodes a Tcl binary string containing a native C struct into a Tcl dictionary.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fromnative'>fromnative</a><span class='ruff-tiptext'>Decodes native C struct(s) in memory into a Tcl dictionary.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fromnative!'>fromnative!</a><span class='ruff-tiptext'>Decodes native C struct(s) in memory into a Tcl dictionary.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::get'>get</a><span class='ruff-tiptext'>Returns the value of a field in a native structure in memory
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::info'>info</a><span class='ruff-tiptext'>Returns a dictionary containing information about the struct layout
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::name'>name</a><span class='ruff-tiptext'>Returns the name of the struct.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::set'>set</a><span class='ruff-tiptext'>Sets the value of a field in a native structure in memory
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tobinary'>tobinary</a><span class='ruff-tiptext'>Encodes the Tcl representation of a C struct value into a Tcl binary string.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tonative'>tonative</a><span class='ruff-tiptext'>Writes the Tcl dictionary representation of a C struc value to memory in native form.
 </span></li><li class='ruff-toc3'><a href='cffi-cffi.html#::cffi::Wrapper'>Wrapper</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::constructor'>constructor</a><span class='ruff-tiptext'>Wraps a shared library / DLL, loading it in the process.
