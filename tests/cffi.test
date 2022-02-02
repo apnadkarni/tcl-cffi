@@ -38,6 +38,23 @@ namespace eval ${NS}::test {
             cffi::limits $type
         } -result {Invalid or non-integral type specified.} -returnCodes error
     }
+
+    # Test interp deletion - just to ensure no crashes
+    test interp-deletion-0 "Verify interpreter deletion" -body {
+        for {set i 0} {$i < 10} {incr i} {
+            set ip [interp create]
+            $ip eval [list set testdir [file dirname [info script]]]
+            $ip eval {
+                set argv ""
+                source "$testdir/common.tcl"
+                ::cffi::test::testDll function int_to_int int {i int}
+                ::cffi::Struct create S {i int}
+                ::cffi::alias define INT int
+                ::cffi::enum define E {a 1}
+            }
+            interp delete $ip
+        }
+    } -result ""
 }
 
 ::tcltest::cleanupTests

@@ -266,7 +266,25 @@ namespace eval ${NS}::test {
         set fnptr [cffi::callback [namespace current]::proto [list set [namespace current]::X success]]
         cffi::callback_free $fnptr
         noargs_caller $fnptr
+    } -cleanup {
+        unset fnptr
     } -result {Pointer 0x*^::cffi::test::proto is not registered.} -returnCodes error -match glob
+
+    test callback-free-1 "free callback in callback" -setup {
+        cffi::prototype clear
+        cffi::prototype function proto int {total int n int}
+        testDll function callback_int2 int {i int j int fn pointer.proto}
+    } -cleanup {
+        unset fnptr
+    } -body {
+        proc cb {i j} {
+            upvar 1 fnptr fnptr
+            cffi::callback_free $fnptr; # Should raise exception
+            incr i $j
+        }
+        set fnptr [cffi::callback proto cb -1]
+        list [callback_int2 1 2 $fnptr] [lindex [split $::errorInfo \n] 0]
+    } -result [list -1 {Attempt to delete callback while still active.}]
 
     ### recurse callbacks
     test callback-recurse-0 "Recursive callback" -setup {
@@ -275,14 +293,34 @@ namespace eval ${NS}::test {
         testDll function callback_int2 int {i int j int fn pointer.proto}
     } -cleanup {
         cffi::callback_free $fnptr
+        unset fnptr
     } -body {
-        proc cb {fn total n} {
+        proc cb {total n} {
+            upvar 1 fnptr fnptr
             if {$n <= 0} {return $total}
-            callback_int2 [incr total $n] [incr n -1] $fn
+            callback_int2 [incr total $n] [incr n -1] $fnptr
         }
-        set fnptr [cffi::callback proto [list cb $fnptr] -1]
+        set fnptr [cffi::callback proto cb -1]
         callback_int2 0 10 $fnptr
     } -result 55
+
+    ### delete calling function from callback
+    test callback-delete-0 "delete function in callback" -setup {
+        cffi::prototype clear
+        cffi::prototype function proto int {total int n int}
+        testDll function callback_int2 int {i int j int fn pointer.proto}
+    } -cleanup {
+        cffi::callback_free $fnptr
+        unset fnptr
+    } -body {
+        proc cb {i j} {
+            rename callback_int2 ""
+            return [incr i $j]
+        }
+        set fnptr [cffi::callback proto cb -1]
+        list [callback_int2 1 2 $fnptr] [catch {callback_int2 1 2 $fnptr} result] $result
+    } -result {3 1 {invalid command name "callback_int2"}}
+
 }
 
 ${NS}::test::testDll destroy

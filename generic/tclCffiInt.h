@@ -462,6 +462,7 @@ typedef struct CffiCallback {
     ffi_closure *ffiClosureP;
     void *ffiExecutableAddress;
 #endif
+    int depth;
 } CffiCallback;
 void CffiCallbackCleanupAndFree(CffiCallback *cbP);
 #endif

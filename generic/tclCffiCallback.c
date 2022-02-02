@@ -57,6 +57,7 @@ CffiCallbackAllocAndInit(CffiInterpCtx *ipCtxP,
     cbP->errorResultObj = errorResultObj;
     if (errorResultObj)
         Tcl_IncrRefCount(errorResultObj);
+    cbP->depth = 0;
     return cbP;
 }
 
@@ -260,6 +261,11 @@ CffiCallbackFreeObjCmd(ClientData cdata,
     /* Map the function trampoline address to our callback structure */
     CHECK(CffiCallbackFind(ipCtxP, pv, &cbP));
     CFFI_ASSERT(cbP->ffiExecutableAddress == pv);
+
+    if (cbP->depth != 0) {
+        return Tclh_ErrorGeneric(
+            ip, NULL, "Attempt to delete callback while still active.");
+    }
 
     CHECK(Tclh_PointerObjGetTag(ip, objv[1], &tagObj));
     if (tagObj == NULL)

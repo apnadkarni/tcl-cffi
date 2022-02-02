@@ -417,11 +417,14 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
         evalObjs[i] = cmdObjs[i];
         Tcl_IncrRefCount(evalObjs[i]);
     }
+    /* Ensure callback is not deleted by script */
+    cbP->depth += 1;
     /* Note: evaluating in current context, not global context */
     ret = Tcl_EvalObjv(ipCtxP->interp, nEvalObjs, evalObjs, 0);
     for (i = 0; i < nEvalObjs; ++i) {
         Tcl_DecrRefCount(evalObjs[i]);
     }
+    cbP->depth -= 1;
 
 vamoose:
     /* May come here on an error or success */
@@ -451,8 +454,11 @@ static int
 CffiLibffiClosureDeleteEntry(Tcl_HashTable *htP, Tcl_HashEntry *heP, ClientData unused)
 {
     CffiCallback *cbP = Tcl_GetHashValue(heP);
-    if (cbP)
+    if (cbP) {
+        if (cbP->depth != 0)
+            return 0; /* Cannot delete while active */
         CffiCallbackCleanupAndFree(cbP);
+    }
     return 1;
 }
 
