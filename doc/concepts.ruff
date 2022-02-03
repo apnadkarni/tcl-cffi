@@ -30,40 +30,111 @@ namespace eval Concepts {
             lib2 function libzip_open STATUS {path string}
         }
         ```
+
+        When a program element name is referenced from another definition, if
+        the name is not fully qualified it is first looked up in the scope of
+        the definition. If not found, it is looked up in the global space.
+        In the above definition of `libzip_open`, the `STATUS` alias is resolved
+        in the `libzip` scope. If it had not been defined there, the global
+        scope would be checked. To refer to a name in any other scope, it must
+        be fully qualified, for example `::libgit2::STATUS`.
+
         Note that although CFFI scopes are named after Tcl namespaces, they are
         not directly tied to them. For example, deleting will a Tcl namespace
         will not cause the scope of the same name to disappear.
 
-        Further sections will elaborate how scopes affect each type of program
-        element.
-
         ## Type declarations
+
+        A type declaration consists of a data type followed by zero or more
+        annotations that further specify handling of values of the type. For
+        example, the `nonzero` annotation on a function return type indicates a
+        return value of zero should be treated as an error.
+
+        For example, a type declaration for a parameter might look like
+
+        ```
+        int {default 0} byref
+        ```
+
+        where the base data type is an integer, the `default` annotation specifies
+        a value to be used if no argument is supplied and `byref` indicates that
+        the value is actually passed by reference.
 
         Type declarations appear in three different contexts:
 
-        - As the return value from a function
+        - As the return type from a function
 
-        - As part of a parameter description in a function declaration
+        - As a parameter in a function declaration
 
-        - As part of a field description in a struct
+        - As a field in a struct
 
-        At the script level, a type declaration consists of the type itself
-        followed by zero or more annotations that provide further information
-        about the type in that particular context. For example, a parameter may
-        have the `out` annotation to indicate that it is an output parameter for
-        the function. A pointer type declaration may have the `unsafe`
-        annotation to indicate it is not to be checked for validity.
+        The permitted data types and annotations are dependent on the context
+        in which the type declaration appears.
 
-        The annotations that are valid in each context are described in
-        the relevant sections below.
+        ## Type annotations
+
+        The table below summarizes the available type annotations and the types
+        and contexts in which they are allowed.
+
+        `bitmask` - The parameter, function return or field value is treated
+          as an integer formed by a bitwise-OR of a list of integer values.
+        `byref` - The parameter or function return value is passed or returned
+          by reference.
+        `counted` - The parameter, function return or field value is a reference
+          counted pointer whose validity is checked. See [Pointer safety].
+        `default` - Specifies a default value to use for a parameter or field.
+        `dispose` - The parameter is a pointer that is unregistered irrespective of
+          function return status. See [Pointer safety].
+        `disposeonsuccess` - The parameter is a pointer that is disposed only if
+          function returns successfully. See [Pointer safety].
+        `enum` - The parameter, return value or field is an enumeration.
+        `errno` - If the function return value indicates an error condition, the
+          error code is available via the C RTL `errno` variable.
+        `in` - marks a parameter passed to a function as input to the function.
+        `inout` - marks a parameter passed to a function as both input and output.
+        `lasterror` - If the function return value indicates an error condition, the
+          error code is available via the Windows `GetLastError` API.
+        `nonnegative` - Raise an exception if the function return value is negative.
+        `nonzero` - Raise an exception if the function return values is zero.
+        `nullifempty` - Treat the empty string or struct dictionary in a parameter
+          or field as a NULL pointer. See [Strings as NULL pointers].
+        `nullok` - Do not raise an exception if a parameter, return value or field
+        is a NULL pointer. See [Null pointers].
+        `onerror` - Specifies an error handler if a function return value indicates
+          an error condition.
+        `out` - marks a parameter as output-only from a function.
+        `positive` - Raise an exception if a function return value is negative or
+          zero.
+        `storealways` - Treat an output parameter as valid regardless of
+         any error indications from the function call.
+        `storeonerror` - Treat an output parameter as valid only in the presence
+          of error indication from a function call.
+        `structsize` - Default a field value to the size of the containing struct.
+        `unsafe` - Do not do any pointer validation on a parameter, return value
+          or field. See [Pointer safety].
+        `winerror` - Treat the function return value as a Windows status code.
+        `zero` - Raise an exception if a function return value is not zero.
+
+        Later sections will further detail usage of the above.
 
         ## Data types
 
-        This section describes the various data types supported by the
-        package and their relation to C types. At runtime,
-        the [::cffi::type info], [::cffi::type size] and
+        CFFI data types correspond to C types and may be
+
+        - the `void` type
+        - scalars, such as integers and pointers
+        - arrays and structs
+        - `string` and `unistring` types which are actually scalar pointers at
+        the C level but treated as nul-terminated character strings by CFFI.
+
+        The [::cffi::type info], [::cffi::type size] and
         [::cffi::type count] commands may be used to obtain information
         about a type.
+
+        ````
+        % cffi::type info {int[10]}
+        Size 40 Count 10 Alignment 4 Definition {{int[10]}} BaseSize 4
+        ````
 
         ### The void type
 
@@ -98,10 +169,62 @@ namespace eval Concepts {
         in an array of values of type `TYPE`. At the script level, arrays
         are represented as Tcl lists.
 
+        #### Dynamically sized arrays
+
         Additionally, within parameter declarations, `N` may also be the name
         of a parameter within the same function declarations. In this case,
         the array is sized dynamically depending on the value of the referenced
-        parameter at the time the call is made.
+        parameter at the time the call is made. This is useful in the common
+        case of a function writing to a buffer. For example, consider
+        the Win32 API for generating random numbers
+
+        ```
+        BOOL CryptGenRandom(HCRYPTPROV hProv, DWORD dwLen, BYTE *pbBuffer);
+        ```
+
+        Here `pbBuffer` is really a pointer to an array that is of size `dwLen`.
+        Assuming the `ADVAPI32.DLL` DLL has already been wrapped as `advapi32`
+        and Win32 type aliases loaded, one might define the CFFI wrapper as
+
+        ````
+        advapi32 stdcall CryptGenRandom BOOL {
+            hProv HANDLE
+            dwLen DWORD
+            pbBuffer {uchar[512] out}
+        }
+        ````
+
+        However this can can lead to corruption if the function is mistakenly
+        called with the `dwLen` argument greater than 512.
+        A safer way to define the function is
+
+        ````
+        advapi32 stdcall CryptGenRandom BOOL {
+            hProv HANDLE
+            dwLen DWORD
+            pbBuffer {uchar[dwLen] out}
+        }
+        ````
+
+        This ensures a buffer of the correct size is passed to the function based on
+        the length passed in the call.
+
+        If the size argument used by a dynamic array type is passed as 0, an error
+        is raised unless the type declaration includes a `nullok` annotation. In
+        that case, the array pointer argument is passed as NULL to the function.
+
+        #### Arrays as strings
+
+        C arrays are generally represented as a list at the script level. So in
+        the above example, the value stored in `pbBuffer` would be seen in Tcl
+        as a list of unsigned 8-bit integer values. Sometimes this list representation
+        is not the most appropriate or convenient.
+
+        For example, the returned data
+        from `CryptGenRandom` might be better handled as a binary string. CFFI
+        provides the types `bytes`, `chars` and `unichars` that are defined as
+        arrays but treat C arrays of 8-bit values as strings instead.
+        See [Strings] and [Binary strings] for more information.
 
         ### Pointers
 
@@ -114,6 +237,16 @@ namespace eval Concepts {
 
         The first is the equivalent of a `void*` C pointer. The second form
         associates the pointer type with a tag.
+
+        Pointer values are currently represented in the form
+
+        ```
+        ADDRESS^TAG
+        ```
+
+        where the tag is optional as in declarations. Applications must not rely
+        on this specific representation as it is subject to change. Instead the
+        `pointer` ensemble command set should be used to manipulate pointers.
 
         #### Pointer tags
 
@@ -128,19 +261,40 @@ namespace eval Concepts {
         type system. Any tag may be associated with a pointer type or value,
         irrespective of the underlying C pointer type.
 
-        Tags for pointer types are defined in the corresponding `struct` or
-        function declarations. Pointer values are associated with the tags
-        of the type through which they are created. For example, the pointer
-        returned by a function declared as
+        Tags for pointer types are defined in the corresponding `struct` field
+        or function parameter declarations. Pointer values are associated with
+        the tags of the type through which they are created, qualified with a
+        scope. For example, the pointer returned by a function declared in the
+        global namespace
 
-            function get_path pointer.PATH {}
+            LIB function get_path pointer.PATH {}
 
-        will be tagged with `PATH`. It can then only be assigned to a `struct`
-        field or passed as a parameter if the corresponding pointer type is
-        also tagged as `PATH`.
+        will be tagged with `::PATH`. On the other hand if the function was
+        declared within a namespace `ns`
 
-        If there is no tag specifed for a pointer field or parameter, it will
-        accept pointer values with any tag analogous to a C `void *` pointer.
+        ````
+        namespace eval ns {
+            LIB function get_path pointer.PATH {}
+        }
+        ````
+
+        pointers returned from the function would be tagged with `::ns::PATH`.
+        Furthermore, the tag in the definition may be fully qualified as
+
+        ```
+        namespace eval ns {
+            LIB function get_path pointer.::ns2::PATH {}
+        }
+        ```
+
+        in which case returned pointers have the same exact tag. Note the scope `ns2`
+        need not even correspond to a Tcl namespace.
+
+        Pointers can only be assigned to a `struct` field or passed as a
+        parameter if the corresponding pointer type in the struct field or
+        parameter definition has the same tag. If there is no tag specifed for
+        the pointer field or parameter, it will accept pointer values with any
+        tag analogous to a C `void *` pointer.
 
         #### Pointer safety
 
@@ -178,12 +332,11 @@ namespace eval Concepts {
 
         The `disposeonsuccess` annotation is similar to `dispose` except that if
         the function return type includes error check annotations, the
-        pointer is unregistered only if the return value passes the checks.
+        pointer is unregistered only if the return value passes the error checks.
 
         ##### Reference counted pointers
 
-        A safe pointer cannot be registered if it is already registered.
-        However, some C API's return the same resource pointer multiple
+        Some C API's return the same resource pointer multiple
         times while internally maintaining a reference count. Examples are
         `dlopen` on Linux or `LoadLibrary` and COM API's on Windows.
         Such pointers need to be declared with the `counted` attribute.
@@ -200,11 +353,18 @@ namespace eval Concepts {
         % crtl function dlclose int {dlptr {pointer dispose}}
         % set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
         0x00007fb07ebb7500^
-        % set dlptrB [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
+        % set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc.so.6 1]
         0x00007fb07ebb7500^
+        ```
+
+        Note the same pointer value was returned from both calls. We can
+        then call `dlclose` multiple times but not more than the number of times
+        `dlopen` was called.
+
+        ```
         % dlclose $dlptrA
         0
-        % dlclose $dlptrB
+        % dlclose $dlptrA
         0
         % dlclose $dlptrA
         Pointer 0x00007fb07ebb7500^ is not registered.
@@ -212,28 +372,37 @@ namespace eval Concepts {
 
         ##### Unsafe pointers
 
-        For those situations where neither safe nor counted pointers are
-        suitable, pointer declarations can be annotated as `unsafe`. Return
-        values from functions and output parameters with this annotation
-        will not be registered. Input parameters with this designation will
-        not be checked for registration. Needless to say, the `unsafe`
-        annotation should be used with care.
+        C being C, there are many situations where pointers are generated and
+        passed around in a somewhat ad hoc manner with no clear
+        ownership. For such situations where safe and counted pointers can raise
+        exceptions that are false positives, pointer declarations can be
+        annotated as `unsafe`. Return values from functions and output
+        parameters with this annotation will not be registered as safe pointers.
+        Conversely, input parameters with this designation will not be checked
+        for registration.
+
+        In addition to the implicit registration of pointers, applications can
+        explicitly control pointer registration or with the [::cffi::pointer check],
+        [::cffi::pointer safe], [::cffi::pointer counted] and
+        [::cffi::pointer dispose] commands.
 
         #### Null pointers
 
-        Null pointers cannot be registered and are not checked for registration
-        even when passed as safe pointers in function calls. However, the tag is
-        verified if present.
+        At the script level, a null pointers is any pointer whose address
+        component is 0. The token `NULL` may also be used for this purpose.
 
-        The literal `NULL` can be used to represent a null pointer. By default,
+        Null pointers have their own safety checks and are independent of the
+        pointer registration mechanisms described above. By default,
         a function result that is a null pointer is treated as an error and
         triggers the function's error handling mechanisms. Similarly, an attempt
         to pass a null pointer to a function or store it as a field value
         in a C struct will raise an exception. This can be overridden by
         including the `nullok` annotation on the function return, parameter
-        or structure fields type definition.
+        or structure fields type definition. For return values of type `string`
+        and `unistring` with this annotation, an empty string is returned when
+        the called function returns NULL.
 
-        Note that when returned as as output parameters from a function,
+        Note that when returned as output parameters from a function,
         either directly or embedded as struct field, null pointers are
         permitted even without the `nullok` annotation.
 
@@ -249,7 +418,9 @@ namespace eval Concepts {
         [::cffi::memory allocate] and [::cffi::memory free] provide memory management
         facilities. Access to the content is available through
         [::cffi::memory tobinary] and [::cffi::memory frombinary] commands which
-        convert to and from Tcl binary strings.
+        convert to and from Tcl binary strings. The [::cffi::memory get] and
+        [::cffi::memory set] commands provide type-aware access to read and
+        write memory.
 
         ### Strings
         
@@ -316,24 +487,151 @@ namespace eval Concepts {
         for some other reason, the return value can be typed as `string` or
         `unistring`.
 
+        The examples below illustrate use cases for each of the above to wrap
+        these directory related functions.
+
+        ```
+        char *get_current_dir_name(void);
+        char *getcwd(char *buf, size_t size);
+        int chdir(const char *path);
+        ```
+
+        The first function, `get_current_dir_name` returns a pointer to malloc'ed
+        memory that must be freed. We cannot use the `string` type for implicit
+        conversion to strings because we need access to the raw pointer so it
+        can be freed. We are thus forced to stick to the use of pointers. Our
+        CFFI wrapper would be defined as (assuming libc is wrapper object)
+
+        ````
+        libc function get_current_dir_name pointer {}
+        libc function free void {p {pointer dispose}}
+        ````
+
+        We need the `free` function because as stated by the
+        `get_current_dir_name` man page, the returned pointer is malloc'ed and
+        has to be freed by the application. (Note the use of `dispose` in the
+        parameter declaration as described in [Pointer safety].)
+
+        The actual use of the function would involve explicit pointer handling.
+
+        ````
+        % set p [get_current_dir_name]
+        0x0000558b92986d60^
+        % puts [cffi::memory tostring $p]
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64
+        % free $p
+        ````
+
+        The second function `getcwd` requires the caller to supply the buffer
+        into which the directory path will be written. The buffer size the
+        function expects is not a constant but rather given by the value of the
+        `size` argument. While this function could also be wrapped using pointers
+        and explicitly allocated memory, it is much simpler to use the `chars`
+        type to supply a buffer.
+
+        ```
+        libc function getcwd string {buf {chars[size] out} size int}
+        ```
+
+        Two notable points about this definition: first, the use of dynamic
+        arrays for parameters as described in [Dynamically sized arrays]. Second,
+        the return type is `string` because the pointer returned by `getcwd` is
+        the same as the pointer passed in and since CFFI is automatically managing
+        that memory, there is no need to get a hold of the raw pointer.
+
+        This simplifies the usage, for the return value as well as output argument:
+
+        ```
+        % puts [getcwd dir 256]
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64
+        % puts $dir
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64 
+        ```
+
+        The final example only involves passing in a path to the `chdir` function.
+        Since we are dealing with only passing a constant string, this is the
+        simplest case. Just defining the parameter as `string` suffices.
+
+        ```
+        libc function chdir int {dir string}
+        ```
+
+        Usage is also straightforward.
+
+        ````
+        % chdir /tmp
+        0
+        % getcwd dir 512
+        /tmp
+        ````
+
+        #### Strings as NULL pointers
+
+        Some API's allow for `char*` pointer parameters or struct fields to be NULL.
+        If these are wrapped as `string` or `unistring`, the `nullifempty` annotation
+        can be used to specify that empty string values should be passed or stored
+        as NULL pointers as opposed to pointers to an empty string.
+
         ### Binary strings
 
-        The types `binary` or `bytes` are used to declare a sequence of bytes in
-        memory. The `binary` type translates to a C `unsigned char *` type where
-        the memory is treated as a Tcl binary string (byte array). Similarly,
-        the `bytes` type is analogous to the `chars` type except it declares a
-        fixed size array of bytes, not characters. These types are converted
-        between Tcl values and C values with the `Tcl_GetByteArrayFromObj` and
+        While the `string`, `unistring`, `chars` and `unichars` types deal with
+        character strings, the types `binary` or `bytes` serve a similar purpose
+        for dealing with binary data - a sequence of bytes in memory. The
+        `binary` type translates to a C `unsigned char *` type where the memory
+        is treated as a Tcl binary string (byte array). Similarly, the `bytes`
+        type is analogous to the `chars` type except it declares a size array of
+        bytes, not characters in an encoding. These types are converted between
+        Tcl values and C values with the `Tcl_GetByteArrayFromObj` and
         `Tcl_NewByteArrayFromObj` functions.
 
-        The `binary` type can only be used as an input parameter to a function.
-        It is not permitted in any other declaration context. It also has an
-        implied `nullifempty` annotation so that 0-length binaries are always
-        passed as NULL pointers.
+        Consider the wrapper for the `CryptGenRandom` function that we saw
+        earlier.
+
+        ````
+        advapi32 stdcall CryptGenRandom BOOL {
+            hProv HANDLE
+            dwLen DWORD
+            pbBuffer {uchar[dwLen] out}
+        }
+        ````
+
+        When this function is called as
+
+        ```
+        CryptGenRandom $hProv 100 data
+        ```
+
+        the random bytes are returned in the variable `data` as a list of 100
+        integer values in the range 0-255.
+
+        Most applications of random data would probably prefer this be a binary
+        string instead. The function wrapper would therefore be better defined as
+
+        ````
+        advapi32 stdcall CryptGenRandom BOOL {
+            hProv HANDLE
+            dwLen DWORD
+            pbBuffer {uchar[dwLen] out}
+        }
+        ````
+
+        Now the above call to the function would result in variable `data`
+        containing a binary string of length 100.
+
+        While the `bytes` type corresponds to `chars`, the `binary` type
+        corresponds to `string`. The underlying C type is actually a pointer,
+        not an array. Because there is no inherent length indicator as there
+        is for `string` type which is nul-terminated, `binary` can only be
+        used in type declaration for input parameters to a function and in
+        no other context. The function receives the data as retrieved by
+        Tcl's Tcl_GetByteArrayFromObj function.
+
+        The `binary` type also has property that zero length binary strings
+        map to NULL pointers being passed to the function.
 
         ### Structs
 
-        C structs are defined through the [::cffi::Struct] class. This
+        C structs are wrapped through the [::cffi::Struct] class. This
         encapsulates the layout of the struct and provides various methods for
         manipulation. A structure layout is a list of alternating field name and
         type declarations. An example of a definition would be
@@ -344,6 +642,12 @@ namespace eval Concepts {
             y int
         }
         ```
+
+        A struct field may be of any type except `void` and `binary`. In addition,
+        fields that are `string` or `unistring` impose certain limitations. They
+        can be used in structs that are passed in and out of functions as arguments
+        but cannot be allocated from the heap using methods like `allocate`,
+        `tonative` etc.
 
         As for function parameters, field types can have associated annotations.
         For example, the above definition may be changed to assign default
@@ -356,37 +660,35 @@ namespace eval Concepts {
         }
         ```
 
-        Struct field integer types may have the annotation `structsize` in
-        which case they are automatically initialized to the size of the struct
-        if no value is supplied in the dictionary value for the struct.
+        Annotations that may be applied to field type declarations include
 
-        The `nullifempty` annotation may be used for fields of type `string`
-        and `unistring` and has the same effect as described in [Parameters].
+        - [unsafe][Pointer safety], [counted][Pointer safety] and
+        [nullok][Null pointers] for pointer types
+        - [enum][Enumerations] and [bitmask][Type annotations] for integer types
+        - [nullifempty][Strings as NULL pointers] for `string` and `unistring` types.
+        - `structsize`. This annotation is specific to field type declarations
+        and results in fields being automatically initialized to the size of the
+        struct if no value is supplied in the dictionary value for the struct.
+        This is a common convention in Win32 APIs.
+        - The `errno`, `winerror`, `lasterror` and `onerror` annotations may
+        be specified for fields but are ignored. This is to allow sharing of
+        [type aliases][Type aliases] between field declarations and function return
+        type declarations.
 
         Once defined, structs can be referenced in function prototypes and
         in other structs as `struct.STRUCTNAME`, for example `struct.Point`.
-        Note that the struct name is the name of the object without the
-        any leading `::` global namespace prefix.
+        Referencing is scope-based. If the struct name is not fully qualified,
+        it is looked up in the current Tcl namespace and then in the global
+        scope.
 
-        C struct values are generally represented as Tcl dictionaries with the
-        struct field names as dictionary keys. All fields must be present except
-        for the ones with `default` annotations.
+        At the script level, C struct values are represented as dictionaries
+        with field names as dictionary keys. An exception is raised if any field
+        is missing unless the field declaration has a `default` annotation or
+        the struct is defined with the `-clear` option which defaults all fields
+        to a zero value.
 
-        C function parameter declarations
-        that take pointers to structs can be declared as `struct.STRUCTNAME
-        byref`, for example `struct.Point byref`. The [byref][Parameters]
-        indicates the struct is being passed by reference (via a pointer).
-        Leaving it off indicates that the structure is passed by value. Passing
-        structures by value and returning them as values from functions is only
-        supported by the `libffi` back end. The `dyncall` back end only supports
-        passing structures by reference.
-
-        The input argument for the parameter when the function is
-        called should be a dictionary value. Conversely, output parameter
-        results are returned as a dictionary of the same form.
-
-        Alternatively, structs can also be manipulated using raw pointers and
-        explicit transforms to native C structures in memory. For example,
+        Alternatively, structs can also be manipulated as native C structs in memory
+        using raw pointers and explicit transforms. For example,
 
         ````
         % set pPoint [Point allocate]
@@ -396,10 +698,17 @@ namespace eval Concepts {
         % Point tonative $pPoint {x 0 y 1}
         % Point fromnative $pPoint
         x 0 y 1
+        % Point set $pPoint x 42
+        % Point fromnative $pPoint
+        x 42 y 1
         ````
 
-        See [::cffi::Struct] for other methods related to allocation,
-        conversion between Tcl binary strings and other utilities.
+        **NOTE**: structs that are manipulated as raw structs in memory cannot
+        contain fields of type `string` and `unistring`. They must use raw pointers
+        and explicitly manage their target memory.
+
+        The package provides other methods to access fields and otherwise
+        manipulate native structs in memory. See [::cffi::Struct].
 
         ## Type aliases
 
@@ -440,6 +749,12 @@ namespace eval Concepts {
         may be specified. These are merged with those included in the
         type alias definition.
 
+        * Type aliases are scoped. If the alias name in a definition is not
+        fully qualified, it is qualified with the name of the current Tcl
+        namespace. If an alias name is not fully qualified on use, it is looked
+        up using the current Tcl namespace as the scope and the global scope
+        if not found there.
+
         For convenience, the package provides the [::cffi::alias load] command
         which defines some standard C type aliases like `size_t` as well as some
         platform-specific type aliases such as `HANDLE` on Windows.
@@ -463,12 +778,16 @@ namespace eval Concepts {
             VALIDATE 512
             SMART 1024
         }
-        cffiLib function cmark_render_html pointer {
+        cmarkLib function cmark_render_html pointer {
             root pointer.cmark_node
             opts {int {enum CMARK_OPTS}}
         }
         set htmlptr [cmark_render_html $root NORMALIZE]
         ````
+
+        Alternatives to the [::cffi::enum define] command used above include
+        [::cffi::enum sequence] and [::cffi::enum flags] which are convenient
+        for defining sequential values and bit masks respectively.
 
         Enumeration can also be used in literal form where they are directly
         expressed in the type definition. For example, the `cmark_render_html`
@@ -665,6 +984,23 @@ namespace eval Concepts {
         the result passed to the C function. If the `enum` annotation was also
         specified, each element of the list may be an integer or a enum value
         name.
+
+        #### Structs as parameters
+
+        The input argument for the parameter when the function is
+        called should be a dictionary value. Conversely, output parameter
+        results are returned as a dictionary of the same form.
+
+        C function parameter declarations
+        that take pointers to structs can be declared as `struct.STRUCTNAME
+        byref`, for example `struct.Point byref`. The [byref][Parameters]
+        indicates the struct is being passed by reference (via a pointer).
+        Leaving it off indicates that the structure is passed by value. Passing
+        structures by value and returning them as values from functions is only
+        supported by the `libffi` back end. The `dyncall` back end only supports
+        passing structures by reference.
+
+
 
         ### Error handling
 

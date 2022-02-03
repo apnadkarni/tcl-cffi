@@ -23,11 +23,13 @@ set start_page {
     This page provides an introduction to the package. Details are described
     in
 
-    - The [Concepts][::Concepts] page, which describes how C level constructs
-    are translated to the Tcl script level; for example, type definitions,
-    memory management, pointers etc.
+    [Concepts][::Concepts] - Describes how C level constructs translate
+    to the Tcl script level
 
-    - The [::cffi] page which contains reference documentation for the package.
+    [Cookbook][::Cookbook] - Provides recipes for converting C declarations
+    to `cffi`.
+
+    [::cffi] - Reference documentation for commands in the `::cffi` namespace.
 
     Some tutorial material is available at [magicsplat](https://www.magicsplat.com/blog/tags/cffi/)
     and the [examples](https://github.com/apnadkarni/tcl-cffi/tree/main/examples)
@@ -51,7 +53,8 @@ set start_page {
     - [`dyncall`](https://dyncall.org)
 
     The selection of the back end library to use is made at build time as described
-    in the build instructions.
+    in the build instructions. Note the `dyncall` backend has some
+    [limitations][Limitations] compared to `libffi`.
 
     ## Quick start
 
@@ -66,7 +69,7 @@ set start_page {
 
     ````
     % package require cffi
-    1.0b3
+    1.0b4
     % cffi::Wrapper create user32 [file join $env(windir) system32 user32.dll]
     ::user32
     ````
@@ -146,8 +149,7 @@ set start_page {
     ````
 
     The parameter list for a function follows the same form as for structs,
-    an alternating list of parameter names and type declarations. The name
-    of the parameter is irrelevant for invocation but important for error handling.
+    an alternating list of parameter names and type declarations.
 
     Note how the type for the second parameter, `rect`, is specified. In
     general, type declarations consist of a type optionally followed by a list
@@ -167,15 +169,15 @@ set start_page {
     ````
 
     As seen above, `struct` values are automatically decoded into dictionaries
-    with keys corresponding to struct field names. As we see later, we could
+    with keys corresponding to struct field names. We could
     have also selected to receive structs as binary values in their native
-    form.
+    form as shown further on.
 
     ### Strings and binaries
 
     The `char *` type in C is more often than not used for null-terminated
     strings. These may be dealt with in the same fashion as pointers at the
-    script level as discussed in [Pointers] further on. However, in most
+    script level as discussed in [Pointers]. However, in most
     cases it is more convenient to use the `string` and `chars` types. The
     difference between the two is that the former corresponds to a C
     `char *` pointer while the latter corresponds to a C `char[N]` array.
@@ -201,10 +203,6 @@ set start_page {
     constant. This makes for fewer errors in calling C functions which expect
     a size and pointer combination of parameters where a larger size than
     the declared array size may be mistakenly passed.
-
-    As an aside, the `stdcalls` method above to define
-    multiple functions in a single call. There is also a corresponding
-    `functions` method.
 
     The above functions can then be simply invoked.
 
@@ -269,7 +267,8 @@ set start_page {
     To deal with the first, a return type can be annotated with
     conditions that specify expected return values. Since
     `SetCurrentDirectory` returns a non-zero value on success, the function
-    return type may be annotated with `nonzero`:
+    return type may be annotated with `nonzero`. Our previous definition of
+    `SetCurrentDirectoryA` can instead be written as
 
     ```
     % kernel stdcall SetCurrentDirectoryA {int nonzero} {path string}
@@ -343,7 +342,7 @@ set start_page {
     in place of structs and strings.
 
     First, define the call to `GetWindowRect` using pointers. Note we are renaming
-    the function as `GetWindowRectAsPointer` so distinguish from our previous
+    the function as `GetWindowRectAsPointer` so as to distinguish from our previous
     definition.
 
     ```
@@ -392,10 +391,9 @@ set start_page {
     `RECT` have been previously defined. The `cffi::memory tobinary` command
     is then used to convert the allocated memory content to a Tcl binary string.
 
-    Needless to say, the use of `struct` definitions is to be preferred to
-    this raw memory access for convenience and safety reasons. Still, there
-    are cases, for example variable length structures in memory, where this
-    is required.
+    The use of `struct` definitions is to be preferred to this raw memory access
+    for convenience and safety reasons. Still, there are cases, for example
+    variable length structures in memory, where this is required.
 
     As an example of the protection against errors offered by pointer tags,
     here is an attempt to retrieve the window dimensions where the arguments
@@ -539,23 +537,22 @@ set start_page {
     kernel stdcall FreeLibrary BOOL {libhandle {pointer.HMODULE dispose}}
     ```
 
-    When multiple calls are made to this function, it returns the *same* pointer
-    while keeping an internal reference count. However, registered pointers
-    are expected to be unique by default and the following sequence of calls fails.
+    When multiple calls are made to `LoadLibraryA`, it returns the *same* pointer
+    while keeping an internal reference count. The expectation is for the application
+    to make the same number of calls to `FreeLibrary`. However, the following
+    sequence of calls fails because the first call to `FreeLibrary` unregisters
+    the pointer resulting in failure of the second call to `FreeLibrary`.
 
     ````
     % set libptr [LoadLibraryA advapi32.dll]
-    0x00007FFDD0000000^HMODULE
+    0x00007ff8f4ba0000^::HMODULE
     % set libptr [LoadLibraryA advapi32.dll]
-    Registered pointer already exists. 
+    0x00007ff8f4ba0000^::HMODULE
+    % FreeLibrary $libptr
+    1
+    % FreeLibrary $libptr
+    Pointer 0x00007ff8f4ba0000^::HMODULE is not registered.
     ````
-
-    The registered pointer needs to be freed first with `FreeLibrary` before
-    another call to load the same library is made. This artificial limitation on
-    the use of `LoadLibrary` can be worked around using the `unsafe` attribute
-    discussed earlier. However, that would mean there could be more calls made
-    to `FreeLibrary` than to `LoadLibraryA` resulting in whatever Windows
-    decided was an appropriate failure mode, most likely random crashes.
 
     The `counted` attribute is provided for this use case. When specified, the
     pointer is still registered but permits multiple registrations and a
@@ -567,7 +564,8 @@ set start_page {
     ```
 
     Now multiple registrations are allowed which stay valid until
-    a corresponding number of disposals are done.
+    a corresponding number of disposals are done. An additional attempt to
+    free will fail as desired.
 
     ````
     % set libptr [LoadLibraryA advapi32.dll]
@@ -626,6 +624,13 @@ set start_page {
     useful typedefs including cross-platform ones such as `size_t` as well
     as platform-specific ones such as `HANDLE`, `DWORD` etc. on Windows.
 
+    ### Memory utilities
+
+    There are times when an application is forced to drop down to raw C pointer
+    and memory manipulation. The `memory` and `pointer` command ensembles implement
+    functionality useful for this purpose. See the reference documentation for
+    a description.
+
     ### Introspection
 
     The package includes a `help` command ensemble that is useful during
@@ -648,9 +653,11 @@ set start_page {
 
     The current version has the following limitations:
 
-    - Structs cannot be passed or returned by value, only by reference, if using
-    the `dyncall` back end. The `libffi` back end does not have this limitation.
-    - Callbacks into Tcl from C functions are not implemented.
     - C functions with a variable number of arguments are not implemented.
+
+    In addition, the `dyncall` backend has the following additional limitations:
+
+    - Structs can only be passed by reference, not value.
+    - Callbacks into Tcl from C functions are not implemented.
 }
 

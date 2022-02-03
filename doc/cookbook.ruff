@@ -1,0 +1,5 @@
+namespace eval Cookbook {
+    variable _ruff_preamble {
+        *This page under construction.*
+    }
+}

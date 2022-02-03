@@ -352,35 +352,6 @@ namespace eval ${NS}::test {
         }
         set goodandbad [concat $goodnumbers $badnumbers]
 
-        # switch -exact -- $type {
-        #     int -
-        #     uint -
-        #     long -
-        #     ulong {
-        #         # On some platforms long and longlong are same. So check for dups
-        #         # before adding.
-        #         foreach type2 {longlong ulonglong} {
-        #             if {$intMax($type2) ni $goodandbad} {
-        #                 lappend badnumbers $intMax($type2)
-        #             }
-        #             if {$intMin($type2) ni $goodandbad} {
-        #                 lappend badnumbers $intMin($type2)
-        #             }
-        #         }
-        #     }
-        #     longlong {lappend badnumbers $intMax(ulonglong)}
-        #     ulonglong {
-        #         lappend goodnumbers $intMax(longlong)
-        #         lappend badnumbers $intMin(longlong)
-        #     }
-        #     default {
-        #         foreach type2 {int uint long ulong longlong ulonglong} {
-        #             lappend badnumbers $intMax($type2)
-        #             lappend badnumbers $intMin($type2)
-        #         }
-        #     }
-        # }
-
         set fn ${type}_to_$type
         testDll function $fn $type [list inparam $type]
 

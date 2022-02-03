@@ -2,7 +2,7 @@
 
 A manual process that should be automated. Some day ...
 
-Assumes release tagged as v1.0b3 in working directory ...
+Assumes release tagged as v1.0b4 in working directory ...
 
 ## Preliminaries
 
@@ -26,8 +26,8 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b3/AMD64/tclcffi10b3.dll
-ldd tclcffi10b3.dll
+strip -s /d/tcl/lib/cffi1.0b4/AMD64/tclcffi10b4.dll
+ldd tclcffi10b4.dll
 ```
 
 Ensure the ldd output does not show dependency on libffi.dll
@@ -41,8 +41,8 @@ rm *
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b3/x86/tclcffi10b3.dll
-ldd tclcffi10b3.dll
+strip -s /d/tcl/lib/cffi1.0b4/x86/tclcffi10b4.dll
+ldd tclcffi10b4.dll
 ```
 
 Ensure the ldd output does not show dependency on libffi.dll
@@ -58,14 +58,14 @@ d:\tcl\archive\868-vc6\x86\bin\tclsh86t.exe all.tcl
 
 Copy README.md and LICENSE into distribution directory.
 
-Zip up the distribution from d:\tcl\lib\cffi1.0b3
+Zip up the distribution from d:\tcl\lib\cffi1.0b4
 
 ## Windows sources
 
 From the *top* of the source repository
 
 ```
-git archive --prefix cffi1.0b3-src/ -o d:\src\cffi1.0b3-src.zip v1.0b3
+git archive --prefix cffi1.0b4-src/ -o d:\src\cffi1.0b4-src.zip v1.0b4
 ```
 
 Extract the archive somewhere and ensure it builds.
@@ -76,7 +76,7 @@ When generating a distribution from Windows, line endings are CR-LF. Rather than
 fixing them after the fact, clone the repository in WSL.
 
 ```
-git archive --prefix cffi1.0b3-src/ -o ../cffi1.0b3-src.tgz v1.0b3
+git archive --prefix cffi1.0b4-src/ -o ../cffi1.0b4-src.tgz v1.0b4
 ```
 
 Extract the archive somewhere and ensure it builds.

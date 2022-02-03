@@ -5,6 +5,7 @@ package require ruff
 
 
 set NS cffi
+set version 1.0b4
 
 source cffi.ruff
 source start.ruff
@@ -18,11 +19,12 @@ source alias.ruff
 source enum.ruff
 source pointer.ruff
 source prototype.ruff
+source cookbook.ruff
 
 set title "Tcl CFFI package"
 
 if {[llength $argv] == 0 || "html" in $argv} {
-    ruff::document [list Concepts $NS] \
+    ruff::document [list Concepts Cookbook $NS] \
         -format html \
         -outfile $NS.html \
         -outdir [file join [file dirname [info script]] html] \
@@ -33,12 +35,12 @@ if {[llength $argv] == 0 || "html" in $argv} {
         -autopunctuate true \
         -hidenamespace $NS \
         -product cffi \
-        -version 1.0b3 \
+        -version $version \
         -copyright "Ashok P. Nadkarni" {*}$::argv
 }
 
 if {[llength $argv] == 0 || "nroff" in $argv} {
-    ruff::document [list Concepts $NS] \
+    ruff::document [list Concepts Cookbook $NS] \
         -format nroff \
         -outfile $NS.man \
         -outdir [file join [file dirname [info script]] man] \
@@ -49,6 +51,6 @@ if {[llength $argv] == 0 || "nroff" in $argv} {
         -autopunctuate true \
         -hidenamespace $NS \
         -product cffi \
-        -version 1.0b3 \
+        -version $version \
         -copyright "Ashok P. Nadkarni" {*}$::argv
 }
