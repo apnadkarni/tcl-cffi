@@ -247,6 +247,9 @@ namespace eval Concepts {
         where the tag is optional as in declarations. Applications must not rely
         on this specific representation as it is subject to change. Instead the
         `pointer` ensemble command set should be used to manipulate pointers.
+        In particular, the [::cffi::pointer make] command constructs a pointer
+        from a memory address and tag. The [::cffi::pointer address] and
+        [::cffi::pointer tag] do the reverse.
 
         #### Pointer tags
 
@@ -858,10 +861,11 @@ namespace eval Concepts {
         DLLOBJ stdcall FNNAME RETTYPE PARAMS
         ```
 
-        where `FNNAME` is the name of the function (and an optional Tcl alias),
-        `RETTYPE` is the function return type declaration and `PARAMS` is
-        a list of alternating parameter names and type declarations.
-        The type declarations may include annotations that control behaviour and
+        where `DLLOBJ` is the object wrapping a shared library, `FNNAME` is the
+        name of the function (and an optional Tcl alias) within the library,
+        `RETTYPE` is the function return type declaration and `PARAMS` is a list
+        of alternating parameter names and type declarations. The type
+        declarations may include annotations that control behaviour and
         conversion between Tcl and C values.
 
         The C function may then be invoked as `FNNAME` like any other Tcl command.
@@ -869,41 +873,63 @@ namespace eval Concepts {
         ### Return types
 
         A function return declaration is a type or type alias followed by zero
-        or more annotations. The resolved type must not be a struct or an array
+        or more annotations. The resolved type must not be `void` or an array
         including `chars`, `unichars`, `binary` and `bytes`. Note pointers to
         these are permitted.
 
         In the case of `string` and `unistring` types, the script level return
-        values are constructed from C `char *` and `Tcl_UniChar *` types.
-        Since the underlying pointer is not available, any storage cannot be
-        freed and these types should only be used in cases where that is not
-        needed (for example, when the function returns static strings).
+        values are constructed by dereferencing the returned pointer as
+        character strings. Since the underlying pointer is not available, any
+        storage cannot be freed and these types should only be used as the
+        return type in cases where that is not needed (for example, when the
+        function returns pointers to static strings).
+
+        Returning structs from functions is only supported by the `libffi`
+        backend.
 
         #### Return annotations
 
         The following annotations may be follow the type in a return type
         declaration.
 
-        - For integer types, the `enum` annotation and the error checking
-        annotations `zero`, `nonzero`, `nonnegative`, `positive`, the error
-        reporting annotations `errno`, `lasterror`, `winerror` and `onerror` may
-        be specified. See [Enumerations] and [Error handling] for details on these.
+        - The [enum][Enumerations] annotation may be used for integer types.
+        The integer return value from the function will be returned by the
+        command as the corresponding enumeration member name and as the integer
+        value itself if the enumeration does not have a matching member.
 
-        - For pointer type, `nonzero`, `errno` and `lasterror` annotations may
-        be specified as well as the `unsafe` and `counted` annotations (but not
-        `dispose` or `disposeonsuccess`). See [Pointer safety] for the meaning
-        of these annotations.
+        - The `bitmask` annotation may be used for integer types. This only has
+        effect if the `enum` annotation is also present. In that case the
+        returned value from the mapped command is a list of enumeration member
+        names matching the bits set in the returned value followed by an integer
+        containing all bits that were set but not matched by any bit value in
+        the enumeration.
 
-        - For `string` and `unistring` types, the `nonzero`, `errno` and
-        `lasterror` error annotations may be specified. See [Error handling] for
-        details on these.
+        - The [error checking annotations][Error annotations]
+        `zero`, `nonzero`, `nonnegative`, `positive` may be specified for
+        integer types. If present, any function return value that does not
+        satisfy the annotation will be treated as an error. See [Error handling]
+        for more.
 
-        In addition to the above, when the C function returns a pointer to a
-        type `TYPE`, its return value may be declared as `TYPE byref`. In this
-        case the wrapped script level command returns the dereferenced value,
-        not the pointer. Note however that in this case the original pointer
-        value is not accessible at the script level and so this should only be
-        used when that is is acceptable, e.g. the pointer is to static or
+        - The [error reporting annotations][Error handling]
+        `errno`, `lasterror`, `winerror` and `onerror` may
+        be specified for integer types and with the exception of `winerror` for
+        `pointer`, `string` and `unistring` types.
+        (Remember that `string` and `unistring` are both pointers under the covers.)
+        For integer types they require one of the above error checking
+        annotations to also be present to have effect.
+
+        - The `unsafe` and `counted` [pointer safety][Pointer safety] annotations
+        may be specified for pointer types. By default, pointers returned from
+        functions are registered as safe pointers. The `counted` annotation
+        registers them as reference counted safe pointers. Pointers returned
+        with the `unsafe` annotation are not registered at all.
+
+        - The `byref` annotation can be used with any type when the function
+        return value is a pointer to that type. If specified, the returned pointer
+        is implicitly dereferenced and a value of the target type of the
+        pointer is returned. Note however that the original pointer
+        returned is not accessible at the script level and so this should only
+        be used when that is acceptable, e.g. the pointer is to static or
         internal storage that does not need to be freed.
 
         ### Parameters
@@ -913,57 +939,112 @@ namespace eval Concepts {
         A parameter type declaration may begin with any supported type except
         `void` and may be followed a sequence of optional type annotations.
 
-        #### Parameter annotations
+        #### Input and output parameters
 
-        Annotations that are valid for parameters are those
-        related to pointers, those related to argument passing and those related
-        to storing output values.
+        Parameters of a function may be used to pass data to the function
+        (pure input parameters), get data back from the function
+        (pure output parameters) or both. CFFI parameter type declarations
+        denote these with the `in`, `out` and `inout` annotations respectively.
+        If none of these annotations are present, the parameter defaults to an
+        implicit `in` annotation.
 
-        Annotations in the first category are `unsafe`, `counted`
-        `dispose` and `disposeonsuccess`. See [Pointer safety] for details.
+        In addition arguments may be passed to the function either by value or
+        by reference where the pointer to the value is passed. Parameters that
+        are pure input are normally passed by value. In some cases, functions
+        take even pure input arguments by reference, (for example large
+        structures). In such cases, the CFFI parameter declaration should have
+        the `byref` annotation to indicate that a pointer to the value should be
+        passed and not the value itself. Note that arrays are always passed by
+        reference in C so array types do not need to be explicitly annotated
+        with `byref` as they default to that in any case.
 
-        The second set deals with how arguments are passed to the C function. C
-        functions are passed arguments either by value or by reference (i.e. as
-        a pointer to a value). Moreover, parameters may be used to pass values
-        to the function (input parameters), retrieve values (output parameters)
-        or both. Correspondingly, a parameter type may be annotated with `in`
-        (default), `out` and `inout`.
+        In the case of `in` parameters, at the time of calling the function the
+        argument must be specified as a Tcl value even when the `byref`
+        annotation is present. The passing through a pointer to the reference
+        is implicit.
 
-        In the case of `in` parameters, at the time of calling the function
-        the argument must be specified as a Tcl value. These are then passed
-        in to the C function by value if a scalar or by reference if an
-        array or a struct. Scalars can be forced
-        to be passed by reference by annotating the parameter with `byref`.
-        In the case of `string` and `unistring`, `in` parameters correspond
-        to `char *` and `Tcl_UniChar *` respectively, while `in byref` map
-        to `char **` and `Tcl_UniChar **`.
+        **NOTE:** In the case of `string` and `unistring`, `in` parameters
+        correspond to `char *` and `Tcl_UniChar *` respectively, while `in
+        byref` map to `char **` and `Tcl_UniChar **`.
 
-        An `in` parameter may also be annotated with a default value so that no
-        argument need be provided at the time of the call. The default parameter
-        value is annotated as a list of two elements, the first being the
-        annotation keyword `default` and the second being the value to use. As
-        for Tcl procs, if a default is specified for a parameter, all subsequent
-        parameters must also have a default specified.
-
-        In the case of `out` or `inout` parameters, the argument to the function
-        must be specified as the name of a variable in the caller's context.
-        For `inout` parameters, the variable must exist and contain a valid
-        value for the parameter type. For `out` parameters, the variable need
-        not exist. In both cases, on return from the function the output
-        value stored in the parameter by the function will be stored in the
-        variable. Parameters annotated with `out` and `inout` are always passed
-        by reference for all types and use of `byref` is redundant. Note that
-        `inout` cannot be used with `string` and `unistring` types while neither
-        `out` nor `inout` can be used with `binary`.
+        Parameters that are `out` or `inout` are always passed by reference
+        irrespective of whether the `byref` annotation is present or not. The
+        argument to the function must be specified as the name of a variable in
+        the caller's context. For `inout` parameters, the variable must exist
+        and contain a valid value for the parameter type. For `out` parameters,
+        the variable need not exist. In both cases, on return from the function
+        the output value stored in the parameter by the function will be stored
+        in the variable. Note that `inout` cannot be used with `string` and
+        `unistring` types while neither `out` nor `inout` can be used with
+        `binary`.
 
         There are some subtleties with respect to error handling that are
         relevant to output parameters and must be accounted for in declarations.
-        See [Errors and output parameters].
+        See [Errors and output parameters] for more on this.
 
-        A few additional annotations are available for parameters, mainly as a
-        convenience.
+        #### Parameter annotations
 
-        The annotation `nullifempty` is available only
+        The following annotations may follow the type in a parameter type
+        declaration:
+
+        - The `in`, `out` and `inout` annotations specify whether the parameter
+        is an input to the function, an output from the function or both
+        as described in the [previous][Input and output parameters] section.
+
+        - The `byref` annotation specifies that argument is to be passed by
+        reference (the function actually takes a pointer to the actual value)
+        and not by value. This only has effect for input parameters as
+        parameters with `out` and `inout` annotations always have arguments
+        passed by reference irrespective of whether the `byref` annotation is
+        present or not. Arrays are also always passed by reference even if
+        they are input only.
+
+        - The `unsafe`, `counted`, `dispose` and `disposeonsuccess` annotations
+        may be specified for pointer types.
+        By default, pointer values passed in for
+        `in` and `inout` parameters are checked for validity. Conversely, by default
+        `out` and `inout` pointers returned from the function are registered
+        as valid safe pointers. Pointer types annotated with `counted` behave
+        similarly except they are registered as reference counted safe pointers
+        instead of normal safe pointers. On the other hand, the `unsafe` annotation
+        disables all safety related mechanisms. The arguments are neither checked
+        for validity, nor registered as safe pointers. The `dispose` and
+        `disposeonsuccess` annotations are only valid for `in` and `inout`
+        parameters. They mark the parameter as holding a pointer that will
+        be freed by the function and cause CFFI to unregister the pointer
+        (modulo reference counting if applicable). The difference between
+        `dispose` and `disposeonsuccess` is that the latter will only unregister
+        the pointer if the function returns without any error indication.
+        For more on pointer safety mechanisms, see [Pointer safety].
+
+        - The `enum` annotation may be used for integer types. It has an
+        associated argument that specifies an [Enum][Enumerations], either a
+        defined name or a dictionary literal. For `in` and `inout` parameters,
+        this allows enumeration member names to be used in lieu of integers
+        though the latter are also accepted. For `out` and `inout` parameters,
+        the integer value stored by the function is returned to script level as
+        the enumeration member name if a mapping exists and as the original
+        integer otherwise.
+
+        - The `bitmask` annotation may be used for integer types.
+        For `in` and `inout` parameters with this annotation accept a list of
+        integer values and perform a bit-wise OR operation on these passing the
+        result to the function. If the parameter also has the `enum`
+        annotation the list may contain enumeration member names as well.
+        Correspondingly, the output values for `out` and `inout` are converted
+        to a list of enumeration member names with the last element being
+        an integer containing all the bits that were not matched by enumeration
+        members. This annotation should be used with enumerations whose values
+        are bit flags.
+
+        - The `default` annotation may be used for pure input parameters. The
+        associated value is passed to the function if an argument is not
+        explicitly supplied. The annotation comprises of a list of two elements,
+        the first being the annotation `default` and the second being the value
+        to use. As for Tcl procs, if a default is specified for a parameter, all
+        subsequent parameters must also have a default specified.
+
+        - The `nullifempty` annotation is available only
         for `in` parameters of type `string`, `unistring`, `binary` and `struct`. If
         present, a NULL pointer is passed into the C function if the passed
         argument is an empty string in the case of `string` or `unistring` and
@@ -971,36 +1052,20 @@ namespace eval Concepts {
         API's where NULL pointers signify default options. Note that the `binary`
         type always has `nullifempty` implied even if not explicitly specified.
 
-        The annotation `enum` is available for integer types. It has an
-        associated argument that specifies an [Enum][Enumerations]. When the
-        function is called, any enum member names from that enumeration are
-        accepted and the corresponding integer value is used as the argument to
-        the C function. For output parameters, the integer output values are
-        replaced with the corresponding enum member name if possible or left
-        unaltered. The annotation cannot be applied to arrays.
-
-        The `bitmask` annotation is also limited to integer types. If specified,
-        an argument may be a list of integers. This are all OR-ed together and
-        the result passed to the C function. If the `enum` annotation was also
-        specified, each element of the list may be an integer or a enum value
-        name.
+        - The `storeonerror` and `storealways` annotations are only applicable
+        when either `out` or `inout` annotations are present. These control
+        storage of output parameters in the presence of errors. See
+        [Errors and output parameters].
 
         #### Structs as parameters
 
-        The input argument for the parameter when the function is
+        In the case of parameters that are structs,
+        the input argument for the parameter when the function is
         called should be a dictionary value. Conversely, output parameter
         results are returned as a dictionary of the same form.
 
-        C function parameter declarations
-        that take pointers to structs can be declared as `struct.STRUCTNAME
-        byref`, for example `struct.Point byref`. The [byref][Parameters]
-        indicates the struct is being passed by reference (via a pointer).
-        Leaving it off indicates that the structure is passed by value. Passing
-        structures by value and returning them as values from functions is only
-        supported by the `libffi` back end. The `dyncall` back end only supports
-        passing structures by reference.
-
-
+        Passing of structs by reference is supported by both the `dyncall`
+        and `libffi` backends but only the latter supports passing by value.
 
         ### Error handling
 

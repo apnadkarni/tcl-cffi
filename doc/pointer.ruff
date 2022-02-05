@@ -73,6 +73,10 @@ namespace eval ${NS}::pointer {
         #  address - memory address as a positive integer
         #  tag - If not fully qualified, this will be qualified
         #   with the current namespace name.
+        #
+        # The returned pointer is not registered as safe. The caller
+        # can use the [pointer safe] command to mark it as such if so desired.
+        #
         # Synopsis: address ?tag?
     }
     proc safe {pointer} {
