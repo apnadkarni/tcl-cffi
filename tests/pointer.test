@@ -336,6 +336,21 @@ namespace eval ${NS}::test {
         cffi::pointer address [makeptr 0 TAG]
     } -result [format 0x%.[expr {2 * $::tcl_platform(pointerSize)}]lx 0]
 
+    ###
+    # pointer make
+    testnumargs pointer-make "pointer make" "ADDRESS" "?TAG?"
+    test pointer-make-0 "make pointer without tag" -body {
+        cffi::pointer make 1
+    } -result [makeptr 1]
+    test pointer-make-1 "make pointer with tag" -body {
+        cffi::pointer make 1 TAG
+    } -result [scoped_ptr 1 TAG]
+    test pointer-make-2 "make NULL pointer - ignore tag" -body {
+        cffi::pointer make 0 TAG
+    } -result [makeptr 0]
+    test pointer-make-3 "make pointer with fqn tag" -body {
+        cffi::pointer make 1 ::TAG
+    } -result [scoped_ptr 1 ::TAG]
 }
 
 ::tcltest::cleanupTests

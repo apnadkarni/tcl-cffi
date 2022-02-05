@@ -309,6 +309,21 @@ int Tclh_ObjToDouble(Tcl_Interp *interp, Tcl_Obj *obj, double *ptr);
  */
 Tcl_Obj *Tclh_ObjFromAddress (void *address);
 
+/* Function: Tclh_ObjToAddress
+ * Unwraps a Tcl_Obj into a memory address
+ *
+ * Parameters:
+ * interp - Interpreter
+ * obj - Tcl_Obj from which to extract the adddress
+ * ptr - location to store extracted address
+ *
+ * Returns:
+ * Returns TCL_OK on success and stores the value in location
+ * pointed to by *ptr*. Otherwise returns TCL_ERROR with an error message in
+ * the interpreter.
+ */
+int Tclh_ObjToAddress(Tcl_Interp *interp, Tcl_Obj *obj, void **ptr);
+
 /* Function: Tclh_ObjArrayIncrRefs
  * Increments reference counts of all elements of a *Tcl_Obj** array
  *
@@ -354,6 +369,8 @@ TCLH_INLINE void Tclh_ObjArrayDecrRefs(int objc, Tcl_Obj * const *objv) {
 #define ObjToDouble Tclh_ObjToDouble
 #define ObjArrayIncrRef Tclh_ObjArrayIncrRef
 #define ObjArrayDecrRef Tclh_ObjArrayDecrRef
+#define ObjFromAddress Tclh_ObjFromAddress
+#define ObjToAddress Tclh_ObjToAddress
 #endif
 
 /*
@@ -666,6 +683,26 @@ Tcl_Obj *Tclh_ObjFromAddress (void *address)
 
     start = TclhPrintAddress(address, buf, sizeof(buf) / sizeof(buf[0]));
     return Tcl_NewStringObj(start, -1);
+}
+
+int Tclh_ObjToAddress(Tcl_Interp *interp, Tcl_Obj *objP, void **pvP)
+{
+    int ret;
+
+    /* Yeah, assumes pointers are 4 or 8 bytes only */
+    if (sizeof(unsigned int) == sizeof(*pvP)) {
+        unsigned int ui;
+        ret = Tclh_ObjToUInt(interp, objP, &ui);
+        if (ret == TCL_OK)
+            *pvP = (void *)(uintptr_t)ui;
+    }
+    else {
+        Tcl_WideInt wide;
+        ret = Tcl_GetWideIntFromObj(interp, objP, &wide);
+        if (ret == TCL_OK)
+            *pvP = (void *)(uintptr_t)wide;
+    }
+    return ret;
 }
 
 #endif /* TCLH_TCL_OBJ_IMPL */

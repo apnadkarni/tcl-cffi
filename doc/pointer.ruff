@@ -2,32 +2,9 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::pointer {
-    proc list {args} {
-        # Returns a list of registered pointers optionally filtered by a tag.
-        #   args - if specified, must be a single argument which is a tag.
-        #     Only pointers matching the tag are returned.
-    }
-    proc tag {pointer} {
-        # Returns the pointer tag
-        #  pointer - pointer whose tag is to be returned.
-        # An empty string is returned if the pointer is not tagged.
-        #
-        # See [Pointers][::Concepts::Pointers] for more on pointer tags.
-    }
-    proc isvalid {pointer} {
-        # Validates a pointer.
-        #  pointer - pointer to be validated
-        # For a pointer to be treated as valid,
-        #
-        # - it must not be NULL
-        # - it must be registered
-        # - if it is tagged, the tag must be the same as that of the registration.
-        #
-        # Return a boolean true value if all the above conditions are met,
-        # otherwise false.
-        #
-        # See [Pointers][::Concepts::Pointers] for more on pointer
-        # safety and registration.
+    proc address {pointer} {
+        # Returns the address component of the pointer.
+        #  pointer - pointer whose address component is to be returned.
     }
     proc check {pointer} {
         # Validates a pointer and raise an exception if invalid.
@@ -41,15 +18,6 @@ namespace eval ${NS}::pointer {
         # If any of the above conditions is not met, an error exception is raised.
         # Note that if $pointer is untagged, the tag of the registration is not
         # checked.
-        #
-        # See [Pointers][::Concepts::Pointers] for more on pointer
-        # safety and registration.
-    }
-    proc safe {pointer} {
-        # Registers a pointer as a safe uncounted pointer
-        #  pointer - pointer to be registered
-        # An error is raised if the pointer is already registered
-        # or is a NULL pointer.
         #
         # See [Pointers][::Concepts::Pointers] for more on pointer
         # safety and registration.
@@ -80,9 +48,48 @@ namespace eval ${NS}::pointer {
         # Returns true if the pointer is a NULL pointer, false otherwise.
         #  pointer - pointer to be checked
     }
-    proc address {pointer} {
-        # Returns the address component of the pointer.
-        #  pointer - pointer whose address component is to be returned.
+    proc isvalid {pointer} {
+        # Validates a pointer.
+        #  pointer - pointer to be validated
+        # For a pointer to be treated as valid,
+        #
+        # - it must not be NULL
+        # - it must be registered
+        # - if it is tagged, the tag must be the same as that of the registration.
+        #
+        # Return a boolean true value if all the above conditions are met,
+        # otherwise false.
+        #
+        # See [Pointers][::Concepts::Pointers] for more on pointer
+        # safety and registration.
+    }
+    proc list {args} {
+        # Returns a list of registered pointers optionally filtered by a tag.
+        #   args - if specified, must be a single argument which is a tag.
+        #     Only pointers matching the tag are returned.
+    }
+    proc make {address tag} {
+        # Return a pointer for a memory address
+        #  address - memory address as a positive integer
+        #  tag - If not fully qualified, this will be qualified
+        #   with the current namespace name.
+        # Synopsis: address ?tag?
+    }
+    proc safe {pointer} {
+        # Registers a pointer as a safe uncounted pointer
+        #  pointer - pointer to be registered
+        # An error is raised if the pointer is already registered
+        # or is a NULL pointer.
+        #
+        # See [Pointers][::Concepts::Pointers] for more on pointer
+        # safety and registration.
+    }
+    proc tag {pointer} {
+        # Returns the pointer tag
+        #  pointer - pointer whose tag is to be returned.
+        # An empty string is returned if the pointer is not tagged.
+        #
+        # See [Pointers][::Concepts::Pointers] for more on pointer tags.
     }
     namespace export *
     namespace ensemble create

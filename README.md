@@ -87,6 +87,8 @@ from C functions.
 
 - Support arrays of `string` and `unistring` types.
 
+- New command `pointer make`.
+
 ## Changes in 1.0b3
 
 - **Incompatibility** `cffi::dyncall::Library` class renamed to 

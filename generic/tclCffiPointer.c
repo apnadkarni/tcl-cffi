@@ -28,18 +28,44 @@ CffiPointerObjCmd(ClientData cdata,
         {"counted", 1, 1, "POINTER", NULL},
         {"dispose", 1, 1, "POINTER", NULL},
         {"isnull", 1, 1, "POINTER", NULL},
+        {"make", 1, 2, "ADDRESS ?TAG?", NULL},
         {NULL}
     };
-    enum cmdIndex { ADDRESS, LIST, CHECK, ISVALID, TAG, SAFE, COUNTED, DISPOSE, ISNULL };
+    enum cmdIndex {
+        ADDRESS,
+        LIST,
+        CHECK,
+        ISVALID,
+        TAG,
+        SAFE,
+        COUNTED,
+        DISPOSE,
+        ISNULL,
+        MAKE
+    };
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
 
-    /* LIST does not take a pointer arg like the others */
-    if (cmdIndex == LIST) {
-        Tcl_Obj *resultObj;
-        resultObj = Tclh_PointerEnumerate(ip, objc == 3 ? objv[2] : NULL);
-        Tcl_SetObjResult(ip, resultObj);
+    /* LIST and MAKE do not take a pointer arg like the others */
+    switch (cmdIndex) {
+    case LIST:
+        Tcl_SetObjResult(ip,
+                         Tclh_PointerEnumerate(ip, objc == 3 ? objv[2] : NULL));
         return TCL_OK;
+    case MAKE:
+        CHECK(Tclh_ObjToAddress(ip, objv[2], &pv));
+        tagObj = NULL;
+        if (objc >= 4 && pv != NULL) {
+            int len;
+            /* Tcl_GetCharLength will shimmer so GetStringFromObj */
+            (void) Tcl_GetStringFromObj(objv[3], &len);
+            if (len != 0)
+                tagObj = Tclh_NsQualifyNameObj(ip, objv[3], NULL);
+        }
+        Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, tagObj));
+        return TCL_OK;
+    default:
+        break;
     }
 
     ret = Tclh_PointerUnwrap(ip, objv[2], &pv, NULL);
