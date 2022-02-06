@@ -1071,35 +1071,36 @@ namespace eval Concepts {
 
         C functions generally indicate errors through their return value.
         Details of the error are either in the return value itself or intended
-        to be retrieved by some other mechanism.
+        to be retrieved by some other mechanism such as `errno`.
 
-        One way to deal with this at the script level is to simply check
-        the return value (generally an integer or pointer) and take appropriate
+        One way to deal with this at the script level is to simply check the
+        return value (generally an integer or pointer) and take appropriate
         action. This has two downsides. The first is that error conditions in
         Tcl are almost always signalled by raising an exception rather than
-        through a return status mechanism. The second, perhaps more important,
-        downside is that the detail behind the error, stored in `errno` or
-        available via `GetLastError()` on Windows, is often lost by the time the
+        through a return status mechanism so checking status on every call is
+        not very idiomatic. The second, perhaps more important, downside is that
+        the detail behind the error, stored in `errno` or available via
+        `GetLastError()` on Windows, is more often than not lost by the time the
         Tcl interpreter returns to the script level.
 
         #### Error annotations
 
         Two additional sets of type annotations are provided to solve these
         issues. The first set of annotations is used to define the error check
-        conditions to be applied to function return values. The
-        second set is used to specify how the error detail is to be retrieved.
+        conditions to be applied to function return values. The second set is
+        used to specify how the error detail is to be retrieved.
 
         The following annotations for error checking can be used for
-        **integer** return values.
+        **integer** return types.
 
         `zero` - The value must be zero.
         `nonzero` - The value must be non-zero.
         `nonnegative` - The value must be zero or greater.
-        `positive` - The value must be greater than 0.
+        `positive` - The value must be greater than zero.
 
-        At most one of the above annotations can be attached to a return type.
-        The function value is then checked whether the corresponding
-        condition is met. Failure to do so is treated as an error condition.
+        The return value from every call to the function is then checked as to
+        whether it satisfies the condition. Failure to do so is treated as an
+        error condition.
 
         An error condition is also generated when a function returning
         a pointer returns a null pointer. This is also true for `string` and
@@ -1236,17 +1237,114 @@ namespace eval Concepts {
 
         ## Callbacks
 
-        ````
-        cffi::prototype function ftw_callback int {fpath string sbP {pointer.stat byref} typeflag int}
-        libc function ftw int {dirpath string fn pointer.ftw_callback nopenfd int}
-        proc print_name {fpath pSb typeflag} {puts $fpath:$typeflag; return 0}
-        set cb [cffi::callback ftw_callback print_name -1]
+        Some C functions take a parameter that is a pointer to a function that is
+        then invoked by the called outer function, often in iterative fashion passing
+        elements of some data set in turn. Wrapping such functions involves the
+        following steps:
 
-        cffi::Wrapper create libc libc.so.6
-        ftw [pwd] $cb 5
+        - Definition of a [prototype][Prototypes and function pointers] as
+        described in the previous section. This must match the declaration of
+        the callback function. There are certain restrictions placed on the
+        parameter types that can be used with callbacks. These are listed in the
+        [::cffi::callback] reference.
+        - Definition of the outer function with the callback parameter type set
+        as a pointer to the function
+        - Creation of the callback function pointer via the [::cffi::callback]
+        command that wraps a Tcl command that should be invoked as the callback
+        - Invoking the outer function
+        - Freeing the callback function pointer with [::cffi::callback_free] when
+        no longer needed. Note it may be used multiple times before freeing.
 
- 
+        Currently callbacks are only supported with the `libffi` backend.
+
+        **Warning:** CFFI callbacks can only be used when the called function
+        invokes them before returning. They are not suitable in cases where
+        the callback is called at a later time after the function returns. Doing
+        so will likely result in a crash.
+
+        Use of callbacks is illustrated below for the `ftw` function available
+        on some platforms to iterate through files and directories. The C
+        declaration of the function is
+
+        ```
+        int ftw(const char *dirpath,
+                int (*fn) (const char *fpath, const struct stat *sb,
+                           int typeflag),
+                int nopenfd);
+        ```
+
+        The second argument `fn` to this function is a pointer to a callback
+        function that will be called for every file under the directory
+        specified by the first argument.
+
+        To wrap this function with CFFI, first a prototype is defined that
+        matches the declaration for the `fn` parameter.
+
         ````
+        % cffi::prototype function ftw_callback int {fpath string sbP {pointer.stat unsafe} typeflag int}
+        ::ftw_callback
+        ````
+
+        Then the `ftw` function is itself wrapped with the callback argument
+        referencing the prototype.
+
+        ````
+        % cffi::Wrapper create libc libc.so.6
+        ::libc
+        % libc function ftw int {dirpath string fn pointer.ftw_callback nopenfd int}
+        ::ftw
+        ````
+
+        Next the callback function pointer is created.
+
+        ````
+        proc print_name {fpath pSb typeflag} {puts $fpath; return 0}
+        % set cb [cffi::callback ftw_callback print_name -1]
+        0x00007f1a56661010^::ftw_callback
+        ````
+
+        The `ftw` function can then be invoked with this callback function pointer.
+
+        ````
+        % ftw [pwd] $cb 5
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64/cffitest.so
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64/config.log
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64/config.status
+        ...output elided...
+        ````
+
+        Finally, the callback pointer can be freed assuming we will not need
+        it again.
+
+        ````
+        % cffi::callback_free $cb
+        ````
+
+        It is useful to know that the callback command is invoked in the Tcl
+        context from which the outer function was invoked. For example, if we
+        wanted to collect file names instead of printing them out, we could
+        collect them in a variable.
+
+        ````
+        % proc collect_names {namevar fpath pSb typeflag} {
+            upvar 1 $namevar names
+            lappend names $fpath
+            return 0
+        }
+        % set files {}
+        % set cb [cffi::callback ftw_callback [list collect_names files] -1]
+        0x00007f1a56661080^::ftw_callback
+        % ftw [pwd] $cb 5
+        0
+        % set files
+        /mnt/d/src/tcl-cffi/build-ubuntu-x64 ...
+        ````
+
+        The above example also shows that the second argument to `cffi::callback`
+        is a command prefix, not necessarily a single-word command, to which
+        the arguments from the callback invocation itself are appended.
+
     }
 }
 

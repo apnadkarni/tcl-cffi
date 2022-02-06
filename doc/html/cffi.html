@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0b3)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0b4)</a>
 
 
             <div id="ruffButtonBar">
@@ -26,10 +26,11 @@
 <li>Invoking the wrapped commands as any other Tcl commands.</li>
 </ul>
 <p class='ruff'>This page provides an introduction to the package. Details are described in</p>
-<ul class='ruff'>
-<li>The <a href="cffi-Concepts.html#::Concepts" title="Concepts" class='ruff_cmd'>Concepts</a> page, which describes how C level constructs are translated to the Tcl script level; for example, type definitions, memory management, pointers etc.</li>
-<li>The <a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a> page which contains reference documentation for the package.</li>
-</ul>
+<table class='ruff_deflist'>
+<tr><td><a href="cffi-Concepts.html#::Concepts" title="Concepts" class='ruff_cmd'>Concepts</a></td><td>Describes how C level constructs translate to the Tcl script level.</td></tr>
+<tr><td><a href="cffi-Cookbook.html#::Cookbook" title="Cookbook" class='ruff_cmd'>Cookbook</a></td><td>Provides recipes for converting C declarations to <code>cffi</code>.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a></td><td>Reference documentation for commands in the <code>::cffi</code> namespace.</td></tr>
+</table>
 <p class='ruff'>Some tutorial material is available at <a href="https://www.magicsplat.com/blog/tags/cffi/" >magicsplat</a> and the <a href="https://github.com/apnadkarni/tcl-cffi/tree/main/examples" >examples</a> directory in the repository.</p>
 <h2 class='ruff'><a name='Downloads'></a>Downloads<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
@@ -42,7 +43,7 @@
 <li><a href="http://sourceware.org/libffi/" ><code>libffi</code></a></li>
 <li><a href="https://dyncall.org" ><code>dyncall</code></a></li>
 </ul>
-<p class='ruff'>The selection of the back end library to use is made at build time as described in the build instructions.</p>
+<p class='ruff'>The selection of the back end library to use is made at build time as described in the build instructions. Note the <code>dyncall</code> backend has some <a href="cffi.html#Limitations" title="limitations" >limitations</a> compared to <code>libffi</code>.</p>
 <h2 class='ruff'><a name='Quick start'></a>Quick start<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>The following examples illustrate basic usage of the package. Most examples use Windows as they have standard system libraries in known locations. The usage is identical on other platforms.</p>
@@ -51,7 +52,7 @@
 <p class='ruff'>After loading the package, the <code>user32</code> system DLL which contains the functions of interest is loaded.</p>
 <pre class='ruff'>
 % package require cffi
-1.0b3
+1.0b4
 % cffi::Wrapper create user32 [file join $env(windir) system32 user32.dll]
 ::user32
 </pre>
@@ -89,7 +90,7 @@ int GetWindowRect(HWND hWnd, RECT *lpRect);
 <pre class='ruff'>
 % user32 stdcall GetWindowRect int {hwnd pointer.HWND rect {struct.RECT out}}
 </pre>
-<p class='ruff'>The parameter list for a function follows the same form as for structs, an alternating list of parameter names and type declarations. The name of the parameter is irrelevant for invocation but important for error handling.</p>
+<p class='ruff'>The parameter list for a function follows the same form as for structs, an alternating list of parameter names and type declarations.</p>
 <p class='ruff'>Note how the type for the second parameter, <code>rect</code>, is specified. In general, type declarations consist of a type optionally followed by a list of annotations that serve multiple purposes. In this case <code>struct.RECT</code> specifies the data type while <code>out</code> is an annotation that indicates it is an output parameter for the function and thus to be passed by reference. At the script level, the parameter must then be a <strong>variable name</strong>, and not a <strong>value</strong>, into which the output can be stored.</p>
 <p class='ruff'>The function is called as:</p>
 <pre class='ruff'>
@@ -98,10 +99,10 @@ int GetWindowRect(HWND hWnd, RECT *lpRect);
 % set dimensions
 left 0 top 0 right 1920 bottom 1080
 </pre>
-<p class='ruff'>As seen above, <code>struct</code> values are automatically decoded into dictionaries with keys corresponding to struct field names. As we see later, we could have also selected to receive structs as binary values in their native form.</p>
+<p class='ruff'>As seen above, <code>struct</code> values are automatically decoded into dictionaries with keys corresponding to struct field names. We could have also selected to receive structs as binary values in their native form as shown further on.</p>
 <h3 class='ruff'><a name='Strings and binaries'></a>Strings and binaries<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>The <code>char *</code> type in C is more often than not used for null-terminated strings. These may be dealt with in the same fashion as pointers at the script level as discussed in <a href="cffi-Concepts.html#::Concepts-Pointers" title="Pointers" >Pointers</a> further on. However, in most cases it is more convenient to use the <code>string</code> and <code>chars</code> types. The difference between the two is that the former corresponds to a C <code>char *</code> pointer while the latter corresponds to a C <code>char[N]</code> array. When passed to a function, of course both are passed as <code>char *</code> pointers but the latter is more convenient for output buffers where the parameter corresponds to a output buffer of some maximum size. The former on the other hand is convenient for input parameters where the size is of no concern.</p>
+<p class='ruff'>The <code>char *</code> type in C is more often than not used for null-terminated strings. These may be dealt with in the same fashion as pointers at the script level as discussed in <a href="cffi-Concepts.html#::Concepts-Pointers" title="Pointers" >Pointers</a>. However, in most cases it is more convenient to use the <code>string</code> and <code>chars</code> types. The difference between the two is that the former corresponds to a C <code>char *</code> pointer while the latter corresponds to a C <code>char[N]</code> array. When passed to a function, of course both are passed as <code>char *</code> pointers but the latter is more convenient for output buffers where the parameter corresponds to a output buffer of some maximum size. The former on the other hand is convenient for input parameters where the size is of no concern.</p>
 <p class='ruff'>The following fragment illustrates their use.</p>
 <pre class='ruff'>
 % cffi::Wrapper create kernel kernel32.dll
@@ -112,7 +113,6 @@ left 0 top 0 right 1920 bottom 1080
 }
 </pre>
 <p class='ruff'>In the above declaration the <code>path</code> argument is declared as an array whose size is given by another parameter <code>nchars</code> instead of an integer constant. This makes for fewer errors in calling C functions which expect a size and pointer combination of parameters where a larger size than the declared array size may be mistakenly passed.</p>
-<p class='ruff'>As an aside, the <code>stdcalls</code> method above to define multiple functions in a single call. There is also a corresponding <code>functions</code> method.</p>
 <p class='ruff'>The above functions can then be simply invoked.</p>
 <pre class='ruff'>
 % GetCurrentDirectoryA 512 buffer
@@ -147,7 +147,7 @@ D:/src/tcl-cffi/win/Release_AMD64_VC1916
 <li>first, caller has to specifically check for errors,</li>
 <li>second, and more important, by the time a secondary call is made to retrieve <code>errno</code> etc. the originally error is likely to have been overwritten.</li>
 </ul>
-<p class='ruff'>To deal with the first, a return type can be annotated with conditions that specify expected return values. Since <code>SetCurrentDirectory</code> returns a non-zero value on success, the function return type may be annotated with <code>nonzero</code>:</p>
+<p class='ruff'>To deal with the first, a return type can be annotated with conditions that specify expected return values. Since <code>SetCurrentDirectory</code> returns a non-zero value on success, the function return type may be annotated with <code>nonzero</code>. Our previous definition of <code>SetCurrentDirectoryA</code> can instead be written as</p>
 <pre class='ruff'>
 % kernel stdcall SetCurrentDirectoryA {int nonzero} {path string}
 </pre>
@@ -177,7 +177,7 @@ cffi WINERROR {The system cannot find the file specified. }
 </ul>
 <p class='ruff'>Note a pointer tag is <strong>not</strong> the same as a data type. For example, you may have a single C structure type <code>XY</code> containing two numerical fields. You can choose to tag pointers to the structure with two different tags, <code>Point</code> and <code>Dimensions</code> depending on whether it is used as co-ordinates of a point or as width and height dimensions. The two tags will be treated as different.</p>
 <p class='ruff'>The examples below repeat the previous ones, but this time using pointers in place of structs and strings.</p>
-<p class='ruff'>First, define the call to <code>GetWindowRect</code> using pointers. Note we are renaming the function as <code>GetWindowRectAsPointer</code> so distinguish from our previous definition.</p>
+<p class='ruff'>First, define the call to <code>GetWindowRect</code> using pointers. Note we are renaming the function as <code>GetWindowRectAsPointer</code> so as to distinguish from our previous definition.</p>
 <pre class='ruff'>
 % user32 stdcall {GetWindowRect GetWindowRectAsPointer} int {hwnd pointer.HWND rect pointer.RECT}
 </pre>
@@ -207,7 +207,7 @@ left 0 top 0 right 1920 bottom 1080
 % cffi::memory free $praw
 </pre>
 <p class='ruff'>In the above fragment, <code>cffi::memory allocate</code> is used to allocate memory tagged as <code>RECT</code>. Note that this does <strong>not</strong> require that the <strong>struct</strong> <code>RECT</code> have been previously defined. The <code>cffi::memory tobinary</code> command is then used to convert the allocated memory content to a Tcl binary string.</p>
-<p class='ruff'>Needless to say, the use of <code>struct</code> definitions is to be preferred to this raw memory access for convenience and safety reasons. Still, there are cases, for example variable length structures in memory, where this is required.</p>
+<p class='ruff'>The use of <code>struct</code> definitions is to be preferred to this raw memory access for convenience and safety reasons. Still, there are cases, for example variable length structures in memory, where this is required.</p>
 <p class='ruff'>As an example of the protection against errors offered by pointer tags, here is an attempt to retrieve the window dimensions where the arguments are passed in the wrong order.</p>
 <pre class='ruff'>
 % GetWindowRect $prect $win
@@ -283,20 +283,23 @@ kernel stdcall HeapDestroy {BOOL nonzero lasterror} {heapPtr {pointer.HEAP unsaf
 kernel stdcall LoadLibraryA pointer.HMODULE {path string}
 kernel stdcall FreeLibrary BOOL {libhandle {pointer.HMODULE dispose}}
 </pre>
-<p class='ruff'>When multiple calls are made to this function, it returns the <em>same</em> pointer while keeping an internal reference count. However, registered pointers are expected to be unique by default and the following sequence of calls fails.</p>
+<p class='ruff'>When multiple calls are made to <code>LoadLibraryA</code>, it returns the <em>same</em> pointer while keeping an internal reference count. The expectation is for the application to make the same number of calls to <code>FreeLibrary</code>. However, the following sequence of calls fails because the first call to <code>FreeLibrary</code> unregisters the pointer resulting in failure of the second call to <code>FreeLibrary</code>.</p>
 <pre class='ruff'>
 % set libptr [LoadLibraryA advapi32.dll]
-0x00007FFDD0000000^HMODULE
+0x00007ff8f4ba0000^::HMODULE
 % set libptr [LoadLibraryA advapi32.dll]
-Registered pointer already exists. 
+0x00007ff8f4ba0000^::HMODULE
+% FreeLibrary $libptr
+1
+% FreeLibrary $libptr
+Pointer 0x00007ff8f4ba0000^::HMODULE is not registered.
 </pre>
-<p class='ruff'>The registered pointer needs to be freed first with <code>FreeLibrary</code> before another call to load the same library is made. This artificial limitation on the use of <code>LoadLibrary</code> can be worked around using the <code>unsafe</code> attribute discussed earlier. However, that would mean there could be more calls made to <code>FreeLibrary</code> than to <code>LoadLibraryA</code> resulting in whatever Windows decided was an appropriate failure mode, most likely random crashes.</p>
 <p class='ruff'>The <code>counted</code> attribute is provided for this use case. When specified, the pointer is still registered but permits multiple registrations and a corresponding number of disposals. To illustrate,</p>
 <pre class='ruff'>
 kernel stdcall LoadLibraryA {pointer.HMODULE counted} {path string}
 kernel stdcall FreeLibrary BOOL {libhandle {pointer.HMODULE dispose}}
 </pre>
-<p class='ruff'>Now multiple registrations are allowed which stay valid until a corresponding number of disposals are done.</p>
+<p class='ruff'>Now multiple registrations are allowed which stay valid until a corresponding number of disposals are done. An additional attempt to free will fail as desired.</p>
 <pre class='ruff'>
 % set libptr [LoadLibraryA advapi32.dll]
 0x00007FFDD0000000^HMODULE
@@ -334,6 +337,9 @@ kernel stdcalls {
 }
 </pre>
 <p class='ruff'>As a further convenience, the <a href="cffi-cffi.html#::cffi::alias load" title="::cffi::alias load" class='ruff_cmd'>::cffi::alias load</a> command defines commonly useful typedefs including cross-platform ones such as <code>size_t</code> as well as platform-specific ones such as <code>HANDLE</code>, <code>DWORD</code> etc. on Windows.</p>
+<h3 class='ruff'><a name='Memory utilities'></a>Memory utilities<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>There are times when an application is forced to drop down to raw C pointer and memory manipulation. The <code>memory</code> and <code>pointer</code> command ensembles implement functionality useful for this purpose. See the reference documentation for a description.</p>
 <h3 class='ruff'><a name='Introspection'></a>Introspection<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The package includes a <code>help</code> command ensemble that is useful during interactive development. The <a href="cffi-cffi.html#::cffi::help function" title="::cffi::help function" class='ruff_cmd'>::cffi::help function</a> command describes the syntax for a command wrapping a C function.</p>
@@ -350,14 +356,18 @@ HeapCreate HeapDestroy
 <div style='clear:both;'></div>
 <p class='ruff'>The current version has the following limitations:</p>
 <ul class='ruff'>
-<li>Structs cannot be passed or returned by value, only by reference, if using the <code>dyncall</code> back end. The <code>libffi</code> back end does not have this limitation.</li>
-<li>Callbacks into Tcl from C functions are not implemented.</li>
 <li>C functions with a variable number of arguments are not implemented.</li>
+</ul>
+<p class='ruff'>In addition, the <code>dyncall</code> backend has the following additional limitations:</p>
+<ul class='ruff'>
+<li>Structs can only be passed by reference, not value.</li>
+<li>Callbacks into Tcl from C functions are not implemented.</li>
 </ul>
 </main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a class='ruff-highlight' style='padding-top:2px;' href='cffi.html'>Start page</a></li>
 <li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>
 <hr>
 <li class='ruff-toc1'><a href='cffi-Concepts.html'>Concepts</a></li>
+<li class='ruff-toc1'><a href='cffi-Cookbook.html'>Cookbook</a></li>
 <li class='ruff-toc1'><a href='cffi-cffi.html'>cffi</a></li>
-<hr><li class='ruff-toc1'><a href='#Getting started'>Getting started</a></li><li class='ruff-toc2'><a href='#Overview'>Overview</a></li><li class='ruff-toc2'><a href='#Downloads'>Downloads</a></li><li class='ruff-toc2'><a href='#Installation'>Installation</a></li><li class='ruff-toc2'><a href='#Quick start'>Quick start</a></li><li class='ruff-toc3'><a href='#Basic calls'>Basic calls</a></li><li class='ruff-toc3'><a href='#Structures'>Structures</a></li><li class='ruff-toc3'><a href='#Strings and binaries'>Strings and binaries</a></li><li class='ruff-toc3'><a href='#Error checking'>Error checking</a></li><li class='ruff-toc3'><a href='#Pointers and memory'>Pointers and memory</a></li><li class='ruff-toc3'><a href='#Type aliases'>Type aliases</a></li><li class='ruff-toc3'><a href='#Introspection'>Introspection</a></li><li class='ruff-toc3'><a href='#Limitations'>Limitations</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
+<hr><li class='ruff-toc1'><a href='#Getting started'>Getting started</a></li><li class='ruff-toc2'><a href='#Overview'>Overview</a></li><li class='ruff-toc2'><a href='#Downloads'>Downloads</a></li><li class='ruff-toc2'><a href='#Installation'>Installation</a></li><li class='ruff-toc2'><a href='#Quick start'>Quick start</a></li><li class='ruff-toc3'><a href='#Basic calls'>Basic calls</a></li><li class='ruff-toc3'><a href='#Structures'>Structures</a></li><li class='ruff-toc3'><a href='#Strings and binaries'>Strings and binaries</a></li><li class='ruff-toc3'><a href='#Error checking'>Error checking</a></li><li class='ruff-toc3'><a href='#Pointers and memory'>Pointers and memory</a></li><li class='ruff-toc3'><a href='#Type aliases'>Type aliases</a></li><li class='ruff-toc3'><a href='#Memory utilities'>Memory utilities</a></li><li class='ruff-toc3'><a href='#Introspection'>Introspection</a></li><li class='ruff-toc3'><a href='#Limitations'>Limitations</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>

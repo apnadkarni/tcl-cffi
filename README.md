@@ -38,7 +38,31 @@ Limitations in the current version include
 
 ## Changes in 1.0b4
 
-- **Incompatibility** `memory set` command renamed to `memory fill`.
+- Added `callback` and `callback_free` commands for supporting callbacks
+from C functions.
+
+- Program element names are now scoped based on namespace at definition time.
+
+- New methods `set` and `get` for `Struct` instances to store and retrieve
+fields in native structs in memory.
+
+- New method `fromnative!` method for `Struct` instances.
+
+- New method `fieldpointer` to retrieve the pointer to a field in a
+native struct.
+
+- Support `string` and `unistring` types for struct fields.
+
+- Support default values and `-clear` option for `Struct` fields.
+
+- Support `enum` and `bitmask` annotations for struct field types as for
+function parameters.
+
+- Allow enum literals in type declarations in addition to defined enums.
+
+- New commands `enum clear` and `enum flags`.
+
+- New command `alias clear`.
 
 - The `memory allocate` command now accepts a type declaration for specifying
 allocation size.
@@ -46,48 +70,24 @@ allocation size.
 - New commands `memory set`, `memory set!`, `memory get` and `memory get!` 
 to store and retrieve typed values in native form.
 
-- **Incompatibility** The format and content of type information returned by
-`type info` has changed.
-
 - Zero size dynamic arrays are passed as NULL pointers.
-
-- New methods `set` and `get` for `Struct` instances to store and retrieve
-fields in native structs in memory.
-
-- New method `fieldpointer` to retrieve the pointer to a field in a
-native struct.
 
 - The `byref` annotation is now permitted on return types to implicitly
 dereference pointers returned by functions.
 
-- New commands `enum clear` and `alias clear`.
-
-- **Incompatibility** Commands that accept patterns only treat last component
-in a program element name as a pattern.
-
-- New command `enum flags` to define enums as bit masks.
-
-- Program element names are now scoped based on namespace at definition time.
-
-- Allow enum literals in type declarations in addition to defined enums.
-
-- Added `fromnative!` method for `Struct` instances.
-
 - New command `limits` to retrieve range of integer types.
-
-- Support `enum` and `bitmask` annotations for struct field types as for
-function parameters.
-
-- Added `callback` and `callback_free` commands for supporting callbacks
-from C functions.
-
-- Support `string`, `unistring` and `binary` types for struct fields.
-
-- Support default values and `-clear` option for `Struct` fields.
 
 - Support arrays of `string` and `unistring` types.
 
 - New command `pointer make`.
+
+- **Incompatibility** `memory set` command renamed to `memory fill`.
+
+- **Incompatibility** The format and content of type information returned by
+`type info` has changed.
+
+- **Incompatibility** Commands that accept patterns only treat last component
+in a program element name as a pattern.
 
 ## Changes in 1.0b3
 
