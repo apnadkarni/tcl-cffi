@@ -276,7 +276,7 @@ namespace eval ${NS}::test {
         testDll function callback_int2 int {i int j int fn pointer.proto}
     } -cleanup {
         unset fnptr
-    } -body {
+    } -constraints libffi -body {
         proc cb {i j} {
             upvar 1 fnptr fnptr
             cffi::callback_free $fnptr; # Should raise exception
@@ -294,7 +294,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::callback_free $fnptr
         unset fnptr
-    } -body {
+    } -constraints libffi -body {
         proc cb {total n} {
             upvar 1 fnptr fnptr
             if {$n <= 0} {return $total}
@@ -312,7 +312,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::callback_free $fnptr
         unset fnptr
-    } -body {
+    } -constraints libffi -body {
         proc cb {i j} {
             rename callback_int2 ""
             return [incr i $j]

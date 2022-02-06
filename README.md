@@ -1,8 +1,7 @@
 # Tcl cffi package
 
-This is the source code for the Tcl `cffi` package which permits calling C
-functions in shared libraries from within Tcl scripts via either the `libffi` or
-`dyncall` open source libraries.
+The Tcl `cffi` package permits calling C functions in shared libraries from
+within Tcl scripts via either the `libffi` or `dyncall` open source libraries.
 
 The package source repository is at https://github.com/apnadkarni/tcl-cffi.
 
@@ -20,7 +19,7 @@ or source distribution.
 
 ## About the package
 
-Distinguishing features of the package are
+Major features of the package are
 
 - Implicit conversions of numerics, strings, structs and arrays
 - Safety mechanisms for pointers
@@ -34,7 +33,6 @@ Distinguishing features of the package are
 Limitations in the current version include
 
 - No support of functions taking variable number of arguments
-- No support for callbacks from C code
 
 ## Changes in 1.0b4
 
