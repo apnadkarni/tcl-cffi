@@ -1038,6 +1038,82 @@ namespace eval cffi::test {
 
 
     ###
+    # struct new
+    testnumargs struct-new "::TestStruct new" "INITIALIZER" ""
+    test struct-new-0 "struct new" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+    } -cleanup {
+        S destroy
+    } -body {
+        set p [S new {c 1 i 2 s 3}]
+        list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
+    } -result [list ::S 1 {c 1 i 2 s 3} {}]
+
+    test struct-new-1 "struct new different field order" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+    } -cleanup {
+        S free $p
+        rename S ""
+    } -body {
+        set p [S new {i 2 s 3 c 1}]
+        S fromnative $p
+    } -result {c 1 i 2 s 3}
+
+    test struct-new-2 "struct new with test struct" -setup {
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+        getTestStruct sval
+    } -cleanup {
+        ::TestStruct free $p
+    } -body {
+        set p [::TestStruct new $sval]
+        checkTestStruct [::TestStruct fromnative $p]
+    } -result ""
+
+    test struct-new-error-0 "struct new bad value" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S new {c a i 0 s 0}
+    } -result {expected integer but got "a"} -returnCodes error
+
+    test struct-new-error-1 "struct new missing field" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S new {i 0 s 0}
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+
+    test struct-new-error-2 "struct new chars overflow" -setup {
+        cffi::Struct create ::S {c chars[3]}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S new {c abcd}
+    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size.} -returnCodes error
+
+    test struct-new-error-6 "struct new unichars overflow" -setup {
+        cffi::Struct create ::S {c unichars[3]}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S new {c abcd}
+    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size.} -returnCodes error
+
+    test struct-new-error-7 "struct new bytes overflow" -setup {
+        cffi::Struct create ::S {c bytes[3]}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S new {c abcd}
+    } -result {Invalid value. Byte array length is greater than specified maximum buffer size.} -returnCodes error
+
+    test struct-new-error-8 "struct new - struct with strings" -body {
+        StructWithStrings new [makeStructWithStrings]
+    } -result {Invalid value. string type not supported in this struct context.} -returnCodes error
+
+    ###
     # Bug fixes
 
     test struct-bug-53-0 "Check that command is actually a struct" -body {

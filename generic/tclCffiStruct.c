@@ -534,9 +534,9 @@ error_return:
  */
 static CffiResult
 CffiStructAllocateCmd(Tcl_Interp *ip,
-               int objc,
-               Tcl_Obj *const objv[],
-               CffiStructCmdCtx *structCtxP)
+                      int objc,
+                      Tcl_Obj *const objv[],
+                      CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
     Tcl_Obj *resultObj;
@@ -559,6 +559,51 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     }
     Tcl_SetObjResult(ip, resultObj);
     return TCL_OK;
+}
+
+/* Function: CffiStructNewCmd
+ * Allocates memory for a struct and initializes it
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[].
+ * objv - argument array.
+ * scructCtxP - pointer to struct context
+ *
+ * obj[2] - initializer for the struct
+ *
+ * Returns:
+ * *TCL_OK* on success with the wrapped pointer as the interpreter result.
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructNewCmd(Tcl_Interp *ip,
+                 int objc,
+                 Tcl_Obj *const objv[],
+                 CffiStructCmdCtx *structCtxP)
+{
+    CffiStruct *structP = structCtxP->structP;
+    Tcl_Obj *resultObj;
+    void *resultP;
+    int ret;
+
+    CFFI_ASSERT(objc == 3);
+    resultP = ckalloc(structP->size);
+    ret = CffiStructFromObj(ip,
+                            structP,
+                            objv[2],
+                            0,
+                            resultP,
+                            NULL);
+    if (ret == TCL_OK) {
+        ret = Tclh_PointerRegister(ip, resultP, structP->name, &resultObj);
+        if (ret == TCL_OK) {
+            Tcl_SetObjResult(ip, resultObj);
+            return TCL_OK;
+        }
+    }
+    ckfree(resultP);
+    return TCL_ERROR;
 }
 
 
@@ -1157,13 +1202,14 @@ CffiStructInstanceCmd(ClientData cdata,
         {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
         {"fields", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructFieldsCmd},
         {"get", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetCmd},
-        {"set", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
         {"frombinary", 1, 1, "BINARY", CffiStructFromBinaryCmd},
         {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},
         {"fromnative!", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeUnsafeCmd},
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
+        {"new", 1, 1, "INITIALIZER", CffiStructNewCmd},
+        {"set", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
         {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
         {NULL}
