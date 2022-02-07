@@ -908,10 +908,14 @@ Tclh_PointerObjVerify(Tcl_Interp *interp,
 
     tclResult = Tclh_PointerUnwrap(interp, objP, &pv, tag);
     if (tclResult == TCL_OK) {
-        tclResult = Tclh_PointerVerify(interp, pv, tag);
-        if (tclResult == TCL_OK) {
-            if (pointerP)
-                *pointerP = pv;
+        if (pv == NULL)
+            tclResult = Tclh_ErrorInvalidValue(interp, NULL, "Pointer is NULL.");
+        else {
+            tclResult = Tclh_PointerVerify(interp, pv, tag);
+            if (tclResult == TCL_OK) {
+                if (pointerP)
+                    *pointerP = pv;
+            }
         }
     }
     return tclResult;

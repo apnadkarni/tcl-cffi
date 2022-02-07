@@ -120,7 +120,7 @@ namespace eval cffi::test {
     } -result {1.0 2.0 3.0}
     test memory-tobinary-error-0 "tobinary null pointer" -body {
         cffi::memory tobinary 0^ 1
-    } -result {Pointer 0x0+\^ is not registered.} -returnCodes error -match regexp
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tobinary!-error-0 "tobinary! null pointer" -body {
         cffi::memory tobinary! 0^ 1
     } -result {Pointer is NULL.} -returnCodes error
@@ -212,7 +212,7 @@ namespace eval cffi::test {
     }
     test memory-tostring-error-0 "tostring null pointer" -body {
         cffi::memory tostring 0^ 1
-    } -result {Pointer 0x0+\^ is not registered.} -returnCodes error -match regexp
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tostring!-error-0 "tostring! null pointer" -body {
         cffi::memory tostring! 0^ 1
     } -result {Pointer is NULL.} -returnCodes error
@@ -302,13 +302,13 @@ namespace eval cffi::test {
     foreach type [array names testValues] {
         test memory-set-$type-null-0 "set $type NULL" -body {
             cffi::memory set NULL $type $testValues($type)
-        } -result "Pointer [makeptr 0] is not registered." -returnCodes error
+        } -result "Invalid value. Pointer is NULL." -returnCodes error
         test memory-set-$type-unregistered-0 "set $type unregistered" -body {
             cffi::memory set [makeptr 1] $type $testValues($type)
         } -result "Pointer [makeptr 1] is not registered." -returnCodes error
         test memory-get-$type-null-0 "get $type NULL" -body {
             cffi::memory get NULL $type
-        } -result "Pointer [makeptr 0] is not registered." -returnCodes error
+        } -result "Invalid value. Pointer is NULL." -returnCodes error
         test memory-get-$type-unregistered-0 "get $type unregistered" -body {
             cffi::memory get [makeptr 1] $type
         } -result "Pointer [makeptr 1] is not registered." -returnCodes error

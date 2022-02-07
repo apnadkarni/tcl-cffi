@@ -30,12 +30,23 @@ oo::class create ${NS}::Struct {
         # Allocates memory for one or more C structs.
         #   count - number of structs to allocate
         #
-        # The returned memory is not initialized.
+        # The allocated memory is not initialized even if the struct definition
+        # includes the `-clear` option.
         #
         # It must be freed by calling the [free] method.
         #
         # Returns a safe pointer to the allocated memory tagged with the
         # struct name.
+    }
+    method fields {pointer fieldnames {index 0}} {
+        # Retrieve values of multiple fields from a native struct in memory.
+        #  pointer - pointer to memory allocated for the C struct or array. Must be
+        #    a safe pointer tagged with the struct name.
+        #  fieldnames - list of field names
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
+        #
+        # Returns a list of field values in the same order as $fieldnames
     }
     method fromnative {pointer {index 0}} {
         # Decodes native C struct(s) in memory into a Tcl dictionary.
@@ -66,7 +77,7 @@ oo::class create ${NS}::Struct {
         # Returns a dictionary of the decoded struct.
     }
     method tonative {pointer initializer {index 0}} {
-        # Writes the Tcl dictionary representation of a C struc value to memory
+        # Writes the Tcl dictionary representation of a C struct value to memory
         # in native form.
         #  pointer - pointer to memory allocated for the C struct or array. Must be
         #    tagged with the struct name.

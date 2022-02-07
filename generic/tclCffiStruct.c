@@ -833,6 +833,90 @@ CffiStructSetCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Function: CffiStructFieldsCmd
+ * Gets the values of multiple fields from a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - pointer to memory holding the struct value
+ * objv[3] - list of field names
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructFieldsCmd(Tcl_Interp *ip,
+                    int objc,
+                    Tcl_Obj *const objv[],
+                    CffiStructCmdCtx *structCtxP)
+{
+    CffiStruct *structP = structCtxP->structP;
+    void *structAddr;
+    int nNames;
+    int ret;
+
+    /* S fieldpointer POINTER FIELDNAMES ?INDEX? */
+    CFFI_ASSERT(objc >= 4);
+
+    CHECK(Tclh_PointerObjVerify(ip, objv[2], &structAddr, structP->name));
+    if (objc > 4) {
+        /* Index into array of structs */
+        Tcl_WideInt wide;
+        CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
+        structAddr = (structP->size * (int)wide) + (char *)structAddr;
+    }
+
+    /*
+     * Just a little note here about not using Tcl_ListObjGetElements
+     * here - the fear is that it may shimmer in one of the calls.
+     * To guard against that we would need to cal Tcl_DuplicateObj.
+     * That is slower than the below approach since number of fields
+     * is likely quite small.
+     */
+    ret = Tcl_ListObjLength(ip, objv[3], &nNames);
+    if (ret == TCL_OK) {
+        int fieldIndex;
+        Tcl_Obj *valueObj;
+        Tcl_Obj *valuesObj;
+        int i;
+        valuesObj = Tcl_NewListObj(nNames, NULL);
+        for (i = 0; ret == TCL_OK && i < nNames; ++i) {
+            Tcl_Obj *nameObj;
+            Tcl_ListObjIndex(NULL, objv[3], i, &nameObj);
+            fieldIndex =
+                CffiStructFindField(ip, structP, Tcl_GetString(nameObj));
+            if (fieldIndex < 0)
+                ret = TCL_ERROR;
+            else {
+                ret = CffiNativeValueToObj(
+                    ip,
+                    &structP->fields[fieldIndex].fieldType,
+                    structP->fields[fieldIndex].offset + (char *)structAddr,
+                    0,
+                    structP->fields[fieldIndex].fieldType.dataType.arraySize,
+                    &valueObj);
+                if (ret == TCL_OK) {
+                    Tcl_ListObjAppendElement(NULL, valuesObj, valueObj);
+                }
+            }
+        }
+        if (ret == TCL_OK)
+            Tcl_SetObjResult(ip, valuesObj);
+        else
+            Tcl_DecrRefCount(valuesObj);
+    }
+    return ret;
+}
+
 
 /* Function: CffiStructFieldPointerCmd
  * Returns a pointer to a field in a native struct.
@@ -1071,6 +1155,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"describe", 0, 0, "", CffiStructDescribeCmd},
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
         {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
+        {"fields", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructFieldsCmd},
         {"get", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetCmd},
         {"set", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
