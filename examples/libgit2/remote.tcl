@@ -215,7 +215,7 @@ libgit2 functions {
         direction GIT_DIRECTION
         callbacks PREMOTE_CALLBACKS
         proxy_opts {struct.git_proxy_options byref}
-        pCustomHeaders PSTRARRAY
+        pCustomHeaders {PSTRARRAYIN nullok}
     }
     git_remote_ls GIT_ERROR_CODE {
         heads   {pointer out unsafe}
@@ -252,12 +252,12 @@ libgit2 functions {
     }
     git_remote_download GIT_ERROR_CODE {
         pRemote  PREMOTE
-        refspecs PSTRARRAY
+        refspecs {PSTRARRAYIN nullok}
         opts     {struct.git_fetch_options byref}
     }
     git_remote_upload GIT_ERROR_CODE {
         pRemote  PREMOTE
-        refspecs PSTRARRAY
+        refspecs {PSTRARRAYIN nullok}
         opts     {struct.git_push_options byref}
     }
     git_remote_update_tips GIT_ERROR_CODE {
@@ -269,7 +269,7 @@ libgit2 functions {
     }
     git_remote_fetch GIT_ERROR_CODE {
         pRemote        PREMOTE
-        refspecs       PSTRARRAY
+        refspecs       {PSTRARRAYIN nullok}
         opts           {struct.git_fetch_options byref}
         reflog_message {STRING nullok nullifempty}
     }
@@ -279,7 +279,7 @@ libgit2 functions {
     }
     git_remote_push GIT_ERROR_CODE {
         pRemote  PREMOTE
-        refspecs PSTRARRAY
+        refspecs {PSTRARRAYIN nullok}
         opts     {struct.git_push_options byref}
     }
     git_remote_stats {pointer.git_indexer_progress unsafe} {

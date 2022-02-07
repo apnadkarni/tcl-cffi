@@ -23,7 +23,7 @@
 
 libgit2 functions {
     git_worktree_list GIT_ERROR_CODE {
-        vstrarray PSTRARRAY
+        pStrArray PSTRARRAY
         pRepo     PREPOSITORY
     }
     git_worktree_lookup GIT_ERROR_CODE {

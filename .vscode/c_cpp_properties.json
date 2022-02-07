@@ -5,7 +5,6 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "d:/tcl/debug/x64/include",
-                "D:/src/vcpkg-export/ffi/installed/AMD64/include"
             ],
             "defines": [
                 "_DEBUG",
@@ -17,7 +16,7 @@
                 "PACKAGE_VERSION=\"0.1\"",
                 "TCLH_IMPL",
                 "TCLH_EMBEDDER=\"CFFI\"",
-                "CFFI_USE_DYNCALLX",
+                "CFFI_USE_LIBFFI",
                 "CFFI_USE_TCLLOAD"
             ],
             "windowsSdkVersion": "10.0.17763.0",

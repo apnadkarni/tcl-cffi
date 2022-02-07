@@ -20,7 +20,7 @@
 libgit2 functions {
     git_pathspec_new GIT_ERROR_CODE {
         ps    {PPATHSPEC out}
-        paths PSTRARRAY
+        paths PSTRARRAYIN
     }
     git_pathspec_free void {
         ps {PPATHSPEC dispose}

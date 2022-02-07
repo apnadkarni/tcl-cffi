@@ -61,7 +61,7 @@
     version  {uint {default 1}}
     show     GIT_STATUS_SHOW_T
     flags    GIT_STATUS_OPTS_T
-    pathspec PSTRARRAY
+    pathspec PSTRARRAYIN
     baseline PTREE
 }
 

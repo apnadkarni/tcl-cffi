@@ -163,7 +163,7 @@ libgit2 functions {
     }
     git_index_add GIT_ERROR_CODE {
         index PINDEX
-        entry struct.git_index_entry
+        entry {struct.git_index_entry byref}
     }
     git_index_entry_stage int {
         entry {struct.git_index_entry byref}
@@ -197,20 +197,20 @@ libgit2 functions {
     }
     git_index_add_all GIT_ERROR_CODE {
         index    PINDEX
-        pathspec PSTRARRAY
+        pathspec PSTRARRAYIN
         flags    uint
         callback pointer.git_index_matched_path_cb
         payload  CB_PAYLOAD
     }
     git_index_remove_all GIT_ERROR_CODE {
         index    PINDEX
-        pathspec PSTRARRAY
+        pathspec PSTRARRAYIN
         callback pointer.git_index_matched_path_cb
         payload  CB_PAYLOAD
     }
     git_index_update_all GIT_ERROR_CODE {
         index    PINDEX
-        pathspec PSTRARRAY
+        pathspec PSTRARRAYIN
         callback pointer.git_index_matched_path_cb
         payload  CB_PAYLOAD
     }

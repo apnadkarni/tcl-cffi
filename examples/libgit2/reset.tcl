@@ -26,6 +26,6 @@ libgit2 functions {
     git_reset_default GIT_ERROR_CODE {
         pRepo PREPOSITORY
         target POBJECT
-        pathspecs PSTRARRAY
+        pathspecs PSTRARRAYIN
     }
 }
