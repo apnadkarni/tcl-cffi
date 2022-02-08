@@ -109,6 +109,70 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+/* Function: CffiMemoryNewCmd
+ * Implements the *memory new* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[].
+ * objv - argument array.
+ * flags - unused
+ *
+ * The command arguments given in objv[] are
+ *
+ * objv[2] - type declaration
+ * objv[3] - initialization value
+ * objv[4] - optional tag for returned pointer
+ *
+ * Allocated memory using *ckalloc*, initializes it and returns a wrapped
+ * pointer to it.
+ *
+ * Returns:
+ * *TCL_OK* on success with wrapped safe pointer as interpreter result,
+ * *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
+                 int objc,
+                 Tcl_Obj *const objv[],
+                 CffiFlags flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    CffiTypeAndAttrs typeAttrs;
+    CffiResult ret;
+    void *pv;
+
+    CFFI_ASSERT(objc >= 4);
+
+    CHECK(CffiTypeAndAttrsParse(
+        ipCtxP, objv[2], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
+    /* Note typeAttrs needs to be cleaned up beyond this point */
+
+    pv = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
+
+    ret = CffiNativeValueFromObj(ip, &typeAttrs, 0, objv[3], 0, pv, 0, NULL);
+    if (ret == TCL_OK) {
+        Tcl_Obj *ptrObj;
+        Tcl_Obj *tagObj;
+        if (objc > 4) {
+            tagObj = CffiMakePointerTagFromObj(ip, objv[4]);
+            Tcl_IncrRefCount(tagObj);
+        }
+        else
+            tagObj = NULL;
+        ret = Tclh_PointerRegister(ip, pv, tagObj, &ptrObj);
+        if (ret == TCL_OK)
+            Tcl_SetObjResult(ip, ptrObj);
+        if (tagObj)
+            Tcl_DecrRefCount(tagObj);
+    }
+
+    if (ret != TCL_OK)
+        ckfree(pv);
+    CffiTypeAndAttrsCleanup(&typeAttrs);
+    return ret;
+}
+
 /* Function: CffiMemoryFreeCmd
  * Implements the *memory free* script level command.
  *
@@ -427,7 +491,6 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
-
 /* Function: CffiMemorySetCmd
  * Implements the *memory set* script level command.
  *
@@ -524,10 +587,11 @@ CffiMemoryObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     /* The flags field CFFI_F_ALLOW_UNSAFE is set for unsafe pointer operation */
     static const Tclh_SubCommand subCommands[] = {
-        {"allocate", 1, 2, "SIZE ?TYPETAG?", CffiMemoryAllocateCmd, 0},
+        {"allocate", 1, 2, "SIZE ?TAG?", CffiMemoryAllocateCmd, 0},
         {"free", 1, 1, "POINTER", CffiMemoryFreeCmd, 0},
-        {"frombinary", 1, 2, "BINARY ?TYPETAG?", CffiMemoryFromBinaryCmd, 0},
+        {"frombinary", 1, 2, "BINARY ?TAG?", CffiMemoryFromBinaryCmd, 0},
         {"fromstring", 1, 2, "STRING ?ENCODING?", CffiMemoryFromStringCmd, 0},
+        {"new", 2, 3, "TYPE INITIALIZER ?TAG?", CffiMemoryNewCmd, 0},
         {"set", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 0},
         {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, CFFI_F_ALLOW_UNSAFE},
         {"get", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 0},

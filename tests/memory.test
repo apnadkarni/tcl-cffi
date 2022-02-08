@@ -10,7 +10,7 @@ source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     testsubcmd ::cffi::memory
-    testnumargs memory-allocate "cffi::memory allocate" "SIZE" "?TYPETAG?"
+    testnumargs memory-allocate "cffi::memory allocate" "SIZE" "?TAG?"
 
     test memory-allocate-0 {Allocate 1 byte untagged} -cleanup {
         cffi::memory free $p
@@ -56,11 +56,11 @@ namespace eval cffi::test {
 
     test memory-allocate-error-1 {Missing args} -body {
         list [catch {cffi::memory allocate} result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TYPETAG?"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TAG?"} {TCL WRONGARGS}}
 
     test memory-allocate-error-2 {Extra args} -body {
         list [catch {cffi::memory allocate 0 TAG extra} result] $result $::errorCode
-    } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TYPETAG?"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TAG?"} {TCL WRONGARGS}}
 
     ###
 
@@ -81,7 +81,7 @@ namespace eval cffi::test {
 
     testnumargs memory-tobinary "cffi::memory tobinary" "POINTER SIZE"
     testnumargs memory-tobinary! "cffi::memory tobinary!" "POINTER SIZE"
-    testnumargs memory-frombinary "cffi::memory frombinary" "BINARY" "?TYPETAG?"
+    testnumargs memory-frombinary "cffi::memory frombinary" "BINARY" "?TAG?"
 
     test memory-binary-0 {To/From binary - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
@@ -322,7 +322,7 @@ namespace eval cffi::test {
     foreach {type val} [array get testValues] {
         if {$type ni {string unistring binary}} {
             test memory-set-get-$type-0 "set/get $type" -setup {
-                set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
+                set p [cffi::memory allocate $type]
             } -cleanup {
                 cffi::memory free $p
             } -body {
@@ -330,16 +330,38 @@ namespace eval cffi::test {
                 cffi::memory get $p $type
             } -result $val
 
+            test memory-set-get-$type-alias-0 "set/get $type - aliased" -setup {
+                cffi::alias clear
+                cffi::alias define ALIAS $type
+                set p [cffi::memory allocate ALIAS]
+            } -cleanup {
+                cffi::memory free $p
+                cffi::alias clear
+            } -body {
+                cffi::memory set $p ALIAS $val
+                cffi::memory get $p ALIAS
+            } -result $val
+
             test memory-set-$type-badindex-0 "set $type badindex" -setup {
-                set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
+                set p [cffi::memory allocate $type]
             } -cleanup {
                 cffi::memory free $p
             } -body {
                 cffi::memory set $p $type $val notanint
             } -result {expected integer but got "notanint"} -returnCodes error
 
-            test memory-get-$type-badindex-0 "get $type badindex" -setup {
-                set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
+            if {[info exists badValues($type)]} {
+                test memory-set-$type-badvalue-0 "set $type bad value" -setup {
+                    set p [cffi::memory allocate $type]
+                } -cleanup {
+                    cffi::memory free $p
+                } -body {
+                    cffi::memory set $p $type $badValues($type)
+                } -result {expected.*but got|Invalid value|missing.*key} -returnCodes error -match regexp
+            }
+
+            test memory-get-$type-badindex-0 "get $type - bad index" -setup {
+                set p [cffi::memory allocate $type]
             } -cleanup {
                 cffi::memory free $p
             } -body {
@@ -347,7 +369,7 @@ namespace eval cffi::test {
             } -result {expected integer but got "notanint"} -returnCodes error
 
             test memory-set!-get!-$type-0 "set!/get! $type" -setup {
-                set p [cffi::memory allocate [dict get [cffi::type info $type field] Size]]
+                set p [cffi::memory allocate $type]
                 cffi::pointer dispose $p;#Make unsafe
             } -cleanup {
                 cffi::pointer safe $p
@@ -359,7 +381,7 @@ namespace eval cffi::test {
         }
         if {$type in $numericTypes} {
             test memory-set-get-$type-1 "set/get $type index" -setup {
-                set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
+                set p [cffi::memory allocate $type\[2\]]
             } -cleanup {
                 cffi::memory free $p
             } -body {
@@ -368,7 +390,7 @@ namespace eval cffi::test {
             } -result $val
 
             test memory-set-get-$type-array-0 "set/get $type array" -setup {
-                set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
+                set p [cffi::memory allocate $type\[2\]]
             } -cleanup {
                 cffi::memory free $p
             } -body {
@@ -380,7 +402,7 @@ namespace eval cffi::test {
     set type struct.::StructValue
     set val $testValues($type)
     test memory-set-get-$type-array-0 "set/get $type array" -setup {
-        set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
+        set p [cffi::memory allocate $type\[2\]]
     } -cleanup {
         cffi::memory free $p
     } -body {
@@ -388,7 +410,7 @@ namespace eval cffi::test {
         cffi::memory get $p $type\[2\]
     } -result [list {c 0 i 0} $val]
     test memory-set-get-$type-array-0 "set/get $type index" -setup {
-        set p [cffi::memory allocate [dict get [cffi::type info $type\[2\] field] Size]]
+        set p [cffi::memory allocate $type\[2\]]
     } -cleanup {
         cffi::memory free $p
     } -body {
@@ -415,6 +437,110 @@ namespace eval cffi::test {
             cffi::memory get $p unistring
         } -result $testValues($type)
     }
+
+    test memory-set-badtype-0 "set bad type" -setup {
+        set p [cffi::memory allocate 8]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory set $p badtype 0
+    } -result {Invalid value "badtype". Invalid base type.} -returnCodes error
+    test memory-set-badtype-1 "set bad type - void" -setup {
+        set p [cffi::memory allocate 8]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory set $p void 0
+    } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
+
+    test memory-get-badtype-0 "get bad type" -setup {
+        set p [cffi::memory allocate 8]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory get $p badtype
+    } -result {Invalid value "badtype". Invalid base type.} -returnCodes error
+    test memory-get-badtype-1 "get bad type - void" -setup {
+        set p [cffi::memory allocate 8]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory get $p void 0
+    } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
+
+    ###################################################
+
+    #
+    # memory new
+    testnumargs memory-new "cffi::memory new" "TYPE INITIALIZER" "?TAG?"
+
+    foreach {type val} [array get testValues] {
+        if {$type ni {string unistring binary}} {
+            test memory-new-$type-0 "new $type" -cleanup {
+                cffi::memory free $p
+            } -body {
+                set p [cffi::memory new $type $val]
+                list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
+            } -result [list $val 1 {}]
+            test memory-new-$type-1 "new $type with tag" -cleanup {
+                cffi::memory free $p
+            } -body {
+                set p [cffi::memory new $type $val TAG]
+                list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
+            } -result [list $val 1 [namespace current]::TAG]
+            test memory-new-$type-2 "new $type with qualified tag" -cleanup {
+                cffi::memory free $p
+            } -body {
+                set p [cffi::memory new $type $val ::ns::TAG]
+                list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
+            } -result [list $val 1 ::ns::TAG]
+            test memory-new-$type-alias-0 "new $type aliased" -setup {
+                cffi::alias clear
+                cffi::alias define ALIAS $type
+            } -cleanup {
+                cffi::alias clear
+                cffi::memory free $p
+            } -body {
+                set p [cffi::memory new ALIAS $val]
+                list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
+            } -result [list $val 1 {}]
+        }
+        if {$type in $numericTypes} {
+            test memory-new-$type-array-0 "new $type array" -cleanup {
+                cffi::memory free $p
+            } -body {
+                set p [cffi::memory new $type\[2\] [list 1 $val]]
+                cffi::memory get $p $type\[2\]
+            } -result [list [expr {$type in $realTypes ? 1.0 : 1}] $val]
+        }
+        if {[info exists badValues($type)]} {
+            test memory-new-$type-badvalue-0 "new $type bad value" -body {
+                cffi::memory new $type $badValues($type)
+            } -result {expected.*but got|Invalid value|missing.*key} -returnCodes error -match regexp
+        }
+    }
+    set type struct.::StructValue
+    set val $testValues($type)
+    test memory-new-$type-array-0 "new $type array" -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory new $type\[2\] [list {} $val]]
+        cffi::memory get $p $type\[2\]
+    } -result [list {c 0 i 0} $val]
+
+    foreach type {string unistring binary} {
+        test memory-new-$type-0 "new $type" -body {
+            cffi::memory new $type $testValues($type)
+        } -result "Invalid value*" -returnCodes error -match glob
+    }
+
+    test memory-new-badtype-0 "new bad type" -body {
+        cffi::memory new badtype 0
+    } -result {Invalid value "badtype". Invalid base type.} -returnCodes error
+
+    test memory-new-badtype-1 "new bad type - void" -body {
+        cffi::memory new void 0
+    } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
 }
 
 ::tcltest::cleanupTests

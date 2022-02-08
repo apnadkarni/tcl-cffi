@@ -117,6 +117,14 @@ namespace eval cffi::test {
     set testValues(binary) $testStrings(bytes)
     set testValues(struct.::StructValue) {c 42 i 4242}
 
+    variable badValues
+    foreach type $numericTypes {
+        set badValues($type) notanumber
+    }
+    set badValues(pointer\ unsafe) 1
+    set badValues(struct.::StructValue) {x}
+
+
     variable paramDirectionAttrs {in out inout}
     variable pointerAttrs {nullok unsafe dispose counted}
     variable stringAttrs {nullok nullifempty}
