@@ -10,7 +10,10 @@
 # Edit build2\src\CMakeFiles\git2.dir linklibs.rsp to add -lbcrypt
 # For a verbose build, add "-- VERBOSE=1" before the cmake --build command
 
-
+# To build with examples (64-bit)
+# mkdir build
+# cmake .. -A x64 -DBUILD_EXAMPLES=ON
+# cmake --build .
 
 
 if {![info exists GIT_NS]} {
@@ -129,7 +132,7 @@ namespace eval $GIT_NS {
         cffi::alias define PSTRARRAY pointer.git_strarray
         cffi::alias define PSTRARRAYIN pointer.cffi_strarray
 
-        cffi::alias define CB_PAYLOAD {pointer unsafe}
+        cffi::alias define CB_PAYLOAD {pointer unsafe nullok}
         cffi::alias define git_object_size_t uint64_t
 
         # Note these are sourced into current namespace

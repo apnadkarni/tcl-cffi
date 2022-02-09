@@ -1,8 +1,6 @@
 # Demo of cffi libgit extension. Poor man's git init emulation.
 # tclsh git-init.tcl --help
 
-source [file join [file dirname [info script]] porcelain-utils.tcl]
-
 proc parse_options {arguments} {
 
     # NOTE: getopt uses comments below to generate help. Careful about changing them.
@@ -128,10 +126,9 @@ proc create_initial_commit {pRepo} {
 }
 
 proc main {} {
+    set dir [parse_options $::argv]
+    set pRepo [initialize_repository $dir]
     try {
-        set dir [parse_options $::argv]
-        set pRepo [initialize_repository $dir]
-
         if {! [option Quiet 0]} {
             if {[option Bare 0] || [option? SeparateGitDir _]} {
                 variable Options
@@ -144,14 +141,15 @@ proc main {} {
         if {[option InitialCommit 0]} {
             create_initial_commit $pRepo
         }
-    } on error {message edict} {
-        puts stderr $message
-        exit 1
     } finally {
-        if {[info exists pRepo]} {
-            git_repository_free $pRepo
-        }
-        git_libgit2_shutdown
+        git_repository_free $pRepo
     }
 }
-main
+
+source [file join [file dirname [info script]] porcelain-utils.tcl]
+catch {main} result edict
+git_libgit2_shutdown
+if {[dict get $edict -code]} {
+    puts stderr $result
+    exit 1
+}

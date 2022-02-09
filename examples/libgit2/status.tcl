@@ -53,16 +53,16 @@
 
 ::cffi::Struct create git_status_entry {
     status           GIT_STATUS_T
-    head_to_index    pointer.git_diff_delta
-    index_to_workdir pointer.git_diff_delta
+    head_to_index    {pointer.git_diff_delta unsafe}
+    index_to_workdir {pointer.git_diff_delta unsafe}
 }
 
 ::cffi::Struct create git_status_options {
     version  {uint {default 1}}
     show     GIT_STATUS_SHOW_T
     flags    GIT_STATUS_OPTS_T
-    pathspec PSTRARRAYIN
-    baseline PTREE
+    pathspec struct.git_strarray
+    pBaseLine {PTREE nullok}
 }
 
 ::cffi::prototype function git_status_cb int {
@@ -93,19 +93,19 @@ libgit2 functions {
         path          STRING
     }
     git_status_list_new GIT_ERROR_CODE {
-        vstatuslist {PSTATUS_LIST out}
+        vpStatusList {PSTATUS_LIST out}
         pRepo       PREPOSITORY
         opts        {struct.git_status_options byref}
     }
     git_status_list_entrycount size_t {
-        statuslist PSTATUS_LIST
+        pStatusList PSTATUS_LIST
     }
-    git_status_byindex {pointer.git_status_entry unsafe} {
-        statuslist PSTATUS_LIST
+    git_status_byindex {struct.git_status_entry byref} {
+        pStatusList PSTATUS_LIST
         idx        size_t
     }
     git_status_list_free void {
-        statuslist {PSTATUS_LIST dispose}
+        pStatusList {PSTATUS_LIST dispose}
     }
     git_status_should_ignore GIT_ERROR_CODE {
         ignored {int out}

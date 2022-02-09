@@ -8,8 +8,8 @@ namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
 ${GIT_NS}::init d:/src/vcpkg-export/libgit2/installed/x64-mingw-dynamic/bin/libgit2.dll
 
-proc inform {message} {
-    if {![option Quiet 0]} {
+proc inform {message {force 0}} {
+    if {$force || ![option Quiet 0]} {
         puts stderr $message
     }
 }
@@ -42,6 +42,10 @@ proc option_set {opt value} {
     set Options($opt) $value
 }
 
+proc option_append {opt args} {
+    variable Options
+    lappend Options($opt) {*}$args
+}
 # getopt
 # Adapted from https://wiki.tcl-lang.org/page/alternative+getopt
 # Alternatives in case this code is not satisfactory:

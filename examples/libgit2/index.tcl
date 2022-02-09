@@ -198,20 +198,20 @@ libgit2 functions {
     git_index_add_all GIT_ERROR_CODE {
         index    PINDEX
         pathspec PSTRARRAYIN
-        flags    uint
-        callback pointer.git_index_matched_path_cb
+        flags    {GIT_INDEX_ADD_OPTION_T bitmask}
+        callback {pointer.git_index_matched_path_cb nullok}
         payload  CB_PAYLOAD
     }
     git_index_remove_all GIT_ERROR_CODE {
         index    PINDEX
         pathspec PSTRARRAYIN
-        callback pointer.git_index_matched_path_cb
+        callback {pointer.git_index_matched_path_cb nullok}
         payload  CB_PAYLOAD
     }
     git_index_update_all GIT_ERROR_CODE {
         index    PINDEX
         pathspec PSTRARRAYIN
-        callback pointer.git_index_matched_path_cb
+        callback {pointer.git_index_matched_path_cb nullok}
         payload  CB_PAYLOAD
     }
     git_index_find GIT_ERROR_CODE {

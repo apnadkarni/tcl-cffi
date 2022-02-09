@@ -25,13 +25,13 @@
 
 # Note pStrings is unsafe pointer as libgit2 allocates under the covers
 ::cffi::Struct create git_strarray {
-    pStrings {pointer unsafe}
+    pStrings {pointer unsafe nullok}
     count   size_t
 } -clear
 
 # Note pStrings is safe pointer as we will allocate
 ::cffi::Struct create cffi_strarray {
-    pStrings pointer
+    pStrings {pointer nullok}
     count size_t
 } -clear
 
@@ -49,16 +49,14 @@ libgit2 functions {
 proc cffi_strarray_new {strings} {
     set count [llength $strings]
     if {$count} {
-        set pStrings [::cffi::memory allocate pointer\[$count\]]
-        for {set i 0} {$i < $count} {incr i} {
-            set pString [::cffi::memory fromstring [lindex $strings $i] utf-8]
-            ::cffi::memory set $pStrings pointer $pString $i
-        }
+        # pStrings is a pointer to an allocated array of pointers to allocated strings
+        set pStrings [::cffi::memory new pointer\[$count\] [lmap s $strings {
+            ::cffi::memory fromstring $s utf-8
+        }]]
     } else {
         set pStrings NULL
     }
-    set pStrArray [cffi_strarray allocate]
-    cffi_strarray tonative $pStrArray [list pStrings $pStrings count $count]
+    set pStrArray [cffi_strarray new [list pStrings $pStrings count $count]]
     return $pStrArray
 }
 
@@ -94,13 +92,13 @@ proc cffi_strarray_strings {pStrArray} {
     set o [::cffi::pointer tag $pStrArray]
     set count [$o get $pStrArray count]
     set pStrings [$o get $pStrArray pStrings]
-    set strings {}
-    for {set i 0} {$i < $count} {incr i} {
-        lappend strings [::cffi::memory tostring [::cffi::memory get $pStrings pointer $i]]
+
+    if {$count == 0} {
+        return {}
     }
-    return $strings
-}
-proc zz p {
-    set o [cffi::pointer tag $p]
-    return [list [$o get $p count] [$o get $p pStrings]]
+    set ptrs [::cffi::memory get $pStrings pointer\[$count\]]
+    set strings {}
+    return [lmap ptr $ptrs {
+        ::cffi::memory tostring! $ptr utf-8
+    }]
 }
