@@ -279,8 +279,9 @@ CffiEnumMemberBitUnmask(Tcl_Interp *ip,
         }
         while (!done) {
             Tcl_WideInt wide;
+            /* The check wide != 0 is because some C enums include 0 "no bits set" */
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
-                && ((wide & bitmask) == wide)) {
+                && wide != 0 && ((wide & bitmask) == wide)) {
                 Tcl_ListObjAppendElement(NULL, listObj, nameObj);
                 remain &= ~wide;
             }
