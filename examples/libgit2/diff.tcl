@@ -91,12 +91,14 @@
 }
 ::cffi::alias define GIT_DIFF_FORMAT_T {int {enum git_diff_format_t}}
 
+# NOTE: mode cannot be GIT_FILEMODE_T because that is an int.
+# Explicitly use enum git_filemode_t.
 ::cffi::Struct create git_diff_file {
     id         struct.git_oid
     path       STRING
     size       git_object_size_t
     flags      uint32_t
-    mode       uint16_t
+    mode       {uint16_t {enum git_filemode_t}}
     id_abbrev  uint16_t
 }
 

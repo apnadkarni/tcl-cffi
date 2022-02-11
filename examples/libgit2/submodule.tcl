@@ -22,7 +22,7 @@
 ::cffi::alias define GIT_SUBMODULE_STATUS_T {int {enum git_submodule_status_t} bitmask}
 
 ::cffi::prototype function git_submodule_cb int {
-    sm      PSUBMODULE
+    sm      {PSUBMODULE unsafe}
     name    STRING
     payload CB_PAYLOAD
 }
@@ -58,7 +58,7 @@ libgit2 functions {
     }
     git_submodule_foreach GIT_ERROR_CODE {
         pRepo    PREPOSITORY
-        callback pointer.git_submodule_callback
+        callback pointer.git_submodule_cb
         payload  CB_PAYLOAD
     }
     git_submodule_add_setup GIT_ERROR_CODE {

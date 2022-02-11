@@ -101,7 +101,7 @@ cffi::Struct create git_signature {
     GIT_FILEMODE_LINK              0120000
     GIT_FILEMODE_COMMIT            0160000
 }
-::cffi::alias define GIT_FILEMODE_T {int {enum git_filemode_t} bitmask}
+::cffi::alias define GIT_FILEMODE_T {int {enum git_filemode_t}}
 
 ::cffi::alias define {
     PREFSPEC           pointer.git_refspec

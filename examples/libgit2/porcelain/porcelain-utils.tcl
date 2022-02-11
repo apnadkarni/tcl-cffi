@@ -37,6 +37,12 @@ proc option? {opt varname} {
     return 0
 }
 
+proc option! {opt} {
+    variable Options
+    # Option must have been set
+    return $Options($opt)
+}
+
 proc option_set {opt value} {
     variable Options
     set Options($opt) $value
@@ -45,7 +51,23 @@ proc option_set {opt value} {
 proc option_append {opt args} {
     variable Options
     lappend Options($opt) {*}$args
+    set Options($opt) [lsort -unique $Options($opt)]
 }
+
+proc option_remove {opt args} {
+    variable Options
+    set Options($opt) [lmap elem $Options($opt) {
+        if {$elem in $args} continue
+        set elem
+    }]
+}
+
+proc option_includes {opt val} {
+    variable Options
+    return [expr {$val in $Options($opt)}]
+}
+
+
 # getopt
 # Adapted from https://wiki.tcl-lang.org/page/alternative+getopt
 # Alternatives in case this code is not satisfactory:

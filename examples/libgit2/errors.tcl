@@ -91,5 +91,5 @@ proc ErrorCodeHandler {callinfo} {
     set code [dict get $callinfo Result]
     set p [git_error_last]
     set last_error [git_error fromnative! $p]
-    throw [list GIT [dict get $last_error klass] $code] "libgit2 error: [dict get $last_error message]"
+    throw [list GIT $code [dict get $last_error klass]] "libgit2 error: [dict get $last_error message]"
 }
