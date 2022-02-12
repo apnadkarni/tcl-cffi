@@ -4,9 +4,9 @@
 # be created in.
 
 ::cffi::prototype function git_transport_message_cb int {
-    str bytes[len]
+    str {pointer unsafe}
     len int
-    payload {pointer unsafe}
+    payload CB_PAYLOAD
 }
 
 ::cffi::prototype function git_transport_cb int {

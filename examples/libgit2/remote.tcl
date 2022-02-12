@@ -79,20 +79,20 @@
 
 ::cffi::Struct create git_remote_callbacks {
     version                uint
-    sideband_progress      pointer.git_transport_message_cb
-    completion             pointer.git_remote_completion_cb
-    credentials            pointer.git_credential_acquire_cb
-    certificate_check      pointer.git_transport_certificate_check_cb
-    transfer_progress      pointer.git_indexer_progress_cb
-    update_tips            pointer.git_remote_update_tips_cb
-    pack_progrss           pointer.git_packbuilder_progress
-    push_transfer_progress pointer.git_push_transfer_progress_cb
-    push_update_reference  pointer.git_push_update_reference_cb
-    push_negotiation       pointer.git_push_negotiation
-    transport              pointer.git_transport_cb
-    remote_ready           pointer.git_remote_ready_cb
+    sideband_progress      {pointer.git_transport_message_cb nullok}
+    completion             {pointer.git_remote_completion_cb nullok}
+    credentials            {pointer.git_credential_acquire_cb nullok}
+    certificate_check      {pointer.git_transport_certificate_check_cb nullok}
+    transfer_progress      {pointer.git_indexer_progress_cb nullok}
+    update_tips            {pointer.git_remote_update_tips_cb nullok}
+    pack_progrss           {pointer.git_packbuilder_progress nullok}
+    push_transfer_progress {pointer.git_push_transfer_progress_cb nullok}
+    push_update_reference  {pointer.git_push_update_reference_cb nullok}
+    push_negotiation       {pointer.git_push_negotiation nullok}
+    transport              {pointer.git_transport_cb nullok}
+    remote_ready           {pointer.git_remote_ready_cb nullok}
     payload                CB_PAYLOAD
-    reserved               {pointer unsafe}
+    reserved               {pointer unsafe nullok}
 } -clear
 
 ::cffi::Struct create git_fetch_options {

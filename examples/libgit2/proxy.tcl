@@ -13,9 +13,9 @@
 ::cffi::Struct create git_proxy_options {
     version uint
     type GIT_PROXY_T
-    url STRING
-    credentials pointer.git_credential_acquire_cb
-    certificate_check pointer.git_transport_certificate_check_cb
+    url {STRING nullifempty}
+    credentials {pointer.git_credential_acquire_cb nullok}
+    certificate_check {pointer.git_transport_certificate_check_cb nullok}
     payload CB_PAYLOAD
 } -clear
 

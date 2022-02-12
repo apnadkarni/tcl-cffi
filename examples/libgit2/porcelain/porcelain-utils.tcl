@@ -6,7 +6,7 @@ set GIT_NS ::git
 source [file join [file dirname [file dirname [info script]]] libgit2.tcl]
 namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
-${GIT_NS}::init d:/src/vcpkg-export/libgit2/installed/x64-mingw-dynamic/bin/libgit2.dll
+${GIT_NS}::init d:/temp/git2.dll
 
 proc inform {message {force 0}} {
     if {$force || ![option Quiet 0]} {

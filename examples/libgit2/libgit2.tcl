@@ -142,7 +142,10 @@ namespace eval $GIT_NS {
 
         set ret [git_libgit2_init]
 
-        # TBD - check version using git_libgit2_version
+        git_libgit2_version major minor rev
+        if {$major != 1 || $minor != 3} {
+            error "libgit2 version $major.$minor.$rev is not supported. This package requires version 1.3. Note libgit2 does not guarantee ABI compatibility between minor releases."
+        }
 
         # Redefine to no-op
         proc init args "return $ret"

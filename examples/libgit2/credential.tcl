@@ -22,7 +22,7 @@
 ::cffi::alias define PCREDENTIAL_SSH_CUSTOM {pointer.git_credential_ssh_custom}
 
 ::cffi::prototype function git_credential_acquire_cb int {
-    pCred             {PCREDENTIAL out}
+    pCred             {pointer unsafe}
     url               STRING
     username_from_url STRING
     allowed_types     {GIT_CREDENTIAL_T bitmask}

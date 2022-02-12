@@ -13,7 +13,7 @@
     received_bytes   size_t
 }
 
-::cffi::prototype function git_indexer_progress_cb int {stats {struct.git_indexer_progress out} payload {pointer unsafe}}
+::cffi::prototype function git_indexer_progress_cb int {stats {struct.git_indexer_progress byref} payload CB_PAYLOAD}
 
 ::cffi::Struct create git_indexer_options {
     version             int

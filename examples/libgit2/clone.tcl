@@ -32,22 +32,22 @@
     fetch_opts            struct.git_fetch_options
     bare                  int
     local                 GIT_CLONE_LOCAL_T
-    checkout_branch       STRING
+    checkout_branch       {STRING nullifempty}
     repository_cb         {pointer.git_repository_create_cb nullok}
-    repository_cb_payload {pointer unsafe}
+    repository_cb_payload {pointer unsafe nullok}
     remote_cb             {pointer.git_remote_create_cb nullok}
-    remote_cb_payload     {pointer unsafe}
+    remote_cb_payload     {pointer unsafe nullok}
 }
 
 libgit2 functions {
     git_clone_options_init GIT_ERROR_CODE {
         opts    {struct.git_clone_options out}
-        version uint
+        version {uint {default 1}}
     }
     git_clone GIT_ERROR_CODE {
         pRepo      {PREPOSITORY out}
         url        STRING
         local_path STRING
-        opts       {struct.git_clone_options byref}
+        opts       {struct.git_clone_options byref nullifempty}
     }
 }

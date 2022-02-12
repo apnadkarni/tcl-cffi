@@ -438,29 +438,10 @@ proc main {} {
     }
 }
 
-if {1} {
-    source [file join [file dirname [info script]] porcelain-utils.tcl]
-    catch {main} result edict
-    git_libgit2_shutdown
-    if {[dict get $edict -code]} {
-        puts stderr $result
-        puts stderr [dict get $edict -errorinfo]
-        exit 1
-    }
-} else {
-    source ../../examples/libgit2/libgit2.tcl
-    git::init {D:\temp\git2.dll}
-    namespace path git
-    cd /temp/g
-    git_repository_open pRepo .
-    set pPathSpecs [cffi_strarray_new {}]
-    set dPathSpecs [cffi_strarray fromnative $pPathSpecs]
-    ::git::git_status_options_init opts
-    dict set opts flags {GIT_STATUS_OPT_INCLUDE_UNTRACKED GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX}
-    dict set opts pathspec $dPathSpecs
-    git_status_list_new pStatusList $pRepo $opts
-    set n [git_status_list_entrycount $pStatusList]
-    puts $n
-    set pEntry [git_status_byindex $pStatusList 0]
-    puts $pEntry
+source [file join [file dirname [info script]] porcelain-utils.tcl]
+catch {main} result edict
+git_libgit2_shutdown
+if {[dict get $edict -code]} {
+    puts stderr $result
+    exit 1
 }

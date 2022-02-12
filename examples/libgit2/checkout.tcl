@@ -68,31 +68,31 @@
 
 ::cffi::Struct create git_checkout_options {
     version           uint
-    checkout_strategy uint
+    checkout_strategy GIT_CHECKOUT_STRATEGY_T
     disable_filters   int
     dir_mode          uint
     file_mode         uint
     file_open_flags   int
     notify_flags      int
     notify_cb         {pointer.git_checkout_notify_cb   nullok}
-    notify_payload    {pointer unsafe}
+    notify_payload    CB_PAYLOAD
     progress_cb       {pointer.git_checkout_progress_cb nullok}
-    progress_payload  {pointer unsafe}
+    progress_payload  CB_PAYLOAD
     paths             struct.git_strarray
-    pBaseline         PTREE
-    pBaselineIndex    PINDEX
-    target_directory  STRING
-    ancestor_label    STRING
-    our_label         STRING
-    their_label       STRING
+    pBaseline         {PTREE nullok}
+    pBaselineIndex    {PINDEX nullok}
+    target_directory  {STRING nullifempty}
+    ancestor_label    {STRING nullifempty}
+    our_label         {STRING nullifempty}
+    their_label       {STRING nullifempty}
     perfdata_cb       {pointer.git_checkout_perfdata_cb nullok}
-    perfdata_payload  {pointer unsafe}
+    perfdata_payload  CB_PAYLOAD
 }
 
 libgit2 functions {
     git_checkout_options_init int {
         pOpts   {struct.git_checkout_options out}
-        version uint
+        version {uint {default 1}}
     }
     git_checkout_head GIT_ERROR_CODE {
         pRepo PREPOSITORY
