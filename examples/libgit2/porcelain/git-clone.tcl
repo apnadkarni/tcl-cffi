@@ -4,8 +4,46 @@ proc pdict d {
     }
 }
 
-proc print_progress {stats} {
-    pdict $stats
+proc print_progress {stats progress_state} {
+    # stats is a dictionary updated by the various callbacks
+
+    # explode $stats -> completed_steps, total_steps, path, fetch_progress
+    dict with stats {}
+
+    # explode $fetch_progress -> total_objects indexed_objects received_objects
+    #                   local_objects total_deltas indexed_deltas received_bytes
+    dict with fetch_progress {}
+
+    if {$total_objects > 0} {
+        set network_percent [expr {(100* $received_objects) / $total_objects}]
+        set index_percent [expr {(100 *$indexed_objects) / $total_objects}]
+    } else {
+        set network_percent 0
+        set index_percent 0
+    }
+    set checkout_percent [expr {$total_steps == 0 ? 0 : (100*$completed_steps)/$total_steps}]
+    set kbytes [expr {$received_bytes / 1024}]
+
+    # The whole dance with print_state is because we want to overwrite lines
+    # if last print state was the same but go to a new line if the last print
+    # state was different. This is to accomodate callbacks of different types
+    # coming in intermixed.
+    if {$progress_state eq "checkout"} {
+        if {[dict get $stats print_state] eq "printing_netstats"} {
+            puts ""
+        }
+        puts -nonewline "Resolving deltas $indexed_deltas/$total_deltas\r"
+        return printing_deltas
+    } else {
+        if {[dict get $stats print_state] eq "printing_deltas"} {
+            puts ""
+        }
+        puts -nonewline [format "Net: %3d%% (%4lu kb, %5u/%5u)  /  idx %3d%% (%5u/%5u)  /  chk %3d%% (%4lu/%4lu)%s\r" \
+                  $network_percent $kbytes $received_objects $total_objects \
+                  $index_percent $indexed_objects $total_objects \
+                  $checkout_percent $completed_steps $total_steps $path]
+        return printing_netstats
+    }
 }
 
 proc checkout_progress {path sofar total payload} {
@@ -13,7 +51,7 @@ proc checkout_progress {path sofar total payload} {
     upvar 1 progress_stats stats
     dict set stats completed_steps $sofar
     dict set stats total_steps $total
-    print_progress $stats
+    dict set stats print_state [print_progress $stats checkout]
     # void callback so no need for specific return value
 }
 
@@ -21,17 +59,26 @@ proc sideband_progress {str len payload} {
     # Must match git_transport_message_cb prototype
     # str is modeled as a pointer since docs are not clear on this
 
+    upvar 1 progress_stats stats
+
+    if {[dict get $stats print_state] ni {{} printing_sideband}} {
+        puts ""
+    }
+    dict set stats print_state printing_sideband
+
     # Cannot use tostring! because docs do not say nul-terminated
     set bin [::cffi::memory tobinary! $str $len]
-    puts [encoding convertfrom utf-8 $bin]
+
+    # We want to overwrite current line so terminate with \r.
+    # When the next phase begins, the remote end will send the newline itself
+    puts -nonewline "remote: [encoding convertfrom utf-8 $bin]\r"
     return 0
 }
 
 proc fetch_progress {indexer_stats payload} {
     upvar 1 progress_stats stats
-    puts $indexer_stats
     dict set stats fetch_progress $indexer_stats
-    print_progress $stats
+    dict set stats print_state [print_progress $stats fetch]
     return 0
 }
 
@@ -45,17 +92,22 @@ proc main {} {
     if {[file exists $path]} {
         error "File or directory $path already exists."
     }
+    puts "Cloning into '$path' ..."
 
     git_clone_options_init clone_opts
     dict set clone_opts checkout_opts checkout_strategy GIT_CHECKOUT_SAFE
 
+    set translation [fconfigure stdout -translation]
     try {
+        fconfigure stdout -translation lf
+
         # Set up statistics that will be accessed by callbacks via upvar
         set progress_stats {
             completed_steps 0
             total_steps 0
             path ""
             fetch_progress {}
+            print_state {}
         }
 
         # Set up various progress callbacks
@@ -89,6 +141,7 @@ proc main {} {
                 ::cffi::callback_free [set $cb]
             }
         }
+        fconfigure stdout -translation $translation
     }
 
 
