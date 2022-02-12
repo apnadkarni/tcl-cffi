@@ -356,7 +356,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S tonative $p {c a i 0 s 0}
-    } -result {expected integer but got "a"} -returnCodes error
+    } -result {expected integer but got "a" Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-tonative-error-1 "struct tonative missing field" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
@@ -366,7 +366,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S tonative $p {i 0 s 0}
-    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-tonative-error-2 "struct tonative chars overflow" -setup {
         cffi::Struct create ::S {c chars[3]}
@@ -376,7 +376,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S tonative $p {c abcd}
-    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size.} -returnCodes error
+    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-tonative-error-6 "struct tonative unichars overflow" -setup {
         cffi::Struct create ::S {c unichars[3]}
@@ -386,7 +386,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S tonative $p {c abcd}
-    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size.} -returnCodes error
+    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-tonative-error-7 "struct tonative bytes overflow" -setup {
         cffi::Struct create ::S {c bytes[3]}
@@ -396,12 +396,12 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S tonative $p {c abcd}
-    } -result {Invalid value. Byte array length is greater than specified maximum buffer size.} -returnCodes error
+    } -result {Invalid value. Byte array length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-tonative-error-8 "struct tonative - struct with strings" -body {
         set p [StructWithStrings allocate]
         StructWithStrings tonative $p [makeStructWithStrings]
-    } -result {Invalid value. string type not supported in this struct context.} -returnCodes error
+    } -result {Invalid value. string type not supported in this struct context. Error converting field ::StructWithStrings.s to a native value.} -returnCodes error
 
 
     ###
@@ -473,11 +473,11 @@ namespace eval cffi::test {
         cffi::Struct create ::S {x int y int}
     } -body {
         S tobinary {x 0}
-    } -result {Struct field "y" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "y" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.y to a native value.} -returnCodes error
 
     test struct-tobinary-error-1 "struct tobinary - struct with strings" -body {
         StructWithStrings tobinary [makeStructWithStrings]
-    } -result {Invalid value. string type not supported in this struct context.} -returnCodes error
+    } -result {Invalid value. string type not supported in this struct context. Error converting field ::StructWithStrings.s to a native value.} -returnCodes error
 
     test struct-frombinary-error-0 "struct frombinary truncated" -setup {
         catch {::S destroy}
@@ -527,7 +527,7 @@ namespace eval cffi::test {
     test struct-pointer-nullok-1 "NULL pointer in field" -body {
         cffi::Struct create S {p {pointer unsafe}}
         S frombinary [S tobinary [list p [makeptr 0]]]
-    } -result {Invalid value. Pointer is NULL.} -returnCodes error
+    } -result {Invalid value. Pointer is NULL. Error converting field ::cffi::test::S.p to a native value.} -returnCodes error
 
     test struct-pointer-nullok-2 "NULL pointer in output field" -body {
         cffi::Struct create S {p {pointer nullok unsafe}}
@@ -633,7 +633,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {expected integer but got "X"} -returnCodes error
+    } -result {expected integer but got "X" Error converting field ::cffi::test::S.i to a native value.} -returnCodes error
 
     ###
     # Scope tests
@@ -1075,7 +1075,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S new {c a i 0 s 0}
-    } -result {expected integer but got "a"} -returnCodes error
+    } -result {expected integer but got "a" Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-new-error-1 "struct new missing field" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
@@ -1083,7 +1083,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S new {i 0 s 0}
-    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-new-error-2 "struct new chars overflow" -setup {
         cffi::Struct create ::S {c chars[3]}
@@ -1091,7 +1091,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S new {c abcd}
-    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size.} -returnCodes error
+    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-new-error-6 "struct new unichars overflow" -setup {
         cffi::Struct create ::S {c unichars[3]}
@@ -1099,7 +1099,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S new {c abcd}
-    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size.} -returnCodes error
+    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-new-error-7 "struct new bytes overflow" -setup {
         cffi::Struct create ::S {c bytes[3]}
@@ -1107,11 +1107,11 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S new {c abcd}
-    } -result {Invalid value. Byte array length is greater than specified maximum buffer size.} -returnCodes error
+    } -result {Invalid value. Byte array length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-new-error-8 "struct new - struct with strings" -body {
         StructWithStrings new [makeStructWithStrings]
-    } -result {Invalid value. string type not supported in this struct context.} -returnCodes error
+    } -result {Invalid value. string type not supported in this struct context. Error converting field ::StructWithStrings.s to a native value.} -returnCodes error
 
     ###
     # Bug fixes

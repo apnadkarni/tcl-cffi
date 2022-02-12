@@ -1168,21 +1168,21 @@ namespace eval ${NS}::test {
     } -body {
         set ll 0x7fffffffffff
         structCheck [list ] 1 $ll 2
-    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.c to a native value.} -returnCodes error
     test function-struct-in-byref-error-1 "Param struct in byref missing field" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
     } -body {
         set ll 0x7fffffffffff
         structCheck [list c 1 ll $ll] 1 $ll 2
-    } -result {Struct field "s" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "s" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.s to a native value.} -returnCodes error
     test function-struct-in-byref-error-2 "Param struct in byref missing field - with nullempty" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref nullifempty} c uchar ll longlong s short}
     } -body {
         set ll 0x7fffffffffff
         structCheck [list c 1 ll $ll] 1 $ll 2
-    } -result {Struct field "s" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "s" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.s to a native value.} -returnCodes error
 
     test function-struct-inout-0 "Pass struct inout" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
@@ -1211,7 +1211,7 @@ namespace eval ${NS}::test {
     } -body {
         set s {}
         incrTestStruct s
-    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::TestStruct.c to a native value.} -returnCodes error
 
     test function-struct-array-0 "Pass in and out array of structs" -setup {
         catch {SimpleStruct destroy}
@@ -1264,7 +1264,7 @@ namespace eval ${NS}::test {
         testDll function structArrayCopy void {from {struct.SimpleStruct[n]} to {struct.SimpleStruct[n] out} n int}
         structArrayCopy {{}} outstruct 3
         set outstruct
-    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value.} -returnCodes error
+    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::cffi::test::SimpleStruct.c to a native value.} -returnCodes error
 
     # Tests for null values in pointer fields
     test function-struct-pointerfield-in-0 "input param, non-NULL" -body {
@@ -1278,7 +1278,7 @@ namespace eval ${NS}::test {
         cffi::Struct create S {p {pointer unsafe}}
         testDll function extractStructWithPointer {pointer unsafe nullok} {ins {struct.S byref in}}
         extractStructWithPointer [list p [makeptr 0]]
-    } -result {Invalid value. Pointer is NULL.} -returnCodes error
+    } -result {Invalid value. Pointer is NULL. Error converting field ::cffi::test::S.p to a native value.} -returnCodes error
     test function-struct-pointerfield-in-0 "input param, nullok, NULL" -body {
         catch {S destroy}
         cffi::Struct create S {p {pointer unsafe nullok}}
@@ -1347,7 +1347,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         rename fn {}
         SimpleWithDefaults destroy
-    } -result {Value -1 not in range. Must be within [0,255].} -returnCodes error
+    } -result {Value -1 not in range. Must be within [0,255]. Error converting field ::cffi::test::SimpleWithDefaults.c to a native value.} -returnCodes error
 
     ###
     # structsize

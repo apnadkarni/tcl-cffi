@@ -374,10 +374,6 @@ CffiStructFromObj(Tcl_Interp *ip,
     if (structP->flags & CFFI_F_STRUCT_CLEAR)
         memset(structAddress, 0, structP->size);
 
-    /*
-     * NOTE: On failure, we can just return as there are no allocations
-     * for any fields that need to be cleaned up.
-     */
     ret = TCL_OK;
     for (i = 0; i < structP->nFields; ++i) {
         Tcl_Obj *valueObj;
@@ -462,6 +458,18 @@ CffiStructFromObj(Tcl_Interp *ip,
         if (ret == TCL_OK)
             memcpy(structResultP, structAddress, structP->size);
         Tcl_DStringFree(&ds);
+    }
+
+    if (ret != TCL_OK) {
+        CFFI_ASSERT(i < structP->nFields);
+        if (i < structP->nFields)
+            Tcl_AppendResult(ip,
+                             " Error converting field ",
+                             Tcl_GetString(structP->name),
+                             ".",
+                             Tcl_GetString(structP->fields[i].nameObj),
+                             " to a native value.",
+                             NULL);
     }
     return ret;
 }
