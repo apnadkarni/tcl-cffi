@@ -10,11 +10,18 @@
 # Edit build2\src\CMakeFiles\git2.dir linklibs.rsp to add -lbcrypt
 # For a verbose build, add "-- VERBOSE=1" before the cmake --build command
 
-# To build with examples (64-bit)
+# To build debug with examples (64-bit)
 # mkdir build
 # cmake .. -A x64 -DBUILD_EXAMPLES=ON
 # cmake --build .
 
+# Build Debug with VC++/ssh
+# (Note add -DCMAKE_BUILD_TYPE=Release for release builds)
+# cd libgit2
+# mkdir build
+# cd build
+# cmake .. -DBUILD_EXAMPLES=ON -DBUILD_CLAR=OFF -DEMBED_SSH_PATH="D:\src\AAThirdparty\C,C++\libssh2-1.10.0" -DCMAKE_INSTALL_PREFIX="D:\temp\lg2"
+# cmake --build . --target install
 
 if {![info exists GIT_NS]} {
     set GIT_NS [namespace current]::git

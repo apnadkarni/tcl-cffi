@@ -22,9 +22,9 @@
 ::cffi::alias define PCREDENTIAL_SSH_CUSTOM {pointer.git_credential_ssh_custom}
 
 ::cffi::prototype function git_credential_acquire_cb int {
-    pCred             {pointer unsafe}
+    ppCred             {pointer unsafe}
     url               STRING
-    username_from_url STRING
+    username_from_url {STRING nullok}
     allowed_types     {GIT_CREDENTIAL_T bitmask}
     payload           {pointer unsafe}
 }
@@ -60,43 +60,43 @@ libgit2 functions {
         pCred PCREDENTIAL
     }
     git_credential_userpass_plaintext_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
         password STRING
     }
     git_credential_default_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
     }
     git_credential_username_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
     }
     git_credential_ssh_key_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
-        publickey binary
-        privatekey binary
+        publickeypath STRING
+        privatekeypath STRING
         passphrase STRING
     }
     git_credential_ssh_key_memory_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
-        publickey binary
-        privatekey binary
+        publickey STRING
+        privatekey STRING
         passphrase STRING
     }
     git_credential_ssh_interactive_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
         prompt_cb pointer.git_credential_ssh_interactive_cb
         payload {pointer unsafe}
     }
     git_credential_ssh_key_from_agent GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
     }
     git_credential_ssh_custom_new GIT_ERROR_CODE {
-        pCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL out}
         username STRING
         publickey binary
         publickey_len size_t

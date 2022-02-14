@@ -81,7 +81,7 @@ cffi::Struct create git_error {
 }
 
 libgit2 functions {
-    git_error_last {pointer.git_error unsafe} {}
+    git_error_last {pointer.git_error unsafe nullok} {}
     git_error_clear void {}
     git_error_set_str {int zero} {klass git_error_t message STRING}
     git_error_set_oom void {}
@@ -90,6 +90,10 @@ libgit2 functions {
 proc ErrorCodeHandler {callinfo} {
     set code [dict get $callinfo Result]
     set p [git_error_last]
-    set last_error [git_error fromnative! $p]
-    throw [list GIT $code [dict get $last_error klass]] "libgit2 error: [dict get $last_error message]"
+    if {[::cffi::pointer isnull $p]} {
+        throw [list GIT $code UNKNOWN] "libgit2 error: Error code $code"
+    } else {
+        set last_error [git_error fromnative! $p]
+        throw [list GIT $code [dict get $last_error klass]] "libgit2 error: [dict get $last_error message]"
+    }
 }

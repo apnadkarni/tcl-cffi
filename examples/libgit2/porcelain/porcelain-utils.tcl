@@ -8,9 +8,141 @@ namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
 ${GIT_NS}::init d:/temp/git2.dll
 
+# echo-less password entry. Adapted from the wiki
+proc prompt {message {mode "echo"}} {
+    global tcl_platform
+
+    puts  -nonewline "$message "
+    flush stdout
+
+    if {$mode ne "noecho"} {
+        return [gets stdin]
+    }
+
+    if {$::tcl_platform(platform) eq "windows"} {
+        if {[catch {uplevel #0 package require twapi}]} {
+            error "Could not load package twapi. Needed for echoless password entry."
+        }
+        set oldmode [twapi::modify_console_input_mode stdin -echoinput false -lineinput true]
+        try {
+            gets stdin response
+        } finally {
+            # Restore original input mode
+            twapi::set_console_input_mode stdin {*}$oldmode
+        }
+        return $response
+    }
+
+    if {[catch {
+        uplevel #0 [list package require term::ansi::ctrl::unix]
+    }]} {
+        error "Could not load package term::ansi::ctrl::unix. Needed for echoless password entry."
+    }
+
+    ::term::ansi::ctrl::unix::raw
+    try {
+        set response ""
+        while {1} {
+            flush stdout
+            set c [read stdin 1]
+            if {$c eq "\n" || $c eq "\r"} {
+                break
+            }
+            append response $c
+            puts -nonewline *
+        }
+        puts ""
+    } finally {
+        ::term::ansi::ctrl::unix::cooked
+    }
+    return $response
+}
+
+proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
+    # Conforms to git_credential_acquire_cb prototype. Called back from libgit2
+    # to return user credentials.
+    #  ppCred - pointer to location to store pointer to credentials
+    #  url - resource being accessed
+    #  username_from_url - user name from url
+    #  allowed_types - bitmask of git_credential_t specifying acceptable credentials
+    #  payload - not used
+    # The command expects caller to have a dictionary callback_context where it
+    # will store a key tried_credential_types holding the credential types that
+    # have been tried.
+
+    if {$username_from_url eq ""} {
+        set username_from_url [prompt "Username:"]
+    }
+
+    # Try in the following order - GIT_CREDENTIAL_DEFAULT, GIT_CREDENTIAL_SSH_KEY,
+    # GIT_CREDENTIAL_USERPASS_PLAINTEXT. We have to check that we have not already
+    # tried a type else we will loop indefinitely.
+
+    upvar 1 callback_context context
+    if {"GIT_CREDENTIAL_DEFAULT" in $allowed_types &&
+        "GIT_CREDENTIAL_DEFAULT" ni [dict get $context tried_credential_types]} {
+        # Remember we tried this method
+        dict lappend context tried_credential_types GIT_CREDENTIAL_DEFAULT
+
+        if {![catch {git_credential_default_new $ppCred}]} {
+            return 0;           # Got default, tell caller
+        }
+        # Error getting default credentials, try next type
+    }
+
+    if {"GIT_CREDENTIAL_SSH_KEY" in $allowed_types
+        && "GIT_CREDENTIAL_SSH_KEY" ni [dict get $context tried_credential_types]} {
+        # Remember we tried this method
+        dict lappend context tried_credential_types GIT_CREDENTIAL_SSH_KEY
+        # Get private key file path from user
+        set private_key_file [prompt "SSH private key file:"]
+        if {$private_key_file ne ""} {
+            if {![file exists $private_key_file]} {
+                puts stderr "Could not find private key file $private_key_file"
+                return 1; # Tell libgit2 to try next method
+            }
+            set passphrase [prompt "Pass phrase:" noecho]
+            set pub_key_file $private_key_file.pub
+            if {![file exists $pub_key_file]} {
+                puts stderr "Could not find public key file $pub_key_file"
+                return 1; # Tell libgit2 to try next method
+            }
+            if {![catch {git_credential_ssh_key_new pCred $username_from_url $pub_key_file $private_key_file $passphrase} result]} {
+                # libgit2 will take over the credentials so remove from our
+                # pointer registrations after storing in libgit2 return location.
+                ::cffi::memory set! $ppCred pointer $pCred
+                ::cffi::pointer dispose $pCred
+                return 0
+            }
+            puts stderr $result
+        }
+    }
+
+    # Last resort that we support
+    if {"GIT_CREDENTIAL_USERPASS_PLAINTEXT" in $allowed_types
+        && "GIT_CREDENTIAL_USERPASS_PLAINTEXT" ni [dict get $context tried_credential_types]} {
+
+        # Remember we tried this method
+        dict lappend context tried_credential_types GIT_CREDENTIAL_USERPASS_PLAINTEXT
+        set password [prompt "Enter password for $username_from_url" noecho]
+        if {![catch {git_credential_userpass_plaintext_new $ppCred $username_from_url $password} result]} {
+            return 0
+        }
+        puts stderr $result
+    }
+    return -1; # No credential acquired
+}
+
 proc inform {message {force 0}} {
     if {$force || ![option Quiet 0]} {
         puts stderr $message
+    }
+}
+
+# Just for debugging
+proc pdict d {
+    dict for {k v} $d {
+        puts "$k: $v"
     }
 }
 
@@ -19,6 +151,10 @@ proc hexify_id {id} {
     return [binary encode hex [dict get $id id]]
 }
 
+
+
+#####################################################
+# Option processing utilities
 proc option {opt default} {
     variable Options
     if {[info exists Options($opt)]} {

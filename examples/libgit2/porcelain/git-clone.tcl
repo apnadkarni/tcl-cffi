@@ -1,9 +1,3 @@
-proc pdict d {
-    dict for {k v} $d {
-        puts "$k: $v"
-    }
-}
-
 proc print_progress {stats progress_state} {
     # stats is a dictionary updated by the various callbacks
 
@@ -89,9 +83,6 @@ proc main {} {
     if {$path eq ""} {
         set path [file tail $url]
     }
-    if {[file exists $path]} {
-        error "File or directory $path already exists."
-    }
     puts "Cloning into '$path' ..."
 
     git_clone_options_init clone_opts
@@ -108,6 +99,9 @@ proc main {} {
             path ""
             fetch_progress {}
             print_state {}
+        }
+        set callback_context {
+            tried_credential_types {}
         }
 
         # Set up various progress callbacks
