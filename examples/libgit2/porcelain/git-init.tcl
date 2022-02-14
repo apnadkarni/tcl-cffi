@@ -1,5 +1,8 @@
-# Demo of cffi libgit extension. Poor man's git init emulation.
+# Demo of cffi libgit extension. Poor man's git init emulation from libgit2
+# Translated to Tcl from libgit2/examples/init.c
 # tclsh git-init.tcl --help
+
+# NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
 proc parse_options {arguments} {
 

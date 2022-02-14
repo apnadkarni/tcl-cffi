@@ -1,3 +1,9 @@
+# Demo of cffi libgit extension. Poor man's git clone emulation from libgit2
+# Translated to Tcl from libgit2/examples/clone.c
+# tclsh git-clone.tcl --help
+
+# NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
+
 proc print_progress {stats progress_state} {
     # stats is a dictionary updated by the various callbacks
 

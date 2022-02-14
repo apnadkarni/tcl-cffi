@@ -1,5 +1,8 @@
 # Demo of cffi libgit extension. Poor man's git add emulation from libgit2
+# Translated to Tcl from libgit2/examples/add.c
 # tclsh git-add.tcl --help
+
+# NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
 proc parse_options {arguments} {
     getopt::getopt opt arg $arguments {
@@ -71,14 +74,14 @@ proc main {} {
 
         set pPathSpecs [cffi_strarray_new $path_specs]
         if {[option Update 0]} {
-            git_index_update_all $pIndex $pPaths $callback NULL
+            git_index_update_all $pIndex $pPathSpecs $callback NULL
         } else {
             set flags {}
             if {[option Force 0]} {
                 # Flags from enum git_index_add_option_t
                 lappend flags GIT_INDEX_ADD_FORCE
             }
-            git_index_add_all $pIndex $pPaths $flags $callback NULL
+            git_index_add_all $pIndex $pPathSpecs $flags $callback NULL
         }
         git_index_write $pIndex
     } finally {

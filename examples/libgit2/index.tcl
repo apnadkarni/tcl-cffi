@@ -91,7 +91,7 @@ libgit2 functions {
         index {PINDEX out}
     }
     git_index_free void {
-        index {PINDEX dispose}
+        index {PINDEX nullok dispose}
     }
     git_index_owner PREPOSITORY {
         index PINDEX

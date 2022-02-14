@@ -2,6 +2,8 @@
 # Translated to Tcl from libgit2/examples/status.c
 # tclsh git-status.tcl --help
 
+# NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
+
 proc parse_options {arguments} {
     getopt::getopt opt arg $arguments {
         -s - --short {
