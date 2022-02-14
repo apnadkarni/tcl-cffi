@@ -34,7 +34,7 @@ libgit2 functions {
         len   size_t
     }
     git_blob_free void {
-        pBlob {PBLOB dispose}
+        pBlob {PBLOB nullok dispose}
     }
     git_blob_id {struct.git_oid byref} {
         pBlob PBLOB
@@ -71,7 +71,7 @@ libgit2 functions {
     }
     git_blob_create_from_stream_commit GIT_ERROR_CODE {
         id {struct.git_oid out}
-        stream {PWRITESTREAM dispose}
+        stream {PWRITESTREAM nullok dispose}
     }
     git_blob_create_from_buffer GIT_ERROR_CODE {
         id     {struct.git_oid out}

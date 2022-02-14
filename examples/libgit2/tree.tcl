@@ -49,7 +49,7 @@ libgit2 functions {
         len   size_t
     }
     git_tree_free void {
-        pTree {PTREE dispose}
+        pTree {PTREE nullok dispose}
     }
     git_tree_id {struct.git_oid byref} {
         pTree PTREE
@@ -91,7 +91,7 @@ libgit2 functions {
         pSource PTREE_ENTRY
     }
     git_tree_entry_free void {
-        pTree {PTREE_ENTRY dispose}
+        pTree {PTREE_ENTRY nullok dispose}
     }
     git_tree_entry_name STRING {
         pTreeEntry {PTREE_ENTRY unsafe}
@@ -132,7 +132,7 @@ libgit2 functions {
         pTreeBuilder PTREEBUILDER
     }
     git_treebuilder_free void {
-        pTreeBuilder {PTREEBUILDER dispose}
+        pTreeBuilder {PTREEBUILDER nullok dispose}
     }
     git_treebuilder_get {PTREE_ENTRY unsafe} {
         pTreeBuilder PTREEBUILDER

@@ -52,6 +52,6 @@ libgit2 functions {
         entry {PREFLOG_ENTRY unsafe}
     }
     git_reflog_free void {
-        reflog {PREFLOG dispose}
+        reflog {PREFLOG nullok dispose}
     }
 }

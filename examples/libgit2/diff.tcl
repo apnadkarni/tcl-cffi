@@ -292,7 +292,7 @@ libgit2 functions {
         version uint
     }
     git_diff_free void {
-        pDiff {PDIFF dispose}
+        pDiff {PDIFF nullok dispose}
     }
     git_diff_tree_to_tree GIT_ERROR_CODE {
         pDiff {PDIFF out}
@@ -441,7 +441,7 @@ libgit2 functions {
         width   size_t
     }
     git_diff_stats_free void {
-        pStats {PDIFF_STATS dispose}
+        pStats {PDIFF_STATS nullok dispose}
     }
     git_diff_patchid_options_init GIT_ERROR_CODE {
         pOpts   {struct.git_diff_patchid_options out}

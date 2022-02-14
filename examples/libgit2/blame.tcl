@@ -68,6 +68,6 @@ libgit2 functions {
         buffer_len size_t
     }
     git_blame_free void {
-        pBlame {PBLAME dispose}
+        pBlame {PBLAME nullok dispose}
     }
 }

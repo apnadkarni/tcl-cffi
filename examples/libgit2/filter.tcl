@@ -84,6 +84,6 @@ libgit2 functions {
         target  PWRITESTREAM
     }
     git_filter_list_free void {
-        filters {PFILTER_LIST dispose}
+        filters {PFILTER_LIST nullok dispose}
     }
 }

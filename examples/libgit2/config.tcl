@@ -99,7 +99,7 @@ libgit2 functions {
         cfg      PCONFIG
     }
     git_config_free void {
-        cfg {PCONFIG dispose}
+        cfg {PCONFIG nullok dispose}
     }
     git_config_get_entry GIT_ERROR_CODE {
         entry {PCONFIG_ENTRY out}
@@ -153,7 +153,7 @@ libgit2 functions {
         iterator PCONFIG_ITERATOR
     }
     git_config_iterator_free void {
-        iterator {PCONFIG_ITERATOR dispose}
+        iterator {PCONFIG_ITERATOR nullok dispose}
     }
     git_config_set_int32 GIT_ERROR_CODE {
         cfg   PCONFIG

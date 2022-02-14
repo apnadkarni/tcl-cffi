@@ -232,7 +232,7 @@ libgit2 functions {
         pRemote PREMOTE
     }
     git_remote_free void {
-        pRemote {PREMOTE dispose}
+        pRemote {PREMOTE nullok dispose}
     }
     git_remote_list GIT_ERROR_CODE {
         pArray PSTRARRAY

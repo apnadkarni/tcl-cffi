@@ -46,7 +46,7 @@ libgit2 functions {
             stats     {struct.git_indexer_progress out}
     }
     git_indexer_free void {
-            pIndexer {PINDEXER dispose}
+            pIndexer {PINDEXER nullok dispose}
     }
 }
 

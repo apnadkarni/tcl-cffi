@@ -70,7 +70,7 @@ libgit2 functions {
         walk PREVWALK
     }
     git_revwalk_free void {
-        walk {PREVWALK dispose}
+        walk {PREVWALK nullok dispose}
     }
     git_revwalk_repository PREPOSITORY {
         walk PREVWALK

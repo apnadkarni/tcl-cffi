@@ -34,7 +34,7 @@ libgit2 functions {
         iter PBRANCH_ITERATOR
     }
     git_branch_iterator_free void {
-        iter {PBRANCH_ITERATOR dispose}
+        iter {PBRANCH_ITERATOR nullok dispose}
     }
     git_branch_move GIT_ERROR_CODE {
         new_ref         {PREFERENCE out}

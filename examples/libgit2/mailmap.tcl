@@ -8,7 +8,7 @@ libgit2 functions {
         mm {PMAILMAP out}
     }
     git_mailmap_free void {
-        mm {PMAILMAP dispose}
+        mm {PMAILMAP nullok dispose}
     }
     git_mailmap_add_entry GIT_ERROR_CODE {
         mm            PMAILMAP

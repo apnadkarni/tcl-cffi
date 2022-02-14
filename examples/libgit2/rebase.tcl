@@ -95,6 +95,6 @@ libgit2 functions {
         signature {struct.git_signature byref}
     }
     git_rebase_free void {
-        rebase {PREBASE dispose}
+        rebase {PREBASE nullok dispose}
     }
 }

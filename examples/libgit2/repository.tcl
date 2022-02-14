@@ -43,7 +43,7 @@ libgit2 functions {
             ppRep     {PREPOSITORY out}
             bare_path STRING
     }
-    git_repository_free void {pRep {PREPOSITORY dispose}}
+    git_repository_free void {pRep {PREPOSITORY nullok dispose}}
     git_repository_init GIT_ERROR_CODE {
             ppRep  {PREPOSITORY out}
             path   STRING

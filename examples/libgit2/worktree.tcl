@@ -36,7 +36,7 @@ libgit2 functions {
         pRepo PREPOSITORY
     }
     git_worktree_free void {
-        wt {PWORKTREE dispose}
+        wt {PWORKTREE nullok dispose}
     }
     git_worktree_add_options_init GIT_ERROR_CODE {
         vopts   {struct.git_worktree_add_options out}

@@ -105,7 +105,7 @@ libgit2 functions {
         idx        size_t
     }
     git_status_list_free void {
-        pStatusList {PSTATUS_LIST dispose}
+        pStatusList {PSTATUS_LIST nullok dispose}
     }
     git_status_should_ignore GIT_ERROR_CODE {
         ignored {int out}

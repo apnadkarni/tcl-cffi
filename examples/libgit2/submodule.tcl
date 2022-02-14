@@ -54,7 +54,7 @@ libgit2 functions {
         source PSUBMODULE
     }
     git_submodule_free void {
-        sm {PSUBMODULE dispose}
+        sm {PSUBMODULE nullok dispose}
     }
     git_submodule_foreach GIT_ERROR_CODE {
         pRepo    PREPOSITORY

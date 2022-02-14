@@ -39,6 +39,6 @@ libgit2 functions {
         tx PTRANSACTION
     }
     git_transaction_free void {
-        tx {PTRANSACTION dispose}
+        tx {PTRANSACTION nullok dispose}
     }
 }

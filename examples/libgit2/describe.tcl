@@ -52,7 +52,7 @@ libgit2 functions {
         opts {struct.git_describe_format_options byref}
     }
     git_describe_result_free void {
-        result {PDESCRIBE_RESULT dispose}
+        result {PDESCRIBE_RESULT nullok dispose}
     }
 }
 

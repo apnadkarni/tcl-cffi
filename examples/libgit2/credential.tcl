@@ -51,7 +51,7 @@
 
 libgit2 functions {
     git_credential_free void {
-        pCred {PCREDENTIAL dispose}
+        pCred {PCREDENTIAL nullok dispose}
     }
     git_credential_has_username int {
         pCred PCREDENTIAL

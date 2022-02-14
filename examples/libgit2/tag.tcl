@@ -22,7 +22,7 @@ libgit2 functions {
         len   size_t
     }
     git_tag_free void {
-        pTag {PTAG dispose}
+        pTag {PTAG nullok dispose}
     }
     git_tag_id {struct.git_oid byref} {
         pTag PTAG

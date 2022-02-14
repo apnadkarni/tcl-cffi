@@ -93,6 +93,6 @@ libgit2 functions {
         text_id STRING
     }
     git_oid_shorten_free void {
-        os {POID_SHORTEN dispose}
+        os {POID_SHORTEN nullok dispose}
     }
 }

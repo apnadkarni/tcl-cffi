@@ -20,7 +20,7 @@ libgit2 functions {
         len    size_t
     }
     git_commit_free void {
-        commit {PCOMMIT dispose}
+        commit {PCOMMIT nullok dispose}
     }
     git_commit_id {struct.git_oid byref} {
         commit PCOMMIT

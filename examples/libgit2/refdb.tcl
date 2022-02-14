@@ -16,6 +16,6 @@ libgit2 functions {
         refdb PREFDB
     }
     git_refdb_free void {
-        refdb {PREFDB dispose}
+        refdb {PREFDB nullok dispose}
     }
 }

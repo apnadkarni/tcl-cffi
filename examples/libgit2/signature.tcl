@@ -29,6 +29,6 @@ libgit2 functions {
         sig   PSIGNATURE
     }
     git_signature_free void {
-        sig {PSIGNATURE dispose}
+        sig {PSIGNATURE nullok dispose}
     }
 }

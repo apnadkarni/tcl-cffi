@@ -99,7 +99,7 @@ libgit2 functions {
         len    size_t
     }
     git_odb_stream_free void {
-        stream {PODB_STREAM dispose}
+        stream {PODB_STREAM nullok dispose}
     }
     git_odb_open_rstream GIT_ERROR_CODE {
         ppStream {PODB_STREAM out}
@@ -133,7 +133,7 @@ libgit2 functions {
         source PODB_OBJECT
     }
     git_odb_object_free void {
-        object {PODB_OBJECT dispose}
+        object {PODB_OBJECT nullok dispose}
     }
     git_odb_object_id {struct.git_oid byref} {
         odb PODB_OBJECT

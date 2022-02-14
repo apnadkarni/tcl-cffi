@@ -23,7 +23,7 @@ libgit2 functions {
         paths PSTRARRAYIN
     }
     git_pathspec_free void {
-        ps {PPATHSPEC dispose}
+        ps {PPATHSPEC nullok dispose}
     }
     git_pathspec_matches_path int {
         ps    PPATHSPEC
@@ -55,7 +55,7 @@ libgit2 functions {
         ps        PPATHSPEC
     }
     git_pathspec_match_list_free void {
-        psmatches {PPATHSPEC_MATCH_LIST dispose}
+        psmatches {PPATHSPEC_MATCH_LIST nullok dispose}
     }
     git_pathspec_match_list_entrycount size_t {
         psmatches PPATHSPEC_MATCH_LIST

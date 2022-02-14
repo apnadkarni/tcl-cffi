@@ -33,6 +33,6 @@ libgit2 functions {
         pCommit PANNOTATED_COMMIT
     }
     git_annotated_commit_free void {
-        pCommit {PANNOTATED_COMMIT dispose}
+        pCommit {PANNOTATED_COMMIT nullok dispose}
     }
 }

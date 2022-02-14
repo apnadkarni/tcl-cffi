@@ -83,6 +83,6 @@ libgit2 functions {
         progress_cb_payload CB_PAYLOAD
     }
     git_packbuilder_free void {
-        pb {PPACKBUILDER dispose}
+        pb {PPACKBUILDER nullok dispose}
     }
 }

@@ -136,7 +136,7 @@ libgit2 functions {
         ref PREFERENCE
     }
     git_reference_free void {
-        ref {PREFERENCE dispose}
+        ref {PREFERENCE nullok dispose}
     }
     git_reference_cmp int {
         ref1 PREFERENCE
@@ -160,7 +160,7 @@ libgit2 functions {
         iter PREFERENCE_ITERATOR
     }
     git_reference_iterator_free void {
-        iter {PREFERENCE_ITERATOR dispose}
+        iter {PREFERENCE_ITERATOR nullok dispose}
     }
     git_reference_foreach_glob GIT_ERROR_CODE {
         pRepo    PREPOSITORY

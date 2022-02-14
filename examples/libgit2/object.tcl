@@ -3,7 +3,7 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-# git_object_owner - 
+# git_object_owner -
 # TBD - {PREPOSITORY is marked unsafe because repository is one already allocated}
 
 libgit2 functions {
@@ -40,7 +40,7 @@ libgit2 functions {
             pObj POBJECT
     }
     git_object_free void {
-            pObj {POBJECT dispose}
+            pObj {POBJECT nullok dispose}
     }
     git_object_type2string STRING {
             type GIT_OBJECT_T

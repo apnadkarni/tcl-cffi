@@ -22,7 +22,7 @@ libgit2 functions {
         notes_commit PCOMMIT
     }
     git_note_iterator_free void {
-        iterator {PNOTE_ITERATOR dispose}
+        iterator {PNOTE_ITERATOR nullok dispose}
     }
     git_note_next {int {enum git_error_code}} {
         note_id      {struct.git_oid out}
@@ -90,7 +90,7 @@ libgit2 functions {
         oid       {struct.git_oid       byref}
     }
     git_note_free void {
-        note {PNOTE dispose}
+        note {PNOTE nullok dispose}
     }
     git_note_default_ref GIT_ERROR_CODE {
         buf PBUF
