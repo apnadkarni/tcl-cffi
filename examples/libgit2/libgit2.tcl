@@ -139,7 +139,7 @@ namespace eval $GIT_NS {
         cffi::alias define GIT_ERROR_CODE \
             [list int nonnegative [list onerror [namespace current]::ErrorCodeHandler]]
         cffi::alias define PSTRARRAY pointer.git_strarray
-        cffi::alias define PSTRARRAYIN pointer.cffi_strarray
+        cffi::alias define PSTRARRAYIN pointer.lg2_strarray
 
         cffi::alias define CB_PAYLOAD {pointer unsafe nullok}
         cffi::alias define git_object_size_t uint64_t

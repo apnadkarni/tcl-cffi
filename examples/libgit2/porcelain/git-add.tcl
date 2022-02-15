@@ -72,7 +72,7 @@ proc main {} {
             set callback NULL
         }
 
-        set pPathSpecs [cffi_strarray_new $path_specs]
+        set pPathSpecs [lg2_strarray_new $path_specs]
         if {[option Update 0]} {
             git_index_update_all $pIndex $pPathSpecs $callback NULL
         } else {
@@ -89,7 +89,7 @@ proc main {} {
             git_index_free $pIndex
         }
         if {[info exists pPathSpecs]} {
-            cffi_strarray_free $pPathSpecs
+            lg2_strarray_free $pPathSpecs
         }
         git_repository_free $pRepo
     }

@@ -396,10 +396,10 @@ proc main {} {
         # Setting the path specs in the options is a bit tricky as they are embedded
         # as a git_strarray inside the options struct, and not as a git_strarray*
         # so first create an allocated strarray...
-        set pPathSpecs [cffi_strarray_new $path_specs]
+        set pPathSpecs [lg2_strarray_new $path_specs]
         # ..then do a value copy into a dictionary. The pointers in the dictionary
         # value will stay valid as long as pPathSpecs is not freed
-        dict set opts pathspec [cffi_strarray fromnative $pPathSpecs]
+        dict set opts pathspec [lg2_strarray fromnative $pPathSpecs]
 
         set format [option Format long]
         if {[option ShowBranch [string equal $format long]]} {
@@ -431,7 +431,7 @@ proc main {} {
             git_status_list_free $pStatusList
         }
         if {[info exists pPathSpecs]} {
-            cffi_strarray_free $pPathSpecs
+            lg2_strarray_free $pPathSpecs
         }
         if {[info exists pRepo]} {
             git_repository_free $pRepo
