@@ -11,15 +11,15 @@ proc parse_options {arguments} {
         -q - --quiet {
             # Only print error and warning messages;
             # all other output will be suppressed.
-            option_set Quiet 1
+            option_set Quiet $arg
         }
         --bare {
             # Create a bare repository.
-            option_set Bare 1
+            option_set Bare $arg
         }
         --initial-commit {
             # Create an empty initial commit
-            option_set InitialCommit 1
+            option_set InitialCommit $arg
         }
         --separate-git-dir:DIRECTORY {
             # Create text file containing path to actual repository.

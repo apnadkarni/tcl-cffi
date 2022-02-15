@@ -6,18 +6,13 @@
 
 proc parse_options {arguments} {
     getopt::getopt opt arg $arguments {
-        -s - --short {
+        -s {
             # Show output in short format.
             option_set Format short
         }
-        --long {
-            # Show output in long format.
-            option_set Format long
-        }
-        --porcelain {
-            # Show output in easy to parse porcelain format.
-            # Currently same as --short.
-            option_set Format short
+        --format:FORMAT {
+            # Set output format to FORMAT (short, long, porcelain)
+            option_set Format [::tcl::prefix match -message format {porcelain long short} $arg]
         }
         -b - --branch {
             # Show branch and tracking info
@@ -105,7 +100,7 @@ proc map_status_key_letters {status} {
     return [list $istatus $wtstatus]
 }
 
-proc print_short {pStatusList} {
+proc print_short {pRepo pStatusList} {
     set nentries [git_status_list_entrycount $pStatusList]
 
     # First print all existing files
@@ -182,7 +177,7 @@ proc print_short {pStatusList} {
 }
 
 
-proc print_long {pStatusList} {
+proc print_long {pRepo pStatusList} {
     # This could be written to be considerably more efficient, but for pedagogic
     # purposes and lack of clarity of some semantics, writing exactly like the
     # libgit2 C original
@@ -423,8 +418,8 @@ proc main {} {
         # For production code, you may try all and choose the most performant.
         git_status_list_new pStatusList $pRepo $opts
         switch -exact -- $format {
-            long      { print_long $pStatusList }
-            default   { print_short $pStatusList }
+            long      { print_long $pRepo $pStatusList }
+            default   { print_short $pRepo $pStatusList }
         }
     } finally {
         if {[info exists pStatusList]} {

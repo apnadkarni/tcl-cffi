@@ -1,5 +1,5 @@
 # Demo of cffi libgit extension. Poor man's git add emulation from libgit2
-# Translated to Tcl from libgit2/examples/add.c
+# Translated to Tcl from libgit2/examples/add.c. For options, type
 # tclsh git-add.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
@@ -8,19 +8,19 @@ proc parse_options {arguments} {
     getopt::getopt opt arg $arguments {
         -v - --verbose  {
             # Enable verbose output
-            option_set Verbose 1
+            option_set Verbose $arg
         }
         -n - --dry-run {
             # Do not actually add file(s). Only show actions.
-            option_set DryRun 1
+            option_set DryRun $arg
         }
         -u - --update {
             # Update the index only when it already has an entry for the path spec
-            option_set Update 1
+            option_set Update $arg
         }
         -f - --force {
             # Force adding of ignored files
-            option_set Force 1
+            option_set Force $arg
         }
         --git-dir:GITDIR {
             # Specify the path to the repository

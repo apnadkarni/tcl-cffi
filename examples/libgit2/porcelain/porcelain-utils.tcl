@@ -290,6 +290,9 @@ proc getopt::getopt {args} {
             }
             --?* {# long option without an argument
                 set arg($pat) [dict create pattern $pat argument 0]
+                set negpat "--no-[string range $pat 2 end]"
+                # The complement key indicates this is negative of real option
+                set arg($negpat) [dict create pattern $negpat argument 0 complement $pat]
             }
             -?* {# short options
                 set last ""; foreach c [split [string range $pat 1 end] ""] {
@@ -304,6 +307,7 @@ proc getopt::getopt {args} {
             }
         }
     }
+    # Loop through supplied argument list
     while {[llength $list]} {
         set rest [lassign $list opt]
         # Does it look like an option?
@@ -314,27 +318,43 @@ proc getopt::getopt {args} {
         set value 1
         if {$option eq "--"} {
             # Long format option
+
+            # Set argument to 1 if option value supplied with =, else 0
             set argument [regexp {(--[^=]+)=(.*)} $opt -> opt value]
             if {[info exists arg($opt)]} {
+                # This option was specified in arguments
                 set option $opt
             } elseif {[llength [set match [array names arg $opt*]]] == 1} {
+                # A unique prefix of the option was specified in the arguments
                 set option [lindex $match 0]
             } else {
-                # Unknown or ambiguous option
+                # Unknown or ambiguous option. Will invoke the unknown option body
                 set value $opt
                 set option unknown
             }
             if {[dict get $arg($option) argument]} {
+                # Option requires an argument
                 if {$argument} {
+                    # argument was supplied through = (set above in value)
                 } elseif {[llength $rest]} {
+                    # argument not supplied - pick it from next element of list
                     set rest [lassign $rest value]
                 } else {
+                    # Not supplied and no more elements in argument list
                     set value $option
                     set option missing
                 }
             } elseif {$argument} {
+                # Option does not take an argument, but one was supplied
                 set value $option
                 set option argument
+            } else {
+                # Option does not take an argument. Need to check if this is
+                # the complemented version (ie. --no-opt complement of --opt)
+                if {[dict exists $arg($option) complement]} {
+                    set option [dict get $arg($option) complement]
+                    set value 0
+                }
             }
         } elseif {![info exists arg($option)]} {
             set value $option
@@ -430,7 +450,18 @@ proc getopt::help {body} {
                 set x [string first : $pat]
                 lappend opts [string replace $pat $x $x =]
             }
-            --?* {lappend opts $pat}
+            --?* {
+                if {$pat ne "--help"} {
+                    if {1} {
+                        lappend opts "--\[no-\][string range $pat 2 end]"
+                    } else {
+                        lappend opts $pat
+                        lappend opts "--no-[string range $pat 2 end]"
+                    }
+                } else {
+                    lappend opts $pat
+                }
+            }
             -?* {
                 foreach c [split [string range $pat 1 end] {}] {
                     if {$c ne ":"} {lappend opts -$c}
@@ -473,7 +504,8 @@ proc getopt::help {body} {
     app::error_note [format {Usage: %s [OPTION]... %s} $name $arg]
     app::error_note [app::help_prelude]
     app::error_note "\nMandatory arguments to long options\
-      are mandatory for short options too."
+      are also mandatory for short options."
+    app::error_note "Long options may be negated with \"no-\"."
     foreach {s1 s2} $out {
         if {[string length $s1] > $tab} {
             app::error_note $s1
