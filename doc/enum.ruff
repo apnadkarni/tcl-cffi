@@ -52,10 +52,17 @@ namespace eval ${NS}::enum {
         # Returns a dictionary containing the members in an enumeration.
         #  enumname - name of the enumeration whose elements are to be returned.
     }
-    proc name {enumname membervalue} {
+    proc name {enumname membervalue default} {
         # Returns the symbolic name of a value in an enumeration.
         #  enumname - name of the enumeration
         #  membervalue - value of an enumeration member
+        #  default - value to be returned if the member value is not found
+        #
+        # Synopsis: enumname membervalue ?default?
+        #
+        # The command will raise an error if $membervalue is not present in
+        # the enumeration and no default is provided, or if $enumname is
+        # itself undefined.
     }
     proc sequence {enumname membernames {{start 0}}} {
         # Defines an enumeration with consecutive member values
@@ -77,10 +84,18 @@ namespace eval ${NS}::enum {
         # as expected if this condition is not met.
         # See also: "enum mask"
     }
-    proc value {enumname membername} {
+    proc value {enumname membername default} {
         # Returns the value of an enumeration member
         #  enumname - name of the enumeration
         #  membername - name of the enumeration member to retrieve
+        #  default - default value to be returned if the membername is not found
+        #
+        # Synopsis: enumname membername ?default?
+        #
+        # The command will raise an error if $membername is not present in
+        # the enumeration and no default is provided, or if $enumname is
+        # itself undefined.
+
     }
     namespace export *
     namespace ensemble create

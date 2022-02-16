@@ -24,6 +24,8 @@ namespace eval cffi::test {
     testnumargs enum-members "cffi::enum members" "ENUM" ""
     testnumargs enum-sequence "cffi::enum sequence" "ENUM MEMBERNAMES" "?START?"
     testnumargs enum-flags "cffi::enum flags" "ENUM FLAGNAMES" ""
+    testnumargs enum-value "cffi::enum value" "ENUM MEMBERNAME" "?DEFAULT?"
+    testnumargs enum-name "cffi::enum name" "ENUM VALUE" "?DEFAULT?"
 
     # Only very basic tests. Actual verification is in function.test
 
@@ -173,6 +175,12 @@ namespace eval cffi::test {
     } -body {
         cffi::enum value E C
     } -result 3
+    test enum-value-2 "Get missing enum member value - defaulted" -setup {
+        reset_enums
+        cffi::enum define E {A 1 B 2 C 3}
+    } -body {
+        cffi::enum value E D 42
+    } -result 42
 
     test enum-value-error-0 "Get missing enum member value" -setup {
         reset_enums
@@ -198,6 +206,13 @@ namespace eval cffi::test {
     } -body {
         cffi::enum name E 3
     } -result C
+
+    test enum-name-2 "Get missing enum member name - defaulted" -setup {
+        reset_enums
+        cffi::enum define E {A 1 B 2 C 3}
+    } -body {
+        cffi::enum name E 42 unknown
+    } -result unknown
 
     test enum-name-error-0 "Get missing enum member name" -setup {
         reset_enums

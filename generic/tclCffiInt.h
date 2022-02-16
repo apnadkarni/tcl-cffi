@@ -636,20 +636,10 @@ CffiResult CffiEnumMemberFind(Tcl_Interp *ip,
                               Tcl_Obj *mapObj,
                               Tcl_Obj *memberNameObj,
                               Tcl_Obj **valueObjP);
-CffiResult CffiEnumFind(CffiInterpCtx *ipCtxP,
-                        Tcl_Obj *enumObj,
-                        Tcl_Obj *nameObj,
-                        CffiFlags flags,
-                        Tcl_Obj **valueObjP);
 CffiResult CffiEnumMemberFindReverse(Tcl_Interp *ip,
                                      Tcl_Obj *mapObj,
                                      Tcl_WideInt needle,
                                      Tcl_Obj **nameObjP);
-CffiResult CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
-                               Tcl_Obj *enumNameObj,
-                               Tcl_WideInt needle,
-                               CffiFlags flags,
-                               Tcl_Obj **nameObjP);
 CffiResult CffiEnumMemberBitmask(Tcl_Interp *ip,
                                  Tcl_Obj *enumObj,
                                  Tcl_Obj *valueListObj,

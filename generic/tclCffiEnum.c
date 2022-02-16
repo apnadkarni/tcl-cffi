@@ -72,45 +72,6 @@ CffiEnumMemberFind(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-
-
-/* Function: CffiEnumFind
- * Returns the value of an enum member.
- *
- * Parameters:
- * ipCtxP - context in which the enum is defined
- * enumNameObj - name of the enum
- * memberNameObj - name of the member
- * flags - if CFFI_F_SKIP_ERROR_MESSAGES is set, no errors are
- *   recorded in the interpreter
- * valueObjP - location to store the value of the member. If *NULL*,
- *   only a check is made as to existence.
- *
- * If the enum name is not fully qualified, it is also looked up in the
- * current namespace and global namespaces.
- *
- * The reference count on the Tcl_Obj returned in valueObjP is NOT incremented.
- *
- * Returns:
- * *TCL_OK* on success, *TCL_ERROR* on failure.
- */
-CffiResult
-CffiEnumFind(CffiInterpCtx *ipCtxP,
-             Tcl_Obj *enumNameObj,
-             Tcl_Obj *memberNameObj,
-             CffiFlags flags,
-             Tcl_Obj **valueObjP)
-{
-    Tcl_Obj *entries;
-
-    CHECK(CffiEnumGetMap(ipCtxP, enumNameObj, flags, &entries));
-    return CffiEnumMemberFind(
-        flags & CFFI_F_SKIP_ERROR_MESSAGES ? NULL : ipCtxP->interp,
-        entries,
-        memberNameObj,
-        valueObjP);
-}
-
 /* Function: CffiEnumMemberFindReverse
  * Returns the name of an member value in a given enum
  *
@@ -149,52 +110,6 @@ CffiEnumMemberFindReverse(Tcl_Interp *ip,
     Tcl_DictObjDone(&search);
     return Tclh_ErrorNotFound(ip, "Enum member value", NULL, NULL);
 }
-
-/* Function: CffiEnumFindReverse
- * Returns the name of an enum member value.
- *
- * Parameters:
- * ipCtxP - Context in which the enum is defined
- * enumNameObj - name of the enum
- * needleObj - Value to map to a name
- * flags - if CFFI_F_SKIP_ERROR_MESSAGES is set, no errors are
- *   recorded in the interpreter and the original needle itself is returned
- *   in nameObjP.
- * nameObjP - location to store the name of the member
- *
- * If the enum name is not fully qualified, it is also looked up in the
- * current namespace and global namespaces.
- *
- * The reference count on the Tcl_Obj returned in nameObjP is NOT incremented.
- *
- * Returns:
- * *TCL_OK* on success, *TCL_ERROR* on failure.
- */
-CffiResult
-CffiEnumFindReverse(CffiInterpCtx *ipCtxP,
-                    Tcl_Obj *enumNameObj,
-                    Tcl_WideInt needle,
-                    CffiFlags flags,
-                    Tcl_Obj **nameObjP)
-{
-    Tcl_Obj *entries;
-    int ret;
-
-    ret = CffiEnumGetMap(ipCtxP, enumNameObj, flags, &entries);
-    if (ret == TCL_OK) {
-        if (flags & CFFI_F_SKIP_ERROR_MESSAGES) {
-            if (CffiEnumMemberFindReverse(NULL, entries, needle, nameObjP)
-                != TCL_OK)
-                *nameObjP = Tcl_NewWideIntObj(needle); /* Not found, return needle */
-        }
-        else {
-            ret = CffiEnumMemberFindReverse(
-                ipCtxP->interp, entries, needle, nameObjP);
-        }
-    }
-    return ret;
-}
-
 
 /* Function: CffiEnumMemberBitmask
  * Calculates a bitmask by doing a bitwise-OR of elements in a list
@@ -360,9 +275,21 @@ static CffiResult
 CffiEnumValueCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     Tcl_Obj *valueObj;
+    Tcl_Obj *entries;
+    CffiResult ret;
 
-    CFFI_ASSERT(objc == 4);
-    CHECK(CffiEnumFind(ipCtxP, objv[2], objv[3], 0, &valueObj));
+    CFFI_ASSERT(objc == 4 || objc == 5);
+
+    CHECK(CffiEnumGetMap(ipCtxP, objv[2], 0, &entries));
+
+    /* If a default has been supplied, we will return it on failure. */
+    ret = CffiEnumMemberFind(
+        objc == 4 ? ipCtxP->interp : NULL, entries, objv[3], &valueObj);
+    if (ret != TCL_OK) {
+        if (objc == 4)
+            return ret;
+        valueObj = objv[4];
+    }
     Tcl_SetObjResult(ipCtxP->interp, valueObj);
     return TCL_OK;
 }
@@ -371,11 +298,24 @@ static CffiResult
 CffiEnumNameCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     Tcl_Obj *nameObj;
+    Tcl_Obj *entries;
     Tcl_WideInt wide;
+    CffiResult ret;
 
-    CFFI_ASSERT(objc == 4);
+    CFFI_ASSERT(objc == 4 || objc == 5);
+
     CHECK(Tcl_GetWideIntFromObj(ipCtxP->interp, objv[3], &wide));
-    CHECK(CffiEnumFindReverse(ipCtxP, objv[2], wide, 0, &nameObj));
+
+    CHECK(CffiEnumGetMap(ipCtxP, objv[2], 0, &entries));
+
+    /* If a default has been supplied, we will return it on failure. */
+    ret = CffiEnumMemberFindReverse(
+        objc == 4 ? ipCtxP->interp : NULL, entries, wide, &nameObj);
+    if (ret != TCL_OK) {
+        if (objc == 4)
+            return ret;
+        nameObj = objv[4];
+    }
     Tcl_SetObjResult(ipCtxP->interp, nameObj);
     return TCL_OK;
 }
@@ -550,9 +490,9 @@ CffiEnumObjCmd(ClientData cdata,
         {"flags", 2, 2, "ENUM FLAGNAMES", CffiEnumFlagsCmd},
         {"list", 0, 1, "?PATTERN?", CffiEnumListCmd},
         {"members", 1, 1, "ENUM", CffiEnumMembersCmd},
-        {"name", 2, 2, "ENUM VALUE", CffiEnumNameCmd},
+        {"name", 2, 3, "ENUM VALUE ?DEFAULT?", CffiEnumNameCmd},
         {"sequence", 2, 3, "ENUM MEMBERNAMES ?START?", CffiEnumSequenceCmd},
-        {"value", 2, 2, "ENUM MEMBERNAME", CffiEnumValueCmd},
+        {"value", 2, 3, "ENUM MEMBERNAME ?DEFAULT?", CffiEnumValueCmd},
         {"mask", 2, 2, "ENUM MEMBERLIST", CffiEnumMaskCmd},
         {"unmask", 2, 2, "ENUM INTEGER", CffiEnumUnmaskCmd},
         {NULL}};
