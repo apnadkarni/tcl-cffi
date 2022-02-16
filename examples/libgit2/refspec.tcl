@@ -10,7 +10,7 @@ libgit2 functions {
         is_fetch int
     }
     git_refspec_free void {
-        pRefSpec PREFSPEC
+        pRefSpec {PREFSPEC dispose}
     }
     git_refspec_src STRING {
         pRefSpec PREFSPEC

@@ -3,7 +3,7 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-::cffi::alias define PDIFF pointer.git_diff
+::cffi::alias define PDIFF {pointer.git_diff counted}
 ::cffi::alias define PDIFF_STATS pointer.git_diff_stats
 
 ::cffi::enum define git_diff_option_t {

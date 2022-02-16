@@ -3,7 +3,7 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-::cffi::alias define PPATCH pointer.git_patch
+::cffi::alias define PPATCH {pointer.git_patch counted}
 
 libgit2 functions {
     git_patch_owner {PREPOSITORY nullok} {
@@ -42,7 +42,7 @@ libgit2 functions {
         opts        {struct.git_diff_options byref nullifempty}
     }
     git_patch_free void {
-        patch PPATCH
+        patch {PPATCH nullok dispose}
     }
     git_patch_get_delta {struct.git_diff_delta byref} {
         patch PPATCH

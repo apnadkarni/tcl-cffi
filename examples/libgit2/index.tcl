@@ -179,7 +179,7 @@ libgit2 functions {
         iterator PINDEX_ITERATOR
     }
     git_index_iterator_free void {
-        iterator PINDEX_ITERATOR
+        iterator {PINDEX_ITERATOR nullok dispose}
     }
     git_index_add_bypath GIT_ERROR_CODE {
         index PINDEX
@@ -258,6 +258,6 @@ libgit2 functions {
         iterator  PINDEX_CONFLICT_ITERATOR
     }
     git_index_conflict_iterator_free void {
-        iterator PINDEX_CONFLICT_ITERATOR
+        iterator {PINDEX_CONFLICT_ITERATOR nullok dispose}
     }
 }

@@ -19,7 +19,7 @@
 
 ::cffi::Struct create git_blame_options {
     version              uint
-    flags                uint32_t
+    flags                GIT_BLAME_FLAG_T
     min_match_characters uint16_t
     newest_commit        struct.git_oid
     oldest_commit        struct.git_oid

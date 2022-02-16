@@ -209,7 +209,6 @@ proc option_set {opt value} {
 proc option_append {opt args} {
     variable Options
     lappend Options($opt) {*}$args
-    set Options($opt) [lsort -unique $Options($opt)]
 }
 
 proc option_remove {opt args} {

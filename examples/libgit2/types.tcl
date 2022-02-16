@@ -22,31 +22,31 @@
 ::cffi::alias define GIT_OBJECT_T {int {enum git_object_t}}
 
 ::cffi::alias define {
-    PODB                      pointer.git_odb
+    PODB                      {pointer.git_odb counted}
     PODB_BACKEND              pointer.git_odb_backend
     PODB_OBJECT               {pointer.git_odb_object counted}
     PODB_STREAM               pointer.git_odb_stream
     PODB_WRITEPACK            pointer.git_odb_writepack
     PMIDX_WRITER              pointer.git_midx_writer
-    PREFDB                    pointer.git_refdb
+    PREFDB                    {pointer.git_refdb counted}
     PREFDB_BACKEND            pointer.git_refdb_backend
     PCOMMIT_GRAPH             pointer.git_commit_graph
     PCOMMIT_GRAPH_WRITER      pointer.git_commit_graph_writer
 
     PREPOSITORY               pointer.git_repository
     PWORKTREE                 pointer.git_worktree
-    POBJECT                   pointer.git_object
+    POBJECT                   {pointer.git_object counted}
     PREVWALK                  pointer.git_revwalk
-    PTAG                      pointer.git_tag
-    PBLOB                     pointer.git_blob
-    PCOMMIT                   pointer.git_commit
+    PTAG                      {pointer.git_tag counted}
+    PBLOB                     {pointer.git_blob counted}
+    PCOMMIT                   {pointer.git_commit counted}
     PTREE_ENTRY               pointer.git_tree_entry
-    PTREE                     pointer.git_tree
+    PTREE                     {pointer.git_tree counted}
     PTREEBUILDER              pointer.git_treebuilder
-    PINDEX                    pointer.git_index
+    PINDEX                    {pointer.git_index counted}
     PINDEX_ITERATOR           pointer.git_index_iterator
     PINDEX_CONFLICT_ITERATOR  pointer.git_index_conflict_iterator
-    PCONFIG                   pointer.git_config
+    PCONFIG                   {pointer.git_config counted}
     PCONFIG_BACKEND           pointer.git_config_backend
     PREFLOG_ENTRY             pointer.git_reflog_entry
     PREFLOG                   pointer.git_reflog
@@ -111,7 +111,7 @@ cffi::Struct create git_signature {
     PREMOTE_HEAD       pointer.git_remote_head
     PREMOTE_CALLBACKS  pointer.git_remote_callbacks
     PCERT              pointer.git_cert
-    PSUBMODULE         pointer.git_submodule
+    PSUBMODULE         {pointer.git_submodule counted}
 }
 
 ::cffi::enum define git_submodule_update_t {

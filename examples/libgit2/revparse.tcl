@@ -23,7 +23,7 @@ libgit2 functions {
     }
     git_revparse_ext GIT_ERROR_CODE {
         obj   {POBJECT    out}
-        ref   {PREFERENCE out}
+        ref   {PREFERENCE nullok out}
         pRepo PREPOSITORY
         spec  STRING
     }

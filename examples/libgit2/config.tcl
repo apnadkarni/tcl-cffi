@@ -54,7 +54,7 @@
 
 libgit2 functions {
     git_config_entry_free void {
-        entry PCONFIG_ENTRY
+        entry {PCONFIG_ENTRY nullok dispose}
     }
     git_config_find_global GIT_ERROR_CODE {
         buf PBUF

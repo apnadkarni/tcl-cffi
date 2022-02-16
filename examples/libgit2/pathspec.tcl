@@ -3,7 +3,7 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-::cffi::alias define PPATHSPEC pointer.git_pathspec
+::cffi::alias define PPATHSPEC {pointer.git_pathspec counted}
 ::cffi::alias define PPATHSPEC_MATCH_LIST pointer.git_pathspec_match_list
 
 ::cffi::enum define git_pathspec_flag_t {

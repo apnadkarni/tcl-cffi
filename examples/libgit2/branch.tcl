@@ -3,7 +3,7 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-::cffi::alias define PBRANCH_ITERATOR pointer.git_branch_iterator
+::cffi::alias define PBRANCH_ITERATOR {pointer.git_branch_iterator counted}
 
 libgit2 functions {
     git_branch_create GIT_ERROR_CODE {
