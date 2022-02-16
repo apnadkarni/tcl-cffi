@@ -32,7 +32,7 @@ proc parse_options {arguments} {
         }
     }
     if {[llength $path_specs] == 0} {
-        error "No paths specified."
+        getopt::usage "No paths specified."
     }
     return $path_specs
 }

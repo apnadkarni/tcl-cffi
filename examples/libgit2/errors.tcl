@@ -89,11 +89,12 @@ libgit2 functions {
 
 proc ErrorCodeHandler {callinfo} {
     set code [dict get $callinfo Result]
+    set codename [::cffi::enum name git_error_code $code $code]
     set p [git_error_last]
     if {[::cffi::pointer isnull $p]} {
-        throw [list GIT $code UNKNOWN] "libgit2 error: Error code $code"
+        throw [list GIT $code $codename UNKNOWN] "libgit2 error: Error code $code"
     } else {
         set last_error [git_error fromnative! $p]
-        throw [list GIT $code [dict get $last_error klass]] "libgit2 error: [dict get $last_error message]"
+        throw [list GIT $code $codename [dict get $last_error klass]] "libgit2 error: [dict get $last_error message]"
     }
 }

@@ -47,7 +47,7 @@
 
 ::cffi::prototype function git_checkout_notify_cb int {
     why GIT_CHECKOUT_NOTIFY_T
-    path STRING
+    path {STRING nullok}
     baseline {struct.git_diff_file byref}
     target {struct.git_diff_file byref}
     workdir {struct.git_diff_file byref}
@@ -55,7 +55,7 @@
 }
 
 ::cffi::prototype function git_checkout_progress_cb void {
-    path STRING
+    path {STRING nullok}
     completed_steps size_t
     total_steps size_t
     payload {pointer unsafe}
@@ -89,6 +89,10 @@
     perfdata_payload  CB_PAYLOAD
 }
 
+# Notes
+# git_checkout_tree pTreeish is untyped because it takes several
+# different types of objects
+
 libgit2 functions {
     git_checkout_options_init int {
         pOpts   {struct.git_checkout_options out}
@@ -105,7 +109,7 @@ libgit2 functions {
     }
     git_checkout_tree GIT_ERROR_CODE {
         pRepo PREPOSITORY
-        pTreeish POBJECT
+        pTreeish pointer
         opts  {struct.git_checkout_options byref}
     }
 }

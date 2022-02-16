@@ -29,7 +29,7 @@ libgit2 functions {
     git_annotated_commit_id {struct.git_oid byref} {
         pCommit PANNOTATED_COMMIT
     }
-    git_annotated_commit_ref STRING {
+    git_annotated_commit_ref {STRING nullok} {
         pCommit PANNOTATED_COMMIT
     }
     git_annotated_commit_free void {

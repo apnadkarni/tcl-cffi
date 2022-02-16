@@ -8,6 +8,14 @@ namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
 ${GIT_NS}::init d:/temp/git2.dll
 
+# Just for debugging
+proc pdict d {
+    dict for {k v} $d {
+        puts "$k: $v"
+    }
+}
+
+
 # echo-less password entry. Adapted from the wiki
 proc prompt {message {mode "echo"}} {
     global tcl_platform
@@ -133,16 +141,32 @@ proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
     return -1; # No credential acquired
 }
 
+proc resolve_refish {pRepo refish} {
+    # Return a pointer to an allocated annotated ref. Must be freed by caller
+    # pRepo - repository
+    # refish - something that serves as a ref
+
+    try {
+        git_reference_dwim pRef $pRepo $refish
+        git_annotated_commit_from_ref pAnnotatedCommit $pRepo $pRef
+    } trap {} {} {
+        git_revparse_single pObj $pRepo $refish
+        try {
+            git_annotated_commit_lookup pAnnotatedCommit $pRepo [git_object_id $pObj]
+        } finally {
+            git_object_free $pObj
+        }
+    } finally {
+        if {[info exists pRef]} {
+            git_reference_free $pRef
+        }
+    }
+    return $pAnnotatedCommit
+}
+
 proc inform {message {force 0}} {
     if {$force || ![option Quiet 0]} {
         puts stderr $message
-    }
-}
-
-# Just for debugging
-proc pdict d {
-    dict for {k v} $d {
-        puts "$k: $v"
     }
 }
 
@@ -150,8 +174,6 @@ proc hexify_id {id} {
     # Return hex form of a libgit2 OID
     return [binary encode hex [dict get $id id]]
 }
-
-
 
 #####################################################
 # Option processing utilities

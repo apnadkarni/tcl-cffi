@@ -96,7 +96,7 @@ proc lg2_strarray_strings {pStrArray} {
     if {$count == 0} {
         return {}
     }
-    set ptrs [::cffi::memory get $pStrings pointer\[$count\]]
+    set ptrs [::cffi::memory get! $pStrings pointer\[$count\]]
     set strings {}
     return [lmap ptr $ptrs {
         ::cffi::memory tostring! $ptr utf-8

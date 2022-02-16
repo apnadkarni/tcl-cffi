@@ -63,7 +63,7 @@ proc parse_options {arguments} {
     } elseif {[llength $dir] == 1} {
         return [lindex $dir 0]
     } else {
-        getopt::usage {[options] [directory]}
+        getopt::usage "At most one directory may be specified."
     }
 }
 
