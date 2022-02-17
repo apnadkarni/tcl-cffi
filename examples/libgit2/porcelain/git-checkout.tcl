@@ -122,7 +122,7 @@ proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
 
 proc main {} {
     set ref [parse_options $::argv]
-    git_repository_open pRepo [option GitDir .]
+    git_repository_open_ext pRepo [option GitDir .]
     try {
 
         set state [git_repository_state $pRepo]

@@ -31,23 +31,24 @@ libgit2 functions {
     GIT_REPOSITORY_OPEN_NO_DOTGIT
     GIT_REPOSITORY_OPEN_FROM_ENV
 }
+::cffi::alias define GIT_REPOSITORY_OPEN_FLAG_T {uint {enum git_repository_open_flag_t}}
 
 libgit2 functions {
     git_repository_open_ext  GIT_ERROR_CODE {
-            ppRep {PREPOSITORY out}
-            path  STRING
-            flags uint
-            ceiling_dirs {STRING {default ""}}
+        ppRep {PREPOSITORY out}
+        path  STRING
+        flags {GIT_REPOSITORY_OPEN_FLAG_T {default 0}}
+        ceiling_dirs {STRING nullifempty {default ""}}
     }
     git_repository_open_bare GIT_ERROR_CODE {
-            ppRep     {PREPOSITORY out}
-            bare_path STRING
+        ppRep     {PREPOSITORY out}
+        bare_path STRING
     }
     git_repository_free void {pRep {PREPOSITORY nullok dispose}}
     git_repository_init GIT_ERROR_CODE {
-            ppRep  {PREPOSITORY out}
-            path   STRING
-            is_bare uint
+        ppRep  {PREPOSITORY out}
+        path   STRING
+        is_bare uint
     }
 }
 
@@ -142,7 +143,7 @@ libgit2 functions {
     git_repository_path STRING {
         pRepo PREPOSITORY
     }
-    git_repository_workdir STRING {
+    git_repository_workdir {STRING nullok} {
         pRepo PREPOSITORY
     }
     git_repository_commondir STRING {

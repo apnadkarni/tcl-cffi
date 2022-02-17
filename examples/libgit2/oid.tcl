@@ -36,7 +36,7 @@ libgit2 functions {
         oid {struct.git_oid byref}
     }
     git_oid_tostr STRING {
-        str chars[n]
+        str {chars[n] out}
         n   size_t
         oid {struct.git_oid byref}
     }

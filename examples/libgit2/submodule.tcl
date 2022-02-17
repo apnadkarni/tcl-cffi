@@ -22,7 +22,7 @@
 ::cffi::alias define GIT_SUBMODULE_STATUS_T {int {enum git_submodule_status_t} bitmask}
 
 ::cffi::prototype function git_submodule_cb int {
-    sm      {PSUBMODULE unsafe}
+    sm      {pointer.git_submodule unsafe}
     name    STRING
     payload CB_PAYLOAD
 }

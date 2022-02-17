@@ -31,11 +31,11 @@
     lines_in_hunk           size_t
     final_commit_id         struct.git_oid
     final_start_line_number size_t
-    final_signature         pointer.git_signature
+    final_signature         {pointer.git_signature unsafe}
     orig_commit_id          struct.git_oid
     orig_path               STRING
     orig_start_line_number  size_t
-    orig_signature          pointer.git_signature
+    orig_signature          {pointer.git_signature unsafe}
     boundary                schar
 }
 
@@ -47,11 +47,11 @@ libgit2 functions {
     git_blame_get_hunk_count uint32_t {
         blame PBLAME
     }
-    git_blame_get_hunk_byindex {struct.git_blame_hunk byref} {
+    git_blame_get_hunk_byindex {pointer.git_blame_hunk unsafe nullok} {
         blame PBLAME
         index uint32_t
     }
-    git_blame_get_hunk_byline {struct.git_blame_hunk byref} {
+    git_blame_get_hunk_byline {pointer.git_blame_hunk unsafe nullok} {
         blame  PBLAME
         lineno size_t
     }

@@ -381,7 +381,7 @@ proc main {} {
     }
     set path_specs [parse_options $::argv]
 
-    git_repository_open pRepo [option GitDir .]
+    git_repository_open_ext pRepo [option GitDir .]
     try {
         # Set up options for retrieving status
         git_status_options_init opts

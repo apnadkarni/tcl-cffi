@@ -52,7 +52,7 @@ proc add_cb {pRepo path pathspec payload} {
 
 proc main {} {
     set path_specs [parse_options $::argv]
-    git_repository_open pRepo [option GitDir .]
+    git_repository_open_ext pRepo [option GitDir .]
     try {
         git_repository_index pIndex $pRepo
 

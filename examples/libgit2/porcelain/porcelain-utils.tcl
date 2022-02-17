@@ -164,6 +164,37 @@ proc resolve_refish {pRepo refish} {
     return $pAnnotatedCommit
 }
 
+proc make_relative_path {path parent} {
+    set path_components [file split [file normalize $path]]
+    set parent_components [file split [file normalize $parent]]
+    set npath [llength $path_components]
+    set nparent [llength $parent_components]
+    if {$nparent > $npath} {
+        error "$path is not contained within $parent."
+    }
+    if {$::tcl_platform(platform) eq "windows"} {
+        for {set i 0} {$i < $nparent} {incr i} {
+            if {[string compare -nocase \
+                     [lindex $path_components $i] \
+                     [lindex $parent_components $i]]} {
+                error "$path is not contained within $parent."
+            }
+        }
+    } else {
+        for {set i 0} {$i < $nparent} {incr i} {
+            if {[string compare \
+                     [lindex $path_components $i] \
+                     [lindex $parent_components $i]]} {
+                error "$path is not contained within $parent."
+            }
+        }
+    }
+    if {$i == $npath} {
+        return "."
+    }
+    return [file join {*}[lrange $path_components $i end]]
+}
+
 proc inform {message {force 0}} {
     if {$force || ![option Quiet 0]} {
         puts stderr $message

@@ -20,7 +20,7 @@ proc parse_options {arguments} {
 proc main {} {
     parse_options $::argv
 
-    git_repository_open pRepo [option GitDir .]
+    git_repository_open_ext pRepo [option GitDir .]
     try {
         try {
             git_revparse_ext pParent pRef $pRepo HEAD

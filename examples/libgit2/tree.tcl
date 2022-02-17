@@ -123,7 +123,7 @@ libgit2 functions {
     git_treebuilder_new GIT_ERROR_CODE {
         pTreeBuilder {PTREEBUILDER out}
         pRepo        PREPOSITORY
-        pSource      {PTREE unsafe nullok {default NULL}}
+        pSource      {PTREE nullok {default NULL}}
     }
     git_treebuilder_clear GIT_ERROR_CODE {
         pTreeBuilder PTREEBUILDER
