@@ -292,7 +292,9 @@ namespace eval cffi::test {
             $result \
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value 256 not in range. Must be within [0,255].} \x00\xFF]
-
+    test memory-fill-error-3 "memory fill - NULL pointer" -body {
+        cffi::memory fill NULL 0 1
+    } -result "*Pointer is NULL*" -match glob -returnCodes error
 
     #
     # memory set/get

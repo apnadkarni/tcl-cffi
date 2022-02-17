@@ -630,8 +630,13 @@ CffiStructFromNativePointer(Tcl_Interp *ip,
 
     if (safe)
         CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
-    else
+    else {
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &valueP, structP->name));
+        if (valueP == NULL) {
+            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
 
     /* TBD - check alignment of valueP */
 

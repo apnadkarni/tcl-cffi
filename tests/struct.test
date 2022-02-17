@@ -259,6 +259,10 @@ namespace eval cffi::test {
         set s [::TestStruct fromnative $p]
     } -result {^Pointer 0x[[:xdigit:]]+\^::TestStruct is not registered\.$} -match regexp -returnCodes error
 
+    test struct-fromnative-error-1 "struct fromnative - null pointer" -body {
+        ::TestStruct fromnative NULL
+    } -result "*Pointer is NULL*" -match glob -returnCodes error
+
     ###
     # fromnative!
     testnumargs struct-fromnative! "::TestStruct fromnative!" "POINTER" "?INDEX?"
@@ -299,6 +303,10 @@ namespace eval cffi::test {
         set s [::TestStruct fromnative! $p]
         checkTestStruct $s
     } -result [list]
+
+    test struct-fromnative!-error-0 "struct fromnative! - null pointer" -body {
+        ::TestStruct fromnative! NULL
+    } -result "*Pointer is NULL*" -match glob -returnCodes error
 
 
     ###
