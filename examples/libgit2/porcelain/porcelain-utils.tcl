@@ -237,6 +237,17 @@ proc option_set {opt value} {
     set Options($opt) $value
 }
 
+proc option_set_once {opt value} {
+    variable Options
+    if {[info exists Options($opt)]} {
+        if {$Options($opt) == $value} {
+            return
+        }
+        error "\"$value\" is incompatible with \"$Options($opt)\""
+    }
+    set Options($opt) $value
+}
+
 proc option_append {opt args} {
     variable Options
     lappend Options($opt) {*}$args
@@ -557,7 +568,6 @@ proc getopt::help {body} {
     app::error_note [app::help_prelude]
     app::error_note "\nMandatory arguments to long options\
       are also mandatory for short options."
-    app::error_note "Long options may be negated with \"no-\"."
     foreach {s1 s2} $out {
         if {[string length $s1] > $tab} {
             app::error_note $s1
