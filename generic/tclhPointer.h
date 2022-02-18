@@ -9,6 +9,7 @@
  */
 
 #include "tclhBase.h"
+#include "tclhHash.h"
 
 /* Typedef: Tclh_PointerTypeTag
  *
@@ -342,9 +343,53 @@ int Tclh_PointerUnwrapAnyOf(Tcl_Interp *interp, Tcl_Obj *objP,
  * tag - Type tag to match
  *
  * Returns:
- *
+ * Pointer to a Tcl_Obj with reference count 0.
  */
 Tcl_Obj *Tclh_PointerEnumerate(Tcl_Interp *interp, Tclh_PointerTypeTag tag);
+
+/* Function: Tclh_PointerSubtagDefine
+ * Registers a tag as a subtype of another tag
+ *
+ * Parameters:
+ * interp - Interpreter. Must not be NULL.
+ * subtagObj - the subtag
+ * supertagObj - the super tag
+ *
+ * The subtag must not have already been registered as a subtag of some
+ * other tag.
+ *
+ * Returns:
+ * A Tcl result code.
+ */
+int Tclh_PointerSubtagDefine(Tcl_Interp *interp,
+                             Tclh_PointerTypeTag subtagObj,
+                             Tclh_PointerTypeTag supertagObj);
+
+/* Function: Tclh_PointerCast
+ * Changes the tag associated with a pointer
+ *
+ * Parameters:
+ * interp   - Interpreter in which to store error messages. May be NULL.
+ * ptrObjP  - Tcl_Obj holding the wrapped pointer value.
+ * newTagObj - new tag to which pointer is to be cast. May be NULL to cast
+ *   to void pointer
+ * castPtrObj - location to store wrapped pointer after casting
+ *
+ * If the passed wrapped pointer is NULL, a wrapped NULL pointer is returned.
+ * If it is a safe pointer, it's tag is changed to the new tag in the pointer
+ * registry.
+ *
+ * For the cast to succeed either newTagObj must be NULL indicating cast
+ * to void or the current tag must be derived from it via previous calls
+ * to Tclh_PointerSubtagDefine.
+ *
+ * Returns:
+ * A Tcl return code.
+ */
+int Tclh_PointerCast(Tcl_Interp *interp,
+                     Tcl_Obj *ptrObj,
+                     Tclh_PointerTypeTag newTagObj,
+                     Tcl_Obj **castPtrObj);
 
 #ifdef TCLH_SHORTNAMES
 
@@ -360,6 +405,8 @@ Tcl_Obj *Tclh_PointerEnumerate(Tcl_Interp *interp, Tclh_PointerTypeTag tag);
 #define PointerObjGetTag          Tclh_PointerGetTag
 #define PointerUnwrapAnyOf        Tclh_PointerUnwrapAnyOf
 #define PointerEnumerate          Tclh_PointerEnumerate
+#define PointerSubtagDefine       Tclh_PointerSubtagDefine
+#define PointerCast               Tclh_PointerCast
 
 #endif
 
@@ -381,6 +428,12 @@ typedef struct TclhPointerRecord {
     Tcl_Obj *tagObj;            /* Identifies the "type". May be NULL */
     int nRefs;                  /* Number of references to the pointer */
 } TclhPointerRecord;
+
+typedef struct TclhPointerRegistry {
+    Tcl_HashTable pointers;/* Table of registered pointers */
+    Tcl_HashTable castables;/* Table of permitted casts subclass -> class */
+} TclhPointerRegistry;
+
 
 /*
  * Pointer is a Tcl "type" whose internal representation is stored
@@ -423,6 +476,11 @@ PointerTypeSame(Tclh_PointerTypeTag pointer_tag,
                : Tclh_PointerTagMatch(pointer_tag, expected_tag);
 }
 
+static TclhPointerRegistry *TclhInitPointerRegistry(Tcl_Interp *interp);
+static int PointerTypeCompatible(TclhPointerRegistry *registryP,
+                                 Tclh_PointerTypeTag tag,
+                                 Tclh_PointerTypeTag expected);
+
 int
 Tclh_PointerLibInit(Tcl_Interp *interp)
 {
@@ -451,6 +509,7 @@ Tclh_PointerUnwrap(Tcl_Interp *interp,
                    Tclh_PointerTypeTag expected_tag)
 {
     Tclh_PointerTypeTag tag;
+    TclhPointerRegistry *registryP;
     void *pv;
 
     /* Try converting Tcl_Obj internal rep */
@@ -458,6 +517,8 @@ Tclh_PointerUnwrap(Tcl_Interp *interp,
         if (SetPointerFromAny(interp, objP) != TCL_OK)
             return TCL_ERROR;
     }
+
+    registryP = TclhInitPointerRegistry(interp);
     tag = PointerTypeGet(objP);
     pv  = PointerValueGet(objP);
 
@@ -468,7 +529,8 @@ Tclh_PointerUnwrap(Tcl_Interp *interp,
     * expected_tag NULL means no type check
     * NULL pointers
     */
-    if (expected_tag && (pv || tag) && !PointerTypeSame(tag, expected_tag)) {
+    if (expected_tag && (pv || tag)
+        && !PointerTypeCompatible(registryP, tag, expected_tag)) {
         return Tclh_ErrorWrongType(interp, objP, "Pointer type mismatch.");
     }
 
@@ -662,31 +724,44 @@ TclhPointerRecordFree(TclhPointerRecord *ptrRecP)
 static void
 TclhCleanupPointerRegistry(ClientData clientData, Tcl_Interp *interp)
 {
-    Tcl_HashTable *hTblPtr = (Tcl_HashTable *)clientData;
+    TclhPointerRegistry *registryP = (TclhPointerRegistry *)clientData;
+    Tcl_HashTable *hTblPtr;
     Tcl_HashEntry *he;
     Tcl_HashSearch hSearch;
-    for (he = Tcl_FirstHashEntry(hTblPtr, &hSearch);
-         he != NULL; he = Tcl_NextHashEntry(&hSearch)) {
-        TclhPointerRecord *ptrRecP = Tcl_GetHashValue(he);
-        TclhPointerRecordFree(ptrRecP);
+    hTblPtr = &registryP->pointers;
+    for (he = Tcl_FirstHashEntry(hTblPtr, &hSearch); he != NULL;
+         he = Tcl_NextHashEntry(&hSearch)) {
+        TclhPointerRecordFree((TclhPointerRecord *)Tcl_GetHashValue(he));
     }
+    Tcl_DeleteHashTable(&registryP->pointers);
 
-    Tcl_DeleteHashTable(hTblPtr);
-    ckfree(hTblPtr);
+    hTblPtr = &registryP->castables;
+    for (he = Tcl_FirstHashEntry(hTblPtr, &hSearch); he != NULL;
+         he = Tcl_NextHashEntry(&hSearch)) {
+        Tcl_Obj *superTagObj = (Tcl_Obj *)Tcl_GetHashValue(he);
+        /* Future proof in case we allow superTagObj as NULL */
+        if (superTagObj)
+            Tcl_DecrRefCount(superTagObj);
+    }
+    Tcl_DeleteHashTable(&registryP->castables);
+
+    ckfree(registryP);
 }
 
-static Tcl_HashTable *
+static TclhPointerRegistry *
 TclhInitPointerRegistry(Tcl_Interp *interp)
 {
-    Tcl_HashTable *hTblPtr;
+    TclhPointerRegistry *registryP;
     static const char *const pointerTableKey = TCLH_EMBEDDER "PointerTable";
-    hTblPtr = Tcl_GetAssocData(interp, pointerTableKey, NULL);
-    if (hTblPtr == NULL) {
-	hTblPtr = ckalloc(sizeof(Tcl_HashTable));
-	Tcl_InitHashTable(hTblPtr, TCL_ONE_WORD_KEYS);
-	Tcl_SetAssocData(interp, pointerTableKey, TclhCleanupPointerRegistry, hTblPtr);
+    registryP = Tcl_GetAssocData(interp, pointerTableKey, NULL);
+    if (registryP == NULL) {
+        registryP = ckalloc(sizeof(*registryP));
+        Tcl_InitHashTable(&registryP->pointers, TCL_ONE_WORD_KEYS);
+        Tcl_InitHashTable(&registryP->castables, TCL_STRING_KEYS);
+        Tcl_SetAssocData(
+            interp, pointerTableKey, TclhCleanupPointerRegistry, registryP);
     }
-    return hTblPtr;
+    return registryP;
 }
 
 int
@@ -696,6 +771,7 @@ TclhPointerRegister(Tcl_Interp *interp,
                     Tcl_Obj **objPP,
                     int counted)
 {
+    TclhPointerRegistry *registryP;
     Tcl_HashTable *hTblPtr;
     Tcl_HashEntry *he;
     int            newEntry;
@@ -704,7 +780,8 @@ TclhPointerRegister(Tcl_Interp *interp,
     if (pointer == NULL)
         return Tclh_ErrorInvalidValue(interp, NULL, "Attempt to register null pointer.");
 
-    hTblPtr = TclhInitPointerRegistry(interp);
+    registryP = TclhInitPointerRegistry(interp);
+    hTblPtr   = &registryP->pointers;
     he = Tcl_CreateHashEntry(hTblPtr, pointer, &newEntry);
 
     if (he) {
@@ -775,20 +852,53 @@ Tclh_PointerRegisterCounted(Tcl_Interp *interp,
 }
 
 static int
+PointerTypeCompatible(TclhPointerRegistry *registryP,
+                      Tclh_PointerTypeTag tag,
+                      Tclh_PointerTypeTag expected)
+{
+    int i;
+
+    /* Rather than trying to detect loops by recording history
+     * just keep a hard limit 10 on the depth of lookups
+     */
+    /* NOTE: on first go around ok for tag to be NULL. */
+    if (PointerTypeSame(tag, expected))
+        return 1;
+    /* For NULL, if first did not match succeeding will not either  */
+    if (tag == NULL)
+        return 0;
+    for (i = 0; i < 10; ++i) {
+        Tcl_HashEntry *he;
+        he = Tcl_FindHashEntry(&registryP->castables, Tcl_GetString(tag));
+        if (he == NULL)
+            return 0;/* No super type */
+        tag = Tcl_GetHashValue(he);
+        /* For NULL, if first did not match succeeding will not either cut short */
+        if (tag == NULL)
+            return 0;
+        if (PointerTypeSame(tag, expected))
+            return 1;
+    }
+
+    return 0;
+}
+
+static int
 PointerVerifyOrUnregister(Tcl_Interp *interp,
                           const void *pointer,
                           Tclh_PointerTypeTag tag,
                           int unregister)
 {
-    Tcl_HashTable *hTblPtr;
+    TclhPointerRegistry *registryP;
     Tcl_HashEntry *he;
 
-    hTblPtr = TclhInitPointerRegistry(interp);
-    he = Tcl_FindHashEntry(hTblPtr, pointer);
+    registryP = TclhInitPointerRegistry(interp);
+    he = Tcl_FindHashEntry(&registryP->pointers, pointer);
     if (he) {
         TclhPointerRecord *ptrRecP = Tcl_GetHashValue(he);
-        if (!PointerTypeSame(ptrRecP->tagObj, tag))
+        if (!PointerTypeCompatible(registryP, ptrRecP->tagObj, tag)) {
             return PointerTypeError(interp, ptrRecP->tagObj, tag);
+        }
         if (unregister) {
             if (ptrRecP->nRefs <= 1) {
                 /*  Either uncounted or ref count will reach 0 */
@@ -815,12 +925,14 @@ Tcl_Obj *
 Tclh_PointerEnumerate(Tcl_Interp *interp,
                       Tclh_PointerTypeTag tag)
 {
+    TclhPointerRegistry *registryP;
     Tcl_HashEntry *he;
     Tcl_HashSearch hSearch;
     Tcl_HashTable *hTblPtr;
     Tcl_Obj *resultObj = Tcl_NewListObj(0, NULL);
 
-    hTblPtr = TclhInitPointerRegistry(interp);
+    registryP = TclhInitPointerRegistry(interp);
+    hTblPtr   = &registryP->pointers;
     for (he = Tcl_FirstHashEntry(hTblPtr, &hSearch);
          he != NULL; he = Tcl_NextHashEntry(&hSearch)) {
         void *pv                   = Tcl_GetHashKey(hTblPtr, he);
@@ -934,6 +1046,82 @@ Tclh_PointerObjVerifyAnyOf(Tcl_Interp *interp,
     tclResult = PointerObjVerifyOrUnregisterAnyOf(interp, objP, pointerP, 0, args);
     va_end(args);
     return tclResult;
+}
+
+int Tclh_PointerSubtagDefine(Tcl_Interp *interp,
+                             Tclh_PointerTypeTag subtagObj,
+                             Tclh_PointerTypeTag supertagObj)
+{
+    TclhPointerRegistry *registryP;
+    int tclResult;
+    const char *subtag;
+    registryP = TclhInitPointerRegistry(interp);
+
+    if (supertagObj == NULL)
+        return TCL_OK; /* void* always a supertype, not need to register */
+    subtag = Tcl_GetString(subtagObj);
+    if (!strcmp(subtag, Tcl_GetString(supertagObj)))
+        return TCL_OK; /* Same tag */
+    tclResult = Tclh_HashAdd(
+        interp, &registryP->castables, subtag, supertagObj);
+    if (tclResult == TCL_OK)
+        Tcl_IncrRefCount(supertagObj);/* Since added to hash table */
+    return tclResult;
+}
+
+int
+Tclh_PointerCast(Tcl_Interp *interp,
+                 Tcl_Obj *objP,
+                 Tclh_PointerTypeTag newTag,
+                 Tcl_Obj **castPtrObj)
+{
+    TclhPointerRegistry *registryP;
+    Tclh_PointerTypeTag oldTag;
+    TclhPointerRecord *ptrRecP;
+    Tcl_HashEntry *he;
+    void *pv;
+    int tclResult;
+
+    /* First extract pointer value and tag */
+    tclResult = Tclh_PointerObjGetTag(interp, objP, &oldTag);
+    if (tclResult != TCL_OK)
+        return tclResult;
+
+    tclResult = Tclh_PointerUnwrap(interp, objP, &pv, NULL);
+    if (tclResult != TCL_OK)
+        return tclResult;
+
+    /* Validate that if registered, it is registered correctly. */
+    registryP = TclhInitPointerRegistry(interp);
+    ptrRecP = NULL;
+    he = Tcl_FindHashEntry(&registryP->pointers, pv);
+    if (he) {
+        ptrRecP = Tcl_GetHashValue(he);
+        if (!PointerTypeSame(oldTag, ptrRecP->tagObj)) {
+            /* Pointer is registered but as a different type */
+            return PointerTypeError(interp, ptrRecP->tagObj, oldTag);
+        }
+    }
+
+    /* Must be either upcastable or downcastable */
+    if (!PointerTypeCompatible(registryP, oldTag, newTag)
+        && !PointerTypeCompatible(registryP, newTag, oldTag)) {
+        return Tclh_ErrorGeneric(
+            interp, "POINTER", "Pointer tags are not compatible for casting.");
+    }
+
+    /* If registered, we have to change registration */
+    if (ptrRecP) {
+        Tclh_PointerTypeTag tempTag;
+        tempTag = ptrRecP->tagObj;
+        ptrRecP->tagObj = newTag;
+        if (newTag)
+            Tcl_IncrRefCount(newTag);
+        if (tempTag)
+            Tcl_DecrRefCount(tempTag);/* AFTER incr-ing newTag in case same */
+    }
+    *castPtrObj = Tclh_PointerWrap(pv, newTag);
+    return TCL_OK;
 }
 
 #endif /* TCLH_POINTER_IMPL */

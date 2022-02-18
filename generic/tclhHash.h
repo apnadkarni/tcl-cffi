@@ -133,7 +133,7 @@ Tclh_HashAdd(Tcl_Interp *ip,
     int isNew;
 
     heP = Tcl_CreateHashEntry(htP, key, &isNew);
-    if (!isNew && ip)
+    if (!isNew)
         return Tclh_ErrorExists(ip, "Name", NULL, NULL);
     Tcl_SetHashValue(heP, value);
     return TCL_OK;

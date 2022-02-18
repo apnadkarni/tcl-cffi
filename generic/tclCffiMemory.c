@@ -150,7 +150,7 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
 
     pv = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
 
-    ret = CffiNativeValueFromObj(ip, &typeAttrs, 0, objv[3], 0, pv, 0, NULL);
+    ret = CffiNativeValueFromObj(ipCtxP, &typeAttrs, 0, objv[3], 0, pv, 0, NULL);
     if (ret == TCL_OK) {
         Tcl_Obj *ptrObj;
         Tcl_Obj *tagObj;
@@ -539,7 +539,7 @@ CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
     /* Note typeAttrs needs to be cleaned up beyond this point */
 
     ret = CffiNativeValueFromObj(
-        ip, &typeAttrs, 0, objv[4], CFFI_F_PRESERVE_ON_ERROR, pv, indx, NULL);
+        ipCtxP, &typeAttrs, 0, objv[4], CFFI_F_PRESERVE_ON_ERROR, pv, indx, NULL);
 
     CffiTypeAndAttrsCleanup(&typeAttrs);
     return ret;

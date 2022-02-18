@@ -329,7 +329,7 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * Constructs a C struct from a *Tcl_Obj* wrapper.
  *
  * Parameters:
- * ip - interpreter
+ * ipCtxP - interpreter context
  * structP - pointer to the struct definition internal form
  * structValueObj - the *Tcl_Obj* containing the script level struct value
  * flags - if CFFI_F_PRESERVE_ON_ERROR is set, the target location will
@@ -346,13 +346,14 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiStructFromObj(Tcl_Interp *ip,
+CffiStructFromObj(CffiInterpCtx *ipCtxP,
                   const CffiStruct *structP,
                   Tcl_Obj *structValueObj,
                   CffiFlags flags,
                   void *structResultP,
                   MemLifo *memlifoP)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     int i;
     Tcl_DString ds;
     CffiResult ret;
@@ -441,7 +442,7 @@ CffiStructFromObj(Tcl_Interp *ip,
             break;
         }
         /* Turn off PRESERVE_ON_ERROR as we are already taken care to preserve */
-        ret = CffiNativeValueFromObj(ip,
+        ret = CffiNativeValueFromObj(ipCtxP,
                                      typeAttrsP,
                                      0,
                                      valueObj,
@@ -597,12 +598,8 @@ CffiStructNewCmd(Tcl_Interp *ip,
 
     CFFI_ASSERT(objc == 3);
     resultP = ckalloc(structP->size);
-    ret = CffiStructFromObj(ip,
-                            structP,
-                            objv[2],
-                            0,
-                            resultP,
-                            NULL);
+    ret     = CffiStructFromObj(
+        structCtxP->ipCtxP, structP, objv[2], 0, resultP, NULL);
     if (ret == TCL_OK) {
         ret = Tclh_PointerRegister(ip, resultP, structP->name, &resultObj);
         if (ret == TCL_OK) {
@@ -757,7 +754,7 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
         index = 0;
 
     /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructFromObj(ip,
+    CHECK(CffiStructFromObj(structCtxP->ipCtxP,
                             structP,
                             objv[3],
                             CFFI_F_PRESERVE_ON_ERROR,
@@ -880,7 +877,7 @@ CffiStructSetCmd(Tcl_Interp *ip,
     }
     fieldAddr += structP->fields[fieldIndex].offset;
 
-    CHECK(CffiNativeValueFromObj(ip,
+    CHECK(CffiNativeValueFromObj(structCtxP->ipCtxP,
                                  &structP->fields[fieldIndex].fieldType,
                                  0,
                                  objv[4],
@@ -1094,7 +1091,8 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
 
     resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
     valueP    = Tcl_GetByteArrayFromObj(resultObj, NULL);
-    ret = CffiStructFromObj(ip, structP, objv[2], 0, valueP, NULL);
+    ret       = CffiStructFromObj(
+        structCtxP->ipCtxP, structP, objv[2], 0, valueP, NULL);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     else

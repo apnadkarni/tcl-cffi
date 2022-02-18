@@ -468,11 +468,8 @@ CffiEnumClearCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 void
 CffiEnumsCleanup(CffiInterpCtx *ipCtxP)
 {
-    CffiNameDeleteNames(ipCtxP->interp,
-                        &ipCtxP->scope.enums,
-                        NULL,
-                        CffiEnumNameDeleteCallback);
-    Tcl_DeleteHashTable(&ipCtxP->scope.enums);
+    CffiNameTableFinit(
+        ipCtxP->interp, &ipCtxP->scope.enums, CffiEnumNameDeleteCallback);
 }
 
 CffiResult

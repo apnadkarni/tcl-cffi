@@ -7,16 +7,41 @@
 
 #include "tclCffiInt.h"
 
+static CffiResult
+CffiPointerMakeSubtag(CffiInterpCtx *ipCtxP,
+                      Tcl_Obj *subtypeObj,
+                      Tcl_Obj *supertypeObj)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Obj *subFqnObj;
+    Tcl_Obj *superFqnObj;
+    CffiResult ret;
+
+    /* QUalify both tags if unqualified */
+    subFqnObj = Tclh_NsQualifyNameObj(ip, subtypeObj, NULL);
+    Tcl_IncrRefCount(subFqnObj);
+    superFqnObj = Tclh_NsQualifyNameObj(ip, supertypeObj, NULL);
+    Tcl_IncrRefCount(superFqnObj);
+
+    ret = Tclh_PointerSubtagDefine(ip, subFqnObj, superFqnObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ip, subFqnObj);
+    Tcl_DecrRefCount(subFqnObj);
+    Tcl_DecrRefCount(superFqnObj);
+    return ret;
+}
+
 CffiResult
 CffiPointerObjCmd(ClientData cdata,
                   Tcl_Interp *ip,
                   int objc,
                   Tcl_Obj *const objv[])
 {
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     void *pv;
     CffiResult ret;
-    Tcl_Obj *tagObj;
+    Tcl_Obj *objP;
 
     static const Tclh_SubCommand subCommands[] = {
         {"address", 1, 1, "POINTER", NULL},
@@ -29,6 +54,8 @@ CffiPointerObjCmd(ClientData cdata,
         {"dispose", 1, 1, "POINTER", NULL},
         {"isnull", 1, 1, "POINTER", NULL},
         {"make", 1, 2, "ADDRESS ?TAG?", NULL},
+        {"cast", 1, 2, "POINTER ?TAG?", NULL},
+        {"castable", 2, 2, "SUBTAG SUPERTAG", NULL},
         {NULL}
     };
     enum cmdIndex {
@@ -41,7 +68,9 @@ CffiPointerObjCmd(ClientData cdata,
         COUNTED,
         DISPOSE,
         ISNULL,
-        MAKE
+        MAKE,
+        CAST,
+        CASTABLE
     };
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
@@ -54,16 +83,24 @@ CffiPointerObjCmd(ClientData cdata,
         return TCL_OK;
     case MAKE:
         CHECK(Tclh_ObjToAddress(ip, objv[2], &pv));
-        tagObj = NULL;
+        objP = NULL;
         if (objc >= 4 && pv != NULL) {
             int len;
             /* Tcl_GetCharLength will shimmer so GetStringFromObj */
             (void) Tcl_GetStringFromObj(objv[3], &len);
             if (len != 0)
-                tagObj = Tclh_NsQualifyNameObj(ip, objv[3], NULL);
+                objP = Tclh_NsQualifyNameObj(ip, objv[3], NULL);
         }
-        Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, tagObj));
+        Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, objP));
         return TCL_OK;
+    case CASTABLE:
+        return CffiPointerMakeSubtag((CffiInterpCtx *)cdata, objv[2], objv[3]);
+    case CAST:
+        ret = Tclh_PointerCast(
+            ip, objv[2], objc > 3 ? objv[3] : NULL, &objP);
+        if (ret == TCL_OK)
+            Tcl_SetObjResult(ip, objP);
+        return ret;
     default:
         break;
     }
@@ -83,27 +120,27 @@ CffiPointerObjCmd(ClientData cdata,
     if (pv == NULL && cmdIndex != ISVALID && cmdIndex != TAG)
         return Tclh_ErrorInvalidValue(ip, objv[2], "Pointer is NULL.");
 
-    ret = Tclh_PointerObjGetTag(ip, objv[2], &tagObj);
+    ret = Tclh_PointerObjGetTag(ip, objv[2], &objP);
     if (ret != TCL_OK)
         return ret;
 
     switch (cmdIndex) {
     case TAG:
-        if (ret == TCL_OK && tagObj)
-            Tcl_SetObjResult(ip, tagObj);
+        if (ret == TCL_OK && objP)
+            Tcl_SetObjResult(ip, objP);
         return ret;
     case CHECK:
-        return Tclh_PointerVerify(ip, pv, tagObj);
+        return Tclh_PointerVerify(ip, pv, objP);
     case ISVALID:
-        ret = Tclh_PointerVerify(ip, pv, tagObj);
+        ret = Tclh_PointerVerify(ip, pv, objP);
         Tcl_SetObjResult(ip, Tcl_NewBooleanObj(ret == TCL_OK));
         return TCL_OK;
     case SAFE:
-        return Tclh_PointerRegister(ip, pv, tagObj, NULL);
+        return Tclh_PointerRegister(ip, pv, objP, NULL);
     case COUNTED:
-        return Tclh_PointerRegisterCounted(ip, pv, tagObj, NULL);
+        return Tclh_PointerRegisterCounted(ip, pv, objP, NULL);
     case DISPOSE:
-        return Tclh_PointerUnregister(ip, pv, tagObj);
+        return Tclh_PointerUnregister(ip, pv, objP);
     default: /* Just to keep compiler happy */
         Tcl_SetResult(
             ip, "Internal error: unexpected pointer subcommand", TCL_STATIC);

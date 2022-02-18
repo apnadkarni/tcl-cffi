@@ -339,9 +339,9 @@ CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
         return Tclh_ErrorAllocation(ip, "Memlifo", NULL);
     }
 
-    Tcl_InitHashTable(&ipCtxP->scope.enums, TCL_STRING_KEYS);
-    Tcl_InitHashTable(&ipCtxP->scope.aliases, TCL_STRING_KEYS);
-    Tcl_InitHashTable(&ipCtxP->scope.prototypes, TCL_STRING_KEYS);
+    CffiNameTableInit(&ipCtxP->scope.enums);
+    CffiNameTableInit(&ipCtxP->scope.aliases);
+    CffiNameTableInit(&ipCtxP->scope.prototypes);
 
 #ifdef CFFI_USE_DYNCALL
     ret = CffiDyncallInit(ipCtxP);

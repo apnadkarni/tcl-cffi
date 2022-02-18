@@ -535,7 +535,7 @@ CffiResult CffiUniStringToObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_DString *dsP,
                               Tcl_Obj **resultObjP);
-CffiResult CffiStructFromObj(Tcl_Interp *ip,
+CffiResult CffiStructFromObj(CffiInterpCtx *ipCtxP,
                              const CffiStruct *structP,
                              Tcl_Obj *structValueObj,
                              CffiFlags flags,
@@ -546,14 +546,14 @@ CffiResult CffiStructToObj(Tcl_Interp *ip,
                            void *valueP,
                            Tcl_Obj **valueObjP);
 
-CffiResult CffiNativeScalarFromObj(Tcl_Interp *ip,
+CffiResult CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                    const CffiTypeAndAttrs *typeAttrsP,
                                    Tcl_Obj *valueObj,
                                    CffiFlags flags,
                                    void *resultP,
                                    int indx,
                                    MemLifo *memlifoP);
-CffiResult CffiNativeValueFromObj(Tcl_Interp *ip,
+CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                   const CffiTypeAndAttrs *typeAttrsP,
                                   int realArraySize,
                                   Tcl_Obj *valueObj,
@@ -586,6 +586,7 @@ CffiResult CffiPointerFromObj(Tcl_Interp *ip,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_Obj *pointerObj,
                               void **pointerP);
+
 CffiResult
 CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP);
 CffiResult CffiCheckNumeric(Tcl_Interp *ip,
@@ -660,6 +661,10 @@ CffiResult CffiScopesInit(CffiInterpCtx *ipCtxP);
 void CffiScopesCleanup(CffiInterpCtx *ipCtxP);
 
 /* Name management API */
+void CffiNameTableInit(Tcl_HashTable *htP);
+void CffiNameTableFinit(Tcl_Interp *ip,
+                        Tcl_HashTable *htP,
+                        void (*deleteFn)(ClientData));
 CffiResult CffiNameLookup(Tcl_Interp *ip,
                           Tcl_HashTable *htP,
                           const char *nameP,

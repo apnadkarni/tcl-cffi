@@ -321,7 +321,7 @@ CffiNameDeleteNamesCallback(Tcl_HashTable *htP,
  *   Only the tail of the pattern is treated as a glob pattern
  *   and matched against the tail of the hash table key. The rest is treated
  *   as a normal string compare.
- * deleteFnP - function to call with value for the name.
+ * deleteFn - function to call with value for the name.
  * Returns:
  * *TCL_OK* on success and *TCL_ERROR* on failure.
  */
@@ -347,4 +347,33 @@ CffiNameDeleteNames(Tcl_Interp *ip,
     if (pattern)
         Tcl_DStringFree(&ds);
     return TCL_OK;
+}
+
+/* Function: CffiNameTableFinit
+ * Cleans up a name table releasing resources
+ *
+ * Parameters:
+ * ip - interpreter. May be NULL. Only used for error messages.
+ * htP - name table to clean up
+ * deleteFn - function to call with value for the name.
+ */
+void
+CffiNameTableFinit(Tcl_Interp *ip,
+                   Tcl_HashTable *htP,
+                   void (*deleteFn)(ClientData))
+{
+    CffiNameDeleteNames(ip, htP, NULL, deleteFn);
+    Tcl_DeleteHashTable(htP);
+}
+
+/* Function: CffiNameTableInit
+ * Initializes a table of names
+ *
+ * Parameters:
+ * htP - table to initialize
+ */
+void
+CffiNameTableInit(Tcl_HashTable *htP)
+{
+    Tcl_InitHashTable(htP, TCL_STRING_KEYS);
 }

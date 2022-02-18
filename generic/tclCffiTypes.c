@@ -1276,7 +1276,7 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
  * Stores a native scalar value from Tcl_Obj wrapper
  *
  * Parameters:
- * ip - interpreter
+ * ipCtxP - interpreter context
  * typeAttrsP - type attributes. The base type is used without
  *   considering the BYREF flag.
  * valueObj - the *Tcl_Obj* containing the script level value
@@ -1303,7 +1303,7 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiNativeScalarFromObj(Tcl_Interp *ip,
+CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                         const CffiTypeAndAttrs *typeAttrsP,
                         Tcl_Obj *valueObj,
                         CffiFlags flags,
@@ -1311,6 +1311,7 @@ CffiNativeScalarFromObj(Tcl_Interp *ip,
                         int indx,
                         MemLifo *memlifoP)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     CffiValue value;
     CffiResult ret;
     Tcl_DString ds;
@@ -1383,7 +1384,7 @@ CffiNativeScalarFromObj(Tcl_Interp *ip,
                 Tcl_DStringSetLength(&ds, len);
                 tempP = Tcl_DStringValue(&ds);
                 /* TBD - turn off PRESERVE_ON_ERROR in flags? */
-                ret = CffiStructFromObj(ip,
+                ret = CffiStructFromObj(ipCtxP,
                                         typeAttrsP->dataType.u.structP,
                                         valueObj,
                                         flags,
@@ -1398,7 +1399,7 @@ CffiNativeScalarFromObj(Tcl_Interp *ip,
             }
             else {
                 /* This is more efficient if no promise to preserve on error */
-                CHECK(CffiStructFromObj(ip,
+                CHECK(CffiStructFromObj(ipCtxP,
                                         typeAttrsP->dataType.u.structP,
                                         valueObj,
                                         flags,
@@ -1504,7 +1505,7 @@ CffiNativeScalarFromObj(Tcl_Interp *ip,
  * Stores a native value of any type from Tcl_Obj wrapper
  *
  * Parameters:
- * ip - interpreter
+ * ipCtxP - interpreter context
  * typeAttrsP - type attributes. The base type is used without
  *   considering the BYREF flag.
  * realArraySize - the actual array size to use when typeAttrsP specifies
@@ -1530,7 +1531,7 @@ CffiNativeScalarFromObj(Tcl_Interp *ip,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiNativeValueFromObj(Tcl_Interp *ip,
+CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                        const CffiTypeAndAttrs *typeAttrsP,
                        int realArraySize,
                        Tcl_Obj *valueObj,
@@ -1539,6 +1540,7 @@ CffiNativeValueFromObj(Tcl_Interp *ip,
                        int valueIndex,
                        MemLifo *memlifoP)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     void *valueP; /* Where value should be stored */
     int offset;
 
@@ -1554,7 +1556,7 @@ CffiNativeValueFromObj(Tcl_Interp *ip,
 
     if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
         CHECK(CffiNativeScalarFromObj(
-            ip, typeAttrsP, valueObj, flags, valueP, 0, memlifoP));
+            ipCtxP, typeAttrsP, valueObj, flags, valueP, 0, memlifoP));
     }
     else {
         Tcl_Obj **valueObjList;
@@ -1613,7 +1615,7 @@ CffiNativeValueFromObj(Tcl_Interp *ip,
                 nvalues = count;
             if (1 || ! (flags & CFFI_F_PRESERVE_ON_ERROR)) {
                 for (indx = 0; indx < nvalues; ++indx) {
-                    CHECK(CffiNativeScalarFromObj(ip,
+                    CHECK(CffiNativeScalarFromObj(ipCtxP,
                                                   typeAttrsP,
                                                   valueObjList[indx],
                                                   flags,
@@ -1637,7 +1639,7 @@ CffiNativeValueFromObj(Tcl_Interp *ip,
                  */
                 for (indx = 0; indx < nvalues; ++indx) {
                     ret = CffiNativeScalarFromObj(
-                        ip,
+                        ipCtxP,
                         typeAttrsP,
                         valueObjList[indx],
                         flags & ~CFFI_F_PRESERVE_ON_ERROR,

@@ -263,11 +263,9 @@ CffiPrototypeListCmd(CffiInterpCtx *ipCtxP,
 void
 CffiPrototypesCleanup(CffiInterpCtx *ipCtxP)
 {
-    CffiNameDeleteNames(ipCtxP->interp,
-                        &ipCtxP->scope.prototypes,
-                        NULL,
-                        CffiPrototypeNameDeleteCallback);
-    Tcl_DeleteHashTable(&ipCtxP->scope.prototypes);
+    CffiNameTableFinit(ipCtxP->interp,
+                       &ipCtxP->scope.prototypes,
+                       CffiPrototypeNameDeleteCallback);
 }
 
 CffiResult

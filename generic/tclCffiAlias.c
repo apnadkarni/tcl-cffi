@@ -455,11 +455,8 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
 void
 CffiAliasesCleanup(CffiInterpCtx *ipCtxP)
 {
-    CffiNameDeleteNames(ipCtxP->interp,
-                        &ipCtxP->scope.aliases,
-                        NULL,
-                        CffiAliasNameDeleteCallback);
-    Tcl_DeleteHashTable(&ipCtxP->scope.aliases);
+    CffiNameTableFinit(
+        ipCtxP->interp, &ipCtxP->scope.aliases, CffiAliasNameDeleteCallback);
 }
 
 CffiResult
