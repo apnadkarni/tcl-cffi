@@ -22,6 +22,32 @@ namespace eval ${NS}::pointer {
         # See [Pointers][::Concepts::Pointers] for more on pointer
         # safety and registration.
     }
+    proc cast {pointer tag} {
+        # Casts a pointer to a new tag.
+        #  pointer - pointer to be cast
+        #  tag - new tag to apply. This will be qualified with the current scope
+        #    if not fully qualified.
+        #
+        # Synopsis: pointer ?TAG?
+        #
+        # The cast will fail if the `TAG` is not castable to or from the
+        # pointer's tag. See [Casting pointers].
+        #
+        # If `TAG` is not specified, any existing tag is removed from the pointer
+        # (effectively marking it as a `void*` pointer).
+        #
+        # Returns a pointer with the same address and new tag
+    }
+    proc castable {subtag supertag} {
+        # Specifies that pointers with tag $subtag are acceptable in declarations
+        # that require $supertag.
+        #  subtag - tag which is to be marked as acceptable wherever $supertag
+        #    is expected. Will be qualified with current scope if necessary.
+        #  supertag - tag which should accept $subtag tagged pointers.
+        #    Will be qualified with current scope if necessary.
+        #
+        # See [Casting pointers] for more information.
+    }
     proc counted {pointer} {
         # Registers a pointer as a counted pointer
         #  pointer - pointer to be registered

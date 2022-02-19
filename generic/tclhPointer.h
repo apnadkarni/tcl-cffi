@@ -365,6 +365,19 @@ int Tclh_PointerSubtagDefine(Tcl_Interp *interp,
                              Tclh_PointerTypeTag subtagObj,
                              Tclh_PointerTypeTag supertagObj);
 
+/* Function: Tclh_PointerSubtagRemove
+ * Remove a subtag definition
+ *
+ * Parameters:
+ * interp - Interpreter. Must not be NULL.
+ * tagObj - the subtag
+ *
+ * Returns:
+ * A Tcl result code.
+ */
+int Tclh_PointerSubtagRemove(Tcl_Interp *interp,
+                             Tclh_PointerTypeTag tagObj);
+
 /* Function: Tclh_PointerCast
  * Changes the tag associated with a pointer
  *
@@ -406,6 +419,7 @@ int Tclh_PointerCast(Tcl_Interp *interp,
 #define PointerUnwrapAnyOf        Tclh_PointerUnwrapAnyOf
 #define PointerEnumerate          Tclh_PointerEnumerate
 #define PointerSubtagDefine       Tclh_PointerSubtagDefine
+#define PointerSubtagRemove       Tclh_PointerSubtagRemove
 #define PointerCast               Tclh_PointerCast
 
 #endif
@@ -1067,6 +1081,26 @@ int Tclh_PointerSubtagDefine(Tcl_Interp *interp,
     if (tclResult == TCL_OK)
         Tcl_IncrRefCount(supertagObj);/* Since added to hash table */
     return tclResult;
+}
+
+int Tclh_PointerSubtagRemove(Tcl_Interp *interp,
+                             Tclh_PointerTypeTag tagObj)
+{
+    TclhPointerRegistry *registryP;
+    Tcl_HashEntry *he;
+
+    registryP = TclhInitPointerRegistry(interp);
+
+    if (tagObj) {
+        he = Tcl_FindHashEntry(&registryP->castables, Tcl_GetString(tagObj));
+        if (he) {
+            Tcl_Obj *objP = Tcl_GetHashValue(he);
+            if (objP)
+                Tcl_DecrRefCount(objP);
+            Tcl_DeleteHashEntry(he);
+        }
+    }
+    return TCL_OK;
 }
 
 int

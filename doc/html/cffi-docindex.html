@@ -59,6 +59,7 @@
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum unmask'>enum unmask</a><span class='ruff-tiptext'>Returns a list of enumeration member names corresponding to the bits set in <code>$mask</code>. enumeration members
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::enum value'>enum value</a><span class='ruff-tiptext'>Returns the value of an enumeration member
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fieldpointer'>fieldpointer</a><span class='ruff-tiptext'>Returns a pointer corresponding to the address of a field within a native structure
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fields'>fields</a><span class='ruff-tiptext'>Retrieve values of multiple fields from a native struct in memory.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::free'>free</a><span class='ruff-tiptext'>Frees memory that was allocated for a native C struct.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::frombinary'>frombinary</a><span class='ruff-tiptext'>Decodes a Tcl binary string containing a native C struct into a Tcl dictionary.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fromnative'>fromnative</a><span class='ruff-tiptext'>Decodes native C struct(s) in memory into a Tcl dictionary.
@@ -84,10 +85,13 @@
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring'>memory tostring</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl string.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring!'>memory tostring!</a><span class='ruff-tiptext'>Returns the content of a memory block as a Tcl string.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::name'>name</a><span class='ruff-tiptext'>Returns the name of the struct.
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::new'>new</a><span class='ruff-tiptext'>Allocates and initializes a native struct in memory
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::path'>path</a><span class='ruff-tiptext'>Returns the file system path for the wrapped library or image wrapped by the object.
 </span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig get'>pkgconfig get</a><span class='ruff-tiptext'>Gets the value of a configuration key.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig list'>pkgconfig list</a><span class='ruff-tiptext'>Returns the list of keys containing information about the package configuration.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer address'>pointer address</a><span class='ruff-tiptext'>Returns the address component of the pointer.
+</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer cast'>pointer cast</a><span class='ruff-tiptext'>Casts a pointer to a new tag.
+</span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer castable'>pointer castable</a><span class='ruff-tiptext'>Specifies that pointers with tag <code>$subtag</code> are acceptable in declarations that require <code>$supertag</code>.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer check'>pointer check</a><span class='ruff-tiptext'>Validates a pointer and raise an exception if invalid.
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer counted'>pointer counted</a><span class='ruff-tiptext'>Registers a pointer as a counted pointer
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::pointer dispose'>pointer dispose</a><span class='ruff-tiptext'>Unregisters a safe or counted pointer
@@ -105,7 +109,7 @@
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcall'>stdcall</a><span class='ruff-tiptext'>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
 </span> ::cffi::Wrapper</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcalls'>stdcalls</a><span class='ruff-tiptext'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
 </span> ::cffi::Wrapper</li><li><a href='cffi-cffi.html#::cffi::Struct'>Struct</a> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tobinary'>tobinary</a><span class='ruff-tiptext'>Encodes the Tcl representation of a C struct value into a Tcl binary string.
-</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tonative'>tonative</a><span class='ruff-tiptext'>Writes the Tcl dictionary representation of a C struc value to memory in native form.
+</span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tonative'>tonative</a><span class='ruff-tiptext'>Writes the Tcl dictionary representation of a C struct value to memory in native form.
 </span> ::cffi::Struct</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::type count'>type count</a><span class='ruff-tiptext'>Returns the count of elements in an array type
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::type info'>type info</a><span class='ruff-tiptext'>Returns a dictionary containing various information about a type declaration
 </span> ::cffi</li><li class='ruff-tip'><a href='cffi-cffi.html#::cffi::type size'>type size</a><span class='ruff-tiptext'>Returns the size of a type in terms of the number of bytes of memory occupied by that type.

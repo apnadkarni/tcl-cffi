@@ -127,8 +127,8 @@ namespace eval Concepts {
         - `string` and `unistring` types which are actually scalar pointers at
         the C level but treated as nul-terminated character strings by CFFI.
 
-        The [::cffi::type info], [::cffi::type size] and
-        [::cffi::type count] commands may be used to obtain information
+        The [type info][::cffi::type info], [type size][::cffi::type size] and
+        [type count][::cffi::type count] commands may be used to obtain information
         about a type.
 
         ````
@@ -298,6 +298,42 @@ namespace eval Concepts {
         parameter definition has the same tag. If there is no tag specifed for
         the pointer field or parameter, it will accept pointer values with any
         tag analogous to a C `void *` pointer.
+
+        #### Casting pointers
+
+        Normally a pointer with a tag is not accepted as a function
+        argument or struct field if it differs from the tag in the
+        declaration. There are two exceptions to this:
+
+        - a pointer declaration with no tag is treated as a `void*` and will
+        accept pointer values with any tag.
+        - a pointer declaration with a tag will accept pointers with tags that
+        are declared as castable to it. This is similar to pointers to subclasses
+        being accepted as pointers to superclasses.
+
+        This [pointer castable][::cffi::pointer castable] command enables this
+        second feature. For example,
+
+        ```
+        ::cffi::pointer castable Rectangle Shape
+        ```
+
+        will result in any pointer value with tag `Rectangle` being accepted
+        wherever the tag `Shape` is accepted. Note this implies transitivity.
+
+        A pointer may also be cast explicitly to one with a different tag
+        with the [pointer cast][::cffi::pointer cast] command. This requires
+        that the existing tag is castable to the new tag. So given the above
+        example,
+
+        - `pointer.Rectangle` will be implicitly accepted as a `pointer.Shape`
+        - a `pointer.Shape` value can be explicitly cast to `pointer.Rectangle`.
+        The reverse is also possible but not needed because for the first point.
+        - a `pointer.Circle` cannot be directly cast to `pointer.Rectangle`
+        or vice versa.
+
+        In case the pointer is a safe (registered) pointer, explicit casts
+        change the tag associated with the registered pointer.
 
         #### Pointer safety
 

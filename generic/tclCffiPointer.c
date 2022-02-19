@@ -8,11 +8,10 @@
 #include "tclCffiInt.h"
 
 static CffiResult
-CffiPointerMakeSubtag(CffiInterpCtx *ipCtxP,
-                      Tcl_Obj *subtypeObj,
-                      Tcl_Obj *supertypeObj)
+CffiPointerCastableCmd(Tcl_Interp *ip,
+                         Tcl_Obj *subtypeObj,
+                         Tcl_Obj *supertypeObj)
 {
-    Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj *subFqnObj;
     Tcl_Obj *superFqnObj;
     CffiResult ret;
@@ -28,6 +27,36 @@ CffiPointerMakeSubtag(CffiInterpCtx *ipCtxP,
         Tcl_SetObjResult(ip, subFqnObj);
     Tcl_DecrRefCount(subFqnObj);
     Tcl_DecrRefCount(superFqnObj);
+    return ret;
+}
+
+static CffiResult
+CffiPointerUncastableCmd(Tcl_Interp *ip, Tcl_Obj *tagObj)
+{
+    CffiResult ret;
+
+    tagObj = Tclh_NsQualifyNameObj(ip, tagObj, NULL);
+    Tcl_IncrRefCount(tagObj);
+
+    ret = Tclh_PointerSubtagRemove(ip, tagObj);
+    Tcl_DecrRefCount(tagObj);
+    return ret;
+}
+
+static CffiResult
+CffiPointerCastCmd(Tcl_Interp *ip, Tcl_Obj *ptrObj, Tcl_Obj *newTagObj)
+{
+    Tcl_Obj *fqnObj;
+    int ret;
+    if (newTagObj) {
+        newTagObj = Tclh_NsQualifyNameObj(ip, newTagObj, NULL);
+        Tcl_IncrRefCount(newTagObj);
+    }
+    ret = Tclh_PointerCast(ip, ptrObj, newTagObj, &fqnObj);
+    if (newTagObj)
+        Tcl_DecrRefCount(newTagObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ip, fqnObj);
     return ret;
 }
 
@@ -56,6 +85,7 @@ CffiPointerObjCmd(ClientData cdata,
         {"make", 1, 2, "ADDRESS ?TAG?", NULL},
         {"cast", 1, 2, "POINTER ?TAG?", NULL},
         {"castable", 2, 2, "SUBTAG SUPERTAG", NULL},
+        {"uncastable", 1, 1, "TAG"},
         {NULL}
     };
     enum cmdIndex {
@@ -70,7 +100,8 @@ CffiPointerObjCmd(ClientData cdata,
         ISNULL,
         MAKE,
         CAST,
-        CASTABLE
+        CASTABLE,
+        UNCASTABLE,
     };
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
@@ -94,13 +125,11 @@ CffiPointerObjCmd(ClientData cdata,
         Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, objP));
         return TCL_OK;
     case CASTABLE:
-        return CffiPointerMakeSubtag((CffiInterpCtx *)cdata, objv[2], objv[3]);
+        return CffiPointerCastableCmd(ipCtxP->interp, objv[2], objv[3]);
     case CAST:
-        ret = Tclh_PointerCast(
-            ip, objv[2], objc > 3 ? objv[3] : NULL, &objP);
-        if (ret == TCL_OK)
-            Tcl_SetObjResult(ip, objP);
-        return ret;
+        return CffiPointerCastCmd(ipCtxP->interp, objv[2], objc > 3 ? objv[3] : NULL);
+    case UNCASTABLE:
+        return CffiPointerUncastableCmd(ipCtxP->interp, objv[2]);
     default:
         break;
     }
