@@ -1513,12 +1513,40 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_STRUCT:
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {
             pointer = CffiCallPointerFunc(&callCtx);
+            fnCheckRet = CffiCheckPointer(
+                ip, &protoP->returnType.typeAttrs, pointer, &sysError);
+            CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);
             if (pointer == NULL) {
-                fnCheckRet = Tclh_ErrorInvalidValue(
-                    ip, NULL, "Function returned NULL pointer");
-                ret = TCL_ERROR;
-                break;
+                if (fnCheckRet == TCL_OK) {
+                    /*
+                     * Have to construct a struct from defaults. Fake out a
+                     * native struct that will be converted back below. Note
+                     * Directly converting from a struct definition field
+                     * defaults is non-trivial.
+                     */
+                    Tcl_Obj *defaultStructValue = Tcl_NewObj();
+                    Tcl_IncrRefCount(defaultStructValue);
+                    pointer = MemLifoAlloc(
+                        &ipCtxP->memlifo,
+                        protoP->returnType.typeAttrs.dataType.u.structP->size);
+                    ret = CffiStructFromObj(
+                        ipCtxP,
+                        protoP->returnType.typeAttrs.dataType.u.structP,
+                        defaultStructValue,
+                        0,
+                        pointer,
+                        &ipCtxP->memlifo);
+                    Tcl_DecrRefCount(defaultStructValue);
+                }
+                else {
+                    fnCheckRet = Tclh_ErrorInvalidValue(
+                        ip, NULL, "Function returned NULL pointer");
+                    ret = TCL_ERROR;
+                }
+                if (ret != TCL_OK)
+                    break;
             }
+            CFFI_ASSERT(fnCheckRet == TCL_OK); /* Else pointer would be NULL */
         }
         else {
 #ifdef CFFI_USE_LIBFFI

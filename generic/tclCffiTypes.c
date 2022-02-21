@@ -955,15 +955,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 && baseType != CFFI_K_TYPE_ASTRING
                 && baseType != CFFI_K_TYPE_UNISTRING
                 && baseType != CFFI_K_TYPE_BINARY
+                && baseType != CFFI_K_TYPE_STRUCT
                 && !CffiTypeIsArray(&typeAttrP->dataType)) {
-#if 1
             message = "A type annotation is not valid for the data type.";
-#else
-                message =
-                    "The \"nullok\" annotation is only valid for pointers and "
-                    "arguments passed by reference.";
-                goto invalid_format;
-#endif
             goto invalid_format;
             }
 
@@ -1148,9 +1142,28 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     default:
         /*
          * One or more parse modes - preliminary typedef. Accept all flags.
-         * Final check will be made when a specific mode is parsed.
+         * Final check will be made the function is called again when a specific
+         * mode is parsed.
          */
         break;
+    }
+
+    /* Checks that require all flags to have been set */
+
+    if (flags & CFFI_F_ATTR_NULLOK) {
+        switch (baseType) {
+            case CFFI_K_TYPE_POINTER:
+            case CFFI_K_TYPE_ASTRING:
+            case CFFI_K_TYPE_UNISTRING:
+            case CFFI_K_TYPE_BINARY:
+                break;
+            default:
+                if (flags & CFFI_F_ATTR_BYREF)
+                    break;
+                /* nullok only valid for pointers at the C level */
+                message = "A type annotation is not valid for this data type without the byref annotation.";
+                goto invalid_format;
+        }
     }
 
     typeAttrP->flags = flags;

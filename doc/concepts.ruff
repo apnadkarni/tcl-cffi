@@ -335,6 +335,10 @@ namespace eval Concepts {
         In case the pointer is a safe (registered) pointer, explicit casts
         change the tag associated with the registered pointer.
 
+        For debugging and troubleshooting purposes, the
+        [pointer castables][::cffi::pointer castables] command may be used
+        to list the tags that are castable and their mappings.
+
         #### Pointer safety
 
         Pointer type checking via tags does not protect against errors related
@@ -439,7 +443,10 @@ namespace eval Concepts {
         including the `nullok` annotation on the function return, parameter
         or structure fields type definition. For return values of type `string`
         and `unistring` with this annotation, an empty string is returned when
-        the called function returns NULL.
+        the called function returns NULL. In case of structs that are returned
+        by reference, a `nullok` annotation will map a NULL return value to
+        a struct with default values for all fields. If any field does not
+        have a default, an error is raised.
 
         Note that when returned as output parameters from a function,
         either directly or embedded as struct field, null pointers are
@@ -1140,11 +1147,18 @@ namespace eval Concepts {
 
         An error condition is also generated when a function returning
         a pointer returns a null pointer. This is also true for `string` and
-        `unistring` return types since those are pointers beneath the covers.
+        `unistring` return types as well as `struct` types that are returned
+        by reference since those are all pointers beneath the covers.
         This treatment of null pointers as errors can be overridden with the
-        the `nullok` annotation. If this annotation is specified, a null
-        pointer return value, or an empty string in the case of `string` and
-        `unistring` types, will be returned to the caller.
+        the `nullok` annotation. If this annotation is specified and the function
+        returns a NULL pointer,
+
+        - for `pointer` types, the NULL pointer is returned to the caller
+        - for `string` and `unistring` types, an empty string is returned to
+        the caller
+        - for `struct byref` types, a dictionary with default field values
+        is returned. If any field does not have a default specified in the
+        struct definition, an error is raised.
 
         An error condition arising from one of the error checking annotations or
         a null pointer results in an exception being generated unless the

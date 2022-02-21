@@ -48,6 +48,10 @@ namespace eval ${NS}::pointer {
         #
         # See [Casting pointers] for more information.
     }
+    proc castables {} {
+        # Returns a list of tags that have been marked as castable with the
+        # [castable] method.
+    }
     proc counted {pointer} {
         # Registers a pointer as a counted pointer
         #  pointer - pointer to be registered

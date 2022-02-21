@@ -962,11 +962,14 @@ namespace eval cffi::test {
                 "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
                 "in byref {default {}}" "in byref {default {}}"
                 "in byref nullifempty" "in byref nullifempty"
+                "in byref nullok" "in byref nullok"
             } {
                 teststruct "struct.::TestStruct $attrs" param $expected
             }
+            testinvalidattr "struct.TestStruct in nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints libffi
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.} -constraints libffi
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode $errorMessages(structbyref) -constraints dyncall
+            testinvalidattr "struct.TestStruct in nullok" $parse_mode $errorMessages(structbyref) -constraints dyncall
         } else {
             foreach attr {in out inout} {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrparsemode)
@@ -975,6 +978,8 @@ namespace eval cffi::test {
                 testinvalidattr "struct.TestStruct" $parse_mode $errorMessages(typeparsemode) -constraints dyncall
                 teststruct "struct.::TestStruct" $parse_mode "" 0 -constraints libffi
                 teststruct "struct.::TestStruct byref" $parse_mode "byref" 0
+                teststruct "struct.::TestStruct nullok byref" $parse_mode "byref nullok" 0
+                testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints libffi
             } else {
                 teststruct "struct.::TestStruct" $parse_mode ""
                 testinvalidattr "struct.TestStruct byref" $parse_mode $errorMessages(attrparsemode)
@@ -988,7 +993,12 @@ namespace eval cffi::test {
         }
         # Scalar tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs {*}$errorAttrs structsize bitmask {{enum E}}] {
-            testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
+            if {$attr eq "nullok"} {
+                testinvalidattr "struct.TestStruct $attr" $parse_mode {A type annotation is not valid for this data type without the byref annotation.}
+                
+            } else {
+                testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
+            }
         }
 
         # Array tests

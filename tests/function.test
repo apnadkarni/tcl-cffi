@@ -1775,15 +1775,12 @@ namespace eval ${NS}::test {
         f $outer
     } -result [list f 11.0 s [list c 1 ll 2 s 3] p [makeptr 2]]
 
+
     test function-struct-return-1 "return struct with strings" -constraints libffi -body {
         testDll function returnStructWithStrings struct.StructWithStrings {}
         returnStructWithStrings
     } -result [makeStructWithStrings]
 
-    test function-struct-return-byref-0 "return struct byref" -body {
-        testDll function returnTestStructByRef {struct.::TestStruct byref} {}
-        checkTestStruct [returnTestStructByRef]
-    } -result [list ]
     test function-struct-return-error-0 "Return type struct - error " -constraints {
         dyncall
     } -body {
@@ -1799,6 +1796,44 @@ namespace eval ${NS}::test {
     } -body {
         set s [returnTestStruct]
     } -result {The libffi backend does not support arrays by value. Define as struct with corresponding number of fields as a workaround.} -returnCodes error
+
+
+    test function-struct-return-byref-0 "return struct byref" -body {
+        testDll function returnTestStructByRef {struct.::TestStruct byref} {}
+        checkTestStruct [returnTestStructByRef]
+    } -result [list ]
+
+    test function-struct-return-byref-1 "return struct byref - null pointer nullok" -setup {
+        cffi::Struct create Inner {c schar ll longlong s short}
+        cffi::Struct create Outer {i {int {default 1}} s {struct.Inner {default {c 10 ll 100 s 1000}}} str {string {default foo}}}
+        testDll function pointer_to_pointer {struct.Outer byref nullok} {p {pointer unsafe nullok}}
+    } -body {
+        pointer_to_pointer NULL
+    } -result [list i 1 s {c 10 ll 100 s 1000} str foo]
+
+    test function-struct-return-byref-2 "return struct byref - null pointer nullok inner struct clear" -setup {
+        cffi::Struct create Inner {c schar ll longlong s short} -clear
+        cffi::Struct create Outer {i {int {default 1}} s {struct.Inner {default {}}} str {string {default foo}}}
+        testDll function pointer_to_pointer {struct.Outer byref nullok} {p {pointer unsafe nullok}}
+    } -body {
+        pointer_to_pointer NULL
+    } -result [list i 1 s {c 0 ll 0 s 0} str foo]
+
+    test function-struct-return-byref-error-0 "return struct byref - null pointer nullok, missing default" -setup {
+        cffi::Struct create Inner {c schar ll longlong s short}
+        cffi::Struct create Outer {i {int {default 1}} s {struct.Inner {default {c 10 ll 100 s 1000}}} str {string}}
+        testDll function pointer_to_pointer {struct.Outer byref nullok} {p {pointer unsafe nullok}}
+    } -body {
+        pointer_to_pointer NULL
+    } -result {Struct field "str" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::cffi::test::Outer.str to a native value.} -returnCodes error
+
+    test function-struct-return-byref-error-1 "return struct byref - null pointer" -setup {
+        cffi::Struct create Inner {c schar ll longlong s short} -clear
+        cffi::Struct create Outer {i {int {default 1}} s struct.Inner str {string}}
+        testDll function pointer_to_pointer {struct.Outer byref} {p {pointer unsafe nullok}}
+    } -body {
+        pointer_to_pointer NULL
+    } -result {Invalid value. Function returned NULL pointer} -returnCodes error
 
     ## Error attributes for strings
 
