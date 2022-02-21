@@ -378,6 +378,17 @@ int Tclh_PointerSubtagDefine(Tcl_Interp *interp,
 int Tclh_PointerSubtagRemove(Tcl_Interp *interp,
                              Tclh_PointerTypeTag tagObj);
 
+/* Function: Tclh_PointerSubtags
+ * Returns dictionary mapping subtags to their supertags
+ *
+ * Parameters:
+ * interp - Tcl interpreter
+ *
+ * Returns:
+ * Dictionary of subtags or NULL on failure.
+ */
+Tcl_Obj *Tclh_PointerSubtags(Tcl_Interp *interp);
+
 /* Function: Tclh_PointerCast
  * Changes the tag associated with a pointer
  *
@@ -420,6 +431,7 @@ int Tclh_PointerCast(Tcl_Interp *interp,
 #define PointerEnumerate          Tclh_PointerEnumerate
 #define PointerSubtagDefine       Tclh_PointerSubtagDefine
 #define PointerSubtagRemove       Tclh_PointerSubtagRemove
+#define PointerSubtags            Tclh_PointerSubtags
 #define PointerCast               Tclh_PointerCast
 
 #endif
@@ -1101,6 +1113,31 @@ int Tclh_PointerSubtagRemove(Tcl_Interp *interp,
         }
     }
     return TCL_OK;
+}
+
+Tcl_Obj *Tclh_PointerSubtags(Tcl_Interp *interp)
+{
+    TclhPointerRegistry *registryP;
+    Tcl_Obj *objP;
+    Tcl_HashEntry *heP;
+    Tcl_HashTable *htP;
+    Tcl_HashSearch hSearch;
+
+    registryP = TclhInitPointerRegistry(interp);
+    htP       = &registryP->castables;
+    objP      = Tcl_NewListObj(0, NULL);
+
+    for (heP = Tcl_FirstHashEntry(htP, &hSearch); heP != NULL;
+         heP = Tcl_NextHashEntry(&hSearch)) {
+        Tcl_Obj *subtagObj = Tcl_NewStringObj(Tcl_GetHashKey(htP, heP), -1);
+        Tcl_Obj *supertagObj = Tcl_GetHashValue(heP);
+        if (supertagObj == NULL)
+            supertagObj = Tcl_NewObj();
+        Tcl_ListObjAppendElement(NULL, objP, subtagObj);
+        Tcl_ListObjAppendElement(NULL, objP, supertagObj);
+    }
+
+    return objP;
 }
 
 int

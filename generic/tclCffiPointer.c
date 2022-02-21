@@ -86,6 +86,7 @@ CffiPointerObjCmd(ClientData cdata,
         {"cast", 1, 2, "POINTER ?TAG?", NULL},
         {"castable", 2, 2, "SUBTAG SUPERTAG", NULL},
         {"uncastable", 1, 1, "TAG"},
+        {"castables", 0, 0, ""},
         {NULL}
     };
     enum cmdIndex {
@@ -102,6 +103,7 @@ CffiPointerObjCmd(ClientData cdata,
         CAST,
         CASTABLE,
         UNCASTABLE,
+        CASTABLES
     };
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
@@ -125,11 +127,18 @@ CffiPointerObjCmd(ClientData cdata,
         Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, objP));
         return TCL_OK;
     case CASTABLE:
-        return CffiPointerCastableCmd(ipCtxP->interp, objv[2], objv[3]);
+        return CffiPointerCastableCmd(ip, objv[2], objv[3]);
     case CAST:
-        return CffiPointerCastCmd(ipCtxP->interp, objv[2], objc > 3 ? objv[3] : NULL);
+        return CffiPointerCastCmd(ip, objv[2], objc > 3 ? objv[3] : NULL);
     case UNCASTABLE:
-        return CffiPointerUncastableCmd(ipCtxP->interp, objv[2]);
+        return CffiPointerUncastableCmd(ip, objv[2]);
+    case CASTABLES:
+        objP = Tclh_PointerSubtags(ip);
+        if (objP) {
+            Tcl_SetObjResult(ip, objP);
+            return TCL_OK;
+        }
+        return TCL_ERROR;/* Tclh_PointerSubtags should have set error */
     default:
         break;
     }
