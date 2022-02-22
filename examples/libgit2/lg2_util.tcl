@@ -4,6 +4,20 @@
 # Utility commands useful for applications using libgit2. Not part of libgit2 API.
 # See the README.
 
+
+proc lg2_throw_last_error {code} {
+    set codename [::cffi::enum name git_error_code $code $code]
+    set p [git_error_last]
+    if {[::cffi::pointer isnull $p]} {
+        throw [list GIT $code $codename UNKNOWN] "libgit2 error: Error code $code"
+    } else {
+        set last_error [git_error fromnative! $p]
+        dict with last_error {} ; # klass, message
+        throw [list GIT $code $codename $klass] "libgit2 error: $message"
+    }
+}
+
+variable iana_to_tcl_encoding
 array set iana_to_tcl_encoding {
     437 cp437
     850 cp850

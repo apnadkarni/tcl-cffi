@@ -104,6 +104,7 @@ libgit2 functions {
     git_config_get_entry GIT_ERROR_CODE {
         entry {PCONFIG_ENTRY out}
         cfg   PCONFIG
+        name  STRING
     }
     git_config_get_int32 GIT_ERROR_CODE {
         value {int32_t out}

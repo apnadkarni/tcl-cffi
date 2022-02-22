@@ -23,6 +23,8 @@ proc parse_options {arguments} {
             option_lappend StatusOpts GIT_STATUS_OPT_INCLUDE_IGNORED
         }
         --untracked-files:MODE {
+            # Show untracked files.
+            # Mode should be one of "normal", "all", "no" or "none".
             option_remove StatusOpts \
                 GIT_STATUS_OPT_INCLUDE_UNTRACKED \
                 GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
@@ -35,6 +37,7 @@ proc parse_options {arguments} {
                         GIT_STATUS_OPT_INCLUDE_UNTRACKED \
                         GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
                 }
+                no -
                 none {}
                 default {
                     error "Invalid mode \"$arg\". for --untracked-files."
@@ -42,12 +45,15 @@ proc parse_options {arguments} {
             }
         }
         --ignore-submodules:MODE {
+            # Ignore submodule changes as per MODE.
+            # Currently MODE must be "all" if this option is specified.
             if {$arg ne "all"} {
                 error "Invalid mode \"$arg\". Currently only mode \"all\" is supported for the --ignore-submodules option."
             }
             option_append StatusOpts GIT_STATUS_OPT_EXCLUDE_SUBMODULES
         }
         --list-submodules {
+            # List submodules
             option_set ListSubmodules 1
         }
         --git-dir:GITDIR {
