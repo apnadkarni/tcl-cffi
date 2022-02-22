@@ -26,7 +26,7 @@
 # cmake --build . --target install
 
 if {![info exists GIT_NS]} {
-    set GIT_NS [namespace current]::git
+    set GIT_NS [namespace current]::lg2
 }
 
 namespace eval $GIT_NS {
@@ -111,6 +111,7 @@ namespace eval $GIT_NS {
             transaction.tcl
             worktree.tcl
             clone.tcl
+            lg2_util.tcl
         }
 
         if {$path eq ""} {

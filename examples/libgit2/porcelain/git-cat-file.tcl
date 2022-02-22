@@ -67,6 +67,89 @@ proc show_size {pRepo pObj} {
     }
 }
 
+proc show_commit {pObj} {
+    set pCommit [::cffi::pointer cast $pObj ${::GIT_NS}::git_commit]
+    puts "tree [git_oid_tostr_s [git_commit_tree_id $pCommit]]"
+
+    set count [git_commit_parentcount $pCommit]
+    for {set i 0} {$i < $count} {incr i} {
+        puts "parent [git_oid_tostr_s [git_commit_parent_id $pCommit $i]]"
+    }
+
+    print_signature author [git_commit_author $pCommit]
+    print_signature committer [git_commit_committer $pCommit]
+
+    set encoded_message [git_commit_message $pCommit]
+
+    # Get the git encoding which uses IANA names and map to Tcl encoding name
+    set encoding [lg2_iana_to_tcl_encoding [git_commit_message_encoding $pCommit]]
+    set message [cffi::memory tostring! $encoded_message $encoding]
+    if {$message ne ""} {
+        puts \n$message
+    }
+}
+
+proc show_blob {pObj} {
+    set pBlob [::cffi::pointer cast $pObj ${::GIT_NS}::git_blob]
+    set pContent [git_blob_rawcontent $pBlob]
+    set nbytes [git_blob_rawsize $pBlob]
+    puts [cffi::memory tobinary! $pContent $nbytes]
+}
+
+proc show_tree {pObj} {
+    set pTree [::cffi::pointer cast $pObj ${::GIT_NS}::git_tree]
+    set count [git_tree_entrycount $pTree]
+    for {set i 0} {$i < $count} {incr i} {
+        set pEntry [git_tree_entry_byindex $pTree $i]
+        set oid [git_oid_tostr_s [git_tree_entry_id $pEntry]]
+        set name [git_tree_entry_name $pEntry]
+        set type [git_object_type2string [git_tree_entry_type $pEntry]]
+        set mode [git_tree_entry_filemode_raw $pEntry]
+        puts [format "%06o $type $oid\t$name" $mode]
+    }
+}
+
+proc show_tag {pObj} {
+    set pTag [::cffi::pointer cast $pObj ${::GIT_NS}::git_tag]
+    set oid [git_tag_target_id $pTag]
+    puts "object [git_oid_tostr_s $oid]"
+    set type [git_object_type2string [git_tag_target_type $pTag]]
+    puts "type $type"
+    puts "tag [git_tag_name $pTag]"
+    print_signature tagger [git_tag_tagger $pTag]
+
+    # Unlike commits, tags do not seem to have an associated function to
+    # get the encoding.
+    # Or is this basically a commit so we use git_commit_message_encoding? TBD
+    set message [git_tag_message $pTag]
+
+    if {$message ne ""} {
+        puts \n$message
+    }
+}
+
+proc show {pRepo pObj expected_type} {
+    set expected_enum [git_object_string2type $expected_type]
+    set type [git_object_type $pObj]
+    if {$type eq $expected_enum} {
+        show_$expected_type $pObj
+        return
+    }
+
+    # The type is not what is wanted. Peel off layers 
+    git_object_peel pPeeled $pObj $expected_enum
+    try {
+        if {[git_object_type $pPeeled] eq $expected_enum} {
+            show_$expected_type $pPeeled
+        } else {
+            # Should not happen since git_object_peel would have errored but still...
+            error "Object was not converted to $expected_type."
+        }
+    } finally {
+        git_object_free $pPeeled
+    }
+}
+
 proc pretty_print {pObj} {
     switch -exact -- [git_object_type $pObj] {
         GIT_OBJECT_COMMIT { show_commit $pObj }
@@ -75,7 +158,6 @@ proc pretty_print {pObj} {
         GIT_OBJECT_TAG    { show_tag $pObj }
         default { error "Unknown type [git_object_type $pObj]"}
     }
-
 }
 
 proc main {} {

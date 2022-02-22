@@ -164,6 +164,26 @@ proc resolve_refish {pRepo refish} {
     return $pAnnotatedCommit
 }
 
+proc print_signature {header sig} {
+    dict with sig {
+        if {$name eq "" && $email eq ""} {
+            return
+        }
+        dict with when {
+            if {$offset < 0} {
+                set sign -
+                set offset [expr {- $offset}]
+            } else {
+                set sign +
+            }
+        }
+        set hours [expr {$offset / 60}]
+        set minutes [expr {$offset % 60}]
+
+        puts "$header $name <$email> $time $sign[format %02d $hours][format %02d $minutes]"
+    }
+}
+
 proc make_relative_path {path parent} {
     set path_components [file split [file normalize $path]]
     set parent_components [file split [file normalize $parent]]

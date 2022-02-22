@@ -49,10 +49,10 @@ libgit2 functions {
     git_commit_time_offset int {
         commit PCOMMIT
     }
-    git_commit_committer {struct.git_signature byref} {
+    git_commit_committer {struct.git_signature byref nullok} {
         commit PCOMMIT
     }
-    git_commit_author {struct.git_signature byref} {
+    git_commit_author {struct.git_signature byref nullok} {
         commit PCOMMIT
     }
     git_commit_committer_with_mailmap GIT_ERROR_CODE {

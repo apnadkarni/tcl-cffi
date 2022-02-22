@@ -43,7 +43,7 @@ libgit2 functions {
     git_tag_name STRING {
         pTag PTAG
     }
-    git_tag_tagger {pointer.git_signature unsafe} {
+    git_tag_tagger {struct.git_signature byref nullok} {
         pTag PTAG
     }
     git_tag_message STRING {

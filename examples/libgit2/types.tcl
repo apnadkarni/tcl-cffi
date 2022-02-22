@@ -56,16 +56,21 @@
 
 }
 
+cffi::pointer castable git_commit git_object
+cffi::pointer castable git_blob   git_object
+cffi::pointer castable git_tree   git_object
+cffi::pointer castable git_tag    git_object
+
 cffi::Struct create git_time {
-    time   git_time_t
-    offset int
-    sign   schar
+    time   {git_time_t {default 0}}
+    offset {int {default 0}}
+    sign   {schar {default 0}}
 }
 
 cffi::Struct create git_signature {
-    name  STRING
-    email STRING
-    when  struct.git_time
+    name  {STRING {default {}}}
+    email {STRING {default {}}}
+    when  {struct.git_time {default {}}}
 }
 ::cffi::alias define PSIGNATURE pointer.git_signature
 
