@@ -371,7 +371,7 @@ int Tclh_ErrorAllocation(Tcl_Interp *interp, const char *type, const char *messa
  *
  * Parameters:
  * interp  - Tcl interpreter in which to report the error.
- * objP    - Value that is out of range
+ * objP    - Value that is out of range. May be NULL.
  * low     - low end of permitted range (inclusive)
  * high    - high end of permitted range (inclusive)
  *
@@ -651,9 +651,10 @@ Tclh_ErrorRange(Tcl_Interp *interp,
     char buf[200];
     snprintf(buf,
              sizeof(buf),
-             "Value %.20s not in range. Must be within [%" TCL_LL_MODIFIER
+             "Value%s%.20s not in range. Must be within [%" TCL_LL_MODIFIER
              "d,%" TCL_LL_MODIFIER "d].",
-             Tcl_GetString(objP),
+             objP ? " " : "",
+             objP ? Tcl_GetString(objP) : "",
              low,
              high);
     msgObj = Tcl_NewStringObj(buf, -1);

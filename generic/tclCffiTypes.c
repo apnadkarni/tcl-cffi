@@ -123,6 +123,7 @@ enum cffiTypeAttrOpt {
     PARAM_IN,
     PARAM_OUT,
     PARAM_INOUT,
+    PARAM_RETVAL,
     BYREF,
     COUNTED,
     UNSAFE,
@@ -157,6 +158,7 @@ static CffiAttrs cffiAttrs[] = {
     {"in", PARAM_IN, CFFI_F_ATTR_IN, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"out", PARAM_OUT, CFFI_F_ATTR_OUT, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"inout", PARAM_INOUT, CFFI_F_ATTR_INOUT, CFFI_F_TYPE_PARSE_PARAM, 1},
+    {"retval", PARAM_RETVAL, CFFI_F_ATTR_RETVAL, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"byref",
      BYREF,
      CFFI_F_ATTR_BYREF,
@@ -809,19 +811,24 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         }
         switch (cffiAttrs[attrIndex].attr) {
         case PARAM_IN:
-            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
+            if (flags & (CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_IN;
             break;
         case PARAM_OUT:
-            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
+            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_OUT;
             break;
         case PARAM_INOUT:
-            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT|CFFI_F_ATTR_INOUT))
+            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_OUT))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_INOUT;
+            break;
+        case PARAM_RETVAL:
+            if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
+                goto invalid_format;
+            flags |= CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL;
             break;
         case BYREF:
             flags |= CFFI_F_ATTR_BYREF;

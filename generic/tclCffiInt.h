@@ -92,7 +92,8 @@ typedef int CffiResult; /* TCL_OK etc. */
  */
 typedef enum CffiBaseType {
     CFFI_K_TYPE_VOID,
-    CFFI_K_TYPE_SCHAR,
+    CFFI_K_FIRST_INTEGER_TYPE,
+    CFFI_K_TYPE_SCHAR = CFFI_K_FIRST_INTEGER_TYPE,
     CFFI_K_TYPE_UCHAR,
     CFFI_K_TYPE_SHORT,
     CFFI_K_TYPE_USHORT,
@@ -102,6 +103,7 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_ULONG,
     CFFI_K_TYPE_LONGLONG,
     CFFI_K_TYPE_ULONGLONG,
+    CFFI_K_LAST_INTEGER_TYPE = CFFI_K_TYPE_ULONGLONG,
     CFFI_K_TYPE_FLOAT,
     CFFI_K_TYPE_DOUBLE,
     CFFI_K_TYPE_STRUCT,
@@ -114,6 +116,11 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_BYTE_ARRAY,
     CFFI_K_NUM_TYPES
 } CffiBaseType;
+CFFI_INLINE CffiTypeIsInteger(CffiBaseType type) {
+    return (type >= CFFI_K_FIRST_INTEGER_TYPE
+            && type <= CFFI_K_LAST_INTEGER_TYPE);
+}
+
 
 /*
  * Context types when parsing type definitions.
@@ -171,29 +178,32 @@ CFFI_INLINE int CffiTypeIsVariableSizeArray(const CffiType *typeP) {
 }
 
 typedef enum CffiAttrFlags {
-    CFFI_F_ATTR_IN               = 0x00000001,   /* In parameter */
-    CFFI_F_ATTR_OUT              = 0x00000002,   /* Out parameter */
-    CFFI_F_ATTR_INOUT            = 0x00000004,   /* Out parameter */
-    CFFI_F_ATTR_BYREF            = 0x00000008,   /* Parameter is a reference */
-    CFFI_F_ATTR_DISPOSE          = 0x00000010,   /* Unregister the pointer */
-    CFFI_F_ATTR_COUNTED          = 0x00000020,   /* Counted safe pointer */
-    CFFI_F_ATTR_UNSAFE           = 0x00000040,   /* Pointers need not be checked */
-    CFFI_F_ATTR_DISPOSEONSUCCESS = 0x00000080,   /* Unregister on success */
-    CFFI_F_ATTR_ZERO             = 0x00000100,   /* Must be zero/null */
-    CFFI_F_ATTR_NONZERO          = 0x00000200,   /* Must be nonzero/nonnull */
-    CFFI_F_ATTR_NONNEGATIVE      = 0x00000400,   /* Must be >= 0 */
-    CFFI_F_ATTR_POSITIVE         = 0x00000800,   /* Must be >= 0 */
-    CFFI_F_ATTR_LASTERROR        = 0x00001000,   /* Windows GetLastError handler */
-    CFFI_F_ATTR_ERRNO            = 0x00002000,   /* Error in errno */
-    CFFI_F_ATTR_WINERROR         = 0x00004000,   /* Windows error code */
-    CFFI_F_ATTR_ONERROR          = 0x00008000,   /* Error handler */
-    CFFI_F_ATTR_STOREONERROR     = 0x00010000,   /* Store only on error */
-    CFFI_F_ATTR_STOREALWAYS      = 0x00020000,   /* Store on success and error */
-    CFFI_F_ATTR_ENUM             = 0x00100000,   /* Use enum names */
-    CFFI_F_ATTR_BITMASK          = 0x00200000,   /* Treat as a bitmask */
-    CFFI_F_ATTR_NULLIFEMPTY      = 0x00400000,   /* Empty -> null pointer */
-    CFFI_F_ATTR_NULLOK           = 0x00800000,   /* Null pointers allowed */
-    CFFI_F_ATTR_STRUCTSIZE       = 0x01000000,   /* Field contains struct size */
+    CFFI_F_ATTR_IN      = 0x00000001, /* In parameter */
+    CFFI_F_ATTR_OUT     = 0x00000002, /* Out parameter */
+    CFFI_F_ATTR_INOUT   = 0x00000004, /* Out parameter */
+    CFFI_F_ATTR_BYREF   = 0x00000008, /* Parameter is a reference */
+    CFFI_F_ATTR_DISPOSE = 0x00000010, /* Unregister the pointer */
+    CFFI_F_ATTR_COUNTED = 0x00000020, /* Counted safe pointer */
+    CFFI_F_ATTR_UNSAFE  = 0x00000040, /* Pointers need not be checked */
+    CFFI_F_ATTR_DISPOSEONSUCCESS = 0x00000080, /* Unregister on success */
+    CFFI_F_ATTR_ZERO             = 0x00000100, /* Must be zero/null */
+    CFFI_F_ATTR_NONZERO          = 0x00000200, /* Must be nonzero/nonnull */
+    CFFI_F_ATTR_NONNEGATIVE      = 0x00000400, /* Must be >= 0 */
+    CFFI_F_ATTR_POSITIVE         = 0x00000800, /* Must be >= 0 */
+    CFFI_F_ATTR_LASTERROR    = 0x00001000, /* Windows GetLastError handler */
+    CFFI_F_ATTR_ERRNO        = 0x00002000, /* Error in errno */
+    CFFI_F_ATTR_WINERROR     = 0x00004000, /* Windows error code */
+    CFFI_F_ATTR_ONERROR      = 0x00008000, /* Error handler */
+    CFFI_F_ATTR_STOREONERROR = 0x00010000, /* Store only on error */
+    CFFI_F_ATTR_STOREALWAYS  = 0x00020000, /* Store on success and error */
+    CFFI_F_ATTR_RETVAL       = 0x00040000, /* if param - treat as return value
+                                              if return - a parameter is
+                                              the return value */
+    CFFI_F_ATTR_ENUM        = 0x00100000,  /* Use enum names */
+    CFFI_F_ATTR_BITMASK     = 0x00200000,  /* Treat as a bitmask */
+    CFFI_F_ATTR_NULLIFEMPTY = 0x00400000,  /* Empty -> null pointer */
+    CFFI_F_ATTR_NULLOK      = 0x00800000,  /* Null pointers allowed */
+    CFFI_F_ATTR_STRUCTSIZE  = 0x01000000,  /* Field contains struct size */
 } CffiAttrFlags;
 
 /*
@@ -210,7 +220,7 @@ typedef struct CffiTypeAndAttrs {
 /* Attributes allowed on a parameter declaration */
 #define CFFI_F_ATTR_PARAM_MASK                                                \
     (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT | CFFI_F_ATTR_BYREF \
-     | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS)
+     | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS | CFFI_F_ATTR_RETVAL)
 /* Attributes related to pointer safety */
 #define CFFI_F_ATTR_SAFETY_MASK                                              \
     (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS \

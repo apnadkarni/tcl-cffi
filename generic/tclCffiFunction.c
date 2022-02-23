@@ -9,7 +9,8 @@
 #include "tclCffiInt.h"
 
 static CffiResult CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj);
-static CffiResult CffiArgPostProcess(CffiCall *callP, int arg_index);
+static CffiResult
+CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP);
 static void CffiArgCleanup(CffiCall *callP, int arg_index);
 static CffiResult CffiReturnPrepare(CffiCall *callP);
 static CffiResult CffiReturnCleanup(CffiCall *callP);
@@ -51,7 +52,7 @@ CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
  * Returns:
  * Nothing.
  */
-void
+static void
 CffiPointerArgsDispose(Tcl_Interp *ip,
                        CffiProto *protoP,
                        CffiArgument *argsP,
@@ -203,6 +204,7 @@ CffiArgPrepareUniChars(CffiCall *callP,
  * Parameters:
  * valueP - pointer to a value
  */
+static
 void CffiArgCleanup(CffiCall *callP, int arg_index)
 {
     /*
@@ -223,13 +225,16 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
  * arg_index - the index of the argument. The corresponding slot should
  *            have been initialized so the its flags field is 0.
  * valueObj - the Tcl_Obj containing the value or variable name for out
- *             parameters
+ *             parameters. May be NULL in cases where CFFI_F_ATTR_RETVAL
+ *             is set for the parameter.
  *
  * The function modifies the following:
  *
  * callP->argsP[arg_index].flags - sets CFFI_F_ARG_INITIALIZED
  *
  * callP->argsP[arg_index].value - the native value.
+ *
+ * callP->argsP[arg_index].valueP - (libffi) Set to point to the value field
  *
  * callP->argsP[arg_index].savedValue - copy of above for some types only
  *
@@ -248,7 +253,7 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
  * Returns TCL_OK on success and TCL_ERROR on failure with error message
  * in the interpreter.
  */
-CffiResult
+static CffiResult
 CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 {
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
@@ -292,26 +297,39 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 || (typeAttrsP->flags & CFFI_F_ATTR_BYREF) != 0);
 
     /*
-     * For pure in parameters, valueObj provides the value itself. For out
-     * and inout parameters, valueObj is the variable name. If the parameter
-     * is an inout parameter, the variable must exist since the value passed
-     * to the called function is taken from there. For pure out parameters,
-     * the variable need not exist and will be created if necessary. For
-     * both in and inout, on return from the function the corresponding
-     * content is stored in that variable.
+     * For pure in parameters, valueObj provides the value itself.
+     *
+     * For out and inout parameters, valueObj is normally the variable name
+     * with the exception noted below. If the parameter is an inout
+     * parameter, the variable must exist since the value passed to the
+     * called function is taken from there. For pure out parameters, the
+     * variable need not exist and will be created if necessary. For both in
+     * and inout, on return from the function the corresponding content is
+     * stored in that variable.
+     *
+     * The exception to the above for out parameters is that if the
+     * CFFI_F_ATTR_RETVAL flag is set, the value returned in the parameter
+     * by the function is forwarded up as the function return so there
+     * is not variable name supplied and valueObj will be NULL.
      */
     *varNameObjP = NULL;
     if (flags & (CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)) {
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        *varNameObjP = valueObj;
-        valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
-        if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
-            return ErrorInvalidValue(
-                ip,
-                *varNameObjP,
-                "Variable specified as inout argument does not exist.");
+        if (flags & CFFI_F_ATTR_RETVAL) {
+            CFFI_ASSERT(flags & CFFI_F_ATTR_OUT);
+            CFFI_ASSERT(valueObj == NULL);
         }
+        else {
+            *varNameObjP = valueObj;
+            valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
+            if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
+                return ErrorInvalidValue(
+                    ip,
+                    *varNameObjP,
+                    "Variable specified as inout argument does not exist.");
         /* TBD - check if existing variable is an array and error out? */
+            }
+        }
     }
 
     /*
@@ -462,13 +480,15 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         }
         break;
     case CFFI_K_TYPE_STRUCT:
-        CFFI_ASSERT(argP->arraySize != 0);
         if (argP->arraySize < 0) {
             /* Single struct */
             void *structValueP;
-            if (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) {
+            if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
                 int dict_size;
-                CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
+                CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+                CFFI_ASSERT(flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT));
+                CFFI_ASSERT(valueObj);
+
                 CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
                 if (dict_size == 0) {
                     /* Empty dictionary AND NULLIFEMPTY set */
@@ -488,7 +508,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                         valueObj, 0,
                                         structValueP, &ipCtxP->memlifo));
             }
-            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {
+            if (flags & CFFI_F_ATTR_BYREF) {
                 argP->value.u.ptr = structValueP;
                 /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
                 STOREARGBYVAL(CffiStoreArgPointer, ptr);
@@ -538,10 +558,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         break;
 
     case CFFI_K_TYPE_POINTER:
-        CFFI_ASSERT(argP->arraySize != 0);
         if (argP->arraySize < 0) {
             if (flags & CFFI_F_ATTR_OUT)
-                argP->value.u.ptr = NULL;
+                argP->value.u.ptr = NULL; /* Being paranoid */
             else {
                 CHECK(
                     CffiPointerFromObj(ip, typeAttrsP, valueObj, &argP->value.u.ptr));
@@ -669,7 +688,12 @@ pass_null_array:
  * Does the post processing of an argument after a call
  *
  * Post processing of the argument consists of checking if the parameter
- * was an *out* or *inout* parameter and storing it in the output Tcl variable.
+ * was an *out* or *inout* parameter and storing it in the output Tcl variable
+ * named by the varNameObj field of the argument descriptor if it is not
+ * NULL. If it is NULL, as is the case with the CFFI_F_ATTR_RETVAL attribute
+ * set, it is returned in the location pointed by resultObjP. Note the
+ * reference count of the returned Tcl_Obj is not incremented before returning.
+ *
  * Note no cleanup of argument storage is done.
  *
  * In the case of arrays, if the output array was specified as zero size,
@@ -678,19 +702,20 @@ pass_null_array:
  * Parameters:
  * callP - the call context
  * arg_index - index of argument to do post processing
+ * resultObjP - location to store result if the varNameObj field is NULL.
  *
  * Returns:
  * *TCL_OK* on success,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
+static
 CffiResult
-CffiArgPostProcess(CffiCall *callP, int arg_index)
+CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
 {
     Tcl_Interp *ip = callP->fnP->ipCtxP->interp;
     const CffiTypeAndAttrs *typeAttrsP =
         &callP->fnP->protoP->params[arg_index].typeAttrs;
     CffiArgument *argP = &callP->argsP[arg_index];
-    Tcl_Obj *varObjP   = argP->varNameObj;
     CffiValue *valueP;
     Tcl_Obj *valueObj;
     int ret;
@@ -818,23 +843,32 @@ CffiArgPostProcess(CffiCall *callP, int arg_index)
         }
     }
 
-    /*
-     * Tcl_ObjSetVar2 will release valueObj if its ref count is 0
-     * preventing us from trying again after deleting the array so
-     * preserve the value obj.
-     */
-    Tcl_IncrRefCount(valueObj);
-    if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, 0) == NULL) {
-        /* Perhaps it is an array in which case we need to delete first */
-        Tcl_UnsetVar(ip, Tcl_GetString(varObjP), 0);
-        /* Retry */
-        if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, TCL_LEAVE_ERR_MSG)
-            == NULL) {
-            Tcl_DecrRefCount(valueObj);
-            return TCL_ERROR;
-        }
+    if (typeAttrsP->flags & CFFI_F_ATTR_RETVAL) {
+        CFFI_ASSERT(resultObjP);
+        *resultObjP = valueObj;
     }
-    Tcl_DecrRefCount(valueObj);
+    else {
+        Tcl_Obj *varObjP = argP->varNameObj;
+        CFFI_ASSERT(varObjP);
+
+        /*
+         * Tcl_ObjSetVar2 will release valueObj if its ref count is 0
+         * preventing us from trying again after deleting the array so
+         * preserve the value obj.
+         */
+        Tcl_IncrRefCount(valueObj);
+        if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, 0) == NULL) {
+            /* Perhaps it is an array in which case we need to delete first */
+            Tcl_UnsetVar(ip, Tcl_GetString(varObjP), 0);
+            /* Retry */
+            if (Tcl_ObjSetVar2(ip, varObjP, NULL, valueObj, TCL_LEAVE_ERR_MSG)
+                == NULL) {
+                Tcl_DecrRefCount(valueObj);
+                return TCL_ERROR;
+            }
+        }
+        Tcl_DecrRefCount(valueObj);
+    }
     return TCL_OK;
 }
 
@@ -1123,8 +1157,10 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
  *
  * Parameters:
  * callP - initialized call context.
- * nArgObjs - size of argObjs
- * argObjs - function arguments passed by the script
+ * nArgObjs - size of argObjs.
+ * argObjs - function arguments passed by the script. If a parameter has
+ *   the RETVAL attribute set, the corresponding element in this array
+ *   will be NULL.
  *
  * The function resets the call context and sets up the arguments.
  *
@@ -1230,13 +1266,16 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
 
         /*
          * Loop through initialized parameters looking for a match. A match
-         * must have been initialized (ie. not dynamic), must be a scalar
-         * and having the referenced name.
+         * must have been initialized (ie. not dynamic), must be a scalar,
+         * pure input and not byref, and having the referenced name.
          */
         for (j = 0; j < callP->nArgs; ++j) {
             if ((argsP[j].flags & CFFI_F_ARG_INITIALIZED)
-                && CffiTypeIsNotArray(&protoP->params[j].typeAttrs.dataType) &&
-                !strcmp(name, Tcl_GetString(protoP->params[j].nameObj)))
+                && CffiTypeIsNotArray(&protoP->params[j].typeAttrs.dataType)
+                && (protoP->params[j].typeAttrs.flags
+                    & (CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF))
+                       == CFFI_F_ATTR_IN
+                && !strcmp(name, Tcl_GetString(protoP->params[j].nameObj)))
                 break;
         }
         if (j == callP->nArgs) {
@@ -1303,9 +1342,10 @@ CffiFunctionCall(ClientData cdata,
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->ipCtxP;
     Tcl_Obj **argObjs = NULL;
-    int nArgObjs;
     Tcl_Obj *resultObj = NULL;
+    int nArgObjs;
     int i;
+    int argResultIndex; /* If >=0, index of output argument as function result */
     void *pointer;
     CffiCall callCtx;
     MemLifoMarkHandle mark;
@@ -1333,8 +1373,14 @@ CffiFunctionCall(ClientData cdata,
     /* nArgObjs is supplied arguments. Remaining have to come from defaults */
     CFFI_ASSERT(objc >= objArgIndex);
     nArgObjs = objc - objArgIndex;
-    if (nArgObjs > protoP->nParams)
-        goto numargs_error; /* More args than params */
+    if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
+        /* One less arg as the param value will be returned as function result */
+        if (nArgObjs > (protoP->nParams - 1))
+            goto numargs_error; /* More args than params */
+    } else {
+        if (nArgObjs > protoP->nParams)
+            goto numargs_error; /* More args than params */
+    }
 
     callCtx.fnP = fnP;
     callCtx.nArgs = 0;
@@ -1345,22 +1391,38 @@ CffiFunctionCall(ClientData cdata,
 #endif
 
     /* Set up arguments if any */
+    argResultIndex = -1;/* Presume function result returned as is */
     if (protoP->nParams) {
+        int j;
+
         /* Allocate space to hold argument values */
         argObjs = (Tcl_Obj **)MemLifoAlloc(
             &ipCtxP->memlifo, protoP->nParams * sizeof(Tcl_Obj *));
 
-        /* Fill in argument value from those supplied. */
-        for (i = 0; i < nArgObjs; ++i)
-            argObjs[i] = objv[objArgIndex + i];
-
-        /* Fill remaining from defaults, erroring if no default */
-        while (i < protoP->nParams) {
-            if (protoP->params[i].typeAttrs.parseModeSpecificObj == NULL)
-                goto numargs_error;
-            argObjs[i] = protoP->params[i].typeAttrs.parseModeSpecificObj;
-            ++i;
+        for (i = 0, j = objArgIndex; i < protoP->nParams; ++i, ++j) {
+            if (protoP->params[i].typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
+                /* This is a parameter to use as return value. No argument
+                   is expected from the caller */
+                CFFI_ASSERT(argResultIndex < 0); /* Checked at definition */
+                argObjs[i]     = NULL;
+                argResultIndex = i; /* Index of param to be used for func result */
+                --j; /* Negate loop ++j so same argument used for next param */
+            }
+            else {
+                if (j < objc) {
+                    argObjs[i] = objv[j];
+                }
+                else {
+                    /* No argument, must have a default */
+                    if (protoP->params[i].typeAttrs.parseModeSpecificObj
+                        == NULL)
+                        goto numargs_error;
+                    argObjs[i] =
+                        protoP->params[i].typeAttrs.parseModeSpecificObj;
+                }
+            }
         }
+
         /* Set up stack. This also does CffiResetCall so we don't need to */
         if (CffiFunctionSetupArgs(&callCtx, protoP->nParams, argObjs) != TCL_OK)
             goto pop_and_error;
@@ -1397,11 +1459,11 @@ CffiFunctionCall(ClientData cdata,
      */
 #define CALLFN(objfn_, dcfn_, fld_, type_)                                     \
     do {                                                                       \
-        CffiValue retval;                                                      \
+        CffiValue cretval; /* Actual C function result */                      \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {          \
             type_ *p = CffiCallPointerFunc(&callCtx);                          \
             if (p)                                                             \
-                retval.u.fld_ = *p;                                            \
+                cretval.u.fld_ = *p;                                           \
             else {                                                             \
                 fnCheckRet = Tclh_ErrorInvalidValue(                           \
                     ip, NULL, "Function returned NULL pointer");               \
@@ -1410,22 +1472,25 @@ CffiFunctionCall(ClientData cdata,
             }                                                                  \
         }                                                                      \
         else                                                                   \
-            retval.u.fld_ = dcfn_(&callCtx);                                   \
+            cretval.u.fld_ = dcfn_(&callCtx);                                  \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
-                ip, &protoP->returnType.typeAttrs, &retval, &sysError);        \
+                ip, &protoP->returnType.typeAttrs, &cretval, &sysError);       \
         CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
         if (fnCheckRet == TCL_OK) {                                            \
-            /* First try converting as enums, bitmasks etc. */                 \
-            resultObj = CffiIntValueToObj(&protoP->returnType.typeAttrs,       \
-                                          (Tcl_WideInt)retval.u.fld_);         \
-            /* If that did not work just use native value */                   \
-            if (resultObj == NULL)                                             \
-                resultObj = objfn_(retval.u.fld_);                             \
+            /* Wrap function return value unless an output argument is */      \
+            /* to be returned as the function result */                        \
+            if (argResultIndex < 0) {                                          \
+                /* First try converting function result as enums, bitmasks */  \
+                resultObj = CffiIntValueToObj(&protoP->returnType.typeAttrs,   \
+                                              (Tcl_WideInt)cretval.u.fld_);    \
+                /* If that did not work just use native value */               \
+                if (resultObj == NULL)                                         \
+                    resultObj = objfn_(cretval.u.fld_);                        \
+            }                                                                  \
         }                                                                      \
         else {                                                                 \
-            /* AFTER above Check to not lose GetLastError */                   \
-            resultObj = objfn_(retval.u.fld_);                                 \
+            resultObj = objfn_(cretval.u.fld_);                                \
         }                                                                      \
     } while (0)
 
@@ -1594,23 +1659,29 @@ CffiFunctionCall(ClientData cdata,
     /*
      * At this point, the state of the call is reflected by the
      * following variables:
-     * ret - TCL_OK/TCL_ERROR -> error invoking function or processing its
-     *   return value, e.g. string could not be encoded into Tcl's
+     * ret - TCL_OK/TCL_ERROR -> success/fail invoking function or processing
+     *   its return value, e.g. string could not be encoded into Tcl's
      *   internal form
-     * fnCheckRet - TCL_OK/TCL_ERROR -> return value check annotations
-     *   or failed
+     * fnCheckRet - TCL_OK/TCL_ERROR -> call and conversion above succeeded
+     *   but return value check annotations failed
      * resultObj - if ret is TCL_OK, holds wrapped value irrespective of
      *   value of fnCheckRet. Reference count should be 0.
      */
-    CFFI_ASSERT(resultObj != NULL || ret != TCL_OK);
+
+    /* resultObj must not be NULL unless ret is not TCL_OK or an arg value is to
+     * be returned as the result */
+    CFFI_ASSERT(resultObj || ret != TCL_OK || argResultIndex >= 0);
+    /* resultObj must be NULL unless ret is TCL_OK */
     CFFI_ASSERT(resultObj == NULL || ret == TCL_OK);
 
     /*
      * Based on the above state, the following actions need to be taken
      * depending on the value of (ret, fnCheckRet)
      *
-     * (TCL_OK, TCL_OK) - store out and inout parameters that unmarked or
-     * marked as storealways and return resultObj as the command result.
+     * (TCL_OK, TCL_OK) - store out and inout parameters that are unmarked or
+     * marked as storealways. Return resultObj as the command result unless
+     * useArgResult specifies that an output argument is returned
+     * as the result.
      *
      * (TCL_OK, TCL_ERROR) - no errors at the Tcl level, but the function
      * return value conditions not met indicating an error. Only store output
@@ -1627,27 +1698,42 @@ CffiFunctionCall(ClientData cdata,
      * any parameters. TBD - revisit
      */
 
+    if (resultObj)
+        Tcl_IncrRefCount(resultObj);
+
     if (ret == TCL_OK) {
         /*
          * Store parameters based on function return conditions.
          * Errors storing parameters are ignored (what else to do?)
          */
         for (i = 0; i < protoP->nParams; ++i) {
-            CffiAttrFlags flags = protoP->params[i].typeAttrs.flags;
-            if ((flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT))) {
-                if ((fnCheckRet == TCL_OK
-                     && !(flags & CFFI_F_ATTR_STOREONERROR))
-                    || (fnCheckRet != TCL_OK
-                        && (flags & CFFI_F_ATTR_STOREONERROR))
-                    || (flags & CFFI_F_ATTR_STOREALWAYS)) {
-                    /* Parameter needs to be stored */
-                    if (CffiArgPostProcess(&callCtx, i) != TCL_OK)
-                        ret = TCL_ERROR;
+            /* Skip the index, if any, that is to be returned as function result */
+            if (i != argResultIndex) {
+                CffiAttrFlags flags = protoP->params[i].typeAttrs.flags;
+                if ((flags & (CFFI_F_ATTR_INOUT | CFFI_F_ATTR_OUT))) {
+                    if ((fnCheckRet == TCL_OK
+                         && !(flags & CFFI_F_ATTR_STOREONERROR))
+                        || (fnCheckRet != TCL_OK
+                            && (flags & CFFI_F_ATTR_STOREONERROR))
+                        || (flags & CFFI_F_ATTR_STOREALWAYS)) {
+                        /* Parameter needs to be stored */
+                        if (CffiArgPostProcess(&callCtx, i, NULL) != TCL_OK)
+                            ret = TCL_ERROR;/* Only update ret on error! */
+                    }
                 }
             }
         }
     }
     /* Parameters stored away. Note ret might have changed to error */
+
+    /* See if a parameter output value is to be returned as function result */
+    if (ret == TCL_OK && fnCheckRet == TCL_OK && argResultIndex >= 0) {
+        if (resultObj)
+            Tclh_ObjClearPtr(&resultObj);
+        ret = CffiArgPostProcess(&callCtx, argResultIndex, &resultObj);
+        if (ret == TCL_OK && resultObj)
+            Tcl_IncrRefCount(resultObj);
+    }
 
     if (ret == TCL_OK) {
         CFFI_ASSERT(resultObj != NULL);
@@ -1658,16 +1744,20 @@ CffiFunctionCall(ClientData cdata,
             /* Call error handler if specified, otherwise default handler */
             if ((protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ONERROR)
                 && protoP->returnType.typeAttrs.parseModeSpecificObj) {
-                Tcl_IncrRefCount(resultObj);
-                ret = CffiCustomErrorHandler(
-                    ipCtxP, protoP, fnP->cmdNameObj, argObjs, callCtx.argsP, resultObj);
-                Tclh_ObjClearPtr(&resultObj);
+                ret = CffiCustomErrorHandler(ipCtxP,
+                                             protoP,
+                                             fnP->cmdNameObj,
+                                             argObjs,
+                                             callCtx.argsP,
+                                             resultObj);
             }
             else {
-                ret = CffiDefaultErrorHandler(ip, &protoP->returnType.typeAttrs, resultObj, sysError);
+                ret = CffiDefaultErrorHandler(
+                    ip, &protoP->returnType.typeAttrs, resultObj, sysError);
             }
         }
     }
+    Tclh_ObjClearPtr(&resultObj);
 
     CffiReturnCleanup(&callCtx);
     for (i = 0; i < protoP->nParams; ++i)
@@ -1683,8 +1773,12 @@ numargs_error:
     Tcl_ListObjAppendElement(NULL, resultObj, Tcl_NewStringObj("Syntax:", -1));
     for (i = 0; i < objArgIndex; ++i)
         Tcl_ListObjAppendElement(NULL, resultObj, objv[i]);
-    for (i = 0; i < protoP->nParams; ++i)
-        Tcl_ListObjAppendElement(NULL, resultObj, protoP->params[i].nameObj);
+    for (i = 0; i < protoP->nParams; ++i) {
+        /* RETVAL params are "invisible" from caller's perspective */
+        if (! (protoP->params[i].typeAttrs.flags & CFFI_F_ATTR_RETVAL))
+            Tcl_ListObjAppendElement(
+                NULL, resultObj, protoP->params[i].nameObj);
+    }
     Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(resultObj));
     /* Fall thru below */
 pop_and_error:

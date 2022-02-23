@@ -370,8 +370,10 @@ namespace eval cffi::test {
         # Failure tests - invalid attribute combinations
         foreach attra {in out inout} {
             foreach attrb {in out inout} {
-                testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
-                testinvalidattr "$type\[2\] $attra $attrb" param $errorMessages(attrconflict)
+                if {$attra ne $attrb} {
+                    testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
+                    testinvalidattr "$type\[2\] $attra $attrb" param $errorMessages(attrconflict)
+                }
             }
         }
 
@@ -604,7 +606,9 @@ namespace eval cffi::test {
         # Failure tests - invalid attribute combinations
         foreach attra {in out inout} {
             foreach attrb {in out inout} {
-                testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
+                if {$attra ne $attrb} {
+                    testinvalidattr "$type $attra $attrb" param $errorMessages(attrconflict)
+                }
             }
         }
         testinvalidattr "$type dispose out" param $errorMessages(attrparamdir)
@@ -745,7 +749,9 @@ namespace eval cffi::test {
                 # Failure tests - invalid attribute combinations
                 foreach attra {in out inout} {
                     foreach attrb {in out inout} {
-                        testinvalidattr "$type\[2\] $attra $attrb" $parse_mode $errorMessages(attrconflict)
+                        if {$attra ne $attrb} {
+                            testinvalidattr "$type\[2\] $attra $attrb" $parse_mode $errorMessages(attrconflict)
+                        }
                     }
                 }
                 foreach attr {storealways storeonerror} {
@@ -929,9 +935,6 @@ namespace eval cffi::test {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
 
-    # Failure tests - invalid attribute combinations
-    testinvalidattr "binary in in" param $errorMessages(attrconflict)
-
     ## binary - field or return mode
     foreach parse_mode {field return} {
         testinvalidattr binary $parse_mode $errorMessages(typeparsemode)
@@ -988,7 +991,9 @@ namespace eval cffi::test {
         # Failure tests - invalid attribute combinations
         foreach attra {in out inout} {
             foreach attrb {in out inout} {
-                testinvalidattr "struct.TestStruct byref $attra $attrb" $parse_mode $errorMessages(attrconflict)
+                if {$attra ne $attrb} {
+                    testinvalidattr "struct.TestStruct byref $attra $attrb" $parse_mode $errorMessages(attrconflict)
+                }
             }
         }
         # Scalar tests - invalid attributes for type

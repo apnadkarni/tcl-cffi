@@ -114,6 +114,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     protoP->returnType.nameObj = fnNameObj;
 
     protoP->nParams = 0; /* Update as we go along  */
+    /* Params are list {name type name type ...} */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         if (CffiTypeAndAttrsParse(ipCtxP,
                                   objs[i + 1],
@@ -122,6 +123,28 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
             != TCL_OK) {
             CffiProtoUnref(protoP);
             return TCL_ERROR;
+        }
+        if (protoP->params[j].typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
+            if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
+                return Tclh_ErrorGeneric(
+                    ip,
+                    NULL,
+                    "The \"retval\" annotation must not be placed on more than "
+                    "one parameter definition.");
+            }
+            if (!CffiTypeIsInteger(
+                    protoP->returnType.typeAttrs.dataType.baseType)
+                || !(protoP->returnType.typeAttrs.flags
+                     & (CFFI_F_ATTR_REQUIREMENT_MASK))) {
+                return Tclh_ErrorGeneric(
+                    ip,
+                    NULL,
+                    "The \"retval\" annotation can only be used "
+                    "in a parameter definition in functions with integer "
+                    "return types with error checking annotations.");
+            }
+            /* Mark that return value is through a parameter */
+            protoP->returnType.typeAttrs.flags |= CFFI_F_ATTR_RETVAL;
         }
         Tcl_IncrRefCount(objs[i]);
         protoP->params[j].nameObj = objs[i];
