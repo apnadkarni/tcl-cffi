@@ -237,7 +237,7 @@ namespace eval ${NS}::test {
     foreach type $numericTypes {
         set val [expr {$type in {float double} ? "1.0" : "1"}]
 
-        test function-paramin-$type-0 "$type in params" -setup {
+        test function-param-in-$type-0 "$type in params" -setup {
             set fn ${type}_to_${type}
             testDll function $fn $type [list param [list $type in]]
         } -body {
@@ -246,21 +246,21 @@ namespace eval ${NS}::test {
 
         set fn ${type}_byref
         testDll function $fn $type [list inparam [list $type byref]]
-        test function-parambyref-$type-0 "$type byref params" -body {
+        test function-param-byref-$type-0 "$type byref params" -body {
             $fn $val
         } -result [expr {2+$val}]
         testDll function $fn $type [list inparam [list $type in byref]]
-        test function-parambyref-$type-1 "$type in byref params" -body {
+        test function-param-byref-$type-1 "$type in byref params" -body {
             $fn $val
         } -result [expr {2+$val}]
 
         set fn ${type}_out
         testDll function $fn $type [list inparam [list $type in] outparam [list $type out]]
-        test function-paramout-$type-0 "$type out params" -body {
+        test function-param-out-$type-0 "$type out params" -body {
             unset -nocomplain out
             list [$fn $val out] $out
         } -result [list [expr {2+$val}] [expr {1+$val}]]
-        test function-paramout-$type-1 "$type out params - existing var" -body {
+        test function-param-out-$type-1 "$type out params - existing var" -body {
             set out 99
             list [$fn $val out] $out
         } -result [list [expr {2+$val}] [expr {1+$val}]]
@@ -271,13 +271,73 @@ namespace eval ${NS}::test {
             list [$fn $val arr] $arr
         } -result [list [expr {2+$val}] [expr {1+$val}]]
 
-        test function-paraminout-$type-0 "$type inout params" -setup {
+        test function-param-inout-$type-0 "$type inout params" -setup {
             set fn ${type}_inout
             testDll function $fn $type [list inoutparam [list $type inout]]
         } -body {
             set param $val
             list [$fn param] $param
         } -result [list [expr {2+$val}] [expr {1+$val}]]
+
+        if {$type in $intTypes} {
+            set fn ${type}_out
+            set rettype $type
+        } else {
+            set fn ${type}_retval
+            set rettype int
+        }
+        test function-param-retval-$type-0 "$type retval params" -setup {
+            testDll function $fn [list $rettype nonzero] [list inparam [list $type in] outparam [list $type retval]]
+        } -body {
+            $fn $val
+        } -result [expr {1+$val}]
+
+        test function-param-retval-$type-error-0 "$type multiple retval"  -setup {
+            set fn ${type}_retval
+        } -body {
+            # Prototype does not match C function but no matter. Not actually called
+            testDll function $fn [list int zero] [list inparam [list $type retval] outparam [list $type retval]]
+        } -result {The "retval" annotation must not be placed on more than one parameter definition.} -returnCodes error
+
+        test function-param-retval-$type-error-1 "$type retval - disallowed function decl" -setup {
+            set fn ${type}_retval
+        } -body {
+            testDll function $fn int [list inparam [list $type in] outparam [list $type retval]]
+        } -result {The "retval" annotation can only be used in a parameter definition in functions with integer return types with error checking annotations.} -returnCodes error
+
+        test function-param-retval-$type-error-2 "$type retval in" -setup {
+            set fn ${type}_retval
+        } -body {
+            testDll function $fn int [list inparam [list $type in retval] outparam [list $type]]
+        } -result {Invalid value*Unknown, repeated or conflicting type annotations specified.} -returnCodes error -match glob
+
+        test function-param-retval-$type-error-3 "$type retval inout" -setup {
+            set fn ${type}_retval
+        } -body {
+            testDll function $fn int [list inparam [list $type inout retval] outparam [list $type]]
+        } -result {Invalid value*Unknown, repeated or conflicting type annotations specified.} -returnCodes error -match glob
+
+        test function-param-retval-$type-error-4 "$type retval - syntax too many args" -setup {
+            set fn ${type}_retval
+        } -body {
+            testDll function $fn {int zero} [list inparam [list $type in] outparam [list $type out retval]]
+            $fn 2 x
+        } -result "Syntax: ${type}_retval inparam" -returnCodes error
+
+        test function-param-retval-$type-error-5 "$type retval - syntax too few args" -setup {
+            set fn ${type}_retval
+        } -body {
+            testDll function $fn {int zero} [list inparam [list $type in] outparam [list $type out retval]]
+            $fn
+        } -result "Syntax: ${type}_retval inparam" -returnCodes error
+
+        test function-param-retval-$type-error-6 "$type retval - error return" -setup {
+            set fn ${type}_retval
+        } -body {
+            testDll function $fn {int zero} [list inparam [list $type in] outparam [list $type out retval]]
+            $fn 1
+        } -result {Invalid value "1". Function returned an error value.} -returnCodes error
+
 
         foreach attr [linsert $pointerAttrs end nullifempty] {
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
@@ -428,17 +488,31 @@ namespace eval ${NS}::test {
             $fn $largeval
         } -result $largelen
 
-        set fn ${type}_param_out
-        testDll function $fn void [list outvar [list $type out]]
-        test function-$type-out-0 "$type out" -body {
-            $fn outvar
-            set outvar
+        test function-$type-out-0 "$type out" -setup {
+            set fn ${type}_param_out
+            testDll function $fn int [list outvar [list $type out]]
+        } -body {
+            list [$fn outvar] $outvar
+        } -result [list [string length $val] $val]
+        test function-$type-out-byref-0 "$type out byref" -setup {
+            set fn ${type}_param_out
+            testDll function $fn int [list outvar [list $type out byref]]
+        } -body {
+            list [$fn outvar] $outvar
+        } -result [list [string length $val] $val]
+
+        test function-$type-retval-0 "$type retval" -setup {
+            set fn ${type}_param_out
+            testDll function $fn {int nonzero} [list outvar [list $type retval]]
+        } -body {
+            $fn
         } -result $val
-        testDll function $fn void [list outvar [list $type out byref]]
-        test function-$type-out-byref-0 "$type out byref" -body {
-            $fn outvar
-            set outvar
-        } -result $val
+        test function-$type-retval-error-0 "$type retval - error return" -setup {
+            set fn ${type}_param_out
+            testDll function $fn {int zero} [list outvar [list $type retval]]
+        } -body {
+            $fn
+        } -result "Invalid value \"[string length $val]\". Function returned an error value." -returnCodes error
 
         set fn ${type}_reverse_inout
         test function-$type-inout-error-0 "$type inout" -body {
@@ -512,52 +586,90 @@ namespace eval ${NS}::test {
         testDll function string_array_in string {strings string[3] n int}
         string_array_in {abc def ghi} 1
     } -result def
+
     test function-unistring-array-in-0 "unistring input array" -body {
         testDll function unistring_array_in unistring {strings unistring[3] n int}
         string_array_in [list abc $testStrings(unicode) ghi] 1
     } -result $testStrings(unicode)
+
     test function-string-array-out-0 "string output array" -setup {
         unset -nocomplain s
     } -body {
-        testDll function string_array_out void {strings {string[n] out} n int}
+        testDll function string_array_out int {strings {string[n] out} n int}
         string_array_out s 4
         set s
     } -result {abc def ghi abc}
+
     test function-string-array-out-1 "string output array - zero size array" -setup {
         unset -nocomplain s
     } -body {
-        testDll function string_array_out void {strings {string[n] out nullok} n int}
+        testDll function string_array_out int {strings {string[n] out nullok} n int}
         string_array_out s 0
-        info exists s
+        array size s
     } -result 0
+
     test function-string-array-out-2 "string output array - uninitialized output" -setup {
         unset -nocomplain s
     } -body {
-        testDll function string_array_out void {strings {string[3] out nullok} n int}
+        testDll function string_array_out int {strings {string[3] out nullok} n int}
         string_array_out s 0
         set s
     } -result {{} {} {}}
+
+    test function-string-array-retval-0 "string retval array" -body {
+        testDll function string_array_out {int nonzero} {strings {string[n] retval} n int}
+        string_array_out 4
+    } -result {abc def ghi abc}
+
+    test function-string-array-retval-1 "string retval array - zero size array" -body {
+        testDll function string_array_out {int zero} {strings {string[n] retval nullok} n int}
+        string_array_out 0
+    } -result {}
+
+    test function-string-array-retval-error-0 "string retval array - error" -body {
+        testDll function string_array_out {int zero} {strings {string[n] retval} n int}
+        string_array_out 4
+    } -result {Invalid value "*". Function returned an error value.} -returnCodes error -match glob
+
     test function-unistring-array-out-0 "unistring output array" -setup {
         unset -nocomplain s
     } -body {
-        testDll function unistring_array_out void {strings {unistring[n] out} n int}
+        testDll function unistring_array_out int {strings {unistring[n] out} n int}
         unistring_array_out s 2
         set s
     } -result [list $testStrings(unicode) "\u00e3\u00e4\u00e5"]
+
     test function-unistring-array-out-1 "unistring output array - zero size array" -setup {
         unset -nocomplain s
     } -body {
-        testDll function unistring_array_out void {strings {unistring[n] out nullok} n int}
+        testDll function unistring_array_out int {strings {unistring[n] out nullok} n int}
         unistring_array_out s 0
-        info exists s
+        array size s
     } -result 0
+
     test function-unistring-array-out-2 "unistring output array - uninitialized output" -setup {
         unset -nocomplain s
     } -body {
-        testDll function unistring_array_out void {strings {unistring[3] out nullok} n int}
+        testDll function unistring_array_out int {strings {unistring[3] out nullok} n int}
         unistring_array_out s 0
         set s
     } -result {{} {} {}}
+
+    test function-unistring-array-retval-0 "unistring retval array" -body {
+        testDll function unistring_array_out {int nonzero} {strings {unistring[n] retval} n int}
+        unistring_array_out 2
+    } -result [list $testStrings(unicode) "\u00e3\u00e4\u00e5"]
+
+    test function-unistring-array-retval-1 "unistring retval array - zero size array" -body {
+        testDll function unistring_array_out {int zero} {strings {unistring[n] retval nullok} n int}
+        unistring_array_out 0
+    } -result {}
+
+    test function-unistring-array-retval-error-0 "unistring retval array" -body {
+        testDll function unistring_array_out {int zero} {strings {unistring[n] retval} n int}
+        unistring_array_out 2
+    } -result {Invalid value "*". Function returned an error value.} -returnCodes error -match glob
+
     test function-string-array-inout-0 "string inout array" -setup {
         unset -nocomplain s
     } -body {
@@ -606,6 +718,12 @@ namespace eval ${NS}::test {
             pointer_noop output
             set output
         } -result ""
+
+        test function-$type-retval-0 "$type retval" -setup {
+            testDll function $fn {int nonzero} [list input "$type\[$buflen\]" output [list $type\[$buflen\] retval]]
+        } -body {
+            $fn $val
+        } -result $val
 
         if {$type in {chars chars.utf-8}} {
             set fn string_reverse_inout
@@ -706,17 +824,23 @@ namespace eval ${NS}::test {
         uchar_array_count_in $val $len
     } -result 6
     test function-bytes-out-0 "bytes out" -setup {
-        testDll function bytes_out void [list n int input bytes\[$len\] output [list bytes\[$len\] out]]
+        testDll function bytes_out int [list n int input bytes\[$len\] output [list bytes\[$len\] out]]
     } -body {
         bytes_out $len $val out
         set out
     } -result $val
     test function-bytes-out-1 "bytes out large" -setup {
-        testDll function bytes_out void [list n int input bytes\[$largelen\] output [list bytes\[$largelen\] out]]
+        testDll function bytes_out int [list n int input bytes\[$largelen\] output [list bytes\[$largelen\] out]]
     } -body {
         bytes_out $largelen $largeval out
         set out
     } -result $largeval
+
+    test function-bytes-retval-0 "bytes retval" -setup {
+        testDll function bytes_out {int nonzero} [list n int input bytes\[$len\] output [list bytes\[$len\] retval]]
+    } -body {
+        bytes_out $len $val
+    } -result $val
 
     test function-bytes-inout-0 "bytes inout" -setup {
         testDll function bytes_inout void [list n int output [list bytes\[$len\] inout]]
@@ -781,6 +905,31 @@ namespace eval ${NS}::test {
         pointer_out p
         list [cffi::pointer isvalid $p] [binary scan [cffi::memory tobinary $p 4] n val] $val
     } -result [list 1 1 99]
+
+    test function-pointer-retval-0 "pointer retval" -setup {
+        testDll function pointer_retval {int nonzero} {inp {pointer unsafe} p {pointer retval}}
+    } -cleanup {
+        cffi::pointer dispose $p
+    } -body {
+        set p [pointer_retval 1^]
+        list [cffi::pointer isvalid $p] $p
+    } -result [list 1 [makeptr 2]]
+
+    test function-pointer-retval-1 "pointer retval unsafe" -setup {
+        testDll function pointer_retval {int nonzero} {inp {pointer unsafe} p {pointer unsafe retval}}
+    } -body {
+        set p [pointer_retval 1^]
+        list [cffi::pointer isvalid $p] $p
+    } -result [list 0 [makeptr 2]]
+
+    test function-pointer-retval-2 "pointer retval tagged" -setup {
+        testDll function pointer_retval {int nonzero} {inp {pointer unsafe} p {pointer.TAG retval}}
+    } -cleanup {
+        cffi::pointer dispose $p
+    } -body {
+        set p [pointer_retval 1^]
+        list [cffi::pointer isvalid $p] $p
+    } -result [list 1 [scoped_ptr 2 TAG]]
 
     test function-pointer-inout-0 "pointer inout" -setup {
         testDll function pointer_incr void {p {pointer inout}}
@@ -1106,6 +1255,12 @@ namespace eval ${NS}::test {
         crash
     } -result [list ]
 
+    test function-struct-retval-0 "Param struct retval" -setup {
+        testDll function getTestStruct {int nonzero} {s {struct.TestStruct retval}}
+    } -body {
+        checkTestStruct [getTestStruct]
+    } -result [list ]
+
     test function-struct-in-0 "Param struct in" -constraints libffi -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheckByVal int {s struct.::S c uchar ll longlong s short}
@@ -1390,8 +1545,6 @@ namespace eval ${NS}::test {
         rename fn {}
         SimpleWithStructSize destroy
     } -result 1
-
-
 
     # Note -  tests for invalid parameter attrs are done in type.test
 
@@ -2505,6 +2658,14 @@ namespace eval ${NS}::test {
         } -body {
             list [$fn 1 x] $x [$fn 2 y] $y [$fn 6 z] $z
         } -result [list {a b 0} {b 0} {c 0} {a b 0} 8 {a b c 0}]
+        test function-bitmask-$type-5 "function bitmask $type retval" -setup {
+            cffi::enum delete *
+            cffi::enum flags E {a b c}
+            set fn ${type}_out
+            testDll function $fn [list $type nonzero] [list inparam $type outparam [list $type retval {enum E} bitmask]]
+        } -body {
+            list [$fn 1] [$fn 2] [$fn 6]
+        } -result [list {b 0} {a b 0} {a b c 0}]
 
     }
 

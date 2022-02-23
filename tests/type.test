@@ -266,6 +266,8 @@ namespace eval cffi::test {
             "out storealways" "out byref storealways"
             "inout storeonerror" "inout byref storeonerror"
             "inout storealways" "inout byref storealways"
+            "retval" "out retval byref"
+            "retval out" "out retval byref"
         } {
             testnumeric "$type $attr" param $expected
         }
@@ -376,6 +378,9 @@ namespace eval cffi::test {
                 }
             }
         }
+        testinvalidattr "$type in retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type in byref retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type inout byref retval" param $errorMessages(attrconflict)
 
         foreach attra {out inout} {
             testinvalidattr "$type $attra {default 0}" param $errorMessages(defaultdisallowed)
@@ -469,7 +474,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attributes for parse mode
-        foreach attr [list {*}$paramDirectionAttrs storeonerror storealways] {
+        foreach attr [list {*}$paramDirectionAttrs retval storeonerror storealways] {
            testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
@@ -595,6 +600,8 @@ namespace eval cffi::test {
             "inout lasterror" "inout byref"
             "inout errno" "inout byref"
             "inout {onerror handler}" "inout byref"
+            "retval" "out retval byref"
+            "retval out" "out retval byref"
         } {
             testpointer "$type $attr" param $expected
         }
@@ -611,6 +618,11 @@ namespace eval cffi::test {
                 }
             }
         }
+        testinvalidattr "$type in retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type in byref retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type inout retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type inout retval byref" param $errorMessages(attrconflict)
+
         testinvalidattr "$type dispose out" param $errorMessages(attrparamdir)
         testinvalidattr "$type dispose unsafe" param $errorMessages(attrconflict)
         testinvalidattr "$type counted unsafe" param $errorMessages(attrconflict)
@@ -654,7 +666,7 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attribute for parse mode
-        foreach attr [list {*}$paramDirectionAttrs dispose storeonerror storealways] {
+        foreach attr [list {*}$paramDirectionAttrs retval dispose storeonerror storealways] {
             testinvalidattr "$type $attr" return $errorMessages(attrparsemode)
         }
         testinvalidattr [list $type [list default 0]] return $errorMessages(defaultdisallowed)
@@ -742,6 +754,8 @@ namespace eval cffi::test {
                     "{default 0}" "in byref {default 0}"
                     "out storeonerror" "out byref storeonerror"
                     "out storealways" "out byref storealways"
+                    "retval" "out retval byref"
+                    "out retval" "out retval byref"
                 } {
                     testchars "$type $attr" 10 $parse_mode $expected
                     testchars "$type $attr" NUMELEMS $parse_mode $expected
@@ -766,7 +780,7 @@ namespace eval cffi::test {
                     testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(typeparsemode)
                 }
                 # field mode array tests - failure
-                foreach attr {in out inout} {
+                foreach attr {in out inout retval} {
                     testinvalidattr "$type\[2\] $attr" $parse_mode $errorMessages(attrparsemode)
                     testinvalidattr "$type\[NUMELEMS\] $attr" $parse_mode $errorMessages(attrparsemode)
                 }
@@ -837,6 +851,8 @@ namespace eval cffi::test {
             "in {onerror handler}" "in"
             "out errno" "out byref"
             "out {onerror handler}" "out byref"
+            "retval" "out retval byref"
+            "retval out" "out retval byref"
         } {
             teststring "$type $attr" param $expected
         }
@@ -854,9 +870,8 @@ namespace eval cffi::test {
         }
 
         # Failure tests - invalid attribute combinations
-        foreach attrb {inout out} {
-            testinvalidattr "$type $attra $attrb" param $errorMessages(attrtype)
-        }
+        testinvalidattr "$type in retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type byref in retval" param $errorMessages(attrconflict)
 
         ## return mode
         teststring "$type" return ""
@@ -875,7 +890,7 @@ namespace eval cffi::test {
         ## field mode
         teststring "$type" field ""
         teststring "$type nullifempty" field "nullifempty"
-        foreach attr {in out} {
+        foreach attr {in out retval} {
             testinvalidattr "$type $attr" field $errorMessages(attrparsemode)
         }
         foreach attr {inout} {
@@ -931,7 +946,7 @@ namespace eval cffi::test {
         teststring "binary $attr" param $expected
     }
     # out and inout params not allowed for binary
-    foreach attr {out inout {out byref} {inout byref} structsize bitmask {{enum E}}} {
+    foreach attr {out retval inout {out byref} {inout byref} structsize bitmask {{enum E}}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
 
@@ -966,6 +981,8 @@ namespace eval cffi::test {
                 "in byref {default {}}" "in byref {default {}}"
                 "in byref nullifempty" "in byref nullifempty"
                 "in byref nullok" "in byref nullok"
+                "retval" "out retval byref"
+                "out retval" "out retval byref"
             } {
                 teststruct "struct.::TestStruct $attrs" param $expected
             }

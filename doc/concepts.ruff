@@ -91,7 +91,9 @@ namespace eval Concepts {
         `errno` - If the function return value indicates an error condition, the
           error code is available via the C RTL `errno` variable.
         `in` - marks a parameter passed to a function as input to the function.
+          See [Input and output parameters].
         `inout` - marks a parameter passed to a function as both input and output.
+          See [Input and output parameters].
         `lasterror` - If the function return value indicates an error condition, the
           error code is available via the Windows `GetLastError` API.
         `nonnegative` - Raise an exception if the function return value is negative.
@@ -103,8 +105,11 @@ namespace eval Concepts {
         `onerror` - Specifies an error handler if a function return value indicates
           an error condition.
         `out` - marks a parameter as output-only from a function.
+          See [Input and output parameters].
         `positive` - Raise an exception if a function return value is negative or
           zero.
+        `retval` - Marks the parameter as an output parameter whose value is
+          to be returned as the result of the function. See [Output parameters as function result].
         `storealways` - Treat an output parameter as valid regardless of
          any error indications from the function call.
         `storeonerror` - Treat an output parameter as valid only in the presence
@@ -1024,6 +1029,61 @@ namespace eval Concepts {
         There are some subtleties with respect to error handling that are
         relevant to output parameters and must be accounted for in declarations.
         See [Errors and output parameters] for more on this.
+
+        #### Output parameters as function result
+
+        Many functions return values as pairs with the function return value
+        being a status or error code and the actual value of interest being
+        returned as an output parameter. For example, out example elsewhere
+        for `GetCurrentDirectoryA` looked like
+
+        ```
+        kernel stdcall GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
+        ```
+
+        This was in turn invoked as
+
+        ```
+        % GetCurrentDirectoryA 512 buffer
+        40
+        % set buffer
+        D:\src\tcl-cffi\win\Release_AMD64_VC1916
+        ```
+
+        The return value from the function, the number of characters, is not
+        very useful. It would be more convenient to get the actual path as the
+        function return value. We can achieve that by annotating the buffer
+        with `retval` indicating that it should be the result of the command.
+
+        ```
+        % kernel stdcall GetCurrentDirectoryA {int nonzero} {nchars {int {default 512}} path {chars[nchars] retval}}
+        ::GetCurrentDirectoryA
+        % GetCurrentDirectoryA
+        D:\src\tcl-cffi\win\Release_AMD64_VC1916
+        ```
+
+        The invocation now feels more natural. In addition to the `retval`
+        annotation for the parameter, the `nonzero` error checking annotation
+        was added to the function return value. An error checking annotation
+        is required for use of `retval`.
+
+        The `default` annotation is not required but is a convenience so
+        we do not have to specify a buffer size at the call site.
+
+        The `retval` annotation
+
+        - implies the `out` and `byref` annotations and cannot be combined
+        with the `in` or `inout` annotations.
+        - can be placed on at most one parameter declaration for a function
+        - the function return value must be an integral type
+        - the function return type must have one of the
+        [error checking annotation][Error annotations] for integer types.
+        These are used for checking the original return value from the C
+        function as always, and not the parameter output value.
+
+        The return value will be the parameter output value only if the
+        function's native return value passes the error checks. Otherwise,
+        an exception is raised as usual.
 
         #### Parameter annotations
 

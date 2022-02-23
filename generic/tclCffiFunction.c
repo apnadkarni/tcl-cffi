@@ -727,9 +727,12 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
 
     CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
 
-    /* If output array size was zero, no output is to be stored */
-    if (argP->arraySize == 0)
-        return TCL_OK;
+    if (argP->arraySize == 0) {
+        /* Output array is zero-size */
+        valueObj = Tcl_NewObj();
+        ret = TCL_OK;
+        goto store_value;
+    }
 
     /*
      * There are three categories:
@@ -758,7 +761,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     case CFFI_K_TYPE_UNISTRING:
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
         /* TBD - this might be broken for small integers on big-endian
-        since they are promoted by libffi to ffi_arg */
+           since they are promoted by libffi to ffi_arg */
         if (argP->arraySize < 0)
             ret = CffiNativeValueToObj(
                 ip, typeAttrsP, valueP, 0, argP->arraySize, &valueObj);
@@ -789,11 +792,14 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     if (ret != TCL_OK)
         return ret;
 
+    /* Expect no errors beyond this point */
+
     /*
-     * Check if value is to be converted to a enum name. This is slightly
+     * Check if value is to be converted to a enum name. This is
      * inefficient since we have to convert back from a Tcl_Obj to an
      * integer but currently the required context is not being passed down
      * to the lower level functions that extract scalar values.
+     * TBD - is this still true? Does typeAttrsP not contain enum values?
      */
     if ((typeAttrsP->flags & (CFFI_F_ATTR_ENUM|CFFI_F_ATTR_BITMASK))
         && typeAttrsP->dataType.u.tagObj) {
@@ -842,6 +848,9 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
             }
         }
     }
+
+store_value:
+    CFFI_ASSERT(valueObj);
 
     if (typeAttrsP->flags & CFFI_F_ATTR_RETVAL) {
         CFFI_ASSERT(resultObjP);

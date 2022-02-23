@@ -89,14 +89,14 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(string),
      CFFI_K_TYPE_ASTRING,
      /* Note string cannot be INOUT parameter */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF
          | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR
          | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},
     {TOKENANDLEN(unistring),
      CFFI_K_TYPE_UNISTRING,
      /* Note unistring cannot be INOUT parameter */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_BYREF
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF
          | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR
          | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
      sizeof(void *)},

@@ -38,6 +38,11 @@
         *out = in + 1;                                           \
         return in + 2;                                           \
     }                                                            \
+    EXTERN int token_##_retval(type_ in, type_ *out)             \
+    {                                                            \
+        *out = in + 1;                                           \
+        return 1;                                                \
+    }                                                            \
     EXTERN type_ token_##_byref(type_ *inP) { return *inP + 2; } \
     EXTERN type_ token_##_inout(type_ *inoutP)                   \
     {                                                            \
@@ -430,6 +435,10 @@ EXTERN void *pointer_reflect(void *in, void **outP) {
 EXTERN int pointer_dispose(void *in, int ret) {
     return ret;
 }
+EXTERN int pointer_retval(void *in, void **out) {
+    *out = (char*)in + 1;
+    return 1;
+}
 
 #ifdef _WIN32
 EXTERN void *pointer_lasterror(void *p)
@@ -492,8 +501,9 @@ EXTERN const char **jis0208_return_byref() {
     static const char *s = jis_test_string;
     return &s;
 }
-EXTERN void string_param_out(char **strPP) {
+EXTERN int string_param_out(char **strPP) {
     *strPP = "abc";
+    return sizeof("abc") - 1;
 }
 EXTERN const char *string_array_in (const char *strings[], int index)
 {
@@ -516,20 +526,22 @@ EXTERN const Tcl_UniChar **unistring_return_byref() {
     static const Tcl_UniChar *s = unichar_test_string;
     return &s;
 }
-EXTERN void unistring_param_out(Tcl_UniChar **strPP) {
+EXTERN int unistring_param_out(Tcl_UniChar **strPP) {
     *strPP = unichar_test_string;
+    return (sizeof(unichar_test_string)/sizeof(unichar_test_string[0])) - 1;
 }
 
 EXTERN const Tcl_UniChar *unistring_array_in (const Tcl_UniChar *strings[], int index)
 {
     return strings[index];
 }
-EXTERN void unistring_array_out (Tcl_UniChar *strings[], int n)
+EXTERN int unistring_array_out (Tcl_UniChar *strings[], int n)
 {
     int i;
     static Tcl_UniChar *strs[] = {unichar_test_string, unichar_test_string2};
     for (i = 0; i < n; ++i)
         strings[i] = strs[i%2];
+    return n;
 }
 
 FNSTRINGS(binary, unsigned char)

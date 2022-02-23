@@ -137,7 +137,7 @@ namespace eval cffi::test {
     variable errorAttrs [concat $requirementAttrs $errorHandlerAttrs]
     variable typeAttrs [concat $paramDirectionAttrs $pointerAttrs $errorAttrs byref]
 
-    variable invalidFieldAttrs [list {*}$paramDirectionAttrs byref storeonerror storealways]
+    variable invalidFieldAttrs [list {*}$paramDirectionAttrs retval byref storeonerror storealways]
 
 
     # Error messages
