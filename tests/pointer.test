@@ -449,9 +449,12 @@ namespace eval ${NS}::test {
             [catch {upcast $t2}] \
             [catch {downcast $t}] \
             [cffi::pointer castable T2 T] \
+            [cffi::pointer castables] \
             [upcast $t2] \
-            [catch {downcast $t}]
-    } -result [list [makeptr 1] 1 1 [namespace current]::T2 [makeptr 1] 1]
+            [catch {downcast $t}] \
+            [cffi::pointer uncastable T2] \
+            [cffi::pointer castables]
+    } -result [list [makeptr 1] 1 1 [namespace current]::T2 {::cffi::test::T2 ::cffi::test::T} [makeptr 1] 1 {} {}]
 
     test pointer-castable-1 "Pointer argument castable - void*" -setup {
         testDll function {pointer_to_pointer upcast} {pointer unsafe} {p {pointer unsafe}}

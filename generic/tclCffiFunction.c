@@ -1179,11 +1179,11 @@ CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
     const char *name = Tcl_GetString(nameObj);
     for (i = 0; i < protoP->nParams; ++i) {
         CffiParam *paramP = &protoP->params[i];
-        if (CffiTypeIsNotArray(&paramP->typeAttrs.dataType) &&
-        CffiTypeIsInteger(paramP->typeAttrs.dataType.baseType) &&
-        (paramP->typeAttrs.flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF)) == CFFI_F_ATTR_IN &&
-        !strcmp(name, Tcl_GetString(paramP->nameObj))
-        ) {
+        if (CffiTypeIsNotArray(&paramP->typeAttrs.dataType)
+            && CffiTypeIsInteger(paramP->typeAttrs.dataType.baseType)
+            && (paramP->typeAttrs.flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF))
+                   == CFFI_F_ATTR_IN
+            && !strcmp(name, Tcl_GetString(paramP->nameObj))) {
             return i;
         }
     }
