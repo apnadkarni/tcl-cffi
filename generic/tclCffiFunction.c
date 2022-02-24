@@ -1160,6 +1160,40 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+/* Function: CffiFindDynamicCountParam
+ * Returns the index of the parameter holding a dynamic count
+ *
+ * Parameters:
+ * ip - interpreter
+ * protoP - function prototype whose parameters are to be searched
+ * nameObj - name of the dynamic count parameter
+ *
+ * Returns:
+ * The index of the parameter or -1 if not found with error message
+ * in the interpreter
+ */
+int
+CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
+{
+    int i;
+    const char *name = Tcl_GetString(nameObj);
+    for (i = 0; i < protoP->nParams; ++i) {
+        CffiParam *paramP = &protoP->params[i];
+        if (CffiTypeIsNotArray(&paramP->typeAttrs.dataType) &&
+        CffiTypeIsInteger(paramP->typeAttrs.dataType.baseType) &&
+        (paramP->typeAttrs.flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF)) == CFFI_F_ATTR_IN &&
+        !strcmp(name, Tcl_GetString(paramP->nameObj))
+        ) {
+            return i;
+        }
+    }
+    (void)Tclh_ErrorNotFound(ip,
+                             "Parameter",
+                             nameObj,
+                             "Could not find referenced count for dynamic "
+                             "array, possibly wrong type or not scalar.");
+    return -1;
+}
 
 /* Function: CffiFunctionSetupArgs
  * Prepares the call stack needed for a function call.
@@ -1255,8 +1289,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         goto cleanup_and_error;
 
     for (i = 0; i < callP->nArgs; ++i) {
-        const char *name;
-        int j;
+        int dynamicCountIndex;
         long long actualCount;
         CffiValue *actualValueP;
         CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
@@ -1271,34 +1304,20 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
 
         /* Need to find the parameter corresponding to this dynamic count */
         CFFI_ASSERT(typeAttrsP->dataType.countHolderObj);
-        name = Tcl_GetString(typeAttrsP->dataType.countHolderObj);
 
-        /*
-         * Loop through initialized parameters looking for a match. A match
-         * must have been initialized (ie. not dynamic), must be a scalar,
-         * pure input and not byref, and having the referenced name.
-         */
-        for (j = 0; j < callP->nArgs; ++j) {
-            if ((argsP[j].flags & CFFI_F_ARG_INITIALIZED)
-                && CffiTypeIsNotArray(&protoP->params[j].typeAttrs.dataType)
-                && (protoP->params[j].typeAttrs.flags
-                    & (CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF))
-                       == CFFI_F_ATTR_IN
-                && !strcmp(name, Tcl_GetString(protoP->params[j].nameObj)))
-                break;
-        }
-        if (j == callP->nArgs) {
-            (void)Tclh_ErrorNotFound(
-                ip,
-                "Parameter",
-                typeAttrsP->dataType.countHolderObj,
-                "Could not find referenced count for dynamic array, possibly wrong type or not scalar.");
+        /* Locate the parameter holding the dynamic count */
+        /* TBD - this has already been computed at definition time. It would
+        be more efficient to cache that but then we need more memory per
+        param to cache the index. */
+        dynamicCountIndex =
+            CffiFindDynamicCountParam(ip, protoP, typeAttrsP->dataType.countHolderObj);
+        if (dynamicCountIndex < 0)
             goto cleanup_and_error;
-        }
 
-        /* Dynamic element count is at index j. */
-        actualValueP = &argsP[j].value;
-        switch (protoP->params[j].typeAttrs.dataType.baseType) {
+        CFFI_ASSERT(argsP[dynamicCountIndex].flags & CFFI_F_ARG_INITIALIZED);
+
+        actualValueP = &argsP[dynamicCountIndex].value;
+        switch (protoP->params[dynamicCountIndex].typeAttrs.dataType.baseType) {
         case CFFI_K_TYPE_SCHAR: actualCount = actualValueP->u.schar; break;
         case CFFI_K_TYPE_UCHAR: actualCount = actualValueP->u.uchar; break;
         case CFFI_K_TYPE_SHORT: actualCount = actualValueP->u.sshort; break;
@@ -1315,7 +1334,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         }
 
         if (actualCount < 0 || actualCount > INT_MAX) {
-            (void) Tclh_ErrorRange(ip, argObjs[j], 1, INT_MAX);
+            (void) Tclh_ErrorRange(ip, argObjs[dynamicCountIndex], 1, INT_MAX);
             goto cleanup_and_error;
         }
 

@@ -116,7 +116,7 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_BYTE_ARRAY,
     CFFI_K_NUM_TYPES
 } CffiBaseType;
-CFFI_INLINE CffiTypeIsInteger(CffiBaseType type) {
+CFFI_INLINE int CffiTypeIsInteger(CffiBaseType type) {
     return (type >= CFFI_K_FIRST_INTEGER_TYPE
             && type <= CFFI_K_LAST_INTEGER_TYPE);
 }
@@ -622,6 +622,8 @@ CffiResult CffiAliasAddStr(CffiInterpCtx *ipCtxP,
 int CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP);
 void CffiAliasesCleanup(CffiInterpCtx *ipCtxP);
 
+int
+CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj);
 CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                               Tcl_Obj *fnNameObj,
                               Tcl_Obj *returnTypeObj,

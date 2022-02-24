@@ -92,6 +92,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     Tcl_Obj **objs;
     int nobjs;
     int i, j;
+    int need_pass2;
 
     CHECK(Tcl_ListObjGetElements(ip, paramsObj, &nobjs, &objs));
     if (nobjs & 1)
@@ -114,6 +115,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     protoP->returnType.nameObj = fnNameObj;
 
     protoP->nParams = 0; /* Update as we go along  */
+    need_pass2      = 0;
     /* Params are list {name type name type ...} */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         if (CffiTypeAndAttrsParse(ipCtxP,
@@ -148,7 +150,25 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
         }
         Tcl_IncrRefCount(objs[i]);
         protoP->params[j].nameObj = objs[i];
-        protoP->nParams += 1; /* Update incrementally for error cleanup */
+        protoP->nParams += 1; /* Update incrementally for error cleanup after return */
+        if (protoP->params[j].typeAttrs.dataType.arraySize == 0)
+            need_pass2 = 1;
+    }
+
+    /* Check type definitions for dynamic arrays */
+    if (need_pass2) {
+        for (i = 0; i < protoP->nParams; ++i) {
+            if (protoP->params[i].typeAttrs.dataType.arraySize == 0) {
+                if (CffiFindDynamicCountParam(
+                        ip,
+                        protoP,
+                        protoP->params[i].typeAttrs.dataType.countHolderObj)
+                    < 0) {
+                    /* Dynamic count parameter not found or wrong type */
+                    return TCL_ERROR;
+                }
+            }
+        }
     }
 
     *protoPP = protoP;

@@ -2220,29 +2220,33 @@ namespace eval ${NS}::test {
         }
         test function-array-$type-in-error-2 "Array undefined name index" -body {
             testDll function ${type}_array_in $type [list n int arr $type\[m\]]
-            ${type}_array_in $nvals $vals
         } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
         test function-array-$type-in-error-3 "Array index name wrong type" -body {
             testDll function ${type}_array_in $type [list n string arr $type\[n\]]
-            ${type}_array_in $nvals $vals
-        } -result {Value has the wrong type. Wrong type for dynamic array count value.} -returnCodes error
+        } -result {Parameter "*" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -match glob -returnCodes error
         test function-array-$type-in-error-4 "Array index name is array" -body {
             testDll function ${type}_array_in $type [list n int\[3\] arr $type\[n\]]
-            ${type}_array_in $nvals $vals
         } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        test function-array-$type-in-error-5 "Array index is out param" -body {
+            testDll function ${type}_array_in $type [list {n out} int arr $type\[n\]]
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        test function-array-$type-in-error-6 "Array index is inout param" -body {
+            testDll function ${type}_array_in $type [list {n inout} int arr $type\[n\]]
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        test function-array-$type-in-error-6 "Array index is byref param" -body {
+            testDll function ${type}_array_in $type [list {n byref} int arr $type\[n\]]
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+
         # "in" not in this loop because function prototype is different
         foreach direc {out inout} {
             test function-array-$type-$direc-error-2 "Array undefined name index - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n int arr [list $type\[m\] $direc]]
-                ${type}_array_$direc $nvals vals
             } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
             test function-array-$type-$direc-error-3 "Array index name wrong type - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n string arr [list $type\[n\] $direc]]
-                ${type}_array_$direc $nvals vals
-            } -result {Value has the wrong type. Wrong type for dynamic array count value.} -returnCodes error
+            } -result {Parameter "*" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -match glob -returnCodes error
             test function-array-$type-$direc-error-4 "Array index name is array - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n int\[3\] arr [list $type\[n\] $direc]]
-                ${type}_array_$direc $nvals vals
             } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
         }
         test function-array-$type-in-typeerror-0 "Array element wrong type - in" -body {

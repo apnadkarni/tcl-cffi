@@ -66,7 +66,6 @@ CffiPointerObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     void *pv;
     CffiResult ret;
