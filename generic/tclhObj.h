@@ -424,7 +424,7 @@ int Tclh_ObjToChar(Tcl_Interp *interp, Tcl_Obj *obj, signed char *cP)
 {
     Tcl_WideInt wide = 0; /* Init to keep gcc happy */
 
-    if (Tclh_ObjToRangedInt(interp, obj, CHAR_MIN, CHAR_MAX, &wide) != TCL_OK)
+    if (Tclh_ObjToRangedInt(interp, obj, SCHAR_MIN, SCHAR_MAX, &wide) != TCL_OK)
         return TCL_ERROR;
     *cP = (signed char) wide;
     return TCL_OK;
