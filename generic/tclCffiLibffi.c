@@ -199,28 +199,11 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
                            Tcl_Obj **argObjP)
 {
     void *valueP;
-    CffiValue val;
     CffiTypeAndAttrs *typeAttrsP = &cbP->protoP->params[argIndex].typeAttrs;
 
     CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));
 
     /* TBD - can we not use CffiNative|ScalarFromObj here? */
-#define EXTRACTINT_(type_, fld_)                                               \
-    do {                                                                       \
-        if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \
-            /* arg is actually a pointer to the value, not the value itself */ \
-            valueP = *(void **)args[argIndex];                                 \
-        }                                                                      \
-        else {                                                                 \
-            /* libffi promotes smaller integers to ffi_arg */                  \
-            if (sizeof(type_) <= sizeof(ffi_arg)) {                            \
-                val.u.fld_ = (type_) * (ffi_arg *)args[argIndex];              \
-                valueP     = &val.u.fld_;                                      \
-            }                                                                  \
-            else                                                               \
-                valueP = args[argIndex];                                       \
-        }                                                                      \
-    } while (0)
 
 #define EXTRACT_(type_, fld_)                                                  \
     do {                                                                       \
@@ -233,36 +216,30 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         }                                                                      \
     } while (0)
 
-    /* TBD - big endian? */
-
     switch (typeAttrsP->dataType.baseType) {
-    case CFFI_K_TYPE_SCHAR    : EXTRACTINT_(signed char, schar); break;
-    case CFFI_K_TYPE_UCHAR    : EXTRACTINT_(unsigned char, uchar); break;
-    case CFFI_K_TYPE_SHORT    : EXTRACTINT_(short, sshort); break;
-    case CFFI_K_TYPE_USHORT   : EXTRACTINT_(unsigned short, ushort); break;
-    case CFFI_K_TYPE_INT      : EXTRACTINT_(int, sint); break;
-    case CFFI_K_TYPE_UINT     : EXTRACTINT_(unsigned int, uint); break;
-    case CFFI_K_TYPE_LONG     : EXTRACTINT_(long, slong); break;
-    case CFFI_K_TYPE_ULONG    : EXTRACTINT_(unsigned long, ulong); break;
-    case CFFI_K_TYPE_LONGLONG : EXTRACTINT_(long long, slonglong); break;
-    case CFFI_K_TYPE_ULONGLONG: EXTRACTINT_(unsigned long long, ulonglong); break;
-
+    case CFFI_K_TYPE_SCHAR    : EXTRACT_(signed char, schar); break;
+    case CFFI_K_TYPE_UCHAR    : EXTRACT_(unsigned char, uchar); break;
+    case CFFI_K_TYPE_SHORT    : EXTRACT_(short, sshort); break;
+    case CFFI_K_TYPE_USHORT   : EXTRACT_(unsigned short, ushort); break;
+    case CFFI_K_TYPE_INT      : EXTRACT_(int, sint); break;
+    case CFFI_K_TYPE_UINT     : EXTRACT_(unsigned int, uint); break;
+    case CFFI_K_TYPE_LONG     : EXTRACT_(long, slong); break;
+    case CFFI_K_TYPE_ULONG    : EXTRACT_(unsigned long, ulong); break;
+    case CFFI_K_TYPE_LONGLONG : EXTRACT_(long long, slonglong); break;
+    case CFFI_K_TYPE_ULONGLONG: EXTRACT_(unsigned long long, ulonglong); break;
     case CFFI_K_TYPE_FLOAT: EXTRACT_(float, flt); break;
     case CFFI_K_TYPE_DOUBLE: EXTRACT_(double, dbl); break;
-
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
         EXTRACT_(void *, ptr);
         break;
-
     case CFFI_K_TYPE_STRUCT:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
         /* args[argIndex] is the location of the pointer to the struct */
         valueP = *(void **)args[argIndex];
         return CffiNativeValueToObj(
             cbP->ipCtxP->interp, typeAttrsP, valueP, 0, -1, argObjP);
-
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:

@@ -766,8 +766,6 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
-        /* TBD - this might be broken for small integers on big-endian
-           since they are promoted by libffi to ffi_arg */
         if (argP->arraySize < 0)
             ret = CffiNativeValueToObj(
                 ip, typeAttrsP, valueP, 0, argP->arraySize, &valueObj);
