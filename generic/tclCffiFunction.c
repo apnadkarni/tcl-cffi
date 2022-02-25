@@ -339,14 +339,20 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      */
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
+#ifdef CFFI_USE_LIBFFI
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
-#ifndef CFFI_USE_LIBFFI
-                    && baseType != CFFI_K_TYPE_STRUCT
-#endif
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
+#else
+    CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
+                || (CffiTypeIsNotArray(&typeAttrsP->dataType)
+                    && baseType != CFFI_K_TYPE_CHAR_ARRAY
+                    && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
+                    && baseType != CFFI_K_TYPE_STRUCT
+                    && baseType != CFFI_K_TYPE_BYTE_ARRAY));
+#endif
 
     /*
      * STORENUM - for storing numerics only.
@@ -1465,10 +1471,6 @@ CffiFunctionCall(ClientData cdata,
     /* Set up the return value */
     if (CffiReturnPrepare(&callCtx) != TCL_OK)
         goto pop_and_error;
-
-    /* Currently return values are always by value - enforced in prototype */
-    CFFI_ASSERT((protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) == 0);
-
 
     /*
      * A note on pointer disposal - pointers must be disposed of AFTER the

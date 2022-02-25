@@ -289,7 +289,10 @@ CffiAliasDeleteCmd(CffiInterpCtx *ipCtxP,
 }
 
 static CffiResult
-CffiAliasClearCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+CffiAliasClearCmd(CffiInterpCtx *ipCtxP,
+                  Tcl_Interp *ip,
+                  int objc,
+                  Tcl_Obj *const objv[])
 {
     CFFI_ASSERT(objc == 2);
     return CffiNameDeleteNames(ipCtxP->interp,

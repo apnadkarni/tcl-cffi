@@ -1084,7 +1084,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         break;
     case CFFI_F_TYPE_PARSE_RETURN:
         /* Return - parameter-mode flags should not be set */
-        CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_MASK) == 0);
+        CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_DIRECTION_MASK) == 0);
         switch (baseType) {
         case CFFI_K_TYPE_BINARY:
         case CFFI_K_TYPE_CHAR_ARRAY:
@@ -1571,7 +1571,17 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
      */
 
     /* Calculate offset into memory where this value is to be stored */
-    offset = valueIndex * CffiTypeActualSize(&typeAttrsP->dataType);
+    if (typeAttrsP->dataType.arraySize == 0) {
+        if (valueIndex != 0) {
+            Tcl_SetResult(ip,
+                          "Internal error: dynamic array is nested. Should not "
+                          "be allowed.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+        offset = 0;
+    }
+    else
+        offset = valueIndex * CffiTypeActualSize(&typeAttrsP->dataType);
     valueP = offset + (char *)valueBaseP;
 
     if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
@@ -1840,7 +1850,18 @@ CffiNativeValueToObj(Tcl_Interp *ip,
     }
 
     /* Calculate offset into memory where this value is to be stored */
-    offset = startIndex * CffiTypeActualSize(&typeAttrsP->dataType);
+    if (typeAttrsP->dataType.arraySize == 0) {
+        if (startIndex != 0) {
+            Tcl_SetResult(ip,
+                          "Internal error: dynamic array is nested. Should not "
+                          "be allowed.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+        offset = 0;
+    }
+    else {
+        offset = startIndex * CffiTypeActualSize(&typeAttrsP->dataType);
+    }
     valueP = offset + (char *)valueBaseP;
 
     switch (baseType) {

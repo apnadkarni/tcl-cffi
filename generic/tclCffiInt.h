@@ -218,9 +218,13 @@ typedef struct CffiTypeAndAttrs {
 } CffiTypeAndAttrs;
 
 /* Attributes allowed on a parameter declaration */
-#define CFFI_F_ATTR_PARAM_MASK                                                \
-    (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT | CFFI_F_ATTR_BYREF \
-     | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS | CFFI_F_ATTR_RETVAL)
+#define CFFI_F_ATTR_PARAM_DIRECTION_MASK \
+    (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_INOUT)
+
+#define CFFI_F_ATTR_PARAM_MASK                            \
+    (CFFI_F_ATTR_PARAM_DIRECTION_MASK | CFFI_F_ATTR_BYREF \
+     | CFFI_F_ATTR_STOREONERROR | CFFI_F_ATTR_STOREALWAYS \
+     | CFFI_F_ATTR_RETVAL)
 /* Attributes related to pointer safety */
 #define CFFI_F_ATTR_SAFETY_MASK                                              \
     (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS \

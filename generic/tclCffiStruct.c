@@ -1006,7 +1006,7 @@ CffiStructFieldPointerCmd(Tcl_Interp *ip,
     int fieldIndex;
 
     /* S fieldpointer POINTER FIELDNAME ?TAG? ?INDEX? */
-    CFFI_ASSERT(objc > 4);
+    CFFI_ASSERT(objc >= 4);
 
     fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
     if (fieldIndex < 0)
