@@ -1015,13 +1015,12 @@ namespace eval cffi::test {
         }
         # Scalar tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs {*}$errorAttrs structsize bitmask {{enum E}}] {
-            if {$attr eq "nullok"} {
-                testinvalidattr "struct.TestStruct $attr" $parse_mode {A type annotation is not valid for this data type without the byref annotation.}
-                
-            } else {
+            if {$attr ne "nullok"} {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
             }
         }
+        testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints libffi
+        testinvalidattr "struct.TestStruct nullok" $parse_mode {*} -constraints dyncall -match glob
 
         # Array tests
         if {$parse_mode eq "param"} {

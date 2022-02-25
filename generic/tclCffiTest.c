@@ -509,13 +509,14 @@ EXTERN const char *string_array_in (const char *strings[], int index)
 {
     return strings[index];
 }
-EXTERN void string_array_out (char *strings[], int n)
+EXTERN int string_array_out (char *strings[], int n)
 {
     int i;
     static char *strs[] = {"abc", "def", "ghi"};
     for (i = 0; i < n; ++i) {
         strings[i] = strs[i%3];
     }
+    return n;
 }
 
 FNSTRINGS(unistring, Tcl_UniChar)
