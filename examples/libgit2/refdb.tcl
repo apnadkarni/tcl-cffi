@@ -5,11 +5,11 @@
 
 libgit2 functions {
     git_refdb_new GIT_ERROR_CODE {
-        refdb {PREFDB out}
+        refdb {PREFDB retval}
         pRepo PREPOSITORY
     }
     git_refdb_open GIT_ERROR_CODE {
-        refdb {PREFDB out}
+        refdb {PREFDB retval}
         pRepo PREPOSITORY
     }
     git_refdb_compress GIT_ERROR_CODE {

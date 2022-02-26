@@ -94,8 +94,8 @@
 # different types of objects
 
 libgit2 functions {
-    git_checkout_options_init int {
-        pOpts   {struct.git_checkout_options out}
+    git_checkout_options_init GIT_ERROR_CODE {
+        pOpts   {struct.git_checkout_options retval}
         version {uint {default 1}}
     }
     git_checkout_head GIT_ERROR_CODE {

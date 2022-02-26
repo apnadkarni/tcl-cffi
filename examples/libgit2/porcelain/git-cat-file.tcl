@@ -55,9 +55,9 @@ proc parse_options {arguments} {
 }
 
 proc show_size {pRepo pObj} {
-    git_repository_odb pOdb $pRepo
+    set pOdb [git_repository_odb $pRepo]
     try {
-        git_odb_read pOdbObj $pOdb [git_object_id $pObj]
+        set pOdbObj [git_odb_read $pOdb [git_object_id $pObj]]
         puts [git_odb_object_size $pOdbObj]
     } finally {
         if {[info exists pOdbObj]} {
@@ -137,7 +137,7 @@ proc show {pRepo pObj expected_type} {
     }
 
     # The type is not what is wanted. Peel off layers 
-    git_object_peel pPeeled $pObj $expected_enum
+    set pPeeled [git_object_peel $pObj $expected_enum]
     try {
         if {[git_object_type $pPeeled] eq $expected_enum} {
             show_$expected_type $pPeeled
@@ -160,18 +160,18 @@ proc pretty_print {pObj} {
     }
 }
 
-proc main {} {
+proc git-cat-file {} {
     lassign [parse_options $::argv] object expected_type
 
     option_set Verbose [option Verbose 0]; # Explicitly set if unset
 
-    git_repository_open_ext pRepo [option GitDir .]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     set action [option Action ""]
     if {$action eq "-e"} {
         set ::SUPPRESS_OUTPUT 1
     }
     try {
-        git_revparse_single pObj $pRepo $object
+        set pObj [git_revparse_single $pRepo $object]
         if {[option! Verbose]} {
             set oid [git_oid_tostr_s [git_object_id $pObj]]
             set type [git_object_type2string [git_object_type $pObj]]
@@ -205,7 +205,7 @@ proc main {} {
 
 set SUPPRESS_OUTPUT 0
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-cat-file} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     if {! $SUPPRESS_OUTPUT} {

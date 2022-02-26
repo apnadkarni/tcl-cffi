@@ -62,11 +62,11 @@
 
 libgit2 functions {
     git_odb_backend_pack GIT_ERROR_CODE {
-        vbackend    {PODB_BACKEND out}
+        vbackend    {PODB_BACKEND retval}
         objects_dir STRING
     }
     git_odb_backend_loose GIT_ERROR_CODE {
-        vbackend          {PODB_BACKEND out}
+        vbackend          {PODB_BACKEND retval}
         objects_dir       STRING
         compression_level int
         do_fsync          int
@@ -74,7 +74,7 @@ libgit2 functions {
         file_mode         uint
     }
     git_odb_backend_one_pack GIT_ERROR_CODE {
-        vbackend   {PODB_BACKEND out}
+        vbackend   {PODB_BACKEND retval}
         index_file STRING
     }
 

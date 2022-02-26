@@ -13,12 +13,12 @@
 
 libgit2 functions {
     git_note_iterator_new GIT_ERROR_CODE {
-        iterator  {PNOTE_ITERATOR out}
+        iterator  {PNOTE_ITERATOR retval}
         pRepo     PREPOSITORY
         notes_ref {STRING         nullifempty}
     }
     git_note_commit_iterator_new GIT_ERROR_CODE {
-        iterator     {PNOTE_ITERATOR out}
+        iterator     {PNOTE_ITERATOR retval}
         notes_commit PCOMMIT
     }
     git_note_iterator_free void {
@@ -30,13 +30,13 @@ libgit2 functions {
         iterator     PNOTE_ITERATOR
     }
     git_note_read GIT_ERROR_CODE {
-        note {PNOTE out}
+        note {PNOTE retval}
         pRepo PREPOSITORY
         notes_commit PCOMMIT
         oid {struct.git_oid byref}
     }
     git_note_commit_read GIT_ERROR_CODE {
-        note {PNOTE out}
+        note {PNOTE retval}
         pRepo PREPOSITORY
         notes_commit PCOMMIT
         oid {struct.git_oid byref}
@@ -54,7 +54,7 @@ libgit2 functions {
         note PNOTE
     }
     git_note_create GIT_ERROR_CODE {
-        id        {struct.git_oid       out}
+        id        {struct.git_oid       retval}
         pRepo     PREPOSITORY
         notes_ref {STRING               nullifempty}
         author    {struct.git_signature byref}

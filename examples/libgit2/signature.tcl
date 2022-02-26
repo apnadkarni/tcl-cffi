@@ -5,27 +5,27 @@
 
 libgit2 functions {
     git_signature_new GIT_ERROR_CODE {
-        vsig   {PSIGNATURE out}
+        vsig   {PSIGNATURE retval}
         name   STRING
         email  STRING
         time   git_time_t
         offset int
     }
     git_signature_now GIT_ERROR_CODE {
-        vsig   {PSIGNATURE out}
+        vsig   {PSIGNATURE retval}
         name   STRING
         email  STRING
     }
     git_signature_default GIT_ERROR_CODE {
-        vsig  {PSIGNATURE out}
+        vsig  {PSIGNATURE retval}
         pRepo PREPOSITORY
     }
     git_signature_from_buffer GIT_ERROR_CODE {
-        vsig {PSIGNATURE out}
+        vsig {PSIGNATURE retval}
         buf  STRING
     }
     git_signature_dup GIT_ERROR_CODE {
-        vdest {PSIGNATURE out}
+        vdest {PSIGNATURE retval}
         sig   PSIGNATURE
     }
     git_signature_free void {

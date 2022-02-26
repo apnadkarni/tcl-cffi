@@ -34,7 +34,7 @@ proc parse_options {arguments} {
 }
 
 proc config_list {pConfig} {
-    git_config_iterator_new pIter $pConfig
+    set pIter [git_config_iterator_new $pConfig]
     try {
         while {1} {
             set error [git_config_next pEntry $pIter]
@@ -64,7 +64,7 @@ proc config_list {pConfig} {
 }
 
 proc config_get {pConfig key} {
-    git_config_get_entry pEntry $pConfig $key
+    set pEntry [git_config_get_entry $pConfig $key]
     try {
         set valueP [${::GIT_NS}::git_config_entry get $pEntry value]
         puts [::cffi::memory tostring! $valueP utf-8]
@@ -78,12 +78,12 @@ proc config_set {pConfig key value} {
     git_config_set_string $pConfig $key $value
 }
 
-proc main {} {
+proc git-config {} {
     set arguments [parse_options $::argv]
 
-    git_repository_open_ext pRepo [option GitDir .]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     try {
-        git_repository_config pConfig $pRepo
+        set pConfig [git_repository_config $pRepo]
         if {[llength $arguments] == 0} {
             config_list $pConfig
         } elseif {[llength $arguments] == 1} {
@@ -100,7 +100,7 @@ proc main {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-config} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

@@ -17,22 +17,22 @@ proc parse_options {arguments} {
     }
 }
 
-proc main {} {
+proc git-commit {} {
     parse_options $::argv
 
-    git_repository_open_ext pRepo [option GitDir .]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     try {
         try {
-            git_revparse_ext pParent pRef $pRepo HEAD
+            set pParent [git_revparse_ext pRef $pRepo HEAD]
         } trap {GIT -3} {} {
             inform "HEAD not found. Creating first commit."
         }
 
-        git_repository_index pIndex $pRepo
-        git_index_write_tree tree_oid $pIndex
+        set pIndex   [git_repository_index $pRepo]
+        set tree_oid [git_index_write_tree $pIndex]
         git_index_write $pIndex
-        git_tree_lookup pTree $pRepo $tree_oid
-        git_signature_default pSig $pRepo
+        set pTree    [git_tree_lookup $pRepo $tree_oid]
+        set pSig     [git_signature_default $pRepo]
 
         set sig [git_signature fromnative $pSig]
 
@@ -45,7 +45,7 @@ proc main {} {
         } else {
             set parents {}
         }
-        git_commit_create commit_id \
+        set commit_id [git_commit_create \
             $pRepo \
             HEAD \
             $sig \
@@ -80,7 +80,7 @@ proc main {} {
 
 }
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-commit} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

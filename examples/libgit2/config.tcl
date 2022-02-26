@@ -69,10 +69,10 @@ libgit2 functions {
         buf PBUF
     }
     git_config_open_default GIT_ERROR_CODE {
-        cfg {PCONFIG out}
+        cfg {PCONFIG retval}
     }
     git_config_new GIT_ERROR_CODE {
-        cfg {PCONFIG out}
+        cfg {PCONFIG retval}
     }
     git_config_add_file_ondisk GIT_ERROR_CODE {
         cfg   PCONFIG
@@ -82,57 +82,57 @@ libgit2 functions {
         force int
     }
     git_config_open_ondisk GIT_ERROR_CODE {
-        cfg {PCONFIG out}
+        cfg {PCONFIG retval}
         path STRING
     }
     git_config_open_level GIT_ERROR_CODE {
-        cfg    {PCONFIG out}
+        cfg    {PCONFIG retval}
         parent PCONFIG
         level  GIT_CONFIG_LEVEL_T
     }
     git_config_open_global GIT_ERROR_CODE {
-        global_cfg {PCONFIG out}
+        global_cfg {PCONFIG retval}
         cfg        PCONFIG
     }
     git_config_snapshot GIT_ERROR_CODE {
-        snapshot {PCONFIG out}
+        snapshot {PCONFIG retval}
         cfg      PCONFIG
     }
     git_config_free void {
         cfg {PCONFIG nullok dispose}
     }
     git_config_get_entry GIT_ERROR_CODE {
-        entry {PCONFIG_ENTRY out}
+        entry {PCONFIG_ENTRY retval}
         cfg   PCONFIG
         name  STRING
     }
     git_config_get_int32 GIT_ERROR_CODE {
-        value {int32_t out}
+        value {int32_t retval}
         cfg   PCONFIG
         name  STRING
     }
     git_config_get_int64 GIT_ERROR_CODE {
-        value {int64_t out}
+        value {int64_t retval}
         cfg   PCONFIG
         name  STRING
     }
     git_config_get_bool GIT_ERROR_CODE {
-        value {int out}
+        value {int retval}
         cfg   PCONFIG
         name  STRING
     }
     git_config_get_path GIT_ERROR_CODE {
-        buf  {PBUF out}
+        buf  {PBUF retval}
         cfg  PCONFIG
         name STRING
     }
     git_config_get_string GIT_ERROR_CODE {
-        value {STRING out}
+        value {STRING retval}
         cfg   PCONFIG
         name  STRING
     }
     git_config_get_string_buf GIT_ERROR_CODE {
-        buf  {PBUF out}
+        buf  {PBUF retval}
         cfg  PCONFIG
         name STRING
     }
@@ -144,7 +144,7 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_config_multivar_iterator_new GIT_ERROR_CODE {
-        iterator {PCONFIG_ITERATOR out}
+        iterator {PCONFIG_ITERATOR retval}
         cfg      PCONFIG
         name     STRING
         regexp   STRING
@@ -197,11 +197,11 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_config_iterator_new GIT_ERROR_CODE {
-        iterator {PCONFIG_ITERATOR out}
+        iterator {PCONFIG_ITERATOR retval}
         cfg      PCONFIG
     }
     git_config_iterator_glob_new GIT_ERROR_CODE {
-        iterator {PCONFIG_ITERATOR out}
+        iterator {PCONFIG_ITERATOR retval}
         cfg      PCONFIG
         regexp   STRING
     }
@@ -212,28 +212,28 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_config_get_mapped GIT_ERROR_CODE {
-        result {int out}
+        result {int retval}
         cfg    PCONFIG
         name   STRING
         maps   struct.git_configmap[map_n]
         map_n  size_t
     }
     git_config_lookup_map_value GIT_ERROR_CODE {
-        result {int out}
+        result {int retval}
         maps   struct.git_configmap[map_n]
         map_n  size_t
         value  STRING
     }
     git_config_parse_bool GIT_ERROR_CODE {
-        result {int out}
+        result {int retval}
         value  STRING
     }
     git_config_parse_int32 GIT_ERROR_CODE {
-        result {int32_t out}
+        result {int32_t retval}
         value  STRING
     }
     git_config_parse_int64 GIT_ERROR_CODE {
-        result {int64_t out}
+        result {int64_t retval}
         value  STRING
     }
     git_config_parse_path GIT_ERROR_CODE {
@@ -247,7 +247,7 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_config_lock GIT_ERROR_CODE {
-        transaction {PTRANSACTION out}
+        transaction {PTRANSACTION retval}
         cfg         PCONFIG
     }
 }

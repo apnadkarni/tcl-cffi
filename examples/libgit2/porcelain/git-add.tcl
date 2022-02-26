@@ -39,7 +39,7 @@ proc parse_options {arguments} {
 
 proc add_cb {pRepo path pathspec payload} {
     # We need to print what libgit would do so get the status of the file
-    git_status_file status $pRepo $path
+    set status [git_status_file $pRepo $path]
     if {"GIT_STATUS_WT_MODIFIED" in $status || "GIT_STATUS_WT_NEW" in $status} {
         # Ask to skip if it is a dry run.
         set skip [option DryRun 0]
@@ -50,11 +50,11 @@ proc add_cb {pRepo path pathspec payload} {
     return $skip
 }
 
-proc main {} {
-    set path_specs [parse_options $::argv]
-    git_repository_open_ext pRepo [option GitDir .]
+proc git-add {arguments} {
+    set path_specs [parse_options $arguments]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     try {
-        git_repository_index pIndex $pRepo
+        set pIndex [git_repository_index $pRepo]
 
         # We can optionally set a callback to print actions taken as they happen
         # Only needed if we are either printing in verbose mode or doing a dry
@@ -96,7 +96,7 @@ proc main {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-add $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

@@ -23,7 +23,7 @@
 
 libgit2 functions {
     git_packbuilder_new GIT_ERROR_CODE {
-        pb {PPACKBUILDER out}
+        pb {PPACKBUILDER retval}
     }
     git_packbuilder_set_threads GIT_ERROR_CODE {
         pb PPACKBUILDER

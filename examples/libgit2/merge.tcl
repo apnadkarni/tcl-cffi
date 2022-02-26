@@ -90,15 +90,15 @@
 
 libgit2 functions {
     git_merge_file_input_init GIT_ERROR_CODE {
-        opts    {struct.git_merge_file_input out}
+        opts    {struct.git_merge_file_input retval}
         version uint
     }
     git_merge_file_options_init GIT_ERROR_CODE {
-        opts    {struct.git_merge_file_options out}
+        opts    {struct.git_merge_file_options retval}
         version {uint {default 1}}
     }
     git_merge_options_init GIT_ERROR_CODE {
-        opts    {struct.git_merge_options out}
+        opts    {struct.git_merge_options retval}
         version {uint {default 1}}
     }
     git_merge_analysis GIT_ERROR_CODE {
@@ -117,44 +117,44 @@ libgit2 functions {
         their_heads_len size_t
     }
     git_merge_base GIT_ERROR_CODE {
-        oid {struct.git_oid out}
+        oid {struct.git_oid retval}
         pRepo PREPOSITORY
         one {struct.git_oid byref}
         two {struct.git_oid byref}
     }
     git_merge_bases GIT_ERROR_CODE {
-        oids {struct.git_oidarray out}
+        oids {struct.git_oidarray retval}
         pRepo PREPOSITORY
         one {struct.git_oid byref}
         two {struct.git_oid byref}
     }
     git_merge_base_many GIT_ERROR_CODE {
-        oid         {struct.git_oid out}
+        oid         {struct.git_oid retval}
         pRepo       PREPOSITORY
         length      size_t
         input_array {struct.git_oid[length]}
     }
     git_merge_bases_many GIT_ERROR_CODE {
-        oids        {struct.git_oidarray out}
+        oids        {struct.git_oidarray retval}
         pRepo       PREPOSITORY
         length      size_t
         input_array {struct.git_oid[length]}
     }
     git_merge_base_octopus GIT_ERROR_CODE {
-        oid         {struct.git_oid out}
+        oid         {struct.git_oid retval}
         pRepo       PREPOSITORY
         length      size_t
         input_array {struct.git_oid[length]}
     }
     git_merge_file GIT_ERROR_CODE {
-        result   {struct.git_merge_file_result  out}
+        result   {struct.git_merge_file_result  retval}
         ancestor {struct.git_merge_file_input   byref}
         ours     {struct.git_merge_file_input   byref}
         theirs   {struct.git_merge_file_input   byref}
         opts     {struct.git_merge_file_options byref}
     }
     git_merge_file_from_index GIT_ERROR_CODE {
-        result   {struct.git_merge_file_result  out}
+        result   {struct.git_merge_file_result  retval}
         pRepo    PREPOSITORY
         ancestor {struct.git_index_entry        byref}
         ours     {struct.git_index_entry        byref}
@@ -165,7 +165,7 @@ libgit2 functions {
         result {struct.git_merge_file_result inout}
     }
     git_merge_trees GIT_ERROR_CODE {
-        index         {PINDEX out}
+        index         {PINDEX retval}
         pRepo         PREPOSITORY
         ancestor_tree PTREE
         our_tree      PTREE
@@ -173,7 +173,7 @@ libgit2 functions {
         opts          {struct.git_merge_options byref}
     }
     git_merge_commits GIT_ERROR_CODE {
-        index        {PINDEX out}
+        index        {PINDEX retval}
         pRepo        PREPOSITORY
         our_commit   PCOMMIT
         their_commit PCOMMIT

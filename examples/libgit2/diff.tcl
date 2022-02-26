@@ -236,14 +236,14 @@
 
 
 cffi::prototype function file_signature_cb int {
-    pSig     {pointer unsafe out}
+    pPointer     {pointer unsafe}
     file     {struct.git_diff_file byref}
     fullpath STRING
     payload  {pointer unsafe}
 }
 
 cffi::prototype function buffer_signature_cb int {
-    pSig    {pointer unsafe out}
+    pPointer    {pointer unsafe}
     file    {struct.git_diff_file byref}
     buf     {pointer unsafe}
     buflen  size_t
@@ -284,50 +284,50 @@ cffi::prototype function similarity_cb int {
 
 libgit2 functions {
     git_diff_options_init GIT_ERROR_CODE {
-        pOpts   {struct.git_diff_options out}
+        pOpts   {struct.git_diff_options retval}
         version uint
     }
     git_diff_find_options_init GIT_ERROR_CODE {
-        pOpts   {struct.git_diff_find_options out}
+        pOpts   {struct.git_diff_find_options retval}
         version uint
     }
     git_diff_free void {
         pDiff {PDIFF nullok dispose}
     }
     git_diff_tree_to_tree GIT_ERROR_CODE {
-        pDiff {PDIFF out}
+        pDiff {PDIFF retval}
         pRepo PREPOSITORY
         pOldTree PTREE
         pNewTree PTREE
         pOpts {struct.git_diff_options byref}
     }
     git_diff_tree_to_index GIT_ERROR_CODE {
-        pDiff {PDIFF out}
+        pDiff {PDIFF retval}
         pRepo PREPOSITORY
         pOldTree PTREE
         pIndex {PINDEX nullok}
         pOpts {struct.git_diff_options byref}
     }
     git_diff_index_to_workdir GIT_ERROR_CODE {
-        pDiff {PDIFF out}
+        pDiff {PDIFF retval}
         pRepo PREPOSITORY
         pIndex {PINDEX nullok}
         pOpts {struct.git_diff_options byref}
     }
     git_diff_tree_to_workdir GIT_ERROR_CODE {
-        pDiff    {PDIFF out}
+        pDiff    {PDIFF retval}
         pRepo    PREPOSITORY
         pOldTree PTREE
         pOpts    {struct.git_diff_options  byref}
     }
     git_diff_tree_to_workdir_with_index GIT_ERROR_CODE {
-        pDiff    {PDIFF out}
+        pDiff    {PDIFF retval}
         pRepo    PREPOSITORY
         pOldTree PTREE
         pOpts    {struct.git_diff_options byref}
     }
     git_diff_index_to_index GIT_ERROR_CODE {
-        pDiff     {PDIFF out}
+        pDiff     {PDIFF retval}
         pRepo     PREPOSITORY
         pOldIndex PINDEX
         pNewIndex PINDEX
@@ -417,12 +417,12 @@ libgit2 functions {
         payload     {pointer unsafe}
     }
     git_diff_from_buffer GIT_ERROR_CODE {
-        pDiff       {PDIFF   out}
+        pDiff       {PDIFF   retval}
         content     {pointer unsafe}
         content_len size_t
     }
     git_diff_get_stats GIT_ERROR_CODE {
-        pStats {PDIFF_STATS out}
+        pStats {PDIFF_STATS retval}
         pDiff  PDIFF
     }
     git_diff_stats_files_changed size_t {
@@ -444,11 +444,11 @@ libgit2 functions {
         pStats {PDIFF_STATS nullok dispose}
     }
     git_diff_patchid_options_init GIT_ERROR_CODE {
-        pOpts   {struct.git_diff_patchid_options out}
+        pOpts   {struct.git_diff_patchid_options retval}
         version uint
     }
     git_diff_patchid GIT_ERROR_CODE {
-        oid {struct.git_oid out}
+        oid {struct.git_oid retval}
         pDiff PDIFF
         pOpts {struct.git_diff_patchid_options byref}
     }

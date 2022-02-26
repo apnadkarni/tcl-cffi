@@ -11,12 +11,12 @@
 
 libgit2 functions {
     git_tag_lookup GIT_ERROR_CODE {
-        pTag  {PTAG out}
+        pTag  {PTAG retval}
         pRepo PREPOSITORY
         id    {struct.git_oid byref}
     }
     git_tag_lookup_prefix GIT_ERROR_CODE {
-        pTag  {PTAG out}
+        pTag  {PTAG retval}
         pRepo PREPOSITORY
         id    {struct.git_oid byref}
         len   size_t
@@ -31,7 +31,7 @@ libgit2 functions {
         pTag PTAG
     }
     git_tag_target GIT_ERROR_CODE {
-        target_out {POBJECT out}
+        target_out {POBJECT retval}
         pTag PTAG
     }
     git_tag_target_id {struct.git_oid byref} {
@@ -98,15 +98,15 @@ libgit2 functions {
         payload  {pointer unsafe}
     }
     git_tag_peel GIT_ERROR_CODE {
-        tag_target {POBJECT out}
+        tag_target {POBJECT retval}
         tag PTAG
     }
     git_tag_dup GIT_ERROR_CODE {
-        tag    {PTAG out}
+        tag    {PTAG retval}
         source PTAG
     }
     git_tag_name_is_valid GIT_ERROR_CODE {
-        valid {int out}
+        valid {int retval}
         name  STRING
     }
 }

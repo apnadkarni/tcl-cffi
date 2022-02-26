@@ -41,7 +41,7 @@
 
 libgit2 functions {
     git_blame_options_init GIT_ERROR_CODE {
-        opts    {struct.git_blame_options out}
+        opts    {struct.git_blame_options retval}
         version {uint {default 1}}
     }
     git_blame_get_hunk_count uint32_t {
@@ -56,13 +56,13 @@ libgit2 functions {
         lineno size_t
     }
     git_blame_file GIT_ERROR_CODE {
-        pBlame  {PBLAME  out}
+        pBlame  {PBLAME  retval}
         pRepo   PREPOSITORY
         path    STRING
         options {struct.git_blame_options byref nullifempty}
     }
     git_blame_buffer GIT_ERROR_CODE {
-        pBlame     {PBLAME out}
+        pBlame     {PBLAME retval}
         reference  PBLAME
         buffer     STRING
         buffer_len size_t

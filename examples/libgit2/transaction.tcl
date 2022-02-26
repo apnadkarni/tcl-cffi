@@ -5,7 +5,7 @@
 
 libgit2 functions {
     git_transaction_new GIT_ERROR_CODE {
-        vtx   {PTRANSACTION out}
+        vtx   {PTRANSACTION retval}
         pRepo PREPOSITORY
     }
     git_transaction_lock_ref GIT_ERROR_CODE {
@@ -15,7 +15,7 @@ libgit2 functions {
     git_transaction_set_target GIT_ERROR_CODE {
         tx      PTRANSACTION
         refname STRING
-        target  {struct.git_oid       byref}
+        target  {struct.git_oid byref}
         sig     {struct.git_signature byref nullifempty}
         msg     STRING
     }

@@ -5,7 +5,7 @@
 
 libgit2 functions {
     git_reflog_read GIT_ERROR_CODE {
-        reflog {PREFLOG out}
+        reflog {PREFLOG retval}
         pRepo  PREPOSITORY
         name   STRING
     }

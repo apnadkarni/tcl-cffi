@@ -16,7 +16,7 @@
 
 libgit2 functions {
     git_message_prettify GIT_ERROR_CODE {
-        buf {PBUF out}
+        buf {PBUF retval}
         message STRING
         strip_comments int
         comment_char uchar

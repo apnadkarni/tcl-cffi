@@ -37,12 +37,12 @@ libgit2 functions {
         version {uint {default 1}}
     }
     git_describe_commit GIT_ERROR_CODE {
-        result {PDESCRIBE_RESULT out}
+        result {PDESCRIBE_RESULT retval}
         committish POBJECT
         opts {struct.git_describe_options byref}
     }
     git_describe_workdir GIT_ERROR_CODE {
-        result {PDESCRIBE_RESULT out}
+        result {PDESCRIBE_RESULT retval}
         pRepo PREPOSITORY
         opts {struct.git_describe_options byref}
     }

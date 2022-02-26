@@ -84,11 +84,11 @@ proc GIT_INDEX_ENTRY_STAGE_SET {index_entry_var stage} {
 
 libgit2 functions {
     git_index_open GIT_ERROR_CODE {
-        index      {PINDEX out}
+        index      {PINDEX retval}
         index_path STRING
     }
     git_index_new GIT_ERROR_CODE {
-        index {PINDEX out}
+        index {PINDEX retval}
     }
     git_index_free void {
         index {PINDEX nullok dispose}
@@ -128,11 +128,11 @@ libgit2 functions {
         tree  PTREE
     }
     git_index_write_tree GIT_ERROR_CODE {
-        id {struct.git_oid out}
+        id {struct.git_oid retval}
         index PINDEX
     }
     git_index_write_tree_to GIT_ERROR_CODE {
-        id {struct.git_oid out}
+        id {struct.git_oid retval}
         index PINDEX
         pRepo PREPOSITORY
     }
@@ -172,7 +172,7 @@ libgit2 functions {
         entry {struct.git_index_entry byref}
     }
     git_index_iterator_new GIT_ERROR_CODE {
-        iterator {PINDEX_ITERATOR out}
+        iterator {PINDEX_ITERATOR retval}
         index    PINDEX
     }
     git_index_iterator_next {int {enum git_error_code}} {
@@ -215,12 +215,12 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_index_find GIT_ERROR_CODE {
-        at_pos {size_t out}
+        at_pos {size_t retval}
         index  PINDEX
         path   STRING
     }
     git_index_find_prefix GIT_ERROR_CODE {
-        at_pos {size_t out}
+        at_pos {size_t retval}
         index  PINDEX
         prefix STRING
     }
@@ -248,7 +248,7 @@ libgit2 functions {
         index PINDEX
     }
     git_index_conflict_iterator_new GIT_ERROR_CODE {
-        iterator {PINDEX_CONFLICT_ITERATOR out}
+        iterator {PINDEX_CONFLICT_ITERATOR retval}
         index PINDEX
     }
     git_index_conflict_next {int {enum git_error_code}} {

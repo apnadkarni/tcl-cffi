@@ -33,11 +33,11 @@
 
 libgit2 functions {
     git_rebase_options_init GIT_ERROR_CODE {
-        opts {struct.git_rebase_options out}
+        opts {struct.git_rebase_options retval}
         version {uint {default 1}}
     }
     git_rebase_init GIT_ERROR_CODE {
-        rebase   {PREBASE out}
+        rebase   {PREBASE retval}
         pRepo    PREPOSITORY
         branch   PANNOTATED_COMMIT
         upstream PANNOTATED_COMMIT
@@ -45,7 +45,7 @@ libgit2 functions {
         opts     {struct.git_rebase_options byref}
     }
     git_rebase_open GIT_ERROR_CODE {
-        rebase   {PREBASE out}
+        rebase   {PREBASE retval}
         pRepo    PREPOSITORY
         opts     {struct.git_rebase_options byref}
     }
@@ -72,11 +72,11 @@ libgit2 functions {
         idx    size_t
     }
     git_rebase_next GIT_ERROR_CODE {
-        pNextOperation {pointer.git_rebase_operation out}
+        pNextOperation {pointer.git_rebase_operation retval}
         rebase         PREBASE
     }
     git_rebase_inmemory_index GIT_ERROR_CODE {
-        index  {PINDEX out}
+        index  {PINDEX retval}
         rebase PREBASE
     }
     git_rebase_commit GIT_ERROR_CODE {

@@ -22,22 +22,22 @@
 
 libgit2 functions {
     git_reference_lookup GIT_ERROR_CODE {
-        vref   {PREFERENCE out}
+        vref   {PREFERENCE retval}
         pRepo PREPOSITORY
         name  STRING
     }
     git_reference_name_to_id GIT_ERROR_CODE {
-        vid   {struct.git_oid out}
+        vid   {struct.git_oid retval}
         pRepo PREPOSITORY
         name  STRING
     }
     git_reference_dwim GIT_ERROR_CODE {
-        vref      {PREFERENCE out}
+        vref      {PREFERENCE retval}
         pRepo     PREPOSITORY
         shorthand STRING
     }
     git_reference_symbolic_create_matching GIT_ERROR_CODE {
-        vref          {PREFERENCE out}
+        vref          {PREFERENCE retval}
         pRepo         PREPOSITORY
         name          STRING
         target        STRING
@@ -46,7 +46,7 @@ libgit2 functions {
         log_message   STRING
     }
     git_reference_symbolic_create GIT_ERROR_CODE {
-        vref          {PREFERENCE out}
+        vref          {PREFERENCE retval}
         pRepo         PREPOSITORY
         name          STRING
         target        STRING
@@ -54,7 +54,7 @@ libgit2 functions {
         log_message   STRING
     }
     git_reference_create GIT_ERROR_CODE {
-        vref        {PREFERENCE     out}
+        vref        {PREFERENCE     retval}
         pRepo       PREPOSITORY
         name        STRING
         id          {struct.git_oid byref}
@@ -62,7 +62,7 @@ libgit2 functions {
         log_message STRING
     }
     git_reference_create_matching GIT_ERROR_CODE {
-        vref        {PREFERENCE     out}
+        vref        {PREFERENCE     retval}
         pRepo       PREPOSITORY
         name        STRING
         id          {struct.git_oid byref}
@@ -86,26 +86,26 @@ libgit2 functions {
         ref PREFERENCE
     }
     git_reference_resolve GIT_ERROR_CODE {
-        vref {PREFERENCE out}
+        vref {PREFERENCE retval}
         ref  PREFERENCE
     }
     git_reference_owner PREPOSITORY {
         ref PREFERENCE
     }
     git_reference_symbolic_set_target GIT_ERROR_CODE {
-        vref        {PREFERENCE out}
+        vref        {PREFERENCE retval}
         ref         PREFERENCE
         target      STRING
         log_message STRING
     }
     git_reference_set_target GIT_ERROR_CODE {
-        vref        {PREFERENCE     out}
+        vref        {PREFERENCE     retval}
         ref         PREFERENCE
         id          {struct.git_oid byref}
         log_message STRING
     }
     git_reference_rename GIT_ERROR_CODE {
-        vref        {PREFERENCE out}
+        vref        {PREFERENCE retval}
         ref         PREFERENCE
         new_name    STRING
         force       int
@@ -143,11 +143,11 @@ libgit2 functions {
         ref2 PREFERENCE
     }
     git_reference_iterator_new GIT_ERROR_CODE {
-        viter {PREFERENCE_ITERATOR out}
+        viter {PREFERENCE_ITERATOR retval}
         pRepo PREPOSITORY
     }
     git_reference_iterator_glob_new GIT_ERROR_CODE {
-        viter {PREFERENCE_ITERATOR out}
+        viter {PREFERENCE_ITERATOR retval}
         pRepo PREPOSITORY
         glob STRING
     }
@@ -195,7 +195,7 @@ libgit2 functions {
         flags       GIT_REFERENCE_FORMAT_T
     }
     git_reference_peel GIT_ERROR_CODE {
-        vobj {POBJECT out}
+        vobj {POBJECT retval}
         ref  PREFERENCE
         type GIT_OBJECT_T
     }

@@ -52,15 +52,15 @@
 
 libgit2 functions {
     git_stash_save GIT_ERROR_CODE {
-        id      {struct.git_oid   out}
+        id      {struct.git_oid retval}
         pRepo   PREPOSITORY
         stasher {struct.git_signature byref}
-        message {STRING           nullifempty}
+        message {STRING nullifempty}
         flags   GIT_STASH_FLAGS_T
     }
     git_stash_apply_options_init GIT_ERROR_CODE {
-        opts    {struct.git_stash_apply_options out}
-        version {uint   {default                1}}
+        opts    {struct.git_stash_apply_options retval}
+        version {uint   {default 1}}
     }
     git_stash_apply GIT_ERROR_CODE {
         pRepo PREPOSITORY

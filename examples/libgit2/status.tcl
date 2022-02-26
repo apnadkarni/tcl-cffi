@@ -73,7 +73,7 @@
 
 libgit2 functions {
     git_status_options_init GIT_ERROR_CODE {
-        opts    {struct.git_status_options out}
+        opts    {struct.git_status_options retval}
         version {uint                      {default 1}}
     }
     git_status_foreach GIT_ERROR_CODE {
@@ -88,12 +88,12 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_status_file GIT_ERROR_CODE {
-        vstatus_flags {GIT_STATUS_T out}
+        vstatus_flags {GIT_STATUS_T retval}
         pRepo         PREPOSITORY
         path          STRING
     }
     git_status_list_new GIT_ERROR_CODE {
-        vpStatusList {PSTATUS_LIST out}
+        vpStatusList {PSTATUS_LIST retval}
         pRepo       PREPOSITORY
         opts        {struct.git_status_options byref}
     }
@@ -108,7 +108,7 @@ libgit2 functions {
         pStatusList {PSTATUS_LIST nullok dispose}
     }
     git_status_should_ignore GIT_ERROR_CODE {
-        ignored {int out}
+        ignored {int retval}
         pRepo   PREPOSITORY
         path    STRING
     }

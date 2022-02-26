@@ -49,10 +49,10 @@ proc guess_refish {pRepo ref} {
         git_remote_list $pRemotes $pRepo
         foreach remote [lg2_strarray_strings $pRemotes] {
             if {![catch {
-                git_reference_lookup pRef $pRepo "refs/remotes/$remote/$ref"
+                set pRef [git_reference_lookup $pRepo "refs/remotes/$remote/$ref"]
             } result edict]} {
                 try {
-                    git_annotated_commit_from_ref pAnnotatedCommit $pRepo $pRef
+                    set pAnnotatedCommit [git_annotated_commit_from_ref $pRepo $pRef]
                     return $pAnnotatedCommit
                 } finally {
                     git_reference_free $pRef
@@ -78,7 +78,7 @@ proc print_checkout_progress {path completed_steps total_steps payload} {
 proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
 
     # Set up checkout options
-    git_checkout_options_init opts
+    set opts [git_checkout_options_init]
     if {[option Force 0]} {
         dict lappend opts Force GIT_CHECKOUT_FORCE
     } else {
@@ -90,7 +90,7 @@ proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
     }
 
     # Retrieve the target commit
-    git_commit_lookup pCommitTarget $pRepo [git_annotated_commit_id $pAnnotatedTarget]
+    set pCommitTarget [git_commit_lookup $pRepo [git_annotated_commit_id $pAnnotatedTarget]]
     try {
         # Check out to the work directory
         git_checkout_tree $pRepo $pCommitTarget $opts
@@ -100,9 +100,9 @@ proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
         if {$ref eq ""} {
             git_repository_set_head_detached_from_annotated $pRepo $pAnnotatedTarget
         } else {
-            git_reference_lookup pRef $pRepo $ref
+            set pRef [git_reference_lookup $pRepo $ref]
             if {[git_reference_is_remote $pRef]} {
-                git_branch_create_from_annotated pBranch $pRepo $target_ref $pAnnotatedTarget 0
+                set pBranch [git_branch_create_from_annotated $pRepo $target_ref $pAnnotatedTarget 0]
                 set target_head [git_reference_name $pBranch]
             } else {
                 set target_head [git_annotated_commit_ref $pAnnotatedTarget]
@@ -120,9 +120,9 @@ proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
     }
 }
 
-proc main {} {
+proc git-checkout {} {
     set ref [parse_options $::argv]
-    git_repository_open_ext pRepo [option GitDir .]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     try {
 
         set state [git_repository_state $pRepo]
@@ -149,7 +149,7 @@ proc main {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-checkout} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

@@ -30,7 +30,7 @@ libgit2 functions {
             version uint
     }
     git_indexer_new GIT_ERROR_CODE {
-            ppIndexer {PINDEXER out}
+            ppIndexer {PINDEXER retval}
             path      STRING
             mode      uint
             pOdb      {PODB nullok}
@@ -39,11 +39,11 @@ libgit2 functions {
             pIndexer  PINDEXER
             data      binary
             size      size_t
-            stats     {struct.git_indexer_progress out}
+            stats     {struct.git_indexer_progress retval}
     }
     git_indexer_commit GIT_ERROR_CODE {
             pIndexer  PINDEXER
-            stats     {struct.git_indexer_progress out}
+            stats     {struct.git_indexer_progress retval}
     }
     git_indexer_free void {
             pIndexer {PINDEXER nullok dispose}

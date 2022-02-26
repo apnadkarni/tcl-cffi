@@ -15,6 +15,24 @@ proc pdict d {
     }
 }
 
+proc parse_common_options {optvar argvar arguments optlist} {
+    lappend optlist {*}{
+        --git-dir:GITDIR {
+            # Specify the path to the repository
+            option_set GitDir $arg
+        }
+        --work-tree:WORKTREE {
+            # Specify the path to the work tree
+            option_set WorkTree $arg
+        }
+        --version {
+            # Print version and exit.
+            puts lg2_porcelain_version
+            exit 0
+        }
+    }
+    uplevel 1 [list getopt::getopt $optvar $argvar $arguments $optlist]
+}
 
 # echo-less password entry. Adapted from the wiki
 proc prompt {message {mode "echo"}} {
@@ -92,7 +110,13 @@ proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
         # Remember we tried this method
         dict lappend context tried_credential_types GIT_CREDENTIAL_DEFAULT
 
-        if {![catch {git_credential_default_new $ppCred}]} {
+        if {![catch {
+            set pCred [git_credential_default_new]
+            cffi::memory set! $ppCred pointer $pCred
+            # libgit2 will take over the credentials so remove from our
+            # pointer registrations after storing in libgit2 return location.
+            cffi::pointer dispose $pCred
+        }]} {
             return 0;           # Got default, tell caller
         }
         # Error getting default credentials, try next type
@@ -115,7 +139,9 @@ proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
                 puts stderr "Could not find public key file $pub_key_file"
                 return 1; # Tell libgit2 to try next method
             }
-            if {![catch {git_credential_ssh_key_new pCred $username_from_url $pub_key_file $private_key_file $passphrase} result]} {
+            if {![catch {
+                set pCred [git_credential_ssh_key_new $username_from_url $pub_key_file $private_key_file $passphrase]
+            } result]} {
                 # libgit2 will take over the credentials so remove from our
                 # pointer registrations after storing in libgit2 return location.
                 ::cffi::memory set! $ppCred pointer $pCred
@@ -133,7 +159,13 @@ proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
         # Remember we tried this method
         dict lappend context tried_credential_types GIT_CREDENTIAL_USERPASS_PLAINTEXT
         set password [prompt "Enter password for $username_from_url" noecho]
-        if {![catch {git_credential_userpass_plaintext_new $ppCred $username_from_url $password} result]} {
+        if {![catch {
+            set pCred [git_credential_userpass_plaintext_new $username_from_url $password]
+            cffi::memory set! $ppCred pointer $pCred
+            # libgit2 will take over the credentials so remove from our
+            # pointer registrations after storing in libgit2 return location.
+            cffi::pointer dispose $pCred
+        } result]} {
             return 0
         }
         puts stderr $result
@@ -147,12 +179,12 @@ proc resolve_refish {pRepo refish} {
     # refish - something that serves as a ref
 
     try {
-        git_reference_dwim pRef $pRepo $refish
-        git_annotated_commit_from_ref pAnnotatedCommit $pRepo $pRef
+        set pRef [git_reference_dwim $pRepo $refish]
+        set pAnnotatedCommit [git_annotated_commit_from_ref $pRepo $pRef]
     } trap {} {} {
-        git_revparse_single pObj $pRepo $refish
+        set pObj [git_revparse_single $pRepo $refish]
         try {
-            git_annotated_commit_lookup pAnnotatedCommit $pRepo [git_object_id $pObj]
+            set pAnnotatedCommit [git_annotated_commit_lookup $pRepo [git_object_id $pObj]]
         } finally {
             git_object_free $pObj
         }
@@ -257,6 +289,12 @@ proc option_set {opt value} {
     set Options($opt) $value
 }
 
+proc option_init {opt value} {
+    variable Options
+    if {![info exists Options($opt)]} {
+        set Options($opt) $value
+    }
+}
 proc option_set_once {opt value} {
     variable Options
     if {[info exists Options($opt)]} {

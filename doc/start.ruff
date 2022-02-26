@@ -309,6 +309,47 @@ set start_page {
     the `onerror` annotation can be used to customize the handling of error
     conditions. See the [`examples`](https://github.com/apnadkarni/tcl-cffi/tree/main/examples) in the source repository.
 
+    ### Delegating return values
+
+    When a function's return value is used primarily as a status indicator with
+    the actual result being returned through an output parameter, it can be
+    more convenient to return the output parameter value as the result of the
+    wrapped command. For example, consider the earlier definition of
+    `GetCurrentDirectoryA`
+
+    ```
+    kernel stdcall GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
+    ```
+
+    This was in turn invoked as
+
+    ```
+    % GetCurrentDirectoryA 512 buffer
+    40
+    % set buffer
+    D:\src\tcl-cffi\win\Release_AMD64_VC1916
+    ```
+
+    The return value from the function, the number of characters, is not very
+    useful at the Tcl level except to indicate errors when zero. We can instead
+    have the wrapped command return the actual path as the return value by
+    annotating the buffer with `retval`.
+
+    ```
+    % kernel stdcall GetCurrentDirectoryA {int nonzero} {nchars {int {default 512}} path {chars[nchars] retval}}
+    ::GetCurrentDirectoryA
+    % GetCurrentDirectoryA
+    D:\src\tcl-cffi\win\Release_AMD64_VC1916
+    ```
+
+    The invocation now feels more natural. In addition to the `retval`
+    annotation for the parameter, the `nonzero` error checking annotation
+    was added to the function return value. An error checking annotation
+    is required for use of `retval`.
+
+    The `default` annotation is not required but is a convenience so
+    we do not have to specify a buffer size at the call site.
+
     ### Pointers and memory
 
     Pointers are ubiquitous in C. They give C much of its power while also being

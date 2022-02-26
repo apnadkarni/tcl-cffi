@@ -28,7 +28,7 @@ libgit2 functions {
         raw bytes[20]
     }
     git_oid_nfmt GIT_ERROR_CODE {
-        hex {chars[n] out}
+        hex {chars[n] retval}
         n   size_t
         oid {struct.git_oid byref}
     }
@@ -41,7 +41,7 @@ libgit2 functions {
         oid {struct.git_oid byref}
     }
     git_oid_cpy GIT_ERROR_CODE {
-        dst {struct.git_oid out}
+        dst {struct.git_oid retval}
         src {struct.git_oid byref}
     }
     git_oid_cmp int {
@@ -73,13 +73,13 @@ libgit2 functions {
 # Note: git_oid_fmt retuns *exactly* 40 characters but NOT null terminated so
 # we cannot type parameter hex as chars[40]
 libgit2 function git_oid_fmt GIT_ERROR_CODE {
-    hex {bytes[40] out}
+    hex {bytes[40] retval}
     oid {struct.git_oid byref}
 }
 # Note: git_oid_pathfmt retuns *exactly* 41 characters but NOT null terminated so
 # we cannot type parameter hex as chars[41]
 libgit2 function git_oid_pathfmt GIT_ERROR_CODE {
-    hex {bytes[41] out}
+    hex {bytes[41] retval}
     oid {struct.git_oid byref}
 }
 

@@ -36,11 +36,11 @@
 
 libgit2 functions {
     git_apply_options_init GIT_ERROR_CODE {
-        opts    {struct.git_apply_options out}
+        opts    {struct.git_apply_options retval}
         version uint
     }
     git_apply_to_tree GIT_ERROR_CODE {
-        pIndex    {PINDEX  out}
+        pIndex    {PINDEX  retval}
         pRepo     PREPOSITORY
         pPreimage PTREE
         diff      PDIFF

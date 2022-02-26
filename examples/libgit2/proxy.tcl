@@ -20,7 +20,7 @@
 } -clear
 
 libgit2 function git_proxy_options_init GIT_ERROR_CODE {
-    opts {struct.git_proxy_options out}
+    opts {struct.git_proxy_options retval}
     version uint
 }
 

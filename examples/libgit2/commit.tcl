@@ -9,12 +9,12 @@
 # tostring!] after retrieving encoding with git_commit_message_encoding
 libgit2 functions {
     git_commit_lookup GIT_ERROR_CODE {
-        commit {PCOMMIT        out}
+        commit {PCOMMIT        retval}
         pRepo  PREPOSITORY
         id     {struct.git_oid byref}
     }
     git_commit_lookup_prefix GIT_ERROR_CODE {
-        commit {PCOMMIT        out}
+        commit {PCOMMIT        retval}
         pRepo  PREPOSITORY
         id     {struct.git_oid byref}
         len    size_t
@@ -56,12 +56,12 @@ libgit2 functions {
         commit PCOMMIT
     }
     git_commit_committer_with_mailmap GIT_ERROR_CODE {
-        pSig    {pointer.git_signature out}
+        pSig    {pointer.git_signature retval}
         commit  PCOMMIT
         mailmap PMAILMAP
     }
     git_commit_author_with_mailmap GIT_ERROR_CODE {
-        pSig    {pointer.git_signature out}
+        pSig    {pointer.git_signature retval}
         commit  PCOMMIT
         mailmap PMAILMAP
     }
@@ -69,7 +69,7 @@ libgit2 functions {
         commit PCOMMIT
     }
     git_commit_tree GIT_ERROR_CODE {
-        tree   {PTREE out}
+        tree   {PTREE retval}
         commit PCOMMIT
     }
     git_commit_tree_id {struct.git_oid byref} {
@@ -79,7 +79,7 @@ libgit2 functions {
         commit PCOMMIT
     }
     git_commit_parent GIT_ERROR_CODE {
-        parent_commit {PCOMMIT out}
+        parent_commit {PCOMMIT retval}
         commit        PCOMMIT
         n             uint
     }
@@ -88,7 +88,7 @@ libgit2 functions {
         n      uint
     }
     git_commit_nth_gen_ancestor GIT_ERROR_CODE {
-        ancestor {PCOMMIT out}
+        ancestor {PCOMMIT retval}
         commit   PCOMMIT
         n        uint
     }
@@ -105,7 +105,7 @@ libgit2 functions {
         field       {STRING nullifempty nullok}
     }
     git_commit_create GIT_ERROR_CODE {
-        id               {struct.git_oid       out}
+        id               {struct.git_oid       retval}
         pRepo            PREPOSITORY
         update_ref       {STRING               nullifempty nullok}
         author           {struct.git_signature byref}
@@ -117,7 +117,7 @@ libgit2 functions {
         parents          {pointer.git_object[parent_count] nullok}
     }
     git_commit_amend GIT_ERROR_CODE {
-        id               {struct.git_oid       out}
+        id               {struct.git_oid       retval}
         commit_to_amend  PCOMMIT
         update_ref       {STRING               nullifempty nullok}
         author           {struct.git_signature byref}
@@ -138,20 +138,20 @@ libgit2 functions {
         parents          {pointer.git_commit[parent_count] nullok}
     }
     git_commit_create_with_signature GIT_ERROR_CODE {
-        id               {struct.git_oid out}
+        id               {struct.git_oid retval}
         pRepo            PREPOSITORY
         commit_content   STRING
         signature        {STRING nullifempty nullok}
         signature_fields {STRING nullifempty nullok}
     }
     git_commit_dup GIT_ERROR_CODE {
-        dupCommit {PCOMMIT out}
+        dupCommit {PCOMMIT retval}
         commit PCOMMIT
     }
 }
 
 ::cffi::prototype function git_commit_create_cb int {
-    id               {struct.git_oid       out}
+    id               {pointer.git_oid unsafe}
     author           {struct.git_signature byref}
     committer        {struct.git_signature byref}
     message_encoding STRING

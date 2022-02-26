@@ -12,7 +12,7 @@
 ::cffi::alias define GIT_CLONE_LOCAL_T {int {enum git_clone_local_t}}
 
 ::cffi::prototype function git_remote_create_cb int {
-    pRemote {PREMOTE out}
+    pRemote {pointer.PREMOTE unsafe}
     pRepo   PREPOSITORY
     name    STRING
     url     STRING
@@ -20,7 +20,7 @@
 }
 
 ::cffi::prototype function git_repository_create_cb int {
-    pRepo    {PREPOSITORY out}
+    pRepo    {pointer.PREPOSITORY unsafe}
     path     STRING
     bare     int
     payload  {pointer unsafe}
@@ -41,11 +41,11 @@
 
 libgit2 functions {
     git_clone_options_init GIT_ERROR_CODE {
-        opts    {struct.git_clone_options out}
+        opts    {struct.git_clone_options retval}
         version {uint {default 1}}
     }
     git_clone GIT_ERROR_CODE {
-        pRepo      {PREPOSITORY out}
+        pRepo      {PREPOSITORY retval}
         url        STRING
         local_path STRING
         opts       {struct.git_clone_options byref nullifempty}

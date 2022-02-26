@@ -1879,12 +1879,22 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     Tcl_Obj *fqnObj;
     CffiProto *protoP = NULL;
     CffiFunction *fnP = NULL;
+    CffiResult ret;
 
-    CHECK(CffiPrototypeParse(ipCtxP,
+    ret = CffiPrototypeParse(ipCtxP,
                              cmdNameObj,
                              returnTypeObj,
                              paramsObj,
-                             &protoP));
+                             &protoP);
+    if (ret != TCL_OK) {
+        Tcl_AppendResult(ip,
+                         " Error defining function ",
+                         Tcl_GetString(cmdNameObj),
+                         ".",
+                         NULL);
+        return TCL_ERROR;
+    }
+
     /* TBD - comment in func header says only override if default */
     protoP->abi = callMode;
 #ifdef CFFI_USE_LIBFFI

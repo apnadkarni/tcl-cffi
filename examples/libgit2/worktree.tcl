@@ -27,23 +27,23 @@ libgit2 functions {
         pRepo     PREPOSITORY
     }
     git_worktree_lookup GIT_ERROR_CODE {
-        pwt   {PWORKTREE out}
+        pwt   {PWORKTREE retval}
         pRepo PREPOSITORY
         name  STRING
     }
     git_worktree_open_from_repository GIT_ERROR_CODE {
-        pwt   {PWORKTREE out}
+        pwt   {PWORKTREE retval}
         pRepo PREPOSITORY
     }
     git_worktree_free void {
         wt {PWORKTREE nullok dispose}
     }
     git_worktree_add_options_init GIT_ERROR_CODE {
-        vopts   {struct.git_worktree_add_options out}
+        vopts   {struct.git_worktree_add_options retval}
         version {uint {default 1}}
     }
     git_worktree_add GIT_ERROR_CODE {
-        vwt   {PWORKTREE out}
+        vwt   {PWORKTREE retval}
         pRepo PREPOSITORY
         name  STRING
         path  STRING
@@ -64,7 +64,7 @@ libgit2 functions {
         wt PWORKTREE
     }
     git_worktree_prune_options_init GIT_ERROR_CODE {
-        vopts   {struct.git_worktree_prune_options out}
+        vopts   {struct.git_worktree_prune_options retval}
         version {uint {default 1}}
     }
     git_worktree_is_prunable int {

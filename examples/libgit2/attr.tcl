@@ -58,30 +58,30 @@ libgit2 functions {
     git_attr_value GIT_ATTR_VALUE_T {
         attr {pointer unsafe}
     }
-    {git_attr_get git_attr_get_internal} int {
-        value_out {pointer          unsafe out}
+    git_attr_get GIT_ERROR_CODE {
+        value_out {pointer          unsafe retval}
         pRepo     PREPOSITORY
         flags     {GIT_ATTR_CHECK_T bitmask}
         path      STRING
         name      STRING
     }
-    {git_attr_get_ext git_attr_get_ext_internal} int {
-        value_out {pointer                 unsafe out}
+    git_attr_get_ext GIT_ERROR_CODE {
+        value_out {pointer                 unsafe retval}
         pRepo     PREPOSITORY
         opts      {struct.git_attr_options byref}
         path      STRING
         name      STRING
     }
-    {git_attr_get_many git_attr_get_many_internal} int {
-        values_out {pointer[num_attr] unsafe out}
+    git_attr_get_many GIT_ERROR_CODE {
+        values_out {pointer[num_attr] unsafe retval}
         pRepo      PREPOSITORY
         flags      {GIT_ATTR_CHECK_T  bitmask}
         path       STRING
         num_attr   size_t
         names      {pointer[num_attr]}
     }
-    {git_attr_get_many_ext git_attr_get_many_ext_internal} int {
-        values_out {pointer[num_attr]       unsafe out}
+    git_attr_get_many_ext GIT_ERROR_CODE {
+        values_out {pointer[num_attr]       unsafe retval}
         pRepo      PREPOSITORY
         opts       {struct.git_attr_options byref}
         path       STRING

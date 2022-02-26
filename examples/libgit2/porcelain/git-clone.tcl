@@ -4,6 +4,23 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
+proc parse_options {arguments} {
+
+    # NOTE: getopt uses comments below to generate help. Careful about changing them.
+    getopt::getopt opt arg $arguments {
+        arglist {
+            # URL [DIRECTORY]
+            set remain $arg
+        }
+    }
+
+    if {[llength $remain] == 0 || [llength $remain] > 2} {
+        getopt::usage "Wrong number of arguments"
+    }
+    return $remain
+}
+
+
 proc print_progress {stats progress_state} {
     # stats is a dictionary updated by the various callbacks
 
@@ -82,16 +99,15 @@ proc fetch_progress {indexer_stats payload} {
     return 0
 }
 
-proc main {} {
-    if {[llength [lassign $::argv url path]]} {
-        error "USAGE: git-clone.tcl URL \[PATH\]"
-    }
+proc git-clone {arguments} {
+
+    lassign [parse_options $arguments] url path
     if {$path eq ""} {
         set path [file tail $url]
     }
     puts "Cloning into '$path' ..."
 
-    git_clone_options_init clone_opts
+    set clone_opts [git_clone_options_init]
     dict set clone_opts checkout_opts checkout_strategy GIT_CHECKOUT_SAFE
 
     set translation [fconfigure stdout -translation]
@@ -132,7 +148,7 @@ proc main {} {
         dict set clone_opts fetch_opts callbacks credentials $credentials_cb
 
         # Then clone the repository
-        git_clone pRepo $url $path $clone_opts
+        set pRepo [git_clone $url $path $clone_opts]
         git_repository_free $pRepo
 
     } finally {
@@ -149,7 +165,7 @@ proc main {} {
 
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-clone $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

@@ -7,14 +7,14 @@
 
 libgit2 functions {
     git_branch_create GIT_ERROR_CODE {
-        ref         {PREFERENCE out}
+        ref         {PREFERENCE retval}
         pRepo       PREPOSITORY
         branch_name STRING
         target      PCOMMIT
         force       int
     }
     git_branch_create_from_annotated GIT_ERROR_CODE {
-        ref         {PREFERENCE out}
+        ref         {PREFERENCE retval}
         pRepo       PREPOSITORY
         branch_name STRING
         target      PANNOTATED_COMMIT
@@ -24,7 +24,7 @@ libgit2 functions {
         branch PREFERENCE
     }
     git_branch_iterator_new GIT_ERROR_CODE {
-        iter       {PBRANCH_ITERATOR out}
+        iter       {PBRANCH_ITERATOR retval}
         pRepo      PREPOSITORY
         list_flags GIT_BRANCH_T
     }
@@ -37,23 +37,23 @@ libgit2 functions {
         iter {PBRANCH_ITERATOR nullok dispose}
     }
     git_branch_move GIT_ERROR_CODE {
-        new_ref         {PREFERENCE out}
+        new_ref         {PREFERENCE retval}
         branch          PREFERENCE
         new_branch_name STRING
         force           int
     }
     git_branch_lookup GIT_ERROR_CODE {
-        ref         {PREFERENCE out}
+        ref         {PREFERENCE retval}
         pRepo       PREPOSITORY
         branch_name STRING
         branch_type GIT_BRANCH_T
     }
     git_branch_name GIT_ERROR_CODE {
-        name {STRING out}
+        name {STRING retval}
         ref  PREFERENCE
     }
     git_branch_upstream GIT_ERROR_CODE {
-        ref    {PREFERENCE out}
+        ref    {PREFERENCE retval}
         branch PREFERENCE
     }
     git_branch_set_upstream GIT_ERROR_CODE {
@@ -87,7 +87,7 @@ libgit2 functions {
         refname STRING
     }
     git_branch_name_is_valid GIT_ERROR_CODE {
-        valid {int out}
+        valid {int retval}
         name  STRING
     }
 }

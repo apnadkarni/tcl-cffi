@@ -12,11 +12,11 @@
 
 libgit2 functions {
     git_revert_options_init GIT_ERROR_CODE {
-        opts    {struct.git_revert_options out}
-        version {uint                      {default 1}}
+        opts    {struct.git_revert_options retval}
+        version {uint {default 1}}
     }
     git_revert_commit GIT_ERROR_CODE {
-        index         {PINDEX                   out}
+        index         {PINDEX retval}
         pRepo         PREPOSITORY
         revert_commit PCOMMIT
         our_commit    PCOMMIT

@@ -116,43 +116,43 @@
 # TBD git_remote_stats - change return to struct.git_indexer_progress byref
 libgit2 functions {
     git_remote_create GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         pRepo   PREPOSITORY
         name    STRING
         url     STRING
     }
     git_remote_create_options_init GIT_ERROR_CODE {
-        opts {struct.git_remote_create_options out}
+        opts {struct.git_remote_create_options retval}
         version uint
     }
     git_remote_create_with_opts GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         url     STRING
         opts    {struct.git_remote_create_options byref}
     }
     git_remote_create_with_fetchspec GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         pRepo   PREPOSITORY
         name    STRING
         url     STRING
         fetch   STRING
     }
     git_remote_create_anonymous GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         pRepo   PREPOSITORY
         url     STRING
     }
     git_remote_create_detached GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         url     STRING
     }
     git_remote_lookup GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         pRepo   PREPOSITORY
         name    STRING
     }
     git_remote_dup GIT_ERROR_CODE {
-        pRemote {PREMOTE out}
+        pRemote {PREMOTE retval}
         psource PREMOTE
     }
     git_remote_owner PREPOSITORY {
@@ -218,7 +218,7 @@ libgit2 functions {
         pCustomHeaders {PSTRARRAYIN nullok}
     }
     git_remote_ls GIT_ERROR_CODE {
-        heads   {pointer out unsafe}
+        heads   {pointer retval unsafe}
         size    {size_t out}
         pRemote PREMOTE
     }
@@ -239,15 +239,15 @@ libgit2 functions {
         pRepo  PREPOSITORY
     }
     git_remote_init_callbacks GIT_ERROR_CODE {
-        opts    {struct.git_remote_callbacks out}
+        opts    {struct.git_remote_callbacks retval}
         version {uint {default 1}}
     }
     git_fetch_options_init GIT_ERROR_CODE {
-        opts    {struct.git_fetch_options out}
+        opts    {struct.git_fetch_options retval}
         version {uint {default 1}}
     }
     git_push_options_init GIT_ERROR_CODE {
-        opts    {struct.git_push_options out}
+        opts    {struct.git_push_options retval}
         version {uint {default 1}}
     }
     git_remote_download GIT_ERROR_CODE {
@@ -303,7 +303,7 @@ libgit2 functions {
         new_name STRING
     }
     git_remote_name_is_valid GIT_ERROR_CODE {
-        valid       {int out}
+        valid       {int retval}
         remote_name STRING
     }
     git_remote_delete GIT_ERROR_CODE {

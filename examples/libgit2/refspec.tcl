@@ -5,7 +5,7 @@
 
 libgit2 functions {
     git_refspec_parse GIT_ERROR_CODE {
-        pRefSpec {PREFSPEC out}
+        pRefSpec {PREFSPEC retval}
         input    STRING
         is_fetch int
     }

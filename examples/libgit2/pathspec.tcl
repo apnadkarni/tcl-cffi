@@ -19,7 +19,7 @@
 
 libgit2 functions {
     git_pathspec_new GIT_ERROR_CODE {
-        ps    {PPATHSPEC out}
+        ps    {PPATHSPEC retval}
         paths PSTRARRAYIN
     }
     git_pathspec_free void {
@@ -31,25 +31,25 @@ libgit2 functions {
         path  STRING
     }
     git_pathspec_match_workdir GIT_ERROR_CODE {
-        psmatches {PPATHSPEC_MATCH_LIST out}
+        psmatches {PPATHSPEC_MATCH_LIST retval}
         pRepo     PREPOSITORY
         flags     GIT_PATHSPEC_FLAG_T
         ps        PPATHSPEC
     }
     git_pathspec_match_index GIT_ERROR_CODE {
-        psmatches {PPATHSPEC_MATCH_LIST out}
+        psmatches {PPATHSPEC_MATCH_LIST retval}
         index     PINDEX
         flags     GIT_PATHSPEC_FLAG_T
         ps        PPATHSPEC
     }
     git_pathspec_match_tree GIT_ERROR_CODE {
-        psmatches {PPATHSPEC_MATCH_LIST out}
+        psmatches {PPATHSPEC_MATCH_LIST retval}
         tree      PTREE
         flags     GIT_PATHSPEC_FLAG_T
         ps        PPATHSPEC
     }
     git_pathspec_match_diff GIT_ERROR_CODE {
-        psmatches {PPATHSPEC_MATCH_LIST out}
+        psmatches {PPATHSPEC_MATCH_LIST retval}
         diff      PDIFF
         flags     GIT_PATHSPEC_FLAG_T
         ps        PPATHSPEC

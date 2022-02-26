@@ -5,24 +5,24 @@
 
 libgit2 functions {
     git_annotated_commit_from_ref GIT_ERROR_CODE {
-        pCommit {PANNOTATED_COMMIT out}
+        pCommit {PANNOTATED_COMMIT retval}
         pRepo   PREPOSITORY
         ref     PREFERENCE
     }
     git_annotated_commit_from_fetchhead GIT_ERROR_CODE {
-        pCommit     {PANNOTATED_COMMIT out}
+        pCommit     {PANNOTATED_COMMIT retval}
         pRepo       PREPOSITORY
         branch_name STRING
         url         STRING
         id          {struct.git_oid    byref}
     }
     git_annotated_commit_lookup GIT_ERROR_CODE {
-        pCommit {PANNOTATED_COMMIT out}
+        pCommit {PANNOTATED_COMMIT retval}
         pRepo   PREPOSITORY
         id      {struct.git_oid    byref}
     }
     git_annotated_commit_from_revspec GIT_ERROR_CODE {
-        pCommit {PANNOTATED_COMMIT out}
+        pCommit {PANNOTATED_COMMIT retval}
         pRepo   PREPOSITORY
         revspec STRING
     }

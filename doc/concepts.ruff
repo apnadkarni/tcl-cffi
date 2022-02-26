@@ -1033,42 +1033,10 @@ namespace eval Concepts {
         #### Output parameters as function result
 
         Many functions return values as pairs with the function return value
-        being a status or error code and the actual value of interest being
-        returned as an output parameter. For example, out example elsewhere
-        for `GetCurrentDirectoryA` looked like
-
-        ```
-        kernel stdcall GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
-        ```
-
-        This was in turn invoked as
-
-        ```
-        % GetCurrentDirectoryA 512 buffer
-        40
-        % set buffer
-        D:\src\tcl-cffi\win\Release_AMD64_VC1916
-        ```
-
-        The return value from the function, the number of characters, is not
-        very useful. It would be more convenient to get the actual path as the
-        function return value. We can achieve that by annotating the buffer
-        with `retval` indicating that it should be the result of the command.
-
-        ```
-        % kernel stdcall GetCurrentDirectoryA {int nonzero} {nchars {int {default 512}} path {chars[nchars] retval}}
-        ::GetCurrentDirectoryA
-        % GetCurrentDirectoryA
-        D:\src\tcl-cffi\win\Release_AMD64_VC1916
-        ```
-
-        The invocation now feels more natural. In addition to the `retval`
-        annotation for the parameter, the `nonzero` error checking annotation
-        was added to the function return value. An error checking annotation
-        is required for use of `retval`.
-
-        The `default` annotation is not required but is a convenience so
-        we do not have to specify a buffer size at the call site.
+        being a status or error code and the actual function result being
+        returned as an output parameter. In such cases, the `retval` annotation
+        on the output parameter can be used to return it as the result
+        of the wrapped command.
 
         The `retval` annotation
 
@@ -1084,6 +1052,8 @@ namespace eval Concepts {
         The return value will be the parameter output value only if the
         function's native return value passes the error checks. Otherwise,
         an exception is raised as usual.
+
+        See [Delegating return values] for an example of `retval` usage.
 
         #### Parameter annotations
 

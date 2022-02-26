@@ -8,20 +8,20 @@
 
 libgit2 functions {
     git_object_lookup GIT_ERROR_CODE {
-            pObj   {POBJECT out}
+            pObj   {POBJECT retval}
             pRepo  PREPOSITORY
             id     {struct.git_oid byref}
             type   GIT_OBJECT_T
     }
     git_object_lookup_prefix GIT_ERROR_CODE {
-            pObj   {POBJECT out}
+            pObj   {POBJECT retval}
             pRepo  PREPOSITORY
             id     {struct.git_oid out}
             len    size_t
             type   GIT_OBJECT_T
     }
     git_object_lookup_bypath GIT_ERROR_CODE {
-            pObj    {POBJECT out}
+            pObj    {POBJECT retval}
             treeish POBJECT
             path    STRING
             type    GIT_OBJECT_T
@@ -52,12 +52,12 @@ libgit2 functions {
             type GIT_OBJECT_T
     }
     git_object_peel GIT_ERROR_CODE {
-            pPeeledObj {POBJECT out}
+            pPeeledObj {POBJECT retval}
             pObj       POBJECT
             target_type GIT_OBJECT_T
     }
     git_object_dup GIT_ERROR_CODE {
-            pDest   {POBJECT out}
+            pDest   {POBJECT retval}
             pSource POBJECT
     }
 }

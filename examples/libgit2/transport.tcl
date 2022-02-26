@@ -10,7 +10,7 @@
 }
 
 ::cffi::prototype function git_transport_cb int {
-    pTransport {PTRANSPORT out}
+    pTransport {pointer unsafe}
     pOwner     PREMOTE
     param      {pointer unsafe}
 }

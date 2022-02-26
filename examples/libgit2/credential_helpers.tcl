@@ -9,7 +9,7 @@
 }
 
 libgit2 function git_credential_userpass GIT_ERROR_CODE {
-    creds         {PCREDENTIAL out}
+    creds         {PCREDENTIAL retval}
     url           STRING
     user_from_url STRING
     allowed_types uint

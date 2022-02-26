@@ -17,18 +17,18 @@
 }
 libgit2 functions {
     git_revparse_single GIT_ERROR_CODE {
-        obj   {POBJECT out}
+        obj   {POBJECT retval}
         pRepo PREPOSITORY
         spec  STRING
     }
     git_revparse_ext GIT_ERROR_CODE {
-        obj   {POBJECT    out}
+        obj   {POBJECT    retval}
         ref   {PREFERENCE nullok out}
         pRepo PREPOSITORY
         spec  STRING
     }
     git_revparse GIT_ERROR_CODE {
-        revspec {struct.git_revspec out}
+        revspec {struct.git_revspec retval}
         pRepo   PREPOSITORY
         spec    STRING
     }

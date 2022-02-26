@@ -12,11 +12,11 @@
 
 libgit2 functions {
     git_cherrypick_options_init GIT_ERROR_CODE {
-        opts {struct.git_cherrypick_options out}
+        opts {struct.git_cherrypick_options retval}
         version {uint {default 1}}
     }
     git_cherrypick_commit GIT_ERROR_CODE {
-        index {PINDEX out}
+        index {PINDEX retval}
         pRepo PREPOSITORY
         cherrypick_commit PCOMMIT
         our_commit PCOMMIT

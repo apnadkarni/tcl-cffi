@@ -12,7 +12,7 @@ libgit2 functions {
         pRepo PREPOSITORY
     }
     git_ignore_path_is_ignored GIT_ERROR_CODE {
-        ignored {int out}
+        ignored {int retval}
         pRepo   PREPOSITORY
         path    STRING
     }

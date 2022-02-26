@@ -60,43 +60,43 @@ libgit2 functions {
         pCred PCREDENTIAL
     }
     git_credential_userpass_plaintext_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
         password STRING
     }
     git_credential_default_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
     }
     git_credential_username_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
     }
     git_credential_ssh_key_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
         publickeypath STRING
         privatekeypath STRING
         passphrase STRING
     }
     git_credential_ssh_key_memory_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
         publickey STRING
         privatekey STRING
         passphrase STRING
     }
     git_credential_ssh_interactive_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
         prompt_cb pointer.git_credential_ssh_interactive_cb
         payload {pointer unsafe}
     }
     git_credential_ssh_key_from_agent GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
     }
     git_credential_ssh_custom_new GIT_ERROR_CODE {
-        ppCred {PCREDENTIAL out}
+        ppCred {PCREDENTIAL retval}
         username STRING
         publickey binary
         publickey_len size_t

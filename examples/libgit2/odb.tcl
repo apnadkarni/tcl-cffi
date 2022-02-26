@@ -19,10 +19,10 @@
 
 libgit2 functions {
     git_odb_new GIT_ERROR_CODE {
-        ppOdb {PODB out}
+        ppOdb {PODB retval}
     }
     git_odb_open GIT_ERROR_CODE {
-        ppOdb {PODB out}
+        ppOdb {PODB retval}
         objects_dir STRING
     }
     git_odb_add_disk_alternate GIT_ERROR_CODE {
@@ -33,18 +33,18 @@ libgit2 functions {
         db {PODB nullok dispose}
     }
     git_odb_read GIT_ERROR_CODE {
-        pOdbObject {PODB_OBJECT out}
+        pOdbObject {PODB_OBJECT retval}
         db PODB
         id {struct.git_oid byref}
     }
     git_odb_read_prefix GIT_ERROR_CODE {
-        pOdbObject {PODB_OBJECT out}
+        pOdbObject {PODB_OBJECT retval}
         db PODB
         short_id {struct.git_oid byref}
         len size_t
     }
     git_odb_read_header GIT_ERROR_CODE {
-        len_out  {size_t out}
+        len_out  {size_t retval}
         type_out {GIT_OBJECT_T out}
         db       PODB
         id       {struct.git_oid byref}
@@ -72,14 +72,14 @@ libgit2 functions {
         payload {pointer unsafe}
     }
     git_odb_write GIT_ERROR_CODE {
-        oid {struct.git_oid out}
+        oid {struct.git_oid retval}
         odb PODB
         data binary
         len size_t
         type GIT_OBJECT_T
     }
     git_odb_open_wstream GIT_ERROR_CODE {
-        ppStream {PODB_STREAM out}
+        ppStream {PODB_STREAM retval}
         db       PODB
         size     git_object_size_t
         type     GIT_OBJECT_T
@@ -90,7 +90,7 @@ libgit2 functions {
         len    size_t
     }
     git_odb_stream_finalize_write GIT_ERROR_CODE {
-        oid    {struct.git_oid out}
+        oid    {struct.git_oid retval}
         stream PODB_STREAM
     }
     git_odb_stream_read GIT_ERROR_CODE {
@@ -102,14 +102,14 @@ libgit2 functions {
         stream {PODB_STREAM nullok dispose}
     }
     git_odb_open_rstream GIT_ERROR_CODE {
-        ppStream {PODB_STREAM out}
+        ppStream {PODB_STREAM retval}
         len      {size_t out}
         type     {GIT_OBJECT_T out}
         db       {PODB}
         oid      {struct.git_oid byref}
     }
     git_odb_write_pack GIT_ERROR_CODE {
-        writepack {PODB_WRITEPACK out}
+        writepack {PODB_WRITEPACK retval}
         db        PODB
         progress_cb pointer.git_indexer_progress_cb
         progress_payload {pointer unsafe}
@@ -118,18 +118,18 @@ libgit2 functions {
         db PODB
     }
     git_odb_hash GIT_ERROR_CODE {
-        oid  {struct.git_oid out}
+        oid  {struct.git_oid retval}
         data binary
         len  size_t
         type GIT_OBJECT_T
     }
     git_odb_hashfile GIT_ERROR_CODE {
-        oid {struct.git_oid out}
+        oid {struct.git_oid retval}
         path STRING
         type GIT_OBJECT_T
     }
     git_odb_object_dup GIT_ERROR_CODE {
-        dest {PODB_OBJECT out}
+        dest {PODB_OBJECT retval}
         source PODB_OBJECT
     }
     git_odb_object_free void {
@@ -161,7 +161,7 @@ libgit2 functions {
         odb PODB
     }
     git_odb_get_backend GIT_ERROR_CODE {
-        backend {PODB_BACKEND out}
+        backend {PODB_BACKEND retval}
         odb     PODB
         pos     size_t
     }

@@ -29,8 +29,9 @@ proc parse_options {arguments} {
             option_set SeparateGitDir $arg
         }
         --shared:PERMS {
-            # Set the sharing permissions. PERMS should be "umask" (default),
-            # "group", "all" or an integer umask value.
+            # Set the sharing permissions. PERMS should be
+            # "umask" (default), "group", "all" or an
+            # integer umask value.
             if {[string is integer -strict $arg]} {
                 option_set ShareMode $arg
             } else {
@@ -69,7 +70,7 @@ proc parse_options {arguments} {
 
 proc initialize_repository {dir} {
     # Initialize an libgit2 options structure to defaults
-    git_repository_init_options_init init_opts
+    git_repository_init_options_init 1
 
     # Have libgit create directories as necessary
     dict set init_opts flags GIT_REPOSITORY_INIT_MKPATH
@@ -90,7 +91,7 @@ proc initialize_repository {dir} {
     }
 
     # Make the actual libgit2 call to initialize the repository
-    git_repository_init_ext pRepo $dir $init_opts
+    set pRepo [git_repository_init_ext $dir $init_opts]
     return $pRepo
 }
 
@@ -100,27 +101,27 @@ proc create_initial_commit {pRepo} {
     # as a pointer to an internal allocation. It is easier to pass around as a
     # dictionary value corresponding to the git_signature struct so we do that
     # conversion.
-    git_signature_default pSig $pRepo
-    set sig [git_signature fromnative $pSig]
+    set pSig [git_signature_default $pRepo]
+    set sig  [git_signature fromnative $pSig]
     git_signature_free $pSig
 
     # Create a tree for this commit
-    git_repository_index pIndex $pRepo
+    set pIndex [git_repository_index $pRepo]
     try {
-        git_index_write_tree tree_id $pIndex
+        set tree_id [git_index_write_tree $pIndex]
     } finally {
         git_index_free $pIndex
     }
 
     # Now create the commit for the created tree
     # First get the tree from its id
-    git_tree_lookup pTree $pRepo $tree_id
+    set pTree [git_tree_lookup $pRepo $tree_id]
     # Message has to be passed in as a pointer
     set pMessage [::cffi::memory fromstring "Initial commit" utf-8]
     try {
         # This is an intial commit so there are no parents. Thus the
         # last two parameters - parent_count and parent list are 0 and empty
-        git_commit_create commit_id $pRepo "HEAD" $sig $sig "" $pMessage $pTree 0 {}
+        set commit_id [git_commit_create $pRepo "HEAD" $sig $sig "" $pMessage $pTree 0 {}]
         inform "Initial commit: [hexify_id $commit_id]"
     } finally {
         ::cffi::memory free $pMessage
@@ -128,8 +129,8 @@ proc create_initial_commit {pRepo} {
     }
 }
 
-proc main {} {
-    set dir [parse_options $::argv]
+proc git-init {arguments} {
+    set dir [parse_options $arguments]
     set pRepo [initialize_repository $dir]
     try {
         if {! [option Quiet 0]} {
@@ -150,7 +151,7 @@ proc main {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-init $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

@@ -36,7 +36,7 @@
 
 libgit2 functions {
     git_submodule_update_options_init GIT_ERROR_CODE {
-        optsvar {struct.git_submodule_update_options out}
+        optsvar {struct.git_submodule_update_options retval}
         version {uint {default 1}}
     }
     git_submodule_update GIT_ERROR_CODE {
@@ -45,12 +45,12 @@ libgit2 functions {
         opts {struct.git_submodule_update_options byref}
     }
     git_submodule_lookup GIT_ERROR_CODE {
-        submodulevar {PSUBMODULE out}
+        submodulevar {PSUBMODULE retval}
         pRepo        PREPOSITORY
         name         STRING
     }
     git_submodule_dup GIT_ERROR_CODE {
-        submodulevar {PSUBMODULE out}
+        submodulevar {PSUBMODULE retval}
         source PSUBMODULE
     }
     git_submodule_free void {
@@ -62,7 +62,7 @@ libgit2 functions {
         payload  CB_PAYLOAD
     }
     git_submodule_add_setup GIT_ERROR_CODE {
-        submodulevar {PSUBMODULE out}
+        submodulevar {PSUBMODULE retval}
         pRepo        PREPOSITORY
         url          STRING
         path         STRING
@@ -148,14 +148,14 @@ libgit2 functions {
         overwrite int
     }
     git_submodule_repo_init GIT_ERROR_CODE {
-        vpRepo    {PREPOSITORY out}
+        vpRepo    {PREPOSITORY retval}
         submodule PSUBMODULE
     }
     git_submodule_sync GIT_ERROR_CODE {
         submodule PSUBMODULE
     }
     git_submodule_open GIT_ERROR_CODE {
-        vpRepo    {PREPOSITORY out}
+        vpRepo    {PREPOSITORY retval}
         submodule PSUBMODULE
     }
     git_submodule_reload GIT_ERROR_CODE {
@@ -163,13 +163,13 @@ libgit2 functions {
         force     int
     }
     git_submodule_status GIT_ERROR_CODE {
-        vstatus {GIT_SUBMODULE_STATUS_T out}
+        vstatus {GIT_SUBMODULE_STATUS_T retval}
         pRepo   PREPOSITORY
         name    STRING
         ignore  GIT_SUBMODULE_IGNORE_T
     }
     git_submodule_location GIT_ERROR_CODE {
-        vlocation_status {GIT_SUBMODULE_STATUS_T out}
+        vlocation_status {GIT_SUBMODULE_STATUS_T retval}
         submodule        PSUBMODULE
     }
 }

@@ -38,12 +38,12 @@
 # {TBD - marked as unsafe return because repo would already have been returned by other calls}
 libgit2 functions {
     git_tree_lookup GIT_ERROR_CODE {
-        pTree  {PTREE out}
+        pTree  {PTREE retval}
         pRepo  PREPOSITORY
         id     {struct.git_oid byref}
     }
     git_tree_lookup_prefix GIT_ERROR_CODE {
-        pTree {PTREE out}
+        pTree {PTREE retval}
         pRepo PREPOSITORY
         id    {struct.git_oid byref}
         len   size_t
@@ -82,12 +82,12 @@ libgit2 functions {
         oid   {struct.git_oid byref}
     }
     git_tree_entry_bypath GIT_ERROR_CODE {
-        pTreeEntry {PTREE_ENTRY out}
+        pTreeEntry {PTREE_ENTRY retval}
         pTree      PTREE
         path       STRING
     }
     git_tree_entry_dup GIT_ERROR_CODE {
-        pDest   {PTREE_ENTRY out}
+        pDest   {PTREE_ENTRY retval}
         pSource PTREE_ENTRY
     }
     git_tree_entry_free void {
@@ -113,7 +113,7 @@ libgit2 functions {
         pEntry2 {PTREE_ENTRY unsafe}
     }
     git_tree_entry_to_object GIT_ERROR_CODE {
-        pObject {POBJECT out}
+        pObject {POBJECT retval}
         pRepo   PREPOSITORY
         pEntry  {PTREE_ENTRY unsafe}
     }
@@ -121,7 +121,7 @@ libgit2 functions {
 
 libgit2 functions {
     git_treebuilder_new GIT_ERROR_CODE {
-        pTreeBuilder {PTREEBUILDER out}
+        pTreeBuilder {PTREEBUILDER retval}
         pRepo        PREPOSITORY
         pSource      {PTREE nullok {default NULL}}
     }
@@ -139,7 +139,7 @@ libgit2 functions {
         filename     STRING
     }
     git_treebuilder_insert GIT_ERROR_CODE {
-        pTreeEntry   {PTREE_ENTRY out unsafe}
+        pTreeEntry   {PTREE_ENTRY retval unsafe}
         pTreeBuilder PTREEBUILDER
         filename     STRING
         id           {struct.git_oid byref}
@@ -155,7 +155,7 @@ libgit2 functions {
         pPayload     {pointer unsafe}
     }
     git_treebuilder_write GIT_ERROR_CODE {
-        oid {struct.git_oid out}
+        oid {struct.git_oid retval}
         pTreeBuilder PTREEBUILDER
     }
     git_tree_walk GIT_ERROR_CODE {
@@ -165,11 +165,11 @@ libgit2 functions {
         payload {pointer unsafe}
     }
     git_tree_dup GIT_ERROR_CODE {
-        pTree   {PTREE out}
+        pTree   {PTREE retval}
         pSource PTREE
     }
     git_tree_create_updated GIT_ERROR_CODE {
-        oid       {struct.git_oid out}
+        oid       {struct.git_oid retval}
         pRepo     PREPOSITORY
         pBaseline PTREE
         nupdates  size_t

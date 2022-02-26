@@ -45,18 +45,18 @@ proc parse_options {arguments} {
     return $rest
 }
 
-proc main {} {
-    lassign [parse_options $::argv] path commit_range
+proc git-blame {arguments} {
+    lassign [parse_options $arguments] path commit_range
 
-    git_blame_options_init opts
+    set opts [git_blame_options_init]
     dict set opts flags [option Flags GIT_BLAME_NORMAL]
 
-    git_repository_open_ext pRepo [option GitDir .]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     try {
         set path [make_relative_path $path [git_repository_workdir $pRepo]]
 
         if {$commit_range ne ""} {
-            git_revparse revspec $pRepo $commit_range
+            set revspec [git_revparse $pRepo $commit_range]
             set flags [dict get $revspec flags]
             if {"GIT_REVSPEC_SINGLE" in $flags} {
                 set from [dict get $revspec from]
@@ -75,7 +75,7 @@ proc main {} {
                 error "Unexpected or unsupported revspec flag(s) [dict get $revspec flags]"
             }
         }
-        git_blame_file pBlame $pRepo $path $opts
+        set pBlame [git_blame_file $pRepo $path $opts]
         set newest_commit_oid [dict get $opts newest_commit]
         if {[git_oid_is_zero $newest_commit_oid]} {
             set spec HEAD
@@ -83,8 +83,8 @@ proc main {} {
             set spec [git_oid_tostr_s $newest_commit_oid]
         }
         append spec : $path
-        git_revparse_single pObject $pRepo $spec
-        git_blob_lookup pBlob $pRepo [git_object_id $pObject]
+        set pObject [git_revparse_single $pRepo $spec]
+        set pBlob [git_blob_lookup $pRepo [git_object_id $pObject]]
 
         set data [git_blob_rawcontent $pBlob]
         set size [git_blob_rawsize $pBlob]
@@ -140,7 +140,7 @@ proc main {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-blame $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

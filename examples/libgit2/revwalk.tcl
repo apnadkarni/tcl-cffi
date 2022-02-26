@@ -18,7 +18,7 @@
 
 libgit2 functions {
     git_revwalk_new GIT_ERROR_CODE {
-        vwalk {PREVWALK out}
+        vwalk {PREVWALK retval}
         pRepo PREPOSITORY
     }
     git_revwalk_reset GIT_ERROR_CODE {

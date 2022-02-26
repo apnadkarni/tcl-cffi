@@ -19,16 +19,16 @@
 
 libgit2 functions {
     git_blob_filter_options_init GIT_ERROR_CODE {
-        opts    {struct.git_blob_filter_options out}
+        opts    {struct.git_blob_filter_options retval}
         version uint
     }
     git_blob_lookup GIT_ERROR_CODE {
-        pBlob {PBLOB out}
+        pBlob {PBLOB retval}
         pRepo PREPOSITORY
         id    {struct.git_oid byref}
     }
     git_blob_lookup_prefix GIT_ERROR_CODE {
-        pBlob {PBLOB out}
+        pBlob {PBLOB retval}
         pRepo PREPOSITORY
         id    {struct.git_oid byref}
         len   size_t
@@ -65,16 +65,16 @@ libgit2 functions {
         path  STRING
     }
     git_blob_create_from_stream GIT_ERROR_CODE {
-        pStream  {PWRITESTREAM out}
+        pStream  {PWRITESTREAM retval}
         pRepo    PREPOSITORY
         hintpath STRING
     }
     git_blob_create_from_stream_commit GIT_ERROR_CODE {
-        id {struct.git_oid out}
+        id {struct.git_oid retval}
         stream {PWRITESTREAM nullok dispose}
     }
     git_blob_create_from_buffer GIT_ERROR_CODE {
-        id     {struct.git_oid out}
+        id     {struct.git_oid retval}
         pRepo  PREPOSITORY
         buffer {pointer unsafe}
         len    size_t
@@ -83,7 +83,7 @@ libgit2 functions {
         blob PBLOB
     }
     git_blob_dup GIT_ERROR_CODE {
-        out_blob {PBLOB out}
+        out_blob {PBLOB retval}
         src_blob PBLOB
     }
 }

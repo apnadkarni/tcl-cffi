@@ -5,7 +5,7 @@
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
 proc parse_options {arguments} {
-    getopt::getopt opt arg $arguments {
+    parse_common_options opt arg $arguments {
         -s {
             # Show output in short format.
             option_set Format short
@@ -55,10 +55,6 @@ proc parse_options {arguments} {
         --list-submodules {
             # List submodules
             option_set ListSubmodules 1
-        }
-        --git-dir:GITDIR {
-            # Specify the path to the repository
-            option_set GitDir $arg
         }
         arglist {
             # ?PATHSPEC? ...
@@ -125,7 +121,7 @@ proc print_short {pRepo pStatusList} {
             set itow_delta [git_diff_delta fromnative! $index_to_workdir]
             if {"GIT_FILEMODE_COMMIT" eq [dict get $itow_delta new_file mode]} {
                 if {[catch {
-                    git_submodule_status smstatus $pRepo [dict get $itow_delta new_file path] GIT_SUBMODULE_IGNORE_UNSPECIFIED
+                    set smstatus [git_submodule_status $pRepo [dict get $itow_delta new_file path] GIT_SUBMODULE_IGNORE_UNSPECIFIED]
                 } result]} {
                     inform $result 1
                 } else {
@@ -334,9 +330,9 @@ proc print_long {pRepo pStatusList} {
 
 proc show_branch {pRepo format} {
     try {
-        git_repository_head head $pRepo
-        set branch [git_reference_shorthand $head]
-        git_reference_free $head
+        set pHead [git_repository_head $pRepo]
+        set branch [git_reference_shorthand $pHead]
+        git_reference_free $pHead
     } trap {GIT -9} {} - trap {GIT -3} {} {
         # EUNBORNBRANCH -9
         # ENOTFOUND -3
@@ -378,7 +374,7 @@ proc print_submod {pSubmod name payload} {
     return 0
 }
 
-proc main {} {
+proc git-status {} {
     # Defaults before parsing options
     # Status should include untracked and renamed files by default
     option_set StatusOpts {
@@ -387,10 +383,10 @@ proc main {} {
     }
     set path_specs [parse_options $::argv]
 
-    git_repository_open_ext pRepo [option GitDir .]
+    set pRepo [git_repository_open_ext [option GitDir .]]
     try {
         # Set up options for retrieving status
-        git_status_options_init opts
+        set opts [git_status_options_init]
         dict set opts flags [option! StatusOpts]
         dict set opts show GIT_STATUS_SHOW_INDEX_AND_WORKDIR
 
@@ -422,7 +418,7 @@ proc main {} {
         # Retrieve the whole list and print status. An alternative would be to
         # use callbacks with either git_status_foreach or git_status_foreach_ext.
         # For production code, you may try all and choose the most performant.
-        git_status_list_new pStatusList $pRepo $opts
+        set pStatusList [git_status_list_new $pRepo $opts]
         switch -exact -- $format {
             long      { print_long $pRepo $pStatusList }
             default   { print_short $pRepo $pStatusList }
@@ -442,7 +438,7 @@ proc main {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {main} result edict
+catch {git-status} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

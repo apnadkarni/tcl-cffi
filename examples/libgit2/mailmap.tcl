@@ -5,7 +5,7 @@
 
 libgit2 functions {
     git_mailmap_new GIT_ERROR_CODE {
-        mm {PMAILMAP out}
+        mm {PMAILMAP retval}
     }
     git_mailmap_free void {
         mm {PMAILMAP nullok dispose}
@@ -18,12 +18,12 @@ libgit2 functions {
         replace_email {STRING nullifempty}
     }
     git_mailmap_from_buffer GIT_ERROR_CODE {
-        mm  {PMAILMAP out}
+        mm  {PMAILMAP retval}
         buf binary
         len size_t
     }
     git_mailmap_from_repository GIT_ERROR_CODE {
-        mm    {PMAILMAP out}
+        mm    {PMAILMAP retval}
         pRepo PREPOSITORY
     }
     git_mailmap_resolve GIT_ERROR_CODE {
@@ -34,7 +34,7 @@ libgit2 functions {
         email      STRING
     }
     git_mailmap_resolve_signature GIT_ERROR_CODE {
-        pSig {pointer.git_signature out}
+        pSig {pointer.git_signature retval}
         mm   PMAILMAP
         sig  {struct.git_signature  byref}
     }

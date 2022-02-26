@@ -10,12 +10,12 @@ libgit2 functions {
         patch PPATCH
     }
     git_patch_from_diff GIT_ERROR_CODE {
-        patch {PPATCH out}
+        patch {PPATCH retval}
         diff  PDIFF
         idx   size_t
     }
     git_patch_from_blobs GIT_ERROR_CODE {
-        patch       {PPATCH out}
+        patch       {PPATCH retval}
         old_blob    {PBLOB  nullok}
         old_as_path {STRING nullifempty}
         new_blob    {PBLOB  nullok}
@@ -23,7 +23,7 @@ libgit2 functions {
         opts        {struct.git_diff_options byref nullifempty}
     }
     git_patch_from_blob_and_buffer GIT_ERROR_CODE {
-        patch          {PPATCH out}
+        patch          {PPATCH retval}
         old_blob       {PBLOB  nullok}
         old_as_path    {STRING nullifempty}
         buffer         {binary nullifempty}
@@ -32,7 +32,7 @@ libgit2 functions {
         opts           {struct.git_diff_options byref nullifempty}
     }
     git_patch_from_buffers GIT_ERROR_CODE {
-        patch       {PPATCH out}
+        patch       {PPATCH retval}
         old_buffer  {binary nullifempty}
         old_len     size_t
         old_as_path {STRING nullifempty}
@@ -57,7 +57,7 @@ libgit2 functions {
         patch           PPATCH
     }
     git_patch_get_hunk GIT_ERROR_CODE {
-        hunk          {pointer.git_diff_hunk unsafe out}
+        hunk          {pointer.git_diff_hunk unsafe retval}
         lines_in_hunk {size_t out}
         patch         PPATCH
         hunk_idx      size_t
@@ -67,7 +67,7 @@ libgit2 functions {
         hunk_idx size_t
     }
     git_patch_get_line_in_hunk GIT_ERROR_CODE {
-        line         {pointer.git_diff_line out}
+        line         {pointer.git_diff_line retval}
         patch        PPATCH
         hunk_idx     size_t
         line_of_hunk size_t
