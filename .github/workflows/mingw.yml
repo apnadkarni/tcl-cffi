@@ -32,7 +32,7 @@ jobs:
       with:
         msystem: ${{ matrix.sys }}
         path-type: minimal
-        release: false
+        release: true
         update: false
         install: mingw-w64-${{matrix.env}}-gcc make
 
