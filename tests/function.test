@@ -297,25 +297,25 @@ namespace eval ${NS}::test {
         } -body {
             # Prototype does not match C function but no matter. Not actually called
             testDll function $fn [list int zero] [list inparam [list $type retval] outparam [list $type retval]]
-        } -result {The "retval" annotation must not be placed on more than one parameter definition.} -returnCodes error
+        } -result {The "retval" annotation must not be placed on more than one parameter definition.* Error defining function *} -match glob -returnCodes error
 
         test function-param-retval-$type-error-1 "$type retval - disallowed function decl" -setup {
             set fn ${type}_retval
         } -body {
             testDll function $fn int [list inparam [list $type in] outparam [list $type retval]]
-        } -result {The "retval" annotation can only be used in a parameter definition in functions with integer return types with error checking annotations.} -returnCodes error
+        } -result {The "retval" annotation can only be used in a parameter definition in functions with integer return types with error checking annotations.* Error defining function *} -match glob -returnCodes error
 
         test function-param-retval-$type-error-2 "$type retval in" -setup {
             set fn ${type}_retval
         } -body {
             testDll function $fn int [list inparam [list $type in retval] outparam [list $type]]
-        } -result {Invalid value*Unknown, repeated or conflicting type annotations specified.} -returnCodes error -match glob
+        } -result {Invalid value*Unknown, repeated or conflicting type annotations specified.* Error defining function *} -match glob -returnCodes error -match glob
 
         test function-param-retval-$type-error-3 "$type retval inout" -setup {
             set fn ${type}_retval
         } -body {
             testDll function $fn int [list inparam [list $type inout retval] outparam [list $type]]
-        } -result {Invalid value*Unknown, repeated or conflicting type annotations specified.} -returnCodes error -match glob
+        } -result {Invalid value*Unknown, repeated or conflicting type annotations specified.* Error defining function *} -match glob -returnCodes error -match glob
 
         test function-param-retval-$type-error-4 "$type retval - syntax too many args" -setup {
             set fn ${type}_retval
@@ -342,7 +342,7 @@ namespace eval ${NS}::test {
         foreach attr [linsert $pointerAttrs end nullifempty] {
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                 testDll function ${type}_to_void void [list param [list $type $attr]]
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
         }
 
         # Error handler attrs to be ignored
@@ -385,7 +385,7 @@ namespace eval ${NS}::test {
             }
             test function-param-$type-$attr "$type invalid attribute" -body {
                 testDll function ${type}_to_void void [list param [list $type $attr]]
-            } -result "Invalid value \"$type $attr\". $msg" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $msg* Error defining function *" -match glob -returnCodes error
         }
     }
 
@@ -517,13 +517,13 @@ namespace eval ${NS}::test {
         set fn ${type}_reverse_inout
         test function-$type-inout-error-0 "$type inout" -body {
             testDll function $fn int [list param [list $type inout]]
-        } -result "Invalid value \"$type inout\". A type annotation is not valid for the data type." -returnCodes error
+        } -result "Invalid value \"$type inout\". A type annotation is not valid for the data type.* Error defining function *" -match glob -returnCodes error
 
         foreach attr $pointerAttrs {
             if {$attr ne "nullok"} {
                 test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                     testDll function ${type}_to_void void [list param [list $type $attr]]
-                } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+                } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
             }
         }
 
@@ -531,7 +531,7 @@ namespace eval ${NS}::test {
             set msg $errorMessages(attrtype)
             test function-param-$type-$attr "$type invalid attribute" -body {
                 testDll function ${type}_to_void void [list param [list $type $attr]]
-            } -result "Invalid value \"$type $attr\". $msg" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $msg* Error defining function *" -match glob -returnCodes error
         }
 
         test function-$type-nullifempty-0 "$type in nullifempty" -setup {
@@ -579,7 +579,7 @@ namespace eval ${NS}::test {
     } -result [expr {$bufsize/2 - 1}]
     test function-string-encoding-in-error-1 "string bad encoding" -body {
         testDll function jis0208_in int [list x string.nosuchencoding]
-    } -result {unknown encoding "nosuchencoding"} -returnCodes error
+    } -result {unknown encoding "nosuchencoding"* Error defining function *} -match glob -returnCodes error
 
     # string array parameter tests
     test function-string-array-in-0 "string input array" -body {
@@ -674,12 +674,12 @@ namespace eval ${NS}::test {
         unset -nocomplain s
     } -body {
         testDll function string_array_out void {strings {string[3] inout} n int}
-    } -result {Invalid value "string[3] inout". A type annotation is not valid for the data type.} -returnCodes error
+    } -result {Invalid value "string\[3\] inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
     test function-unistring-array-inout-0 "unistring inout array" -setup {
         unset -nocomplain s
     } -body {
         testDll function unistring_array_out void {strings {unistring[3] inout} n int}
-    } -result {Invalid value "unistring[3] inout". A type annotation is not valid for the data type.} -returnCodes error
+    } -result {Invalid value "unistring\[3\] inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
 
 
     ## Parameter tests - chars, unichars
@@ -758,7 +758,7 @@ namespace eval ${NS}::test {
             if {$attr eq "nullok"} continue; # Skip nullok from pointerAttrs
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                 testDll function $fn void [list param [list $type\[2\] $attr]]
-            } -result "Invalid value \"{$type\[2\]} $attr\". $errorMessages(attrtype)" -returnCodes error
+            } -result "Invalid value \"{$type\\\[2\\\]} $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
         }
 
         foreach attr $errorAttrs {
@@ -769,7 +769,7 @@ namespace eval ${NS}::test {
             }
             test function-param-$type-$attr "$type invalid attribute" -body {
                 testDll function $fn void [list param [list $type\[2\] $attr]]
-            } -result "Invalid value \"{$type\[2\]} $attr\". $msg" -returnCodes error
+            } -result "Invalid value \"{$type\\\[2\\\]} $attr\". $msg* Error defining function *" -match glob -returnCodes error
         }
     }
 
@@ -788,7 +788,7 @@ namespace eval ${NS}::test {
     } -result "Invalid value*String length is greater than specified maximum buffer size." -returnCodes error -match glob
     test function-chars-encoding-in-error-1 "chars bad encoding" -body {
         testDll function jis0208_in int [list x chars.nosuchencoding\[10\]]
-    } -result {unknown encoding "nosuchencoding"} -returnCodes error
+    } -result {unknown encoding "nosuchencoding"* Error defining function *} -match glob -returnCodes error
 
     testDll function jis0208_out void [list bufsize int buf [list chars.jis0208\[$bufsize\] out]]
     test function-chars-encoded-out-0 "encoded out" -body {
@@ -879,10 +879,10 @@ namespace eval ${NS}::test {
     } -result [makeptr 0]
     test function-binary-out-error-0 "binary out" -body {
         testDll function bytes_out void [list n int input binary output [list binary out]]
-    } -result {Invalid value "binary out". A type annotation is not valid for the data type.} -returnCodes error
+    } -result {Invalid value "binary out". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
     test function-binary-inout-error-0 "binary inout" -body {
         testDll function bytes_inout void [list n int output [list binary inout]]
-    } -result {Invalid value "binary inout". A type annotation is not valid for the data type.} -returnCodes error
+    } -result {Invalid value "binary inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
 
     ## Parameter tests - pointers
     test function-pointer-in-0 "pointer in" -setup {
@@ -986,11 +986,11 @@ namespace eval ${NS}::test {
 
     test function-pointer-param-safety-5 "pointer unsafe dispose conflict" -body {
         testDll function pointer_noop void {p {pointer dispose unsafe}}
-    } -result "Invalid value \"pointer dispose unsafe\". $errorMessages(attrconflict)" -returnCodes error
+    } -result "Invalid value \"pointer dispose unsafe\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
 
     test function-pointer-param-safety-6 "pointer unsafe counted conflict" -body {
         testDll function pointer_noop void {p {pointer counted unsafe}}
-    } -result "Invalid value \"pointer counted unsafe\". $errorMessages(attrconflict)" -returnCodes error
+    } -result "Invalid value \"pointer counted unsafe\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
 
     test function-pointer-param-safety-7 "pointer counted" -setup {
         cffi::pointer counted 1^
@@ -1049,11 +1049,11 @@ namespace eval ${NS}::test {
 
     test function-pointer-param-safety-12 "pointer unsafe disposeonsuccess conflict" -body {
         testDll function pointer_noop void {p {pointer disposeonsuccess unsafe}}
-    } -result "Invalid value \"pointer disposeonsuccess unsafe\". $errorMessages(attrconflict)" -returnCodes error
+    } -result "Invalid value \"pointer disposeonsuccess unsafe\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
 
-    test function-pointer-param-safety-12 "pointer dispose disposeonsuccess conflict" -body {
+    test function-pointer-param-safety-12.1 "pointer dispose disposeonsuccess conflict" -body {
         testDll function pointer_noop void {p {pointer disposeonsuccess dispose}}
-    } -result "Invalid value \"pointer disposeonsuccess dispose\". $errorMessages(attrconflict)" -returnCodes error
+    } -result "Invalid value \"pointer disposeonsuccess dispose\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
 
 
     test function-pointer-param-safety-13 "verify dispose in effect on function call errors" -setup {
@@ -1223,7 +1223,7 @@ namespace eval ${NS}::test {
         }
         test function-pointer-param-$attr-0 "pointer invalid attribute" -constraints $constraints -body {
             testDll function pointer_to_void void [list param [list pointer $attr]]
-        } -result "Invalid value \"pointer $attr\". $msg" -returnCodes error
+        } -result "Invalid value \"pointer $attr\". $msg* Error defining function *" -match glob -returnCodes error
     }
 
     ## Parameter - struct
@@ -1610,16 +1610,16 @@ namespace eval ${NS}::test {
 
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function ${type}_to_${type} $type\[2\] {}
-        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
+        } -result "Invalid value \"$type\\\[2\\\]\". $errorMessages(arrayreturn)* Error defining function *" -match glob -returnCodes error
         foreach attr $paramDirectionAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)* Error defining function *" -match glob -returnCodes error
         }
         foreach attr [linsert $pointerAttrs end nullifempty] {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
         }
     }
 
@@ -1653,7 +1653,7 @@ namespace eval ${NS}::test {
         } else {
             test function-return-winerror-$attr-$val-0 "return $attr winerror" -constraints win -body {
                 testDll function {int_to_int getWinError} [list int $attr winerror] {val int}
-            } -result "Invalid value \"int $attr winerror\". $errorMessages(attrconflict)" -returnCodes error
+            } -result "Invalid value \"int $attr winerror\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
         }
     }
 
@@ -1661,21 +1661,21 @@ namespace eval ${NS}::test {
     foreach type $realTypes {
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function ${type}_to_${type} $type\[2\] {}
-        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
+        } -result "Invalid value \"$type\\\[2\\\]\". $errorMessages(arrayreturn)* Error defining function *" -match glob -returnCodes error
         foreach attr [linsert $errorAttrs end nullifempty] {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
         }
         foreach attr $paramDirectionAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrparsemode)* Error defining function *" -match glob -returnCodes error
         }
         foreach attr $pointerAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function ${type}_to_${type} [list $type $attr] {}
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
         }
     }
 
@@ -1815,24 +1815,24 @@ namespace eval ${NS}::test {
         foreach attr {nonzero zero nonnegative positive nullifempty} {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
-            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+            } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
         }
         set attr winerror
         test function-return-$type-${attr}-0 "return type $type $attr" -constraints win -body {
             testDll function pointer_to_pointer [list $type $attr] {p {pointer unsafe}}
-        } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)" -returnCodes error
+        } -result "Invalid value \"$type $attr\". $errorMessages(attrtype)* Error defining function *" -match glob -returnCodes error
 
         # Error cases
         test function-return-$type-array-0 "return type $type\[\]" -body {
             testDll function pointer_to_pointer $type\[2\] {}
-        } -result "Invalid value \"$type\[2\]\". $errorMessages(arrayreturn)" -returnCodes error
+        } -result "Invalid value \"$type\\\[2\\\]\". $errorMessages(arrayreturn)* Error defining function *" -match glob -returnCodes error
         test function-return-$type-dispose-0 "return type $type dispose" -body {
             testDll function pointer_to_pointer [list $type dispose] {p {pointer unsafe}}
-        } -result "Invalid value \"$type dispose\". $errorMessages(attrparsemode)" -returnCodes error
+        } -result "Invalid value \"$type dispose\". $errorMessages(attrparsemode)* Error defining function *" -match glob -returnCodes error
         foreach attr $paramDirectionAttrs {
             test function-return-$type-${attr}-0 "return type $type $attr" -body {
                 testDll function pointer_to_pointer [list $type unsafe $attr] {p {pointer unsafe}}
-            } -result "Invalid value \"$type unsafe $attr\". $errorMessages(attrparsemode)" -returnCodes error
+            } -result "Invalid value \"$type unsafe $attr\". $errorMessages(attrparsemode)* Error defining function *" -match glob -returnCodes error
         }
     }
 
@@ -1997,13 +1997,13 @@ namespace eval ${NS}::test {
         test function-return-$type-0 "Return type $type" -body {
             # Prototype does not match C. Does not have to!
             testDll function ${type}_out $type {}
-        } -result "Invalid value \"$type\". $errorMessages(typeparsemode)" -returnCodes error
+        } -result "Invalid value \"$type\". $errorMessages(typeparsemode)* Error defining function *" -match glob -returnCodes error
     }
     foreach type {chars unichars bytes} {
         test function-return-$type-0 "Return type $type" -body {
             # Prototype does not match C. Does not have to!
             testDll function string_out ${type}\[2\] {}
-        } -result "Invalid value \"$type\[2\]\". $errorMessages(typeparsemode)" -returnCodes error
+        } -result "Invalid value \"$type\\\[2\\\]\". $errorMessages(typeparsemode)* Error defining function *" -match glob -returnCodes error
     }
 
     ###
@@ -2213,41 +2213,41 @@ namespace eval ${NS}::test {
         foreach direc {in out inout} {
             test function-array-$type-$direc-error-0 "Array negative index - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n int arr $type\[0\]]
-            } -result "Invalid value \"$type\[0\]\". Invalid array size or extra trailing characters." -returnCodes error
+            } -result "Invalid value \"$type\\\[0\\\]\". Invalid array size or extra trailing characters. Error defining function *" -match glob -returnCodes error
             test function-array-$type-$direc-error-1 "Array negative index - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n int arr $type\[-1\]]
-            } -result "Invalid value \"$type\[-1\]\". Invalid array size or extra trailing characters." -returnCodes error
+            } -result "Invalid value \"$type\\\[-1\\\]\". Invalid array size or extra trailing characters. *" -match glob -returnCodes error
         }
         test function-array-$type-in-error-2 "Array undefined name index" -body {
             testDll function ${type}_array_in $type [list n int arr $type\[m\]]
-        } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
         test function-array-$type-in-error-3 "Array index name wrong type" -body {
             testDll function ${type}_array_in $type [list n string arr $type\[n\]]
-        } -result {Parameter "*" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -match glob -returnCodes error
+        } -result {Parameter "*" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -match glob -returnCodes error
         test function-array-$type-in-error-4 "Array index name is array" -body {
             testDll function ${type}_array_in $type [list n int\[3\] arr $type\[n\]]
-        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
         test function-array-$type-in-error-5 "Array index is out param" -body {
             testDll function ${type}_array_in $type [list {n out} int arr $type\[n\]]
-        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
         test function-array-$type-in-error-6 "Array index is inout param" -body {
             testDll function ${type}_array_in $type [list {n inout} int arr $type\[n\]]
-        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
         test function-array-$type-in-error-6 "Array index is byref param" -body {
             testDll function ${type}_array_in $type [list {n byref} int arr $type\[n\]]
-        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
 
         # "in" not in this loop because function prototype is different
         foreach direc {out inout} {
             test function-array-$type-$direc-error-2 "Array undefined name index - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n int arr [list $type\[m\] $direc]]
-            } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+            } -result {Parameter "m" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
             test function-array-$type-$direc-error-3 "Array index name wrong type - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n string arr [list $type\[n\] $direc]]
-            } -result {Parameter "*" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -match glob -returnCodes error
+            } -result {Parameter "*" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -match glob -returnCodes error
             test function-array-$type-$direc-error-4 "Array index name is array - $direc" -body {
                 testDll function ${type}_array_$direc $type [list n int\[3\] arr [list $type\[n\] $direc]]
-            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
         }
         test function-array-$type-in-typeerror-0 "Array element wrong type - in" -body {
             testDll function ${type}_array_in $type [list n int arr $type\[$nvals\]]
@@ -2581,7 +2581,7 @@ namespace eval ${NS}::test {
         } -body {
             set fn ${type}_to_$type
             testDll function $fn $type [list inparam [list $type {enum E}]]
-        } -result {Enum "E" not found or inaccessible. } -returnCodes error
+        } -result "Enum \"E\" not found or inaccessible. *Error defining function *" -match glob -returnCodes error
         test function-enum-$type-error-1 "function enum $type - missing enum entry" -setup {
             cffi::enum delete *
             cffi::enum define E {x 1 a 42}
