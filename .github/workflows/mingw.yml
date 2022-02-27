@@ -15,9 +15,9 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        sys:
-          - mingw64
-          - mingw32
+        include:
+          - { sys: mingw64, env: x86_64 }
+          - { sys: mingw32, env: i686 }
 
     defaults:
       run:
@@ -34,7 +34,7 @@ jobs:
         path-type: minimal
         release: false
         update: false
-        pacboy: gcc:p make:p
+        install: mingw-w64-${{matrix.env}}-gcc
 
     - name: Verify toolchain
       run: |
