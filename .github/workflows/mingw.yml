@@ -39,7 +39,7 @@ jobs:
     - name: Verify toolchain
       run: |
         gcc -v
-        run: make -v
+        make -v
 
     - name: Cache Tcl build
       id: tcl-cache
