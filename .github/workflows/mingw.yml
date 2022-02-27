@@ -15,9 +15,9 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        sys:
-          - mingw64
-          - mingw32
+        include:
+          - { sys: mingw64, env: x86_64 }
+          - { sys: mingw32, env: i686 }
 
     defaults:
       run:
@@ -34,6 +34,12 @@ jobs:
         path-type: minimal
         release: true
         update: false
+        install: mingw-w64-${{matrix.env}}-gcc make
+
+    - name: Verify toolchain
+      run: |
+        gcc -v
+        make -v
 
     - name: Cache Tcl build
       id: tcl-cache
