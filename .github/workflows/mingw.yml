@@ -34,7 +34,7 @@ jobs:
         path-type: minimal
         release: false
         update: false
-        install: mingw-w64-${{matrix.env}}-gcc
+        install: mingw-w64-${{matrix.env}}-gcc make
 
     - name: Verify toolchain
       run: |
