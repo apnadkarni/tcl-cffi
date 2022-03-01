@@ -1,10 +1,9 @@
 # Demo of cffi libgit extension. Poor man's git clone emulation from libgit2
 # Translated to Tcl from libgit2/examples/clone.c
-# tclsh git-clone.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
+proc parse_clone_options {arguments} {
 
     # NOTE: getopt uses comments below to generate help. Careful about changing them.
     getopt::getopt opt arg $arguments {
@@ -101,9 +100,12 @@ proc fetch_progress {indexer_stats payload} {
 
 proc git-clone {arguments} {
 
-    lassign [parse_options $arguments] url path
+    lassign [parse_clone_options $arguments] url path
     if {$path eq ""} {
         set path [file tail $url]
+        if {[file extension $path] eq ".git"} {
+            set path [file rootname $path]
+        }
     }
     puts "Cloning into '$path' ..."
 
@@ -149,6 +151,7 @@ proc git-clone {arguments} {
 
         # Then clone the repository
         set pRepo [git_clone $url $path $clone_opts]
+        puts ""
         git_repository_free $pRepo
 
     } finally {

@@ -1,18 +1,13 @@
 # Demo of cffi libgit extension. Poor man's git config emulation from libgit2
-# Translated to Tcl from libgit2/examples/config.c
-# tclsh git-config.tcl --help
+# Translated to Tcl from libgit2/examples/config.c.
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
-    getopt::getopt opt arg $arguments {
+proc parse_config_options {arguments} {
+    parse_options opt arg $arguments {
         -l - --list {
             # Show all configuration variables and their values
             set list 1
-        }
-        --git-dir:GITDIR {
-            # Specify the path to the repository
-            option_set GitDir $arg
         }
         arglist {
             # [KEY [VALUE]]
@@ -55,7 +50,7 @@ proc config_list {pConfig} {
             set nameP [${::GIT_NS}::git_config_entry get $pEntry name]
             set valueP [${::GIT_NS}::git_config_entry get $pEntry value]
             set name [::cffi::memory tostring! $nameP utf-8]
-            set value [::cffi::memory tostring! $nameP utf-8]
+            set value [::cffi::memory tostring! $valueP utf-8]
             puts "$name=$value"
         }
     } finally {
@@ -78,8 +73,8 @@ proc config_set {pConfig key value} {
     git_config_set_string $pConfig $key $value
 }
 
-proc git-config {} {
-    set arguments [parse_options $::argv]
+proc git-config {arguments} {
+    set arguments [parse_config_options $arguments]
 
     set pRepo [git_repository_open_ext [option GitDir .]]
     try {
@@ -100,7 +95,7 @@ proc git-config {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {git-config} result edict
+catch {git-config $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

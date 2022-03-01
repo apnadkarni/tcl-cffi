@@ -1,6 +1,5 @@
 # Demo of cffi libgit extension. Poor man's git add emulation from libgit2
 # Translated to Tcl from libgit2/examples/add.c. For options, type
-# tclsh git-add.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 

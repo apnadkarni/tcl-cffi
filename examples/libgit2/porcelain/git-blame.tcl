@@ -1,6 +1,5 @@
 # Demo of cffi libgit extension. Poor man's git blame emulation from libgit2
 # Translated to Tcl from libgit2/examples/blame.c
-# tclsh git-status.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 

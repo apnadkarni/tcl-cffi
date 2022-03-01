@@ -1,10 +1,9 @@
 # Demo of cffi libgit extension. Poor man's git commit emulation from libgit2
 # Translated to Tcl from libgit2/examples/commit.c
-# tclsh git-commit.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
+proc parse_commit_options {arguments} {
     getopt::getopt opt arg $arguments {
         -m: - --message:MESSAGE {
             # Use MESSAGE as commit message
@@ -18,7 +17,7 @@ proc parse_options {arguments} {
 }
 
 proc git-commit {} {
-    parse_options $::argv
+    parse_commit_options $::argv
 
     set pRepo [git_repository_open_ext [option GitDir .]]
     try {
@@ -54,7 +53,7 @@ proc git-commit {} {
             $pMessage \
             $pTree \
             [llength $parents] \
-            $parents
+                           $parents]
 
     } finally {
         if {[info exists pMessage]} {
@@ -79,6 +78,7 @@ proc git-commit {} {
     }
 
 }
+
 source [file join [file dirname [info script]] porcelain-utils.tcl]
 catch {git-commit} result edict
 git_libgit2_shutdown

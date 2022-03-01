@@ -656,6 +656,7 @@ proc getopt::help {body} {
     }
     set name [app::program_name_prefix]
     app::error_note [format {Usage: %s [OPTION]... %s} $name $arg]
+    app::error_note ""; # Add newline for clarity
     app::error_note [app::help_prelude]
     app::error_note "\nMandatory arguments to long options\
       are also mandatory for short options."

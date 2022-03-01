@@ -2,7 +2,6 @@
 # Checks out a specific git reference (branch, tag or commit).
 # Does not handle individual files or directories.
 # Translated to Tcl from libgit2/examples/checkout.c
-# tclsh git-add.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
