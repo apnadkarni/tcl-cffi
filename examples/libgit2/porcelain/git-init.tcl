@@ -4,7 +4,9 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
+proc parse_init_options {arguments} {
+
+    # Do not use parse_options because not all common options are relevant for init
 
     # NOTE: getopt uses comments below to generate help. Careful about changing them.
     getopt::getopt opt arg $arguments {
@@ -20,13 +22,6 @@ proc parse_options {arguments} {
         --initial-commit {
             # Create an empty initial commit
             option_set InitialCommit $arg
-        }
-        --separate-git-dir:DIRECTORY {
-            # Create text file containing path to actual repository.
-            if {![file isdirectory $arg]} {
-                error "$arg is not a directory."
-            }
-            option_set SeparateGitDir $arg
         }
         --shared:PERMS {
             # Set the sharing permissions. PERMS should be
@@ -59,12 +54,10 @@ proc parse_options {arguments} {
             set dir $arg
         }
     }
-    if {[llength $dir] == 0} {
-        return [pwd]
-    } elseif {[llength $dir] == 1} {
-        return [lindex $dir 0]
-    } else {
+    if {[llength $dir] > 1} {
         getopt::usage "At most one directory may be specified."
+    } else {
+        return [lindex $dir 0]
     }
 }
 
@@ -81,13 +74,9 @@ proc initialize_repository {dir} {
         dict lappend init_opts flags GIT_REPOSITORY_INIT_BARE
     }
     if {[option? Template template]} {
+        # Note this only creates directories that have files in them
         dict lappend init_opts flags GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE
         dict set init_opts template_path $template
-    }
-    if {[option? SeparateGitDir gitdir]} {
-        # The workdir is not the git dir. Adjust accordingly.
-        dict set init_opts workdir_path $dir
-        set dir $gitdir
     }
 
     # Make the actual libgit2 call to initialize the repository
@@ -130,8 +119,14 @@ proc create_initial_commit {pRepo} {
 }
 
 proc git-init {arguments} {
-    set dir [parse_options $arguments]
-    set pRepo [initialize_repository $dir]
+    set dir [parse_init_options $arguments]
+
+    # The following tries to somewhat reflect git's command line behavior
+    # except for environment variables.
+    if {$dir eq ""} {
+        set dir .
+    }
+    set pRepo [initialize_repository [file normalize $dir]]
     try {
         if {! [option Quiet 0]} {
             if {[option Bare 0] || [option? SeparateGitDir _]} {

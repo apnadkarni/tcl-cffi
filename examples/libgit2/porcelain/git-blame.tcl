@@ -4,8 +4,8 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
-    getopt::getopt opt arg $arguments {
+proc parse_blame_options {arguments} {
+    parse_options opt arg $arguments {
         -L: {
             # Only process lines within RANGE (m,n)
             option_set Range $arg
@@ -21,10 +21,6 @@ proc parse_options {arguments} {
         -F {
             # Only follow first parent commits
             option_append Flags GIT_BLAME_FIRST_PARENT
-        }
-        --git-dir:GITDIR {
-            # Specify the path to the repository
-            option_set GitDir $arg
         }
         arglist {
             # [COMMITRANGE] PATH
@@ -46,15 +42,14 @@ proc parse_options {arguments} {
 }
 
 proc git-blame {arguments} {
-    lassign [parse_options $arguments] path commit_range
+    lassign [parse_blame_options $arguments] path commit_range
 
     set opts [git_blame_options_init]
     dict set opts flags [option Flags GIT_BLAME_NORMAL]
 
-    set pRepo [git_repository_open_ext [option GitDir .]]
+    set pRepo [open_repository]
     try {
         set path [make_relative_path $path [git_repository_workdir $pRepo]]
-
         if {$commit_range ne ""} {
             set revspec [git_revparse $pRepo $commit_range]
             set flags [dict get $revspec flags]
@@ -144,5 +139,6 @@ catch {git-blame $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result
+    pdict $edict
     exit 1
 }

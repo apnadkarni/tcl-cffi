@@ -1,12 +1,13 @@
 # Demo of cffi libgit2 extension. Poor man's git add emulation.
-# Checks out a specific git reference (branch, tag or commit)
-# Translated to Tcl from libgit2/examples/add.c
+# Checks out a specific git reference (branch, tag or commit).
+# Does not handle individual files or directories.
+# Translated to Tcl from libgit2/examples/checkout.c
 # tclsh git-add.tcl --help
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
-    getopt::getopt opt arg $arguments {
+proc parse_checkout_options {arguments} {
+    parse_options opt arg $arguments {
         -f - --force {
             # Force checkout even in presence of modifications in
             # the working tree or cache
@@ -20,10 +21,6 @@ proc parse_options {arguments} {
         --progress {
             # Show progress of checkout
             option_set ShowProgress $arg
-        }
-        --git-dir:GITDIR {
-            # Specify the path to the repository
-            option_set GitDir $arg
         }
         arglist {
             # REF
@@ -120,11 +117,10 @@ proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
     }
 }
 
-proc git-checkout {} {
-    set ref [parse_options $::argv]
-    set pRepo [git_repository_open_ext [option GitDir .]]
+proc git-checkout {arguments} {
+    set ref [parse_checkout_options $arguments]
+    set pRepo [open_repository]
     try {
-
         set state [git_repository_state $pRepo]
         if {$state ne "GIT_REPOSITORY_STATE_NONE"} {
             error "Repository is in unexpected state $state."
@@ -149,7 +145,7 @@ proc git-checkout {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {git-checkout} result edict
+catch {git-checkout $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

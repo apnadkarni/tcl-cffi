@@ -4,8 +4,8 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
-    getopt::getopt opt arg $arguments {
+proc parse_add_options {arguments} {
+    parse_options opt arg $arguments {
         -v - --verbose  {
             # Enable verbose output
             option_set Verbose $arg
@@ -21,10 +21,6 @@ proc parse_options {arguments} {
         -f - --force {
             # Force adding of ignored files
             option_set Force $arg
-        }
-        --git-dir:GITDIR {
-            # Specify the path to the repository
-            option_set GitDir $arg
         }
         arglist {
             # ?PATHSPEC? ...
@@ -51,8 +47,8 @@ proc add_cb {pRepo path pathspec payload} {
 }
 
 proc git-add {arguments} {
-    set path_specs [parse_options $arguments]
-    set pRepo [git_repository_open_ext [option GitDir .]]
+    set path_specs [parse_add_options $arguments]
+    set pRepo [open_repository]
     try {
         set pIndex [git_repository_index $pRepo]
 

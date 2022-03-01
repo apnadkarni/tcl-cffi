@@ -4,8 +4,8 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
-    parse_common_options opt arg $arguments {
+proc parse_status_options {arguments} {
+    parse_options opt arg $arguments {
         -s {
             # Show output in short format.
             option_set Format short
@@ -20,7 +20,7 @@ proc parse_options {arguments} {
         }
         --ignored {
             # Show ignored files as well
-            option_lappend StatusOpts GIT_STATUS_OPT_INCLUDE_IGNORED
+            option_append StatusOpts GIT_STATUS_OPT_INCLUDE_IGNORED
         }
         --untracked-files:MODE {
             # Show untracked files.
@@ -332,14 +332,18 @@ proc show_branch {pRepo format} {
     try {
         set pHead [git_repository_head $pRepo]
         set branch [git_reference_shorthand $pHead]
-        git_reference_free $pHead
-    } trap {GIT -9} {} - trap {GIT -3} {} {
-        # EUNBORNBRANCH -9
+    } trap {GIT -9} {result eropts} - trap {GIT -3} {result eropts} {
+        # EUNBORNBRANCH -9. HEAD contains a ref that does not yet exist under heads
+        #  Note "git status" does not check for the existence but libgit2 does.
         # ENOTFOUND -3
         if {$format eq "long"} {
             set branch "Not currently on any branch."
         } else {
             set branch "HEAD (no branch)"
+        }
+    } finally {
+        if {[info exists pHead]} {
+            git_reference_free $pHead
         }
     }
     if {$format eq "long"} {
@@ -374,16 +378,16 @@ proc print_submod {pSubmod name payload} {
     return 0
 }
 
-proc git-status {} {
+proc git-status {arguments} {
     # Defaults before parsing options
     # Status should include untracked and renamed files by default
     option_set StatusOpts {
         GIT_STATUS_OPT_INCLUDE_UNTRACKED
         GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
     }
-    set path_specs [parse_options $::argv]
+    set path_specs [parse_status_options $arguments]
 
-    set pRepo [git_repository_open_ext [option GitDir .]]
+    set pRepo [open_repository]
     try {
         # Set up options for retrieving status
         set opts [git_status_options_init]
@@ -438,7 +442,7 @@ proc git-status {} {
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {git-status} result edict
+catch {git-status $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result

@@ -6,6 +6,8 @@ set GIT_NS ::git
 source [file join [file dirname [file dirname [info script]]] libgit2.tcl]
 namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
+variable porcelain_version 0.1a0
+
 ${GIT_NS}::init d:/temp/git2.dll
 
 # Just for debugging
@@ -15,26 +17,49 @@ proc pdict d {
     }
 }
 
-proc parse_common_options {optvar argvar arguments optlist} {
-    lappend optlist {*}{
-        --git-dir:GITDIR {
+proc open_repository {} {
+    # Opens a repository and returns a pointer to it.
+
+    option_init GitDir .
+    set pRepo [git_repository_open_ext [option! GitDir]]
+
+    try {
+        # Sync the path in case libgit2 follows gitlinks etc.
+        option_set GitDir [git_repository_path $pRepo]
+
+        # Set work tree if specified. Else get from repository
+        # Note latter may be bare repository
+        if {[option? WorkTree worktree]} {
+            git_repository_set_workdir $pRepo $worktree 0
+        } else {
+            set worktree [git_repository_workdir $pRepo]
+            if {$worktree ne ""} {
+                option_set WorkTree $worktree
+            }
+        }
+    } on error {err erropts} {
+        git_repository_free $pRepo
+        return -options $erropts $err
+    }
+    return $pRepo
+}
+
+proc parse_options {optvar argvar arguments optlist} {
+    lappend optlist --git-dir:GITDIR {
             # Specify the path to the repository
             option_set GitDir $arg
-        }
-        --work-tree:WORKTREE {
+        } --work-tree:WORKTREE {
             # Specify the path to the work tree
             option_set WorkTree $arg
-        }
-        --version {
+        } --version {
             # Print version and exit.
-            puts lg2_porcelain_version
+            variable porcelain_version
+            puts $porcelain_version
             exit 0
         }
-    }
     uplevel 1 [list getopt::getopt $optvar $argvar $arguments $optlist]
 }
 
-# echo-less password entry. Adapted from the wiki
 proc prompt {message {mode "echo"}} {
     global tcl_platform
 
@@ -217,6 +242,9 @@ proc print_signature {header sig} {
 }
 
 proc make_relative_path {path parent} {
+    if {[file pathtype $path] eq "relative"} {
+        return $path
+    }
     set path_components [file split [file normalize $path]]
     set parent_components [file split [file normalize $parent]]
     set npath [llength $path_components]
@@ -253,13 +281,17 @@ proc inform {message {force 0}} {
     }
 }
 
+proc warn {message} {
+    inform $message 1
+}
+
 proc hexify_id {id} {
     # Return hex form of a libgit2 OID
     return [binary encode hex [dict get $id id]]
 }
 
 #####################################################
-# Option processing utilities
+# Option management utilities
 proc option {opt default} {
     variable Options
     if {[info exists Options($opt)]} {
@@ -280,7 +312,7 @@ proc option? {opt varname} {
 
 proc option! {opt} {
     variable Options
-    # Option must have been set
+    # Options must have been set
     return $Options($opt)
 }
 
@@ -294,6 +326,7 @@ proc option_init {opt value} {
     if {![info exists Options($opt)]} {
         set Options($opt) $value
     }
+    return
 }
 proc option_set_once {opt value} {
     variable Options

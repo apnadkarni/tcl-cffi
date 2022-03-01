@@ -4,8 +4,8 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
-proc parse_options {arguments} {
-    getopt::getopt opt arg $arguments {
+proc parse_cat-file_options {arguments} {
+    parse_options opt arg $arguments {
         -stp {
             # Show size / type / prettified output of object instead
             # of raw content
@@ -18,10 +18,6 @@ proc parse_options {arguments} {
         -v {
             # Set verbose output mode
             option_set Verbose 1
-        }
-        --git-dir:GITDIR {
-            # Specify the path to the repository
-            option_set GitDir $arg
         }
         arglist {
             # [TYPE] OBJECT
@@ -160,8 +156,8 @@ proc pretty_print {pObj} {
     }
 }
 
-proc git-cat-file {} {
-    lassign [parse_options $::argv] object expected_type
+proc git-cat-file {arguments} {
+    lassign [parse_cat-file_options $::argv] object expected_type
 
     option_set Verbose [option Verbose 0]; # Explicitly set if unset
 
@@ -205,7 +201,7 @@ proc git-cat-file {} {
 
 set SUPPRESS_OUTPUT 0
 source [file join [file dirname [info script]] porcelain-utils.tcl]
-catch {git-cat-file} result edict
+catch {git-cat-file $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     if {! $SUPPRESS_OUTPUT} {
