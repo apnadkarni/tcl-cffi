@@ -9,7 +9,7 @@
     GIT_SORT_TIME        2
     GIT_SORT_REVERSE     4
 }
-::cffi::alias define GIT_SORT_T {int {enum git_sort_t}}
+::cffi::alias define GIT_SORT_T {int {enum git_sort_t} bitmask}
 
 ::cffi::prototype function git_revwalk_hide_cb int {
     id      {struct.git_oid byref}
@@ -39,7 +39,7 @@ libgit2 functions {
         walk      PREVWALK
         commit_id {struct.git_oid byref}
     }
-    git_revwalk_hide GIT_ERROR_CODE {
+    git_revwalk_hide_glob GIT_ERROR_CODE {
         walk PREVWALK
         glob STRING
     }
@@ -54,13 +54,13 @@ libgit2 functions {
         walk    PREVWALK
         refname STRING
     }
-    git_revwalk_next {int {enum git_error_code}} {
+    git_revwalk_next GIT_ITER_ERROR_CODE {
         id   {struct.git_oid out}
         walk PREVWALK
     }
     git_revwalk_sorting GIT_ERROR_CODE {
         walk      PREVWALK
-        sort_mode uint
+        sort_mode GIT_SORT_T
     }
     git_revwalk_push_range GIT_ERROR_CODE {
         walk  PREVWALK

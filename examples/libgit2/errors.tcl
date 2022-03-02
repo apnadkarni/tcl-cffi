@@ -90,3 +90,15 @@ libgit2 functions {
 proc ErrorCodeHandler {callinfo} {
     lg2_throw_last_error [dict get $callinfo Result]
 }
+
+# Iterator error codes need to allow for GIT_ITEROVER as no more items
+cffi::alias define GIT_ITER_ERROR_CODE \
+    [list int {enum git_error_code} nonnegative [list onerror [namespace current]::IterCodeHandler]]
+
+proc IterCodeHandler {callinfo} {
+    set code [dict get $callinfo Result]
+    if {$code == -31} {
+        return GIT_ITEROVER
+    }
+    lg2_throw_last_error $code
+}

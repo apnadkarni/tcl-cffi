@@ -25,7 +25,7 @@ libgit2 functions {
     git_commit_id {struct.git_oid byref} {
         commit PCOMMIT
     }
-    git_commit_owner PREPOSITORY {
+    git_commit_owner {PREPOSITORY unsafe} {
         commit PCOMMIT
     }
     git_commit_message_encoding {STRING nullok} {
@@ -160,6 +160,19 @@ libgit2 functions {
     parent_count     size_t
     parents          pointer.git_commit
     payload          CB_PAYLOAD
+}
+
+# Wrappers
+proc lg2_commit_message {pCommit} {
+    set encoded_message [git_commit_message $pCommit]
+
+    # Get the git encoding which uses IANA names and map to Tcl encoding name
+    if {[catch {
+        set encoding [lg2_iana_to_tcl_encoding [git_commit_message_encoding $pCommit]]
+    }]} {
+        set encoding utf-8
+    }
+    return [cffi::memory tostring! $encoded_message $encoding]
 }
 
 # TBD - pending varargs support

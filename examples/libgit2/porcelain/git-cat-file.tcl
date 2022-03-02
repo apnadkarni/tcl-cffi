@@ -71,14 +71,10 @@ proc show_commit {pObj} {
         puts "parent [git_oid_tostr_s [git_commit_parent_id $pCommit $i]]"
     }
 
-    print_signature author [git_commit_author $pCommit]
-    print_signature committer [git_commit_committer $pCommit]
+    print_signature author [git_commit_author $pCommit] 1
+    print_signature committer [git_commit_committer $pCommit] 1
 
-    set encoded_message [git_commit_message $pCommit]
-
-    # Get the git encoding which uses IANA names and map to Tcl encoding name
-    set encoding [lg2_iana_to_tcl_encoding [git_commit_message_encoding $pCommit]]
-    set message [cffi::memory tostring! $encoded_message $encoding]
+    set message [lg2_commit_message $pCommit]
     if {$message ne ""} {
         puts \n$message
     }

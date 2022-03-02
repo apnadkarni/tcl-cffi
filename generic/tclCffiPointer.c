@@ -154,8 +154,17 @@ CffiPointerObjCmd(ClientData cdata,
         return TCL_OK;
     }
 
-    if (pv == NULL && cmdIndex != ISVALID && cmdIndex != TAG)
-        return Tclh_ErrorInvalidValue(ip, objv[2], "Pointer is NULL.");
+    if (pv == NULL) {
+        switch (cmdIndex) {
+        case DISPOSE:
+            return TCL_OK;
+        case ISVALID:
+        case TAG:
+            break;
+        default:
+            return Tclh_ErrorInvalidValue(ip, objv[2], "Pointer is NULL.");
+        }
+    }
 
     ret = Tclh_PointerObjGetTag(ip, objv[2], &objP);
     if (ret != TCL_OK)
@@ -177,7 +186,9 @@ CffiPointerObjCmd(ClientData cdata,
     case COUNTED:
         return Tclh_PointerRegisterCounted(ip, pv, objP, NULL);
     case DISPOSE:
-        return Tclh_PointerUnregister(ip, pv, objP);
+        if (pv)
+            return Tclh_PointerUnregister(ip, pv, objP);
+        return TCL_OK;
     default: /* Just to keep compiler happy */
         Tcl_SetResult(
             ip, "Internal error: unexpected pointer subcommand", TCL_STATIC);

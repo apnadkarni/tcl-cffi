@@ -221,23 +221,46 @@ proc resolve_refish {pRepo refish} {
     return $pAnnotatedCommit
 }
 
-proc print_signature {header sig} {
+proc print_git_time {header t} {
+    dict with t {
+        incr time [expr {60 * $offset}]; # Offset is in minutes
+        if {$offset < 0} {
+            set sign -
+            set offset [expr {- $offset}]
+        } else {
+            set sign +
+        }
+    }
+    set hours [expr {$offset / 60}]
+    set minutes [expr {$offset % 60}]
+
+
+    set tz "$sign[format %02d $hours][format %02d $minutes]"
+    set timestr [clock format $time -format "%a %b %d %T %Y" -gmt 1]
+    puts "$header $timestr $tz"
+}
+
+proc print_signature {header sig {include_time 0}} {
     dict with sig {
         if {$name eq "" && $email eq ""} {
             return
         }
-        dict with when {
-            if {$offset < 0} {
-                set sign -
-                set offset [expr {- $offset}]
-            } else {
-                set sign +
+        set line "$header $name <$email"
+        if {$include_time} {
+            dict with when {
+                if {$offset < 0} {
+                    set sign -
+                    set offset [expr {- $offset}]
+                } else {
+                    set sign +
+                }
             }
-        }
-        set hours [expr {$offset / 60}]
-        set minutes [expr {$offset % 60}]
+            set hours [expr {$offset / 60}]
+            set minutes [expr {$offset % 60}]
 
-        puts "$header $name <$email> $time $sign[format %02d $hours][format %02d $minutes]"
+            append line " $time $sign[format %02d $hours][format %02d $minutes]"
+        }
+        puts $line
     }
 }
 
@@ -328,6 +351,7 @@ proc option_init {opt value} {
     }
     return
 }
+
 proc option_set_once {opt value} {
     variable Options
     if {[info exists Options($opt)]} {
@@ -339,17 +363,30 @@ proc option_set_once {opt value} {
     set Options($opt) $value
 }
 
-proc option_append {opt args} {
+proc option_lappend {opt args} {
     variable Options
     lappend Options($opt) {*}$args
 }
 
-proc option_remove {opt args} {
+proc option_lremove {opt args} {
     variable Options
-    set Options($opt) [lmap elem $Options($opt) {
-        if {$elem in $args} continue
-        set elem
-    }]
+    if {[info exists Options($opt)]} {
+        set Options($opt) [lmap elem $Options($opt) {
+            if {$elem in $args} continue
+            set elem
+        }]
+        if {[llength $Options($opt)] == 0} {
+            unset Options($opt)
+        }
+    }
+}
+
+proc option_lupdate {opt arg add_or_remove} {
+    if {$add_or_remove} {
+        option_lappend $opt $arg
+    } else {
+        option_lremove $opt $arg
+    }
 }
 
 proc option_includes {opt val} {

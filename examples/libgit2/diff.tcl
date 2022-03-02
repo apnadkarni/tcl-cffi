@@ -109,13 +109,13 @@
     nfiles     uint16_t
     old_file   struct.git_diff_file
     new_file   struct.git_diff_file
-}
+} -clear
 
 ::cffi::prototype function git_diff_notify_cb int {
     diff_so_far      PDIFF
     delta_to_add     {struct.git_diff_delta byref}
     matched_pathspec STRING
-    payload          {pointer unsafe}
+    payload          CB_PAYLOAD
 }
 
 ::cffi::prototype function git_diff_progress_cb int {
@@ -128,7 +128,7 @@
 ::cffi::prototype function git_diff_file_cb int {
     delta    {struct.git_diff_delta byref}
     progress float
-    payload  {pointer unsafe}
+    payload  CB_PAYLOAD
 }
 
 ::cffi::Struct create git_diff_options {
@@ -138,7 +138,7 @@
     pathspec           struct.git_strarray
     notify_cb          {pointer.git_diff_notify_cb    nullok {default NULL}}
     progress_cb        {pointer.git_diff_progress_cb  nullok {default NULL}}
-    payload            {pointer unsafe}
+    payload            CB_PAYLOAD
     context_lines      uint32_t
     interhunk_lines    uint32_t
     id_abbrev          uint16_t
@@ -167,7 +167,7 @@
 ::cffi::prototype function git_diff_binary_cb int {
     delta {struct.git_diff_delta byref}
     binary {struct.git_diff_binary byref}
-    payload {pointer unsafe}
+    payload CB_PAYLOAD
 }
 
 ::cffi::Struct create git_diff_hunk {
@@ -177,12 +177,12 @@
     new_lines int
     header_len size_t
     header chars.utf-8[128]
-}
+} -clear
 
 ::cffi::prototype function git_diff_hunk_cb int {
     delta {struct.git_diff_delta byref}
     hunk  {struct.git_diff_hunk byref}
-    payload {pointer unsafe}
+    payload CB_PAYLOAD
 }
 
 ::cffi::enum define git_diff_line_t {
@@ -206,12 +206,12 @@
     content_len    size_t
     content_offset git_off_t
     content        {pointer unsafe}
-}
+} -clear
 
 ::cffi::prototype function git_diff_line_cb int {
-    delta {struct.git_diff_delta byref}
-    hunk  {struct.git_diff_hunk byref}
-    line  {struct.git_diff_line byref}
+    delta {struct.git_diff_delta byref nullok}
+    hunk  {struct.git_diff_hunk byref nullok}
+    line  {struct.git_diff_line byref nullok}
     payload CB_PAYLOAD
 }
 
@@ -239,7 +239,7 @@ cffi::prototype function file_signature_cb int {
     pPointer     {pointer unsafe}
     file     {struct.git_diff_file byref}
     fullpath STRING
-    payload  {pointer unsafe}
+    payload  CB_PAYLOAD
 }
 
 cffi::prototype function buffer_signature_cb int {
@@ -247,19 +247,19 @@ cffi::prototype function buffer_signature_cb int {
     file    {struct.git_diff_file byref}
     buf     {pointer unsafe}
     buflen  size_t
-    payload {pointer unsafe}
+    payload CB_PAYLOAD
 }
 
 cffi::prototype function free_signature_cb void {
     pSig    {pointer unsafe}
-    payload {pointer unsafe}
+    payload CB_PAYLOAD
 }
 
 cffi::prototype function similarity_cb int {
     score   {pointer.int unsafe}
     pSigA   {pointer unsafe}
     pSigB   {pointer unsafe}
-    payload {pointer unsafe}
+    payload CB_PAYLOAD
 
 }
 
@@ -285,11 +285,11 @@ cffi::prototype function similarity_cb int {
 libgit2 functions {
     git_diff_options_init GIT_ERROR_CODE {
         pOpts   {struct.git_diff_options retval}
-        version uint
+        version {uint {default 1}}
     }
     git_diff_find_options_init GIT_ERROR_CODE {
         pOpts   {struct.git_diff_find_options retval}
-        version uint
+        version {uint {default 1}}
     }
     git_diff_free void {
         pDiff {PDIFF nullok dispose}
@@ -297,14 +297,14 @@ libgit2 functions {
     git_diff_tree_to_tree GIT_ERROR_CODE {
         pDiff {PDIFF retval}
         pRepo PREPOSITORY
-        pOldTree PTREE
-        pNewTree PTREE
+        pOldTree {PTREE nullok}
+        pNewTree {PTREE nullok}
         pOpts {struct.git_diff_options byref}
     }
     git_diff_tree_to_index GIT_ERROR_CODE {
         pDiff {PDIFF retval}
         pRepo PREPOSITORY
-        pOldTree PTREE
+        pOldTree {PTREE nullok}
         pIndex {PINDEX nullok}
         pOpts {struct.git_diff_options byref}
     }
@@ -317,13 +317,13 @@ libgit2 functions {
     git_diff_tree_to_workdir GIT_ERROR_CODE {
         pDiff    {PDIFF retval}
         pRepo    PREPOSITORY
-        pOldTree PTREE
+        pOldTree {PTREE nullok}
         pOpts    {struct.git_diff_options  byref}
     }
     git_diff_tree_to_workdir_with_index GIT_ERROR_CODE {
         pDiff    {PDIFF retval}
         pRepo    PREPOSITORY
-        pOldTree PTREE
+        pOldTree {PTREE nullok}
         pOpts    {struct.git_diff_options byref}
     }
     git_diff_index_to_index GIT_ERROR_CODE {
@@ -361,7 +361,7 @@ libgit2 functions {
         binary_cb {pointer.git_diff_binary_cb nullok}
         hunk_cb {pointer.git_diff_hunk_cb nullok}
         line_cb {pointer.git_diff_line_cb nullok}
-        payload {pointer unsafe}
+        payload CB_PAYLOAD
     }
     git_diff_status_char uchar {
         status GIT_DELTA_T
@@ -369,8 +369,8 @@ libgit2 functions {
     git_diff_print GIT_ERROR_CODE {
         pDiff    PDIFF
         format   GIT_DIFF_FORMAT_T
-        print_cb pointer.git_diff_line_cb
-        payload  {pointer unsafe}
+        print_cb {pointer.git_diff_line_cb}
+        payload  CB_PAYLOAD
     }
     git_diff_to_buf GIT_ERROR_CODE {
         pBuf PBUF
@@ -387,7 +387,7 @@ libgit2 functions {
         binary_cb   {pointer.git_diff_binary_cb nullok      {default NULL}}
         hunk_cb     {pointer.git_diff_hunk_cb nullok        {default NULL}}
         line_cb     {pointer.git_diff_line_cb nullok        {default NULL}}
-        payload     {pointer unsafe}
+        payload     CB_PAYLOAD
     }
     git_diff_blob_to_buffer GIT_ERROR_CODE {
         pOldBlob       {PBLOB nullok}
@@ -400,7 +400,7 @@ libgit2 functions {
         binary_cb      {pointer.git_diff_binary_cb nullok      {default NULL}}
         hunk_cb        {pointer.git_diff_hunk_cb nullok        {default NULL}}
         line_cb        {pointer.git_diff_line_cb nullok        {default NULL}}
-        payload        {pointer unsafe}
+        payload        CB_PAYLOAD
     }
     git_diff_buffers GIT_ERROR_CODE {
         pOldBuf     {pointer unsafe nullok}
@@ -414,7 +414,7 @@ libgit2 functions {
         binary_cb   {pointer.git_diff_binary_cb nullok      {default NULL}}
         hunk_cb     {pointer.git_diff_hunk_cb nullok        {default NULL}}
         line_cb     {pointer.git_diff_line_cb nullok        {default NULL}}
-        payload     {pointer unsafe}
+        payload     CB_PAYLOAD
     }
     git_diff_from_buffer GIT_ERROR_CODE {
         pDiff       {PDIFF   retval}

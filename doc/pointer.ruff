@@ -69,7 +69,8 @@ namespace eval ${NS}::pointer {
         # not do anything in terms of releases any resources associated
         # with the pointer.
         #
-        # An error is raised if the pointer is not registered.
+        # An error is raised if the pointer is not registered unless it
+        # is a null pointer in which case it is ignored without error.
         #
         # See [Pointers][::Concepts::Pointers] for more on pointer
         # safety and registration.

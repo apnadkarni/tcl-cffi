@@ -31,21 +31,7 @@ proc parse_config_options {arguments} {
 proc config_list {pConfig} {
     set pIter [git_config_iterator_new $pConfig]
     try {
-        while {1} {
-            set error [git_config_next pEntry $pIter]
-            switch -exact -- $error {
-                GIT_OK {
-                    # Success
-                }
-                GIT_ITEROVER {
-                    # No more
-                    break
-                }
-                default {
-                    # TBD - translate the error code
-                    error "libgit2 error: $error"
-                }
-            }
+        while {[git_config_next pEntry $pIter] eq "GIT_OK"} {
             # NOTE: pEntry is internal to pIter and NOT to be freed
             set nameP [${::GIT_NS}::git_config_entry get $pEntry name]
             set valueP [${::GIT_NS}::git_config_entry get $pEntry value]

@@ -11,8 +11,8 @@
 ::cffi::alias define GIT_REVSPEC_T {int {enum git_revspec_t} bitmask}
 
 ::cffi::Struct create git_revspec {
-    from POBJECT
-    to   POBJECT
+    from {POBJECT nullok}
+    to   {POBJECT nullok}
     flags GIT_REVSPEC_T
 }
 libgit2 functions {

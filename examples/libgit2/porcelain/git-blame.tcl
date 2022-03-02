@@ -11,15 +11,15 @@ proc parse_blame_options {arguments} {
         }
         -C {
             # Find line moves within and across files
-            option_append Flags GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES
+            option_lappend Flags GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES
         }
         -M {
             # Find line moves within and across files
-            option_append Flags GIT_BLAME_TRACK_COPIES_SAME_COMMIT_MOVES
+            option_lappend Flags GIT_BLAME_TRACK_COPIES_SAME_COMMIT_MOVES
         }
         -F {
             # Only follow first parent commits
-            option_append Flags GIT_BLAME_FIRST_PARENT
+            option_lappend Flags GIT_BLAME_FIRST_PARENT
         }
         arglist {
             # [COMMITRANGE] PATH

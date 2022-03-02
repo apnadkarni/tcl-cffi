@@ -142,7 +142,7 @@ namespace eval $GIT_NS {
         cffi::alias define PSTRARRAY pointer.git_strarray
         cffi::alias define PSTRARRAYIN pointer.lg2_strarray
 
-        cffi::alias define CB_PAYLOAD {pointer unsafe nullok}
+        cffi::alias define CB_PAYLOAD {pointer unsafe nullok {default NULL}}
         cffi::alias define git_object_size_t uint64_t
 
         # Note these are sourced into current namespace

@@ -291,7 +291,6 @@ namespace eval ${NS}::test {
     ###
     # pointer dispose
     testbadargs dispose
-    testnullptr dispose
     test pointer-dispose-0 "pointer dispose" -body {
         set p [makeptr 1]
         cffi::pointer safe $p
@@ -303,6 +302,14 @@ namespace eval ${NS}::test {
         cffi::pointer counted $p
         list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
     } -result {1 {} 1 {} 0}
+    test pointer-dispose-null-0 "pointer dispose NULL pointer" -body {
+        set p [makeptr 0]
+        cffi::pointer dispose $p
+    } -result {}
+    test pointer-dispose-null-1 "pointer dispose NULL pointer TAG" -body {
+        set p [makeptr 0 TAG]
+        cffi::pointer dispose $p
+    } -result {}
 
     ###
     # pointer isnull
