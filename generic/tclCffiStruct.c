@@ -596,10 +596,15 @@ CffiStructNewCmd(Tcl_Interp *ip,
     void *resultP;
     int ret;
 
-    CFFI_ASSERT(objc == 3);
+    CFFI_ASSERT(objc == 2 || objc == 3);
+
     resultP = ckalloc(structP->size);
-    ret     = CffiStructFromObj(
-        structCtxP->ipCtxP, structP, objv[2], 0, resultP, NULL);
+    if (objc == 3)
+        ret = CffiStructFromObj(
+            structCtxP->ipCtxP, structP, objv[2], 0, resultP, NULL);
+    else
+        ret = CffiStructObjDefault(structCtxP->ipCtxP, structP, resultP);
+
     if (ret == TCL_OK) {
         ret = Tclh_PointerRegister(ip, resultP, structP->name, &resultObj);
         if (ret == TCL_OK) {
@@ -1263,7 +1268,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"fromnative!", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeUnsafeCmd},
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
-        {"new", 1, 1, "INITIALIZER", CffiStructNewCmd},
+        {"new", 0, 1, "?INITIALIZER?", CffiStructNewCmd},
         {"set", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
         {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},

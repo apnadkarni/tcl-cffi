@@ -24,6 +24,7 @@ oo::class create ${NS}::Struct {
         # type is cleared before the field values are initialized. In this case,
         # missing field values in a struct value will not result in an error
         # being raised even if no default annotation is included for the field.
+        # This also effectively provides a default zero value for all fields.
         #
     }
     method allocate {{count 1}} {
@@ -38,10 +39,14 @@ oo::class create ${NS}::Struct {
         # Returns a safe pointer to the allocated memory tagged with the
         # struct name.
     }
-    method new {initval} {
-        # Allocates and initializes a native struct in memory
+    method new {{initval {}}} {
+        # Allocates and initializes a native struct in memory.
         #  initval - initial value for the struct as a dictionary mapping field
         #    names to values.
+        #
+        # If no argument is supplied or fields are missing, defaults from the
+        # struct definition are used for initialization. An error is raised
+        # if any fields are not defaulted.
         #
         # The allocated memory must be freed by calling the [free] method for the
         # struct.

@@ -1047,7 +1047,7 @@ namespace eval cffi::test {
 
     ###
     # struct new
-    testnumargs struct-new "::TestStruct new" "INITIALIZER" ""
+    testnumargs struct-new "::TestStruct new" "" "?INITIALIZER?"
     test struct-new-0 "struct new" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
     } -cleanup {
@@ -1076,6 +1076,24 @@ namespace eval cffi::test {
         set p [::TestStruct new $sval]
         checkTestStruct [::TestStruct fromnative $p]
     } -result ""
+
+    test struct-new-3 "struct new with -clear" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short} -clear
+    } -cleanup {
+        S destroy
+    } -body {
+        set p [S new]
+        list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
+    } -result [list ::S 1 {c 0 i 0 s 0} {}]
+
+    test struct-new-3 "struct new with default field values" -setup {
+        cffi::Struct create ::S {i {int {default 42}} b {double {default 24}}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set p [S new]
+        list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
+    } -result [list ::S 1 {i 42 b 24.0} {}]
 
     test struct-new-error-0 "struct new bad value" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
