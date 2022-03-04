@@ -611,6 +611,50 @@ CffiStructNewCmd(Tcl_Interp *ip,
     return TCL_ERROR;
 }
 
+/* Function: CffiStructObjDefault
+ * Constructs a native struct with default values.
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * structP - struct descriptor
+ * valueP - location to store constructed native struct.
+ *
+ * Memory may be allocated from ipCtxP->memlifo. Caller's responsibility
+ * to clean up.
+ *
+ * Returns:
+ * Tcl result code
+ */
+CffiResult
+CffiStructObjDefault(CffiInterpCtx *ipCtxP,
+                     CffiStruct *structP,
+                     void *valueP)
+{
+    CffiResult ret;
+    /*
+     * Have to construct a struct from defaults. Fake out a
+     * native struct that will be converted back below. Note
+     * Directly converting from a struct definition field
+     * defaults is non-trivial to take care of enums etc.
+     */
+    Tcl_Obj *defaultStructValue = Tcl_NewObj();
+    Tcl_IncrRefCount(defaultStructValue);
+    ret = CffiStructFromObj(ipCtxP,
+                            structP,
+                            defaultStructValue,
+                            0,
+                            valueP,
+                            &ipCtxP->memlifo);
+    Tcl_DecrRefCount(defaultStructValue);
+
+    if (ret != TCL_OK)
+        Tcl_SetObjResult(ipCtxP->interp,
+                         Tcl_ObjPrintf("Cannot construct a default value for "
+                                       "struct %s.",
+                                       Tcl_GetString(structP->name)));
+
+    return ret;
+}
 
 static CffiResult
 CffiStructFromNativePointer(Tcl_Interp *ip,

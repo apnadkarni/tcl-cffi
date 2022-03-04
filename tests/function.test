@@ -1978,7 +1978,7 @@ namespace eval ${NS}::test {
         testDll function pointer_to_pointer {struct.Outer byref nullok} {p {pointer unsafe nullok}}
     } -body {
         pointer_to_pointer NULL
-    } -result {Struct field "str" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::cffi::test::Outer.str to a native value.} -returnCodes error
+    } -result {Cannot construct a default value for struct ::cffi::test::Outer.} -returnCodes error
 
     test function-struct-return-byref-error-1 "return struct byref - null pointer" -setup {
         cffi::Struct create Inner {c schar ll longlong s short} -clear
@@ -1986,7 +1986,7 @@ namespace eval ${NS}::test {
         testDll function pointer_to_pointer {struct.Outer byref} {p {pointer unsafe nullok}}
     } -body {
         pointer_to_pointer NULL
-    } -result {Invalid value. Function returned NULL pointer} -returnCodes error
+    } -result {Invalid value. Function returned NULL pointer.} -returnCodes error
 
     ## Error attributes for strings
 

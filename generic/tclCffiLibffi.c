@@ -203,8 +203,6 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
 
     CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));
 
-    /* TBD - can we not use CffiNative|ScalarFromObj here? */
-
 #define EXTRACT_(type_, fld_)                                                  \
     do {                                                                       \
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \
@@ -238,8 +236,22 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
         /* args[argIndex] is the location of the pointer to the struct */
         valueP = *(void **)args[argIndex];
+        if (valueP == NULL) {
+            CffiStruct *structP;
+            if (!(typeAttrsP->flags & CFFI_F_ATTR_NULLOK)) {
+                return Tclh_ErrorInvalidValue(
+                    cbP->ipCtxP->interp,
+                    NULL,
+                    "Pointer passed to callback is NULL.");
+            }
+            structP = typeAttrsP->dataType.u.structP;
+            valueP = MemLifoAlloc(&cbP->ipCtxP->memlifo, structP->size);
+            CHECK(CffiStructObjDefault(cbP->ipCtxP, structP, valueP));
+        }
+        /* TBD - Why not call CffiStructToObj directly here? */
         return CffiNativeValueToObj(
             cbP->ipCtxP->interp, typeAttrsP, valueP, 0, -1, argObjP);
+
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
@@ -356,6 +368,7 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
     int i;
     CffiCallback *cbP = (CffiCallback *)userdata;
     CffiInterpCtx *ipCtxP = cbP->ipCtxP;
+    MemLifoMarkHandle mark = NULL;
 
     CFFI_ASSERT(cifP->nargs == cbP->protoP->nParams);
     CFFI_ASSERT(cifP == cbP->protoP->cifP);
@@ -365,13 +378,17 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
         return;
     }
     nEvalObjs = nCmdObjs + cifP->nargs;
+
     /*
-     * Note: CffiFunctionCall would have already set a memlifo mark so
-     * we do not have to over here for releasing memlifo memory
+     * Note: CffiFunctionCall would have already set a memlifo mark but
+     * we do so anyways since in the future callbacks may be outside of
+     * CffiFunctionCall context.
      */
+    mark = MemLifoPushMark(&ipCtxP->memlifo);
     evalObjs =
         MemLifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
 
+    /* Do NOT return beyond this point without popping memlifo */
 
     /* Translate arguments passed by libffi to Tcl_Objs */
     for (i = 0; i < cbP->protoP->nParams; ++i) {
@@ -425,6 +442,8 @@ vamoose:
                                             cbP->errorResultObj,
                                             retP);
     }
+    if (mark)
+        MemLifoPopMark(mark);
 }
 
 static int

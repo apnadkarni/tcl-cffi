@@ -1610,30 +1610,16 @@ CffiFunctionCall(ClientData cdata,
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
             CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);
             if (pointer == NULL) {
+                CffiStruct *structP =
+                    protoP->returnType.typeAttrs.dataType.u.structP;
                 if (fnCheckRet == TCL_OK) {
-                    /*
-                     * Have to construct a struct from defaults. Fake out a
-                     * native struct that will be converted back below. Note
-                     * Directly converting from a struct definition field
-                     * defaults is non-trivial.
-                     */
-                    Tcl_Obj *defaultStructValue = Tcl_NewObj();
-                    Tcl_IncrRefCount(defaultStructValue);
-                    pointer = MemLifoAlloc(
-                        &ipCtxP->memlifo,
-                        protoP->returnType.typeAttrs.dataType.u.structP->size);
-                    ret = CffiStructFromObj(
-                        ipCtxP,
-                        protoP->returnType.typeAttrs.dataType.u.structP,
-                        defaultStructValue,
-                        0,
-                        pointer,
-                        &ipCtxP->memlifo);
-                    Tcl_DecrRefCount(defaultStructValue);
+                    /* Null pointer but allowed. Construct a default value. */
+                    pointer = MemLifoAlloc(&ipCtxP->memlifo, structP->size);
+                    ret     = CffiStructObjDefault(ipCtxP, structP, pointer);
                 }
                 else {
                     fnCheckRet = Tclh_ErrorInvalidValue(
-                        ip, NULL, "Function returned NULL pointer");
+                        ip, NULL, "Function returned NULL pointer.");
                     ret = TCL_ERROR;
                 }
                 if (ret != TCL_OK)

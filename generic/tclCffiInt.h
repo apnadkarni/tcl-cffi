@@ -559,6 +559,8 @@ CffiResult CffiStructToObj(Tcl_Interp *ip,
                            const CffiStruct *structP,
                            void *valueP,
                            Tcl_Obj **valueObjP);
+CffiResult
+CffiStructObjDefault(CffiInterpCtx *ipCtxP, CffiStruct *structP, void *valueP);
 
 CffiResult CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                    const CffiTypeAndAttrs *typeAttrsP,
