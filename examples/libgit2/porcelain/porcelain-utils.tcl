@@ -109,6 +109,13 @@ proc prompt {message {mode "echo"}} {
     return $response
 }
 
+proc read_file {path} {
+    set fd [open $path rb]
+    set data [read $fd]
+    close $fd
+    return $data
+}
+
 proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
     # Conforms to git_credential_acquire_cb prototype. Called back from libgit2
     # to return user credentials.
@@ -221,6 +228,23 @@ proc resolve_refish {pRepo refish} {
     return $pAnnotatedCommit
 }
 
+proc resolve_treeish {pRepo treeish} {
+    # Returns a pointer to a tree
+    #  pRepo - repository
+    #  treeish - any string that serves to identify a tree
+    #
+    # Generates an error if resolution fails
+
+    set pObj [git_revparse_single $pRepo $treeish]
+    try {
+        set pTree [git_object_peel $pObj GIT_OBJECT_TREE]
+        # Returned tree is a git_object. Cast down to a git_tree
+        return [::cffi::pointer cast $pTree ${::GIT_NS}::git_tree]
+    } finally {
+        git_object_free $pObj
+    }
+}
+
 proc print_git_time {header t} {
     dict with t {
         incr time [expr {60 * $offset}]; # Offset is in minutes
@@ -261,6 +285,72 @@ proc print_signature {header sig {include_time 0}} {
             append line " $time $sign[format %02d $hours][format %02d $minutes]"
         }
         puts $line
+    }
+}
+
+# Callback from git_diff_print etc.
+variable diff_line_prefixes {
+    GIT_DIFF_LINE_CONTEXT { }
+    GIT_DIFF_LINE_ADDITION +
+    GIT_DIFF_LINE_DELETION -
+}
+variable diff_line_color_seq [list \
+                                  GIT_DIFF_LINE_ADDITION "\033\[32m" \
+                                  GIT_DIFF_LINE_DELETION "\033\[31m" \
+                                  GIT_DIFF_LINE_ADD_EOFNL "\033\[32m" \
+                                  GIT_DIFF_LINE_DEL_EOFNL "\033\[31m" \
+                                  GIT_DIFF_LINE_FILE_HDR "\033\[1m" \
+                                  GIT_DIFF_LINE_HUNK_HDR "\033\[36m"]
+
+# Prototype matches git_diff_line_cb
+proc print_diff_line {delta hunk line payload} {
+    variable diff_line_prefixes
+    variable diff_line_color_seq
+
+    set origin [dict get $line origin]
+
+    # See if color enabled in caller
+    upvar 1 color_state color_state
+    if {[info exists color_state]} {
+        if {[dict exists $diff_line_color_seq $origin]} {
+            set color [dict get $diff_line_color_seq $origin]
+        } else {
+            set color ""
+        }
+        if {$color ne $color_state} {
+            if {$color eq "\033\[1m" || $color_state eq "\033\[1m"} {
+                # Bold. Reset
+                puts -nonewline "\033\[m"
+            }
+            puts -nonewline $color
+            set color_state $color
+        }
+    }
+
+    set len [dict get $line content_len]
+    set contentP [dict get $line content]
+    if {$len > 0 && ![::cffi::pointer isnull $contentP]} {
+        if {[dict exists $diff_line_prefixes $origin]} {
+            append output [dict get $diff_line_prefixes $origin]
+        }
+        append output [encoding convertto utf-8 [::cffi::memory tobinary! $contentP $len]]
+        puts -nonewline $output
+    }
+
+    return 0
+}
+
+proc print_diffs {pDiff {format GIT_DIFF_FORMAT_PATCH}} {
+    set cb [::cffi::callback ${::GIT_NS}::git_diff_line_cb print_diff_line -1]
+    try {
+        # color_state variable is used by the callback to keep color state
+        option? Colorize color_state
+        git_diff_print $pDiff [option Format $format] $cb NULL
+    } finally {
+        ::cffi::callback_free $cb
+        if {[info exists color_state]} {
+            puts -nonewline "\033\[m"; # Reset colors
+        }
     }
 }
 
@@ -461,7 +551,7 @@ proc getopt::getopt {args} {
     set arg(unknown) [dict create pattern unknown argument 0]
     set arg(argument) [dict create pattern argument argument 0]
     if {[llength [info commands ::help]] == 0} {
-        interp alias {} ::help {} return -code 99 -level 0
+        interp alias {} ::help {} return -code 99 -level 0
     }
     lappend defaults --help "# display this help and exit\nhelp" \
       arglist #\n[format {getopt::noargs ${%s}} $argvar] \
@@ -479,11 +569,16 @@ proc getopt::getopt {args} {
                 set arg([lindex [split $pat :] 0]) \
                   [dict create pattern $pat argument 1]
             }
-            --?* {# long option without an argument
+            --!?* {# negatable long option without an argument
+                set patname [string range $pat 3 end]
+                set pat --$patname
+                set negpat --no-$patname
                 set arg($pat) [dict create pattern $pat argument 0]
-                set negpat "--no-[string range $pat 2 end]"
                 # The complement key indicates this is negative of real option
                 set arg($negpat) [dict create pattern $negpat argument 0 complement $pat]
+            }
+            --?* {# long option without an argument
+                set arg($pat) [dict create pattern $pat argument 0]
             }
             -?* {# short options
                 set last ""; foreach c [split [string range $pat 1 end] ""] {
@@ -641,17 +736,11 @@ proc getopt::help {body} {
                 set x [string first : $pat]
                 lappend opts [string replace $pat $x $x =]
             }
+            --!?* {
+                lappend opts "--\[no-\][string range $pat 3 end]"
+            }
             --?* {
-                if {$pat ne "--help"} {
-                    if {1} {
-                        lappend opts "--\[no-\][string range $pat 2 end]"
-                    } else {
-                        lappend opts $pat
-                        lappend opts "--no-[string range $pat 2 end]"
-                    }
-                } else {
-                    lappend opts $pat
-                }
+                lappend opts $pat
             }
             -?* {
                 foreach c [split [string range $pat 1 end] {}] {

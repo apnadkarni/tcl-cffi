@@ -4,10 +4,10 @@
 # be created in.
 
 ::cffi::Struct create git_buf {
-    ptr   {pointer unsafe}
-    asize {size_t}
-    size  {size_t}
-} -clear
+    ptr   {pointer unsafe nullok {default NULL}}
+    asize {size_t {default 0}}
+    size  {size_t {default 0}}
+}
 
 # In the functions below, we could pass a struct.git_buf byref so it is seen
 # as a dictionary at the Tcl level. However, that is likely to be error-prone
@@ -35,5 +35,15 @@ libgit2 functions {
     }
     git_buf_contains_nul int {
         buffer  PBUF
+    }
+}
+
+proc lg2_buf_tostr {pBuf} {
+    set buf [git_buf fromnative! $pBuf]
+    dict with buf {
+        if {$size == 0 || [::cffi::pointer isnull $ptr]} {
+            return ""
+        }
+        return [encoding convertfrom utf-8 [::cffi::memory tobinary! $ptr $size]]
     }
 }

@@ -62,6 +62,9 @@ proc lg2_strarray_new {strings} {
 
 # Free memory for a git_strarray OR a lg2_strarray
 proc lg2_strarray_free {pStrArray} {
+    if {[::cffi::pointer isnull $pStrArray]} {
+        return
+    }
     set tag [::cffi::pointer tag $pStrArray]
     if {$tag eq [lg2_strarray name]} {
         # We own the whole boondoggle

@@ -39,7 +39,7 @@
     GIT_DIFF_MINIMAL                         0x20000000
     GIT_DIFF_SHOW_BINARY                     0x40000000
 }
-::cffi::alias define GIT_DIFF_OPTION_T {int {enum git_diff_option_t}}
+::cffi::alias define GIT_DIFF_OPTION_T {int {enum git_diff_option_t} bitmask}
 
 
 ::cffi::enum flags git_diff_flag_t {
@@ -48,7 +48,7 @@
     GIT_DIFF_FLAG_VALID_ID
     GIT_DIFF_FLAG_EXISTS
 }
-::cffi::alias define GIT_DIFF_FLAG_T {int {enum git_diff_flag_t}}
+::cffi::alias define GIT_DIFF_FLAG_T {int {enum git_diff_flag_t} bitmask}
 
 ::cffi::enum define git_delta_t {
     GIT_DELTA_UNMODIFIED  0
@@ -79,7 +79,7 @@
     GIT_DIFF_STATS_NUMBER          4
     GIT_DIFF_STATS_INCLUDE_SUMMARY 8
 }
-::cffi::alias define GIT_DIFF_STATS_FORMAT_T {int {enum git_diff_stats_format_t}}
+::cffi::alias define GIT_DIFF_STATS_FORMAT_T {int {enum git_diff_stats_format_t} bitmask}
 
 ::cffi::enum define git_diff_format_t {
     GIT_DIFF_FORMAT_PATCH        1
@@ -135,7 +135,7 @@
     version            int
     flags              uint32_t
     ignore_submodules  GIT_SUBMODULE_IGNORE_T
-    pathspec           struct.git_strarray
+    pathspec           struct.lg2_strarray
     notify_cb          {pointer.git_diff_notify_cb    nullok {default NULL}}
     progress_cb        {pointer.git_diff_progress_cb  nullok {default NULL}}
     payload            CB_PAYLOAD

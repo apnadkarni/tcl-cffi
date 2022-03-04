@@ -191,27 +191,6 @@ proc print_commit {pCommit} {
     print_git_time Date: [dict get $sig when]
 
     puts "\n    $message"
-    
-}
-
-proc print_diff_hunk {delta hunk line payload} {
-    set len [dict get $line content_len]
-    set contentP [dict get $line content]
-    if {$len > 0 && ![::cffi::pointer isnull $contentP]} {
-        set indicators {
-            GIT_DIFF_LINE_CONTEXT { }
-            GIT_DIFF_LINE_ADDITION +
-            GIT_DIFF_LINE_DELETION -
-        }
-        set origin [dict get $line origin]
-        if {[dict exists $indicators $origin]} {
-            append output [dict get $indicators $origin]
-        }
-        append output [encoding convertto utf-8 [::cffi::memory tobinary! $contentP $len]]
-        puts -nonewline $output
-    }
-
-    return 0
 }
 
 proc print_patch {pRepo pCommit diffopts} {
@@ -220,7 +199,6 @@ proc print_patch {pRepo pCommit diffopts} {
         return
     }
 
-    set cb [::cffi::callback ${::GIT_NS}::git_diff_line_cb print_diff_hunk -1]
     set aTree NULL
     set bTree [git_commit_tree $pCommit]
     set pDiff NULL
@@ -234,10 +212,9 @@ proc print_patch {pRepo pCommit diffopts} {
             }
         }
         set pDiff [git_diff_tree_to_tree $pRepo $aTree $bTree $diffopts]
-        git_diff_print $pDiff GIT_DIFF_FORMAT_PATCH $cb
+        print_diffs $pDiff GIT_DIFF_FORMAT_PATCH
     } finally {
         # Note - ok to call *free for NULLs
-        ::cffi::callback_free $cb
         git_diff_free $pDiff
         git_tree_free $aTree
         git_tree_free $bTree
@@ -369,6 +346,5 @@ catch {git-log $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result
-    puts stderr [dict get $edict -errorinfo]
     exit 1
 }

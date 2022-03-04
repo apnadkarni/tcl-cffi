@@ -13,8 +13,8 @@
 ::cffi::Struct create git_describe_options {
     version                     {uint {default 1}}
     max_candidates_tags         {uint {default 10}}
-    describe_strategy           uint
-    pattern                     STRING
+    describe_strategy           GIT_DESCRIBE_STRATEGY_T
+    pattern                     {STRING nullifempty}
     only_follow_first_pattern   int
     show_commit_oid_as_fallback int
 }
@@ -22,18 +22,18 @@
     version                {uint {default 1}}
     abbreviated_size       {uint {default 7}}
     always_use_long_format int
-    dirty_suffix           STRING
+    dirty_suffix           {STRING nullifempty}
 }
 
 ::cffi::alias define PDESCRIBE_RESULT pointer.git_describe_result
 
 libgit2 functions {
     git_describe_options_init GIT_ERROR_CODE {
-        opts    {struct.git_describe_options byref}
+        opts    {struct.git_describe_options retval}
         version {uint {default 1}}
     }
     git_describe_format_options_init GIT_ERROR_CODE {
-        opts    {struct.git_describe_format_options byref}
+        opts    {struct.git_describe_format_options retval}
         version {uint {default 1}}
     }
     git_describe_commit GIT_ERROR_CODE {

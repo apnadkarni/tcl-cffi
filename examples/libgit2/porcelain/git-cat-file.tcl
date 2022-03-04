@@ -11,7 +11,7 @@ proc parse_cat-file_options {arguments} {
             option_set_once Action $opt
         }
         -e {
-            # Check existence and validity of object without printing anything
+            # Check existence and validity of object without printing
             option_set_once Action $opt
         }
         -v {
