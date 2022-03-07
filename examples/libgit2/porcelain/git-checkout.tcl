@@ -81,7 +81,9 @@ proc perform_checkout_ref {pRepo pAnnotatedTarget target_ref} {
         dict lappend opts Force GIT_CHECKOUT_SAFE
     }
     if {[option ShowProgress 1]} {
-        set progress_cb [::cffi::callback ${::GIT_NS}::git_checkout_progress_cb print_checkout_progress]
+        set progress_cb [::cffi::callback new \
+                             ${::GIT_NS}::git_checkout_progress_cb \
+                             print_checkout_progress]
         dict set opts progress_cb $progress_cb
     }
 

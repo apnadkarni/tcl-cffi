@@ -59,7 +59,7 @@ proc git-add {arguments} {
             # The callback script is a command prefix where the first arg is the
             # repository object. The third argument -1 is to value to return from
             # callback in case of errors (-1 will abort the iteration)
-            set callback [::cffi::callback \
+            set callback [::cffi::callback new \
                               ::git::git_index_matched_path_cb \
                               [list [namespace current]::add_cb $pRepo] \
                               -1]

@@ -93,8 +93,8 @@ proc lg2_strarray_free {pStrArray} {
 # Get the strings from a {git,cffi}_strarray
 proc lg2_strarray_strings {pStrArray} {
     set o [::cffi::pointer tag $pStrArray]
-    set count [$o get $pStrArray count]
-    set pStrings [$o get $pStrArray pStrings]
+    set count [$o getnative $pStrArray count]
+    set pStrings [$o getnative $pStrArray pStrings]
 
     if {$count == 0} {
         return {}

@@ -342,7 +342,7 @@ proc print_diff_line {delta hunk line payload} {
 }
 
 proc print_diffs {pDiff {format GIT_DIFF_FORMAT_PATCH}} {
-    set cb [::cffi::callback ${::GIT_NS}::git_diff_line_cb print_diff_line -1]
+    set cb [::cffi::callback new ${::GIT_NS}::git_diff_line_cb print_diff_line -1]
     try {
         # color_state variable is used by the callback to keep color state
         if {[option Colorize 1]} {
@@ -350,7 +350,7 @@ proc print_diffs {pDiff {format GIT_DIFF_FORMAT_PATCH}} {
         }
         git_diff_print $pDiff [option Format $format] $cb NULL
     } finally {
-        ::cffi::callback_free $cb
+        ::cffi::callback free $cb
         if {[info exists color_state]} {
             puts -nonewline "\033\[m"; # Reset colors
         }

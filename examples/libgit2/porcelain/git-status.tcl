@@ -409,11 +409,14 @@ proc git-status {arguments} {
         if {[option ListSubmodules 0]} {
             try {
                 set submodule_count 0; # Used by callback
-                set submodule_cb [::cffi::callback ${::GIT_NS}::git_submodule_cb print_submod -1]
+                set submodule_cb [::cffi::callback new \
+                                      ${::GIT_NS}::git_submodule_cb \
+                                      print_submod \
+                                      -1]
                 git_submodule_foreach $pRepo $submodule_cb NULL
             } finally {
                 if {[info exists submodule_cb]} {
-                    ::cffi::callback_free $submodule_cb
+                    ::cffi::callback free $submodule_cb
                 }
             }
         }

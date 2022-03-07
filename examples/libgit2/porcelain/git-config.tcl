@@ -33,8 +33,8 @@ proc config_list {pConfig} {
     try {
         while {[git_config_next pEntry $pIter] eq "GIT_OK"} {
             # NOTE: pEntry is internal to pIter and NOT to be freed
-            set nameP [${::GIT_NS}::git_config_entry get $pEntry name]
-            set valueP [${::GIT_NS}::git_config_entry get $pEntry value]
+            set nameP [${::GIT_NS}::git_config_entry getnative $pEntry name]
+            set valueP [${::GIT_NS}::git_config_entry getnative $pEntry value]
             set name [::cffi::memory tostring! $nameP utf-8]
             set value [::cffi::memory tostring! $valueP utf-8]
             puts "$name=$value"
@@ -47,7 +47,7 @@ proc config_list {pConfig} {
 proc config_get {pConfig key} {
     set pEntry [git_config_get_entry $pConfig $key]
     try {
-        set valueP [${::GIT_NS}::git_config_entry get $pEntry value]
+        set valueP [${::GIT_NS}::git_config_entry getnative $pEntry value]
         puts [::cffi::memory tostring! $valueP utf-8]
         # Note valueP is unsafe (internal), not to be freed
     } finally {

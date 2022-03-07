@@ -130,22 +130,22 @@ proc git-clone {arguments} {
 
         # Set up various progress callbacks
         set checkout_cb \
-            [::cffi::callback ${::GIT_NS}::git_checkout_progress_cb \
+            [::cffi::callback new ${::GIT_NS}::git_checkout_progress_cb \
                  checkout_progress]
         dict set clone_opts checkout_opts progress_cb $checkout_cb
 
         set sideband_cb \
-            [::cffi::callback ${::GIT_NS}::git_transport_message_cb \
+            [::cffi::callback new ${::GIT_NS}::git_transport_message_cb \
                  sideband_progress -1]
         dict set clone_opts fetch_opts callbacks sideband_progress $sideband_cb
 
         set transfer_cb \
-            [::cffi::callback ${::GIT_NS}::git_indexer_progress_cb \
+            [::cffi::callback new ${::GIT_NS}::git_indexer_progress_cb \
                  fetch_progress -1]
         dict set clone_opts fetch_opts callbacks transfer_progress $transfer_cb
 
         set credentials_cb \
-            [::cffi::callback ${::GIT_NS}::git_credential_acquire_cb \
+            [::cffi::callback new ${::GIT_NS}::git_credential_acquire_cb \
                  cred_acquire_cb -1]
         dict set clone_opts fetch_opts callbacks credentials $credentials_cb
 
@@ -157,7 +157,7 @@ proc git-clone {arguments} {
     } finally {
         foreach cb {checkout_cb sideband_cb transfer_cb credentials_cb} {
             if {[info exists $cb]} {
-                ::cffi::callback_free [set $cb]
+                ::cffi::callback free [set $cb]
             }
         }
         fconfigure stdout -translation $translation
