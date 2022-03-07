@@ -621,7 +621,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {i {A B 4}}
+    } -result {i {A B 7}}
     test struct-enum-2 "struct field enum array with bitmask" -setup {
         cffi::enum define E {A 1 B 2 C 4}
     } -body {
@@ -630,7 +630,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {i {{A 0} {B C 0} {A 8}}}
+    } -result {i {{A 1} {B C 6} {A 9}}}
     test struct-enum-error-0 "struct field num with unknown enum" -body {
         cffi::Struct create S {i {int {enum NOSUCHENUM}}}
     } -result {Enum "NOSUCHENUM" not found or inaccessible. } -returnCodes error

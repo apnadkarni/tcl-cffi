@@ -2653,7 +2653,7 @@ namespace eval ${NS}::test {
             set var {a 3 {b 8 c}}
             ${type}_array_inout 3 var
             set var
-        } -result {{b 0} {c 0} {a b c 8}}
+        } -result {{b 2} {c 4} {a b c 15}}
         test function-bitmask-$type-4 "function bitmask $type out" -setup {
             cffi::enum delete *
             cffi::enum flags E {a b c}
@@ -2661,7 +2661,7 @@ namespace eval ${NS}::test {
             testDll function $fn [list $type {enum E} bitmask] [list inparam $type outparam [list $type out {enum E} bitmask]]
         } -body {
             list [$fn 1 x] $x [$fn 2 y] $y [$fn 6 z] $z
-        } -result [list {a b 0} {b 0} {c 0} {a b 0} 8 {a b c 0}]
+        } -result [list {a b 3} {b 2} {c 4} {a b 3} 8 {a b c 7}]
         test function-bitmask-$type-5 "function bitmask $type retval" -setup {
             cffi::enum delete *
             cffi::enum flags E {a b c}
@@ -2669,7 +2669,7 @@ namespace eval ${NS}::test {
             testDll function $fn [list $type nonzero] [list inparam $type outparam [list $type retval {enum E} bitmask]]
         } -body {
             list [$fn 1] [$fn 2] [$fn 6]
-        } -result [list {b 0} {a b 0} {a b c 0}]
+        } -result [list {b 2} {a b 3} {a b c 7}]
 
     }
 

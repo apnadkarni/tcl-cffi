@@ -180,7 +180,6 @@ CffiEnumMemberBitUnmask(Tcl_Interp *ip,
                         Tcl_Obj **listObjP)
 {
     Tcl_Obj *listObj = Tcl_NewListObj(0, NULL);
-    Tcl_WideInt remain = bitmask;
 
     if (mapObj) {
         Tcl_Obj *nameObj;
@@ -198,13 +197,12 @@ CffiEnumMemberBitUnmask(Tcl_Interp *ip,
             if (Tcl_GetWideIntFromObj(NULL, valueObj, &wide) == TCL_OK
                 && wide != 0 && ((wide & bitmask) == wide)) {
                 Tcl_ListObjAppendElement(NULL, listObj, nameObj);
-                remain &= ~wide;
             }
             Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
         }
         Tcl_DictObjDone(&search);
     }
-    Tcl_ListObjAppendElement(NULL, listObj, Tcl_NewWideIntObj(remain));
+    Tcl_ListObjAppendElement(NULL, listObj, Tcl_NewWideIntObj(bitmask));
     *listObjP = listObj;
     return TCL_OK;
 }

@@ -76,8 +76,7 @@ namespace eval ${NS}::enum {
         # enumeration members
         #  enumname - name of the enumeration
         #  mask - Integer bit mask value
-        # The last element of the returned list is an integer containing the
-        # bits that were not matched against an enumberation member.
+        # The last element of the returned list is $mask itself.
         # Generally, the enumeration should consist of values that do not have
         # overlapping bits set (commonly a single bit is set in each
         # member value). This is not enforced but results might not be

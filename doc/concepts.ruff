@@ -948,9 +948,8 @@ namespace eval Concepts {
         - The `bitmask` annotation may be used for integer types. This only has
         effect if the `enum` annotation is also present. In that case the
         returned value from the mapped command is a list of enumeration member
-        names matching the bits set in the returned value followed by an integer
-        containing all bits that were set but not matched by any bit value in
-        the enumeration.
+        names matching the bits set in the returned value followed by
+        the original integer value.
 
         - The [error checking annotations][Error annotations]
         `zero`, `nonzero`, `nonnegative`, `positive` may be specified for
@@ -1099,16 +1098,14 @@ namespace eval Concepts {
         the enumeration member name if a mapping exists and as the original
         integer otherwise.
 
-        - The `bitmask` annotation may be used for integer types.
-        For `in` and `inout` parameters with this annotation accept a list of
-        integer values and perform a bit-wise OR operation on these passing the
-        result to the function. If the parameter also has the `enum`
-        annotation the list may contain enumeration member names as well.
-        Correspondingly, the output values for `out` and `inout` are converted
-        to a list of enumeration member names with the last element being
-        an integer containing all the bits that were not matched by enumeration
-        members. This annotation should be used with enumerations whose values
-        are bit flags.
+        - The `bitmask` annotation may be used for integer types. For `in` and
+        `inout` parameters with this annotation accept a list of integer values
+        and perform a bit-wise OR operation on these passing the result to the
+        function. If the parameter also has the `enum` annotation the list may
+        contain enumeration member names as well. Correspondingly, the output
+        values for `out` and `inout` are converted to a list of enumeration
+        member names with the last element being the integer value itself. This
+        annotation should be used with enumerations whose values are bit flags.
 
         - The `default` annotation may be used for pure input parameters. The
         associated value is passed to the function if an argument is not
@@ -1332,7 +1329,7 @@ namespace eval Concepts {
         - Creation of the callback function pointer via the [::cffi::callback]
         command that wraps a Tcl command that should be invoked as the callback
         - Invoking the outer function
-        - Freeing the callback function pointer with [::cffi::callback_free] when
+        - Freeing the callback function pointer with [::cffi::callback free] when
         no longer needed. Note it may be used multiple times before freeing.
 
         Currently callbacks are only supported with the `libffi` backend.
@@ -1379,7 +1376,7 @@ namespace eval Concepts {
 
         ````
         proc print_name {fpath pSb typeflag} {puts $fpath; return 0}
-        % set cb [cffi::callback ftw_callback print_name -1]
+        % set cb [cffi::callback new ftw_callback print_name -1]
         0x00007f1a56661010^::ftw_callback
         ````
 
@@ -1398,7 +1395,7 @@ namespace eval Concepts {
         it again.
 
         ````
-        % cffi::callback_free $cb
+        % cffi::callback free $cb
         ````
 
         It is useful to know that the callback command is invoked in the Tcl
@@ -1413,7 +1410,7 @@ namespace eval Concepts {
             return 0
         }
         % set files {}
-        % set cb [cffi::callback ftw_callback [list collect_names files] -1]
+        % set cb [cffi::callback new ftw_callback [list collect_names files] -1]
         0x00007f1a56661080^::ftw_callback
         % ftw [pwd] $cb 5
         0

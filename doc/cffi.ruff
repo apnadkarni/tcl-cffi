@@ -28,43 +28,6 @@ namespace eval $NS {
         # Returns the value returned by the invoked C function.
     }
 
-    proc callback {protoname cmdprefix error_value} {
-        # Wraps a script level command into a C function
-        #  protoname - the name of a prototype created through the
-        #    [prototype function] or [prototype stdcall] commands
-        #  cmdprefix - the command prefix that should be invoked when the created
-        #    C function is called
-        #  error_result - the value that should be returned if the command prefix
-        #    raises an exception. This is optional if the function prototype
-        #    specifies the `void` return type.
-        #
-        # The returned function pointer can be invoked through the [call] command
-        # but the common usage is for it to be passed to
-        # a C function that takes a callback function as an argument.
-        #
-        # Invoking the function pointer will result in $cmdprefix being called
-        # with the additional arguments passed in the invocation. These must
-        # match the parameter types of the prototype specified in the callback
-        # definition. These as well as the return type are restricted to be
-        # scalar values and strings. Moreover if the type is a pointer, it must
-        # annotated as `unsafe`.
-        #
-        # When $cmdprefix is called from a C function as a callback, it is executed
-        # in the Tcl context from which the C function was called and thus has
-        # access to the script level local variables etc.
-        #
-        # When no longer needed, the callback should be freed with the
-        # [callback_free] command.
-        #
-        # Returns a callback function pointer that can be called from C native code.
-        #
-    }
-
-    proc callback_free {cb} {
-        # Frees a callback pointer
-        #  cb - a function pointer allocated with [callback]
-    }
-
     proc limits {type} {
         # Get the lower and upper limits for an integral base type
         #   type - the base type

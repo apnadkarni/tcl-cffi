@@ -405,7 +405,7 @@ namespace eval cffi::test {
         cffi::enum flags E {a b c}
     } -body {
         cffi::enum unmask E 5
-    } -result {a c 0}
+    } -result {a c 5}
     test enum-unmask-1 "enum unmask 0" -setup {
         reset_enums
         cffi::enum flags E {a b c}
@@ -417,7 +417,7 @@ namespace eval cffi::test {
         cffi::enum flags E {a b c}
     } -body {
         cffi::enum unmask E 25
-    } -result {a 24}
+    } -result {a 25}
 
     ###
 
