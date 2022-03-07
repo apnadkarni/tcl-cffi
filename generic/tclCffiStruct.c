@@ -834,10 +834,10 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructGetCmd(Tcl_Interp *ip,
-                      int objc,
-                      Tcl_Obj *const objv[],
-                      CffiStructCmdCtx *structCtxP)
+CffiStructGetNativeCmd(Tcl_Interp *ip,
+                       int objc,
+                       Tcl_Obj *const objv[],
+                       CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
     char *fieldAddr;
@@ -897,10 +897,10 @@ CffiStructGetCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructSetCmd(Tcl_Interp *ip,
-                      int objc,
-                      Tcl_Obj *const objv[],
-                      CffiStructCmdCtx *structCtxP)
+CffiStructSetNativeCmd(Tcl_Interp *ip,
+                       int objc,
+                       Tcl_Obj *const objv[],
+                       CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
     char *fieldAddr;
@@ -1261,7 +1261,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
         {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
         {"fields", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructFieldsCmd},
-        {"get", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetCmd},
+        {"getnative", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetNativeCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
         {"frombinary", 1, 1, "BINARY", CffiStructFromBinaryCmd},
         {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},
@@ -1269,7 +1269,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
         {"new", 0, 1, "?INITIALIZER?", CffiStructNewCmd},
-        {"set", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetCmd},
+        {"setnative", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetNativeCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
         {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
         {NULL}

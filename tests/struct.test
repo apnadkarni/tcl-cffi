@@ -785,9 +785,9 @@ namespace eval cffi::test {
     } -result "Pointer [scoped_ptr 8 S] is not registered." -returnCodes error
 
     ###
-    # struct get
-    testnumargs struct-get "::TestStruct get" "POINTER FIELD" "?INDEX?"
-    test struct-get-0 "Get each field struct" -setup {
+    # struct getnative
+    testnumargs struct-getnative "::TestStruct getnative" "POINTER FIELD" "?INDEX?"
+    test struct-getnative-0 "Getnative each field struct" -setup {
         testDll function getTestStruct int {p pointer.::TestStruct}
         set p [::TestStruct allocate]
         getTestStruct $p
@@ -796,11 +796,11 @@ namespace eval cffi::test {
         ::TestStruct free $p
     } -body {
         dict for {name -} [dict get [::TestStruct info] Fields] {
-            lappend testval $name [::TestStruct get $p $name]
+            lappend testval $name [::TestStruct getnative $p $name]
         }
         checkTestStruct $testval
     } -result ""
-    test struct-get-1 "get pointer field with tag" -setup {
+    test struct-getnative-1 "getnative pointer field with tag" -setup {
         ::cffi::Struct create S {c schar i int p pointer.S}
         set p [S allocate]
         S tonative $p [list c 1 i 2 p $p]
@@ -808,9 +808,9 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        list [S get $p c] [S get $p i] [string equal $p [S get $p p]]
+        list [S getnative $p c] [S getnative $p i] [string equal $p [S getnative $p p]]
     } -result {1 2 1}
-    test struct-get-2 "get at index" -setup {
+    test struct-getnative-2 "getnative at index" -setup {
         ::cffi::Struct create S {c schar d double}
         set p [S allocate 2]
         S tonative $p [list c 1 d 2]
@@ -820,10 +820,10 @@ namespace eval cffi::test {
         S destroy
     } -body {
         list \
-            [S get $p c] [S get $p d] \
-            [S get $p c 1] [S get $p d 1]
+            [S getnative $p c] [S getnative $p d] \
+            [S getnative $p c 1] [S getnative $p d 1]
     } -result {1 2.0 10 20.0}
-    test struct-get-3 "get pointer safety - safe" -setup {
+    test struct-getnative-3 "getnative pointer safety - safe" -setup {
         ::cffi::Struct create S {p pointer}
         set p [S allocate]
         # Note no need to initialize allocation
@@ -832,10 +832,10 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        set ptrval [S get $p p]
+        set ptrval [S getnative $p p]
         cffi::pointer isvalid $ptrval
     } -result 1
-    test struct-get-4 "get pointer safety - unsafe" -setup {
+    test struct-getnative-4 "getnative pointer safety - unsafe" -setup {
         ::cffi::Struct create S {p {pointer unsafe}}
         set p [S allocate]
         # Note no need to initialize allocation
@@ -843,31 +843,31 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        set ptrval [S get $p p]
+        set ptrval [S getnative $p p]
         cffi::pointer isvalid $ptrval
     } -result 0
-    test struct-get-error-0 "Unsafe pointer" -setup {
+    test struct-getnative-error-0 "Unsafe pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
-        S get [scoped_ptr 1 S] i
+        S getnative [scoped_ptr 1 S] i
     } -result "Pointer [scoped_ptr 1 S] is not registered." -returnCodes error
-    test struct-get-error-1 "Wrong tag pointer" -setup {
+    test struct-getnative-error-1 "Wrong tag pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
-        S get [scoped_ptr 1 S2] i
+        S getnative [scoped_ptr 1 S2] i
     } -result "Value \"[scoped_ptr 1 S2]\" has the wrong type. Pointer type mismatch." -returnCodes error
-    test struct-get-error-2 "NULL pointer" -setup {
+    test struct-getnative-error-2 "NULL pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
-        S get NULL i
+        S getnative NULL i
     } -result {Invalid value. Pointer is NULL.} -returnCodes error
-    test struct-get-error-3 "get invalid field name" -setup {
+    test struct-getnative-error-3 "getnative invalid field name" -setup {
         ::cffi::Struct create S {c schar}
         set p [S allocate]
         S tonative $p [list c 1]
@@ -875,14 +875,14 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S get $p nosuchfield
+        S getnative $p nosuchfield
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
 
     ###
-    # struct set
+    # struct setnative
 
-    testnumargs struct-set "::TestStruct set" "POINTER FIELD VALUE" "?INDEX?"
-    test struct-set-0 "Set each field struct" -setup {
+    testnumargs struct-setnative "::TestStruct setnative" "POINTER FIELD VALUE" "?INDEX?"
+    test struct-setnative-0 "Setnative each field struct" -setup {
         set p [::TestStruct allocate]
         testDll function getTestStruct int {s {struct.TestStruct out}}
         getTestStruct ts
@@ -890,22 +890,22 @@ namespace eval cffi::test {
         ::TestStruct free $p
     } -body {
         dict for {key val} $ts {
-            ::TestStruct set $p $key $val
+            ::TestStruct setnative $p $key $val
         }
         checkTestStruct [::TestStruct fromnative $p]
     } -result ""
-    test struct-set-1 "set pointer field with tag" -setup {
+    test struct-setnative-1 "setnative pointer field with tag" -setup {
         ::cffi::Struct create S {c schar p pointer.S}
         set p [S allocate]
     } -cleanup {
         S free $p
         S destroy
     } -body {
-        S set $p c 42
-        S set $p p $p
+        S setnative $p c 42
+        S setnative $p p $p
         list [S get $p c] [string equal $p [S get $p p]]
     } -result {42 1}
-    test struct-set-2 "set at index" -setup {
+    test struct-setnative-2 "setnative at index" -setup {
         ::cffi::Struct create S {c schar d double}
         set p [S allocate 2]
         S tonative $p [list c 1 d 2]
@@ -914,63 +914,63 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S set $p c 100 1
-        S set $p d 200 1
+        S setnative $p c 100 1
+        S setnative $p d 200 1
         list [S fromnative $p] [S fromnative $p 1]
     } -result {{c 1 d 2.0} {c 100 d 200.0}}
-    test struct-set-3 "set pointer safety - unsafe" -setup {
+    test struct-setnative-3 "setnative pointer safety - unsafe" -setup {
         ::cffi::Struct create S {p {pointer unsafe}}
         set p [S allocate]
     } -cleanup {
         S free $p
         S destroy
     } -body {
-        S set $p p [makeptr 1]
+        S setnative $p p [makeptr 1]
         set ptrval [S get $p p]
         list $ptrval [cffi::pointer isvalid $ptrval]
     } -result [list [makeptr 1] 0]
-    test struct-set-error-0 "Unsafe pointer" -setup {
+    test struct-setnative-error-0 "Unsafe pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
-        S set [scoped_ptr 1 S] i 42
+        S setnative [scoped_ptr 1 S] i 42
     } -result "Pointer [scoped_ptr 1 S] is not registered." -returnCodes error
-    test struct-set-error-1 "Wrong tag pointer" -setup {
+    test struct-setnative-error-1 "Wrong tag pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
-        S set [scoped_ptr 1 S2] i 42
+        S setnative [scoped_ptr 1 S2] i 42
     } -result "Value \"[scoped_ptr 1 S2]\" has the wrong type. Pointer type mismatch." -returnCodes error
-    test struct-set-error-2 "NULL pointer" -setup {
+    test struct-setnative-error-2 "NULL pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
-        S set NULL i 42
+        S setnative NULL i 42
     } -result {Invalid value. Pointer is NULL.} -returnCodes error
-    test struct-set-error-3 "set invalid field name" -setup {
+    test struct-setnative-error-3 "setnative invalid field name" -setup {
         ::cffi::Struct create S {c schar}
         set p [S allocate]
     } -cleanup {
         S free $p
         S destroy
     } -body {
-        S set $p nosuchfield 1
+        S setnative $p nosuchfield 1
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
     set testnum -1
     foreach {fld val} {
         c 256 i notanint shrt 100000 ui -1 ushrt -1 l notanint uc -1 ul -1 c3 morethan13chars ll notanint unic morethan13chars ull -1 b morethan3bytes f notanumber s {unknownfield 104} d notanumber
     } {
-        test struct-set-value-error-[incr testnum] "Set field struct bad $fld value" -setup {
+        test struct-setnative-value-error-[incr testnum] "Setnative field struct bad $fld value" -setup {
             set p [::TestStruct allocate]
             testDll function getTestStruct int {p pointer.::TestStruct}
             getTestStruct $p
         } -cleanup {
             ::TestStruct free $p
         } -body {
-            list [catch {::TestStruct set $p $fld $val} result] \
+            list [catch {::TestStruct setnative $p $fld $val} result] \
                 [regexp {not in range|expected.*but got|greater than.*maximum buffer|Field missing} $result] [checkTestStruct [::TestStruct fromnative $p]]
         } -result {1 1 {}}
     }
