@@ -312,6 +312,7 @@ proc print_diff_line {delta hunk line payload} {
     # See if color enabled in caller
     upvar 1 color_state color_state
     if {[info exists color_state]} {
+        # Coloring enabled
         if {[dict exists $diff_line_color_seq $origin]} {
             set color [dict get $diff_line_color_seq $origin]
         } else {
@@ -319,7 +320,7 @@ proc print_diff_line {delta hunk line payload} {
         }
         if {$color ne $color_state} {
             if {$color eq "\033\[1m" || $color_state eq "\033\[1m"} {
-                # Bold. Reset
+                # State was Bold. Reset
                 puts -nonewline "\033\[m"
             }
             puts -nonewline $color
@@ -344,7 +345,9 @@ proc print_diffs {pDiff {format GIT_DIFF_FORMAT_PATCH}} {
     set cb [::cffi::callback ${::GIT_NS}::git_diff_line_cb print_diff_line -1]
     try {
         # color_state variable is used by the callback to keep color state
-        option? Colorize color_state
+        if {[option Colorize 1]} {
+            set color_state ""
+        }
         git_diff_print $pDiff [option Format $format] $cb NULL
     } finally {
         ::cffi::callback_free $cb
@@ -562,6 +565,7 @@ proc getopt::getopt {args} {
     foreach {pat code} $defaults {
         if {![dict exists $body $pat]} {dict set body $pat $code}
     }
+    set newbody {}
     dict for {pat code} $body {
         switch -glob -- $pat {
             -- {# end-of-options option}
@@ -576,6 +580,7 @@ proc getopt::getopt {args} {
                 set arg($pat) [dict create pattern $pat argument 0]
                 # The complement key indicates this is negative of real option
                 set arg($negpat) [dict create pattern $negpat argument 0 complement $pat]
+                dict set newbody $negpat $code
             }
             --?* {# long option without an argument
                 set arg($pat) [dict create pattern $pat argument 0]
@@ -592,7 +597,10 @@ proc getopt::getopt {args} {
                 }
             }
         }
+        dict set newbody $pat $code
     }
+    set body $newbody
+
     # Loop through supplied argument list
     while {[llength $list]} {
         set rest [lassign $list opt]
@@ -637,8 +645,8 @@ proc getopt::getopt {args} {
             } else {
                 # Option does not take an argument. Need to check if this is
                 # the complemented version (ie. --no-opt complement of --opt)
-                if {[dict exists $arg($option) complement]} {
-                    set option [dict get $arg($option) complement]
+                if {[dict exists $arg($opt) complement]} {
+                    set option [dict get $arg($opt) complement]
                     set value 0
                 }
             }

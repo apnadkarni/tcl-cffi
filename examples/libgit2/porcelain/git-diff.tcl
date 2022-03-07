@@ -35,7 +35,7 @@ proc parse_diff_options {arguments} {
             option_set Format GIT_DIFF_FORMAT_RAW
         }
         --!color {
-            # Enable color output
+            # Enable/disable color output
             option_set Colorize $arg
         }
         -R {
