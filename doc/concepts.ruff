@@ -749,7 +749,7 @@ namespace eval Concepts {
         % Point tonative $pPoint {x 0 y 1}
         % Point fromnative $pPoint
         x 0 y 1
-        % Point set $pPoint x 42
+        % Point setnative $pPoint x 42
         % Point fromnative $pPoint
         x 42 y 1
         ````

@@ -976,9 +976,9 @@ namespace eval cffi::test {
     }
 
     ###
-    # struct fields
-    testnumargs struct-fields "::TestStruct fields" "POINTER FIELDNAMES" "?INDEX?"
-    test struct-fields-0 "Empty fieldlist" -setup {
+    # struct getnativefields
+    testnumargs struct-getnativefields "::TestStruct getnativefields" "POINTER FIELDNAMES" "?INDEX?"
+    test struct-getnativefields-0 "Empty fieldlist" -setup {
         ::cffi::Struct create S {c schar i int[2] d double }
         set p [S allocate]
         S tonative $p [list c 1 i {2 3} d 4]
@@ -986,9 +986,9 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S fields $p {}
+        S getnativefields $p {}
     } -result {}
-    test struct-fields-1 "full fieldlist" -setup {
+    test struct-getnativefields-1 "full fieldlist" -setup {
         ::cffi::Struct create S {c schar i int[2] d double }
         set p [S allocate]
         S tonative $p [list c 1 i {2 3} d 4]
@@ -996,9 +996,9 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S fields $p {c i d}
+        S getnativefields $p {c i d}
     } -result {1 {2 3} 4.0}
-    test struct-fields-2 "fields out of order" -setup {
+    test struct-getnativefields-2 "fields out of order" -setup {
         ::cffi::Struct create S {c schar i int[2] d double }
         set p [S allocate]
         S tonative $p [list c 1 i {2 3} d 4]
@@ -1006,9 +1006,9 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S fields $p {d c}
+        S getnativefields $p {d c}
     } -result {4.0 1}
-    test struct-fields-3 "indexed" -setup {
+    test struct-getnativefields-3 "indexed" -setup {
         ::cffi::Struct create S {c schar i int[2] d double }
         set p [S allocate 2]
         S tonative $p [list c 1 i {2 3} d 4]
@@ -1017,23 +1017,23 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S fields $p {d c i} 1
+        S getnativefields $p {d c i} 1
     } -result {40.0 10 {20 30}}
-    test struct-fields-error-0 "null pointer" -setup {
+    test struct-getnativefields-error-0 "null pointer" -setup {
         ::cffi::Struct create S {c schar d double }
     } -cleanup {
         S destroy
     } -body {
-        S fields NULL {d c}
+        S getnativefields NULL {d c}
     } -result {Invalid value. Pointer is NULL.} -returnCodes error
-    test struct-fields-error-1 "wrong type pointer" -setup {
+    test struct-getnativefields-error-1 "wrong type pointer" -setup {
         ::cffi::Struct create S {c schar d double }
     } -cleanup {
         S destroy
     } -body {
-        S fields [makeptr 1 ::TestStruct] {d c}
+        S getnativefields [makeptr 1 ::TestStruct] {d c}
     } -result "Value \"[makeptr 1 ::TestStruct]\" has the wrong type. Pointer type mismatch." -returnCodes error
-    test struct-fields-error-2 "wrong type pointer" -setup {
+    test struct-getnativefields-error-2 "wrong type pointer" -setup {
         ::cffi::Struct create S {c schar d double }
         set p [S allocate]
         S tonative $p [list c 1 d 4]
@@ -1041,7 +1041,7 @@ namespace eval cffi::test {
         S free $p
         S destroy
     } -body {
-        S fields $p nosuchfield
+        S getnativefields $p nosuchfield
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
 
 

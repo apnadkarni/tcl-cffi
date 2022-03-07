@@ -937,7 +937,7 @@ CffiStructSetNativeCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiStructFieldsCmd
+/* Function: CffiStructGetNativeFieldsCmd
  * Gets the values of multiple fields from a native struct.
  *
  * Parameters:
@@ -958,10 +958,10 @@ CffiStructSetNativeCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructFieldsCmd(Tcl_Interp *ip,
-                    int objc,
-                    Tcl_Obj *const objv[],
-                    CffiStructCmdCtx *structCtxP)
+CffiStructGetNativeFieldsCmd(Tcl_Interp *ip,
+                             int objc,
+                             Tcl_Obj *const objv[],
+                             CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
     void *structAddr;
@@ -1260,8 +1260,8 @@ CffiStructInstanceCmd(ClientData cdata,
         {"describe", 0, 0, "", CffiStructDescribeCmd},
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
         {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
-        {"fields", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructFieldsCmd},
         {"getnative", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetNativeCmd},
+        {"getnativefields", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructGetNativeFieldsCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
         {"frombinary", 1, 1, "BINARY", CffiStructFromBinaryCmd},
         {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},

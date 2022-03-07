@@ -54,7 +54,7 @@ oo::class create ${NS}::Struct {
         # Returns a safe pointer to the allocated memory tagged with the
         # struct name.
     }
-    method fields {pointer fieldnames {index 0}} {
+    method getnativefields {pointer fieldnames {index 0}} {
         # Retrieve values of multiple fields from a native struct in memory.
         #  pointer - pointer to memory allocated for the C struct or array. Must be
         #    a safe pointer tagged with the struct name.
