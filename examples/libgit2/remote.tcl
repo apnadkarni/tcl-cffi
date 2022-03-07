@@ -73,7 +73,8 @@
 }
 ::cffi::prototype function git_remote_update_tips_cb int {
     refname STRING
-    oid     {struct.git_oid byref}
+    oid_old {struct.git_oid byref}
+    oid_new {struct.git_oid byref}
     payload CB_PAYLOAD
 }
 
@@ -113,7 +114,6 @@
     custom_headers   struct.git_strarray
 }
 
-# TBD git_remote_stats - change return to struct.git_indexer_progress byref
 libgit2 functions {
     git_remote_create GIT_ERROR_CODE {
         pRemote {PREMOTE retval}
@@ -282,7 +282,7 @@ libgit2 functions {
         refspecs {PSTRARRAYIN nullok}
         opts     {struct.git_push_options byref}
     }
-    git_remote_stats {pointer.git_indexer_progress unsafe} {
+    git_remote_stats {struct.git_indexer_progress byref} {
         pRemote PREMOTE
     }
     git_remote_autotag GIT_REMOTE_AUTOTAG_OPTION_T {
