@@ -19,6 +19,7 @@ source alias.ruff
 source enum.ruff
 source pointer.ruff
 source prototype.ruff
+source callback.ruff
 source cookbook.ruff
 
 set title "Tcl CFFI package"

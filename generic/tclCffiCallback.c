@@ -240,21 +240,20 @@ CffiCallbackFind(CffiInterpCtx *ipCtxP,
 }
 
 
-CffiResult
-CffiCallbackFreeObjCmd(ClientData cdata,
+static CffiResult
+CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
                     Tcl_Interp *ip,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     void *pv;
     CffiCallback *cbP = NULL;
     CffiResult ret;
     Tcl_Obj *tagObj;
 
-    CHECK_NARGS(ip, 2, 2, "CALLBACKPTR");
+    CFFI_ASSERT(objc == 3);
 
-    CHECK(Tclh_PointerUnwrap(ip, objv[1], &pv, NULL));
+    CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
     if (pv == NULL)
         return TCL_OK;
 
@@ -267,9 +266,9 @@ CffiCallbackFreeObjCmd(ClientData cdata,
             ip, NULL, "Attempt to delete callback while still active.");
     }
 
-    CHECK(Tclh_PointerObjGetTag(ip, objv[1], &tagObj));
+    CHECK(Tclh_PointerObjGetTag(ip, objv[2], &tagObj));
     if (tagObj == NULL)
-        return Tclh_ErrorInvalidValue(ip, objv[1], "Not a callback function pointer.");
+        return Tclh_ErrorInvalidValue(ip, objv[2], "Not a callback function pointer.");
     ret = Tclh_PointerUnregister(ip, pv, tagObj);
     if (ret == TCL_OK)
         CffiCallbackCleanupAndFree(cbP);
@@ -277,13 +276,12 @@ CffiCallbackFreeObjCmd(ClientData cdata,
     return ret;
 }
 
-CffiResult
-CffiCallbackObjCmd(ClientData cdata,
+static CffiResult
+CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
                     Tcl_Interp *ip,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiCallback *cbP = NULL;
     CffiProto *protoP;
     Tcl_Obj *protoFqnObj = NULL;
@@ -302,24 +300,24 @@ CffiCallbackObjCmd(ClientData cdata,
 
 #ifdef CFFI_USE_LIBFFI
 
-    CHECK_NARGS(ip, 3, 4, "PROTOTYPENAME CMDPREFIX ?ERROR_RESULT?");
+    CFFI_ASSERT(objc == 4 || objc == 5);
 
-    CHECK(Tcl_ListObjGetElements(ip, objv[2], &nCmdObjs, &cmdObjs));
+    CHECK(Tcl_ListObjGetElements(ip, objv[3], &nCmdObjs, &cmdObjs));
     if (nCmdObjs == 0)
         return Tclh_ErrorInvalidValue(ip, NULL, "Empty command specified.");
 
     /* We will need fqn for tagging pointer */
-    protoFqnObj = Tclh_NsQualifyNameObj(ip, objv[1], NULL);
+    protoFqnObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
     Tcl_IncrRefCount(protoFqnObj);
     protoP = CffiProtoGet(ipCtxP, protoFqnObj);
 
     if (protoP == NULL) {
-        Tclh_ErrorNotFound(ip, "Prototype", objv[1], NULL);
+        Tclh_ErrorNotFound(ip, "Prototype", objv[2], NULL);
         goto error_handler;
     }
 
     /* Verify prototype is usable as a callback */
-    if (CffiCallbackCheckProto(ipCtxP, protoP, objc < 4 ? NULL : objv[3])
+    if (CffiCallbackCheckProto(ipCtxP, protoP, objc < 5 ? NULL : objv[4])
             != TCL_OK)
         goto error_handler;
 
@@ -328,7 +326,7 @@ CffiCallbackObjCmd(ClientData cdata,
         goto error_handler;
 
     cbP = CffiCallbackAllocAndInit(
-        ipCtxP, protoP, objv[2], objc < 4 ? NULL : objv[3]);
+        ipCtxP, protoP, objv[3], objc < 5 ? NULL : objv[4]);
     if (cbP == NULL)
         goto error_handler;
 
@@ -380,6 +378,35 @@ error_handler:
     if (cbP)
         CffiCallbackCleanupAndFree(cbP);
     return TCL_ERROR;
+
+#endif /* CFFI_USE_LIBFFI */
+}
+
+CffiResult
+CffiCallbackObjCmd(ClientData cdata,
+                    Tcl_Interp *ip,
+                    int objc,
+                    Tcl_Obj *const objv[])
+{
+#ifdef CFFI_USE_DYNCALL
+    Tcl_SetResult(
+        ip, "Callbacks not supported by the dyncall back end.", TCL_STATIC);
+    return TCL_ERROR;
+#endif
+
+#ifdef CFFI_USE_LIBFFI
+
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
+    /* The flags field CFFI_F_ALLOW_UNSAFE is set for unsafe pointer operation */
+    static const Tclh_SubCommand subCommands[] = {
+        {"new", 2, 3, "PROTOTYPENAME CMDPREFIX ?ERROR_RESULT?", CffiCallbackNewCmd, 0},
+        {"free", 1, 1, "CALLBACKPTR", CffiCallbackFreeCmd, 0},
+        {NULL}
+    };
+    int cmdIndex;
+
+    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
+    return subCommands[cmdIndex].cmdFn(ipCtxP, ip, objc, objv);
 
 #endif /* CFFI_USE_LIBFFI */
 }

@@ -895,7 +895,6 @@ Tcl_ObjCmdProc CffiTypeObjCmd;
 
 #ifdef CFFI_ENABLE_CALLBACKS
 Tcl_ObjCmdProc CffiCallbackObjCmd;
-Tcl_ObjCmdProc CffiCallbackFreeObjCmd;
 #endif
 
 /* TBD - move these to Tclh headers */

@@ -409,8 +409,6 @@ Cffi_Init(Tcl_Interp *ip)
 #ifdef CFFI_USE_LIBFFI
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::callback", CffiCallbackObjCmd, ipCtxP, NULL);
-    Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::callback_free", CffiCallbackFreeObjCmd, ipCtxP, NULL);
 #endif
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::prototype", CffiPrototypeObjCmd, ipCtxP, NULL);
