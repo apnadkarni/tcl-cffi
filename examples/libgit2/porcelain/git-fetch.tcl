@@ -21,10 +21,10 @@ proc update_tips_progress {refname oid_old oid_new payload} {
     if {[catch {
         set str_new [git_oid_tostr_s $oid_new]
         if {[git_oid_is_zero $oid_old]} {
-            puts "[new]     $str_new $refname"
+            puts "\[new\]     $str_new $refname"
         } else {
             set str_old [git_oid_tostr_s $oid_old]
-            puts "[updated] [string range $str_old 0 9]..[string range $str_new 0 9] $refname"
+            puts "\[updated\] [string range $str_old 0 9]..[string range $str_new 0 9] $refname"
         }
     } result]} {
         puts $result

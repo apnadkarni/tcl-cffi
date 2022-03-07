@@ -151,11 +151,11 @@ libgit2 functions {
         pRepo PREPOSITORY
         glob STRING
     }
-    git_reference_next {int {enum git_error_code}} {
-        vref {PREFERENCE out}
+    git_reference_next GIT_ITER_ERROR_CODE {
+        vref {PREFERENCE unsafe out}
         iter PREFERENCE_ITERATOR
     }
-    git_reference_next_name {int {enum git_error_code}} {
+    git_reference_next_name GIT_ITER_ERROR_CODE {
         name {STRING out}
         iter PREFERENCE_ITERATOR
     }

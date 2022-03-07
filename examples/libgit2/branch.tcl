@@ -28,7 +28,7 @@ libgit2 functions {
         pRepo      PREPOSITORY
         list_flags GIT_BRANCH_T
     }
-    git_branch_next {int {enum git_error_code}} {
+    git_branch_next GIT_ITER_ERROR_CODE {
         ref  {PREFERENCE   out}
         type {GIT_BRANCH_T out}
         iter PBRANCH_ITERATOR

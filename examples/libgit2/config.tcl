@@ -149,7 +149,7 @@ libgit2 functions {
         name     STRING
         regexp   STRING
     }
-    git_config_next {int {enum git_error_code}} {
+    git_config_next GIT_ITER_ERROR_CODE {
         entry    {PCONFIG_ENTRY out}
         iterator PCONFIG_ITERATOR
     }

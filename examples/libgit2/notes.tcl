@@ -24,7 +24,7 @@ libgit2 functions {
     git_note_iterator_free void {
         iterator {PNOTE_ITERATOR nullok dispose}
     }
-    git_note_next {int {enum git_error_code}} {
+    git_note_next GIT_ITER_ERROR_CODE {
         note_id      {struct.git_oid out}
         annotated_id {struct.git_oid out}
         iterator     PNOTE_ITERATOR

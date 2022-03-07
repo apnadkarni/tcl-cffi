@@ -22,7 +22,7 @@
     id             struct.git_oid
     flags          uint16_t
     flags_extended uint16_t
-    path           {pointer unsafe}
+    path           STRING
 }
 
 ::cffi::enum define git_index_entry_flag_t {
@@ -175,7 +175,8 @@ libgit2 functions {
         iterator {PINDEX_ITERATOR retval}
         index    PINDEX
     }
-    git_index_iterator_next {int {enum git_error_code}} {
+    git_index_iterator_next GIT_ITER_ERROR_CODE {
+        index_entry {pointer.git_index_entry unsafe out}
         iterator PINDEX_ITERATOR
     }
     git_index_iterator_free void {
@@ -251,7 +252,7 @@ libgit2 functions {
         iterator {PINDEX_CONFLICT_ITERATOR retval}
         index PINDEX
     }
-    git_index_conflict_next {int {enum git_error_code}} {
+    git_index_conflict_next GIT_ITER_ERROR_CODE {
         pAncestor {pointer.git_index_entry out unsafe}
         pOur      {pointer.git_index_entry out unsafe}
         pTheir    {pointer.git_index_entry out unsafe}
