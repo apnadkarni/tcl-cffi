@@ -124,7 +124,7 @@ proc git-clone {arguments} {
             fetch_progress {}
             print_state {}
         }
-        set callback_context {
+        set cred_acquire_cb_context {
             tried_credential_types {}
         }
 

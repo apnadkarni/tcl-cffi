@@ -16,19 +16,36 @@ proc parse_push_options {arguments} {
 
 proc git-push {arguments} {
     set arguments [parse_push_options $arguments]
-    if {[llength $arguments] == 0} {
-        set remote "origin"
-    } else {
+    if {[llength $arguments] > 0} {
         set arguments [lassign $arguments remote]
+        if {[llength $arguments] > 0} {
+            set refspecs $arguments
+        }
+        set remote "origin"
     }
+
+    if {![info exists remote]} {
+        set remote "origin"
+        puts "No remote specified. Defaulting to $remote."
+    }
+    if {![info exists refspecs]} {
+        set refspecs [list "refs/heads/main"]
+        puts "No refspecs specified. Defaulting to $refspecs."
+    }
+    puts "Pushing [join $refspecs {, }] to $remote."
 
     set push_opts [git_push_options_init]
     set pRefSpecs NULL
     set pRemote NULL
     set pRepo [open_repository]
     try {
+        set credentials_cb \
+            [::cffi::callback new ${::GIT_NS}::git_credential_acquire_cb \
+                 cred_acquire_cb -1]
+        dict set push_opts callbacks credentials $credentials_cb
+
         set pRemote [git_remote_lookup $pRepo $remote]
-        set pRefSpecs [lg2_strarray_new $arguments]
+        set pRefSpecs [lg2_strarray_new $refspecs]
         git_remote_push $pRemote $pRefSpecs $push_opts
         puts "pushed to $remote"
     } finally {

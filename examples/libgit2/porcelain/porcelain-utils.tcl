@@ -116,7 +116,17 @@ proc read_file {path} {
     return $data
 }
 
-proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
+proc cred_acquire_cb {args} {
+    if {[catch {
+        cred_acquire_cb_internal {*}$args
+    } result]} {
+        puts stderr $result
+        return -1
+    }
+    return 0
+}
+
+proc cred_acquire_cb_internal {ppCred url username_from_url allowed_types payload} {
     # Conforms to git_credential_acquire_cb prototype. Called back from libgit2
     # to return user credentials.
     #  ppCred - pointer to location to store pointer to credentials
@@ -124,7 +134,7 @@ proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
     #  username_from_url - user name from url
     #  allowed_types - bitmask of git_credential_t specifying acceptable credentials
     #  payload - not used
-    # The command expects caller to have a dictionary callback_context where it
+    # The command expects caller to have a dictionary cred_acquire_cb_context where it
     # will store a key tried_credential_types holding the credential types that
     # have been tried.
 
@@ -136,7 +146,15 @@ proc cred_acquire_cb {ppCred url username_from_url allowed_types payload} {
     # GIT_CREDENTIAL_USERPASS_PLAINTEXT. We have to check that we have not already
     # tried a type else we will loop indefinitely.
 
-    upvar 1 callback_context context
+    upvar 1 cred_acquire_cb_context context
+    if {![info exists context]} {
+        # Should have been done by callback parent but forgotten too often :-)
+        # Do not really like creating variables in caller's context but this
+        # is a demo anyways...
+        set context {
+            tried_credential_types {}
+        }
+    }
     if {"GIT_CREDENTIAL_DEFAULT" in $allowed_types &&
         "GIT_CREDENTIAL_DEFAULT" ni [dict get $context tried_credential_types]} {
         # Remember we tried this method
