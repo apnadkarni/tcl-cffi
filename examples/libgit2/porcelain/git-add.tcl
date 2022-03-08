@@ -48,7 +48,12 @@ proc add_cb {pRepo path pathspec payload} {
 proc git-add {arguments} {
     set path_specs [parse_add_options $arguments]
     set pRepo [open_repository]
+
     try {
+        set git_dir [git_repository_workdir $pRepo]
+        # Paths must be relative to top and use forward slashes
+        set path_specs [make_relative_to_workdir $pRepo $path_specs]
+
         set pIndex [git_repository_index $pRepo]
 
         # We can optionally set a callback to print actions taken as they happen

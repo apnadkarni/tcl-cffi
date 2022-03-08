@@ -393,6 +393,9 @@ proc git-status {arguments} {
         dict set opts flags [option! StatusOpts]
         dict set opts show GIT_STATUS_SHOW_INDEX_AND_WORKDIR
 
+        # Paths must be relative to top and use forward slashes
+        set path_specs [make_relative_to_workdir $pRepo $path_specs]
+
         # Setting the path specs in the options is a bit tricky as they are embedded
         # as a git_strarray inside the options struct, and not as a git_strarray*
         # so first create an allocated strarray...

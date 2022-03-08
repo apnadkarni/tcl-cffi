@@ -50,7 +50,7 @@ libgit2 functions {
         pTag PTAG
     }
     git_tag_create GIT_ERROR_CODE {
-        oid      {struct.git_oid byref}
+        oid      {struct.git_oid retval}
         pRepo    PREPOSITORY
         tag_name STRING
         target   POBJECT
@@ -59,7 +59,7 @@ libgit2 functions {
         force    int
     }
     git_tag_annotation_create GIT_ERROR_CODE {
-        oid      {struct.git_oid byref}
+        oid      {struct.git_oid retval}
         pRepo    PREPOSITORY
         tag_name STRING
         target   POBJECT
@@ -67,13 +67,13 @@ libgit2 functions {
         message  STRING
     }
     git_tag_create_from_buffer GIT_ERROR_CODE {
-        oid    {struct.git_oid byref}
+        oid    {struct.git_oid retval}
         pRepo  PREPOSITORY
         buffer pointer
         force  int
     }
     git_tag_create_lightweight GIT_ERROR_CODE {
-        oid      {struct.git_oid byref}
+        oid      {struct.git_oid retval}
         pRepo    PREPOSITORY
         tag_name STRING
         target   POBJECT

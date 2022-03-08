@@ -129,8 +129,6 @@ proc git-blame {arguments} {
         }
         git_repository_free $pRepo
     }
-
-
 }
 
 source [file join [file dirname [info script]] porcelain-utils.tcl]
@@ -138,6 +136,5 @@ catch {git-blame $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result
-    pdict $edict
     exit 1
 }

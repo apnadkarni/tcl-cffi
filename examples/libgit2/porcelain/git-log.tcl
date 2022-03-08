@@ -247,10 +247,11 @@ proc git-log {arguments} {
         # Check if we have to match against path specifications
         set npathspecs [llength $arguments]
         if {$npathspecs > 0} {
-            # Setting the path specs in the options is a bit tricky as they are
+            # Path specs need to be made relative to work dir and use forward /
+            # Also, setting the path specs in the options is a bit tricky as they are
             # embedded as a git_strarray inside the options struct, and not as a
             # git_strarray* so first create an allocated strarray...
-            set pStrArray [lg2_strarray_new $arguments]
+            set pStrArray [lg2_strarray_new [make_relative_to_workdir $pRepo $arguments]]
             # ..then do a value copy into a dictionary. The pointers in the dictionary
             # value will stay valid as long as pPathSpecs is not freed
             dict set diffopts pathspec [lg2_strarray fromnative $pStrArray]

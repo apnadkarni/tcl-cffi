@@ -358,9 +358,6 @@ proc print_diffs {pDiff {format GIT_DIFF_FORMAT_PATCH}} {
 }
 
 proc make_relative_path {path parent} {
-    if {[file pathtype $path] eq "relative"} {
-        return $path
-    }
     set path_components [file split [file normalize $path]]
     set parent_components [file split [file normalize $parent]]
     set npath [llength $path_components]
@@ -389,6 +386,14 @@ proc make_relative_path {path parent} {
         return "."
     }
     return [file join {*}[lrange $path_components $i end]]
+}
+
+# libgit2 needs paths relative to workdir
+proc make_relative_to_workdir {pRepo paths} {
+    set git_dir [git_repository_workdir $pRepo]
+    return [lmap path $paths {
+        make_relative_path $path $git_dir
+    }]
 }
 
 proc inform {message {force 0}} {
@@ -445,13 +450,17 @@ proc option_init {opt value} {
     return
 }
 
-proc option_set_once {opt value} {
+proc option_set_once {opt value incompatibles} {
     variable Options
     if {[info exists Options($opt)]} {
         if {$Options($opt) == $value} {
             return
         }
-        error "\"$value\" is incompatible with \"$Options($opt)\""
+        if {[llength $incompatibles]} {
+            error "At most one of [join $incompatibles {, }] may be specified."
+        } else {
+            error "\"$value\" is incompatible with \"$Options($opt)\""
+        }
     }
     set Options($opt) $value
 }

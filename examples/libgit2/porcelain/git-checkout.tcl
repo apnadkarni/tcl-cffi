@@ -150,6 +150,5 @@ catch {git-checkout $::argv} result edict
 git_libgit2_shutdown
 if {[dict get $edict -code]} {
     puts stderr $result
-    puts $edict
     exit 1
 }
