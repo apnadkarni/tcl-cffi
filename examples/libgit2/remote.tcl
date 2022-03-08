@@ -213,8 +213,8 @@ libgit2 functions {
     git_remote_connect GIT_ERROR_CODE {
         pRemote PREMOTE
         direction GIT_DIRECTION
-        callbacks PREMOTE_CALLBACKS
-        proxy_opts {struct.git_proxy_options byref}
+        callbacks {struct.git_remote_callbacks byref nullifempty nullok}
+        proxy_opts {struct.git_proxy_options byref nullifempty nullok}
         pCustomHeaders {PSTRARRAYIN nullok}
     }
     git_remote_ls GIT_ERROR_CODE {

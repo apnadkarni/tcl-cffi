@@ -672,8 +672,8 @@ proc getopt::getopt {args} {
             } else {
                 # Option does not take an argument. Need to check if this is
                 # the complemented version (ie. --no-opt complement of --opt)
-                if {[dict exists $arg($opt) complement]} {
-                    set option [dict get $arg($opt) complement]
+                if {[dict exists $arg($option) complement]} {
+                    set option [dict get $arg($option) complement]
                     set value 0
                 }
             }
