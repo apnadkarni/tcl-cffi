@@ -147,9 +147,9 @@ namespace eval Concepts {
         return type of a function. Note that the C `void *` type
         is declared as a [pointer][Pointers] type.
 
-        ### Numeric types
+        ### Integer types
 
-        The following numeric types are supported.
+        The following integer types are supported.
 
         `schar` - C `signed char`
         `uchar` - C `unsigned char`
@@ -161,6 +161,11 @@ namespace eval Concepts {
         `ulong` - C `unsigned long`
         `longlong` - C `signed long long`
         `ulonglong` - C `unsigned long long`
+
+        ### Floating point types
+
+        The following floating point types are supported.
+
         `float` - C `float`
         `double` - C `double`
 

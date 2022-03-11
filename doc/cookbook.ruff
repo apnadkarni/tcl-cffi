@@ -1,5 +1,177 @@
 namespace eval Cookbook {
     variable _ruff_preamble {
-        *This page under construction.*
+
+        While using CFFI to wrap a few ad-hoc functions is fairly straightforward,
+        wrapping a large API into a complete package can be more involved as
+        decisions how C types are translated to script level annotations. This
+        page provides some step-by-step guidance.
+
+        The description below uses the following terms:
+
+        `LIB` - Wrapper object for the shared library
+        `INTEGER` - any CFFI [integer types][::Concepts::Integer types]
+        `REAL` - any CFFI [floating point type][::Concepts::Floating point types]
+        `STRING` - the `string` and `unistring` types, the former with an optional
+        encoding attribute.
+        `STRUCT` - a [::cffi::Struct] name
+
+        ## Defining a function
+
+        A function definition consists of three components.
+
+        ```` diagram ditaa
+        +------------------+ +-----------+ +--------------+
+        |Calling convention+-+Return type+-+Parameter list|
+        +------------------+ +-----------+ +--------------+
+        ````
+
+        Sections below detail definition of each.
+
+        ### Calling convention
+
+        Check the header file or documentation of the function for the expected
+        calling convention. Generally, this is only an issue if the application
+        supports the 32-bit Windows platform. Note the function calling
+        convention may be defined through a macro such as `WINAPI` etc. Most
+        Windows OS API's are defined using the stdcall convention. The default C
+        language calling convention is either unspecified or `_cdecl` in C
+        header files. Most third party API's are defined using this convention.
+        CFFI does not support any calling convention other than these two.
+
+        ``` diagram
+           +-       -+
+        LIB| function|
+           | stdcall |
+           +-       -+
+        ```
+
+        * Define using `stdcall` if the function is defined on 32-bit Windows
+        using `__stdcall` or its equivalent. Note on other platforms, including
+        64-bit Windows, this is treated as equivalent to `function`
+
+        * Define using `function` otherwise after ensuring it does not use
+        some other esoteric platform-specific convention (rare).
+
+        ### Return type definition
+
+        The annotations applicable for function returns depend on the
+        function return type.
+
+        #### Void return type
+
+        The `void` return type does not permit any annotations.
+
+        #### Integer return
+
+        ``` diagram
+                +-         +-      -+ -+ +-           +-                 -+ -+
+        INTEGER | {enum E} | bitmask|  | | zero       | lasterror         |  |
+                +-         +-      -+ -+ | nonzero    | winerror          |  |
+                                         | positive   | errno             |  |
+                                         | nonnegative| {onerror HANDLER} |  |
+                                         +-           +-                 -+ -+
+        ```
+
+        * If the returned values are constrained to a set and a symbolic
+        representation is preferred, optionally add the `enum` attribute with
+        the enumeration defined as a literal or separately through the
+        [::cffi::enum] command.
+
+        * If a symbolic representation is preferred as above and the value is
+        actually a bit mask, optionally add the `bitmask` attribute to have
+        the value returned as a list of symbols from the enumeration.
+
+        * If return values may indicate error conditions, add an error checking
+        annotation like `zero`, `nonzero` etc.
+
+        * If a error checking annotation is added and additional detail
+        is available from the system, add `lasterror`, `winerror` or `errno`
+        as appropriate. If error information is available through some other
+        API, add the `onerror` handler. This may also be used to filter errors
+        or convert error conditions to success.
+
+        #### Floating point returns
+
+        Floating point types `float` and `double` do not permit any annotations
+        on return type declarations.
+
+        #### Pointers
+
+        Pointer return values may be dealt with at the script level either as
+        raw pointers or as implicitly dereferenced values.
+
+        * Declare the function as returning a raw pointer if the returned
+        pointers point to resources that have to be freeing at a later point.
+        If typed as implicitly dereferenced values, the raw pointer will
+        not be available for freeing.
+
+        * Declare the function as returning an implicitly dereferenced value
+        if the returned pointers point to some internal or static storage that
+        does not need to be freed. An example is the `strerror` C runtime library
+        function. Note that implicitly dereferenced types are a convenience;
+        they may be typed as raw pointers instead while the reverse will likely
+        produce memory leaks.
+
+        The type declarations for raw and implicitly dereferenced pointers are
+        separately described below.
+
+        ##### Raw pointers
+
+        ``` diagram
+                            +-      -+ +-                 -+
+        pointer[.TAG|STRUCT]| counted| | nullok            |
+                            | unsafe | | lasterror         |
+                            +-      -+ | errno             |
+                                       | {onerror HANDLER} |
+                                       +-                 -+
+        ```
+
+        * The `TAG` is optional but recommended wherever possible for additional
+        [tag-based][::Concepts::Pointer tags] type checks.
+
+        * If the C pointer target is a C struct defined with [::cffi::Struct],
+        it is recommended, but not mandatory, that the tag used be the name of
+        the struct command. This makes it convenient to access the referenced
+        memory using the struct [methods][::cffi::Struct].
+
+        * By default, pointers returned from functions are marked as
+        [safe pointers][::Concepts::Pointer safety]. This is appropriate for
+        unique pointers that are returned for allocated resources and are only valid
+        until they are deallocated through a corresponding *free* function.
+        A variation is when the pointer returned is not unique as is the case
+        for reference counted resources. In this case the pointer should be
+        annotated as `counted`. For cases where neither of the above apply, for
+        example there is no clear transfer of ownership or freeing, or pointers
+        are internal to the API, there are two choices. First, it can be defaulted as
+        a safe pointer. In this case, since there is no *free* function, the
+        [::cffi::pointer dispose] command must be called at the appropriate time
+        by the application to unregister the pointer. Alternatively, the
+        `unsafe` annotation can be added to the declaration. In this case,
+        there is no need to unregister the pointer but it can only be used
+        in places (arguments and struct fields) that also have the `unsafe`
+        annotation. For more details on pointer management and safety,
+        see [Pointer safety][::Concepts::Pointer safety].
+
+        * Irrespective of the pointer safety annotations, NULL pointers returned
+        from functions will by default raise a generic *Pointer is NULL.* exception.
+        As for integer return values, if additional information is available from
+        the system or API, the type can be annoted with `lasterror`, `errno`
+        or `onerror`. On the other hand, if a NULL pointer is a valid return
+        value, the `nullok` annotation will suppress the exception and return
+        a NULL pointer at the script level.
+
+        ##### Derefenced pointers
+
+
+        ## Defining callbacks
+
+        ## Defining structures
+
+        ## Tips and tricks
+
+        - understand the memory ownership conventions
+        - more than one structure or function definition
+
     }
+
 }

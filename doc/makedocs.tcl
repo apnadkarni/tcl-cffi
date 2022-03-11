@@ -24,20 +24,25 @@ source cookbook.ruff
 
 set title "Tcl CFFI package"
 
+set common [list \
+                -title $title \
+                -sortnamespaces false \
+                -preamble $start_page \
+                -pagesplit namespace \
+                -autopunctuate true \
+                -hidenamespace $NS \
+                -product cffi \
+                -diagrammer ditaa \
+                -version $version \
+                -copyright "Ashok P. Nadkarni" {*}$::argv
+               ]
+
 if {[llength $argv] == 0 || "html" in $argv} {
     ruff::document [list Concepts Cookbook $NS] \
         -format html \
         -outfile $NS.html \
         -outdir [file join [file dirname [info script]] html] \
-        -title $title \
-        -sortnamespaces false \
-        -preamble $start_page \
-        -pagesplit namespace \
-        -autopunctuate true \
-        -hidenamespace $NS \
-        -product cffi \
-        -version $version \
-        -copyright "Ashok P. Nadkarni" {*}$::argv
+        {*}$common
 }
 
 if {[llength $argv] == 0 || "nroff" in $argv} {
@@ -45,13 +50,5 @@ if {[llength $argv] == 0 || "nroff" in $argv} {
         -format nroff \
         -outfile $NS.man \
         -outdir [file join [file dirname [info script]] man] \
-        -title $title \
-        -sortnamespaces false \
-        -preamble $start_page \
-        -pagesplit namespace \
-        -autopunctuate true \
-        -hidenamespace $NS \
-        -product cffi \
-        -version $version \
-        -copyright "Ashok P. Nadkarni" {*}$::argv
+        {*}$common
 }
