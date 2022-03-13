@@ -21,7 +21,7 @@ namespace eval Cookbook {
 
         ```` diagram ditaa
         +------------------+ +-----------+ +--------------+
-        |Calling convention+-+Return type+-+Parameter list|
+        |Calling convention+ +Return type+ +Parameter list|
         +------------------+ +-----------+ +--------------+
         ````
 
@@ -119,12 +119,13 @@ namespace eval Cookbook {
 
         ``` diagram
                             +-      -+ +-                 -+
-        pointer[.TAG|STRUCT]| counted| | nullok            |
+        pointer[.TAG STRUCT]| counted| | nullok            |
                             | unsafe | | lasterror         |
                             +-      -+ | errno             |
                                        | {onerror HANDLER} |
                                        +-                 -+
         ```
+
 
         * The `TAG` is optional but recommended wherever possible for additional
         [tag-based][::Concepts::Pointer tags] type checks.
@@ -153,15 +154,112 @@ namespace eval Cookbook {
         see [Pointer safety][::Concepts::Pointer safety].
 
         * Irrespective of the pointer safety annotations, NULL pointers returned
-        from functions will by default raise a generic *Pointer is NULL.* exception.
+        from functions will by default raise a generic *Pointer is NULL* exception.
         As for integer return values, if additional information is available from
         the system or API, the type can be annoted with `lasterror`, `errno`
         or `onerror`. On the other hand, if a NULL pointer is a valid return
         value, the `nullok` annotation will suppress the exception and return
         a NULL pointer at the script level.
 
-        ##### Derefenced pointers
+        **C example**
 
+        ```
+        void *malloc(size_t sz);
+        FILE *fopen(const char *pathname, const char *mode);
+        ```
+
+        **CFFI declaration**
+
+        ```
+        LIBC malloc {pointer errno} {sz size_t}
+        LIBC fopen {pointer.FILE errno} {pathname string mode string}
+        ```
+
+
+        ##### Implicitly dereferenced pointers
+
+        Raw pointers at script level, while as versatile as their C counterparts,
+        are not as convenient to use as plain old values. Additional steps are
+        needed to access the memory as script level values. Declaring pointer
+        return types as implicitly dereferenced obviates the need for this
+        additional step. As stated earlier, implicit dereferencing should only
+        be done when there is no need for the pointer value itself for freeing
+        later.
+
+        For types **other than pointers to character (or unicode) strings**, the
+        CFFI declaration has the form
+
+        ``` diagram
+                  +-      -+
+        TYPE byref| nullok |
+                  +-      -+
+        ```
+
+        where `TYPE` may be one of the numeric types or a `STRUCT`.
+        The `byref` annotation on the return type declaration denotes that
+        the function return value is nominally a pointer that references
+        the true function result.
+
+        **C example**
+
+        ```
+        struct git_oid *git_tree_oid(git_tree *pTree);
+        ```
+
+        **CFFI declaration**
+
+        ```
+        LIBGIT function git_tree_oid {struct.git_oid byref} {pTree pointer.git_tree}
+        ```
+
+        A call to the `git_tree_oid` function will then return the `git_oid`
+        struct (assumed defined previously with [::cffi::Struct]) in its
+        script level dictionary form. The actual C level pointer is not
+        accessible but not needed as it is internal to the `git_tree` and
+        not to be freed or manipulated.
+
+        As for raw pointers, a null pointer return will raise an exception
+        by default. The `nullok` annotation may suppress the exception in the
+        case that `TYPE` is a struct with defaults defined for all fields
+        (possibly with the `-clear` option). In that the dictionary
+        corresponding to a struct value with all fields defaulted is returned.
+        For all other types and structs with at least one field without a
+        default, an exception is raised irrespective of `nullok`.
+
+        For C pointers typed as `char *` which return pointers to character
+        strings, the implicit dereference syntax is
+
+        ``` diagram
+              +-      -+
+        STRING| nullok |
+              +-      -+
+        ```
+
+        The `byref` is not present because `string` and `unistring` are
+        already implicit pointers,
+        (`string byref` would correspond to `char **`, not `char *`).
+        An optional `nullok` annotation will cause a NULL pointer return
+        to be mapped to the empty string instead of generating an exception.
+
+        Note that if `STRING` is `string`, an encoding identifier may be
+        optionally attached, e.g. `string.utf-8`.
+
+        **C example**
+
+        ```
+        const char *strerror(int);
+        char *strstr(const char *haystack, const char *needle); 
+        ```
+
+        **CFFI declaration**
+
+        ```
+        LIBC function strerror string {error_code int}
+        LIBC function strstr {string nullok} {haystack string needle string}
+        ```
+
+        Note the definition of `strstr` to return an empty string if the
+        needle is not found instead of raising an exception.
 
         ## Defining callbacks
 

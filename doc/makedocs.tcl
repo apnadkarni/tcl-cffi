@@ -32,7 +32,7 @@ set common [list \
                 -autopunctuate true \
                 -hidenamespace $NS \
                 -product cffi \
-                -diagrammer ditaa \
+                -diagrammer "ditaa --border-width 1" \
                 -version $version \
                 -copyright "Ashok P. Nadkarni" {*}$::argv
                ]
