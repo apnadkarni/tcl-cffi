@@ -1053,6 +1053,10 @@ namespace eval Concepts {
         These are used for checking the original return value from the C
         function as always, and not the parameter output value.
 
+        The parameter annotated with `retval` does not appear in the
+        wrapped command signature
+        (i.e. it is not supplied as an argument in the invocation).
+
         The return value will be the parameter output value only if the
         function's native return value passes the error checks. Otherwise,
         an exception is raised as usual.
@@ -1064,8 +1068,7 @@ namespace eval Concepts {
         The following annotations may follow the type in a parameter type
         declaration:
 
-        - The `in`, `out` and `inout` annotations specify whether the parameter
-        is an input to the function, an output from the function or both
+        - The `in`, `out`, `retval` and `inout` annotations
         as described in the [previous][Input and output parameters] section.
 
         - The `byref` annotation specifies that argument is to be passed by

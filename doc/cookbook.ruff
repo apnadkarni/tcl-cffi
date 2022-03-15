@@ -52,24 +52,49 @@ namespace eval Cookbook {
         * Define using `function` otherwise after ensuring it does not use
         some other esoteric platform-specific convention (rare).
 
-        ### Return type definition
+        ### Return type declaration
 
         The annotations applicable for function returns depend on the
         function return type.
 
-        #### Void return type
+        TBD - summary table mapping C -> CFFI
+
+        #### Void returns
+
+        ``` diagram
+        void
+        ```
 
         The `void` return type does not permit any annotations.
 
-        #### Integer return
+        **Examples**
+
+        C
+
+        ```
+        void tzset(void)
+        ```
+
+        CFFI
+
+        ```
+        LIBC function tzset void {}
+        ```
+
+        #### Integer returns
 
         ``` diagram
-                +-         +-      -+ -+ +-           +-                 -+ -+
-        INTEGER | {enum E} | bitmask|  | | zero       | lasterror         |  |
-                +-         +-      -+ -+ | nonzero    | winerror          |  |
-                                         | positive   | errno             |  |
-                                         | nonnegative| {onerror HANDLER} |  |
-                                         +-           +-                 -+ -+
+                   +-         +-      -+ -+ +-           +-                 -+ -+
+        schar      | {enum E} | bitmask|  | | zero       | lasterror         |  |
+        uchar      +-         +-      -+ -+ | nonzero    | winerror          |  |
+        short                               | positive   | errno             |  |
+        ushort                              | nonnegative| {onerror HANDLER} |  |
+        int                                 +-           +-                 -+ -+
+        uint
+        long
+        ulong
+        longlong
+        ulonglong
         ```
 
         * If the returned values are constrained to a set and a symbolic
@@ -90,12 +115,51 @@ namespace eval Cookbook {
         API, add the `onerror` handler. This may also be used to filter errors
         or convert error conditions to success.
 
+
+        **Examples**
+
+        C
+
+        ```
+        int open(const char *pathname, int flags);
+        ```
+
+        CFFI
+
+        ```
+XXX        LIBC open
+
+        ```
+
+
         #### Floating point returns
+
+        ``` diagram
+        +-     -+
+        | float |
+        | double|
+        +-     -+
+        ```
 
         Floating point types `float` and `double` do not permit any annotations
         on return type declarations.
 
-        #### Pointers
+        **Examples**
+
+        C
+
+        ```
+        double sin(double x);
+        ```
+
+        CFFI
+
+        ```
+        LIBM function sin double {x double}
+        ```
+
+
+        #### Pointer returns
 
         Pointer return values may be dealt with at the script level either as
         raw pointers or as implicitly dereferenced values.
@@ -161,20 +225,30 @@ namespace eval Cookbook {
         value, the `nullok` annotation will suppress the exception and return
         a NULL pointer at the script level.
 
-        **C example**
+        **Examples**
+
+        C
 
         ```
         void *malloc(size_t sz);
         FILE *fopen(const char *pathname, const char *mode);
+        git_tree_entry *git_tree_entry_byname(git_tree *, const char *filename);
         ```
 
-        **CFFI declaration**
+        CFFI
 
         ```
         LIBC malloc {pointer errno} {sz size_t}
         LIBC fopen {pointer.FILE errno} {pathname string mode string}
+        LIBGIT git_tree_entry_byname {pointer.git_tree_entry unsafe} {
+            pTree {pointer.git_tree counted}
+            filename string
+            }
         ```
 
+        The `unsafe` and `counted` annotations on `git_tree_entry_byname` arise
+        from the libgit2 API. The returned pointer is internal to libgit2 and
+        hence marked as unsafe while `git_tree` structs are reference counted.
 
         ##### Implicitly dereferenced pointers
 
@@ -200,13 +274,15 @@ namespace eval Cookbook {
         the function return value is nominally a pointer that references
         the true function result.
 
-        **C example**
+        **Examples**
+
+        C
 
         ```
         struct git_oid *git_tree_oid(git_tree *pTree);
         ```
 
-        **CFFI declaration**
+        CFFI
 
         ```
         LIBGIT function git_tree_oid {struct.git_oid byref} {pTree pointer.git_tree}
@@ -244,14 +320,16 @@ namespace eval Cookbook {
         Note that if `STRING` is `string`, an encoding identifier may be
         optionally attached, e.g. `string.utf-8`.
 
-        **C example**
+        **Examples**
+
+        C
 
         ```
         const char *strerror(int);
-        char *strstr(const char *haystack, const char *needle); 
+        char *strstr(const char *haystack, const char *needle);
         ```
 
-        **CFFI declaration**
+        CFFI
 
         ```
         LIBC function strerror string {error_code int}
@@ -260,6 +338,275 @@ namespace eval Cookbook {
 
         Note the definition of `strstr` to return an empty string if the
         needle is not found instead of raising an exception.
+
+
+        #### Struct returns
+
+        ``` diagram
+        struct.STRUCT
+        ```
+
+        A struct function return type does not permit any annotations.
+        `STRUCT` must be a previously defined [::Struct][::Concepts::Structs].
+        Returning a struct by value is rarely seen in C API's.
+
+
+        **Examples**
+
+        C
+
+        ```
+        typedef struct {
+            int quot;
+            int rem;
+        } div_t;
+        div_t div (int numer, int denom);
+        ```
+
+        CFFI
+
+        ```
+        Struct create div_t {quot int rem int}
+        LIBC function struct.div_t {numer int denom int}
+        ```
+
+        ### Parameter declaration
+
+        Parameters to a C function may be used to pass values to the function
+        (input parameters), retrieve values from the function (output parameters),
+        or (input-output parameters).
+
+        Scalar values and structs that are passed by value are always input
+        parameters. Input parameters may also be passed by reference via a pointer,
+        generally with a `const` attribute to indicate the function does not
+        modify the referenced value.
+
+        Output and input-output parameters are always passed to C function
+        as pointers to a location where the value is stored. At the script level
+        the argument is the name of the variable where the value is stored and
+        not the value itself.
+
+        TBD - summary table mapping C -> CFFI
+
+        #### Integer parameters
+
+        ##### Integer input parameters
+
+        ``` diagram
+                  +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
+        schar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
+        uchar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
+        short                                                      |errno            |
+        ushort                                                     |{onerror HANDLER}|
+        int                                                        +-               -+
+        uint
+        long
+        ulong
+        longlong
+        ulonglong
+        ```
+
+        * The `in` annotation is optional because it is the default if neither
+        `out` nor `inout` annotations are present.
+
+        * The `byref` annotation should be specified iff the value is being
+        passed by reference, i.e. the function parameter is a pointer to the
+        value (e.g. `int *` at the C level). This is very rare for integer
+        values that are input only. In either case, whether the `byref`
+        parameter is present or not, the value at script level is still
+        specified directly and not through a variable.
+
+        * Add the `enum` annotation to pass
+        [enumeration][::Concepts::Enumerations] symbolic values for readability
+        purposes. Note integer values will still be accepted.
+
+        * If the parameter holds a bit mask, add the `bitmask` annotation which
+        allows the argument to be a list of integers which will be bitwise
+        OR-ed to construct the value passed to the function. May be combined
+        with `enum` to pass a list of symbols.
+
+        * The `default` annotation may be used to supply a default value to
+        be passed if no argument is supplied for the parameter when the function
+        is invoked. All succeeding parameter in the parameter list must also
+        have default annotations.
+
+        * Error handling annotations like `errno` may be present but are
+        ignored. This is to permit the same aliases to be used in both return
+        and parameter declarations.
+
+
+        **Examples**
+
+        C
+
+        ```
+        int SetHandleInformation(void * hObject, unsigned long dwMask, unsigned long dwFlags);
+        ```
+
+        CFFI
+
+        ```
+        cffi::enum define HANDLE_FLAGS {INHERIT 1 PROTECT_FROM_CLOSE 2}
+        KERNEL32 stdcall SetHandleInformation {int nonzero lasterror} {
+            hObject pointer
+            dwMask {ulong {enum HANDLE_FLAGS} bitmask}
+            dwFlags {ulong {enum HANDLE_FLAGS} bitmask}
+        }
+        ```
+
+
+        ##### Out and in-out integer parameters
+
+        ``` diagram
+                        +-   -+ +-      -+ +-     -+ +-          -+ +-               -+
+        schar     out   |byref| |{enum E}| |bitmask| |storeonerror| |lasterror        |
+        uchar     inout +-   -+ +-      -+ +-     -+ |storealways | |winerror         |
+        short     retval                             +-          -+ |errno            |
+        ushort                                                      |{onerror HANDLER}|
+        int                                                         +-               -+
+        uint
+        long
+        ulong
+        longlong
+        ulonglong
+        ```
+
+        * Output and in-out parameters in C are always passed as pointers
+        to the location where output value is to be stored. Thus `out` and
+        `inout` always imply `byref` which is redundant and need not be specified.
+
+        * The script level argument corresponding to `out` and `inout` parameters
+        are the name of the variable to which the output value is to be assigned.
+        For `inout` parameters this must exist at the time of function call and
+        hold a valid value for the type.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * Add the `enum` annotation if output values are to be mapped to
+        symbolic names for readability. Further, if the values returned
+        are actually bitmasks, add `bitmask` to have the returned value
+        transformed to a list of symbolic names.
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+
+        * Error handling annotations like `errno` may be present but are
+        ignored. This is to permit the same aliases to be used in both return
+        and parameter declarations.
+
+        **Examples**
+
+        C
+
+        ```
+        int GetHandleInformation(void*  hObject, unsigned long *lpdwFlags);
+        ```
+
+        CFFI
+
+        ```
+        cffi::enum define HANDLE_FLAGS {INHERIT 1 PROTECT_FROM_CLOSE 2}
+        KERNEL32 stdcall GetHandleInformation {int nonzero lasterror} {
+            hObject pointer
+            flags {ulong retval {enum HANDLE_FLAGS} bitmask}
+        }
+        ```
+
+        # TODO
+        double output parameter
+        double modf (double x, double* intpart);
+
+
+        #### Floating point parameters
+
+        ##### Floating point input parameters
+
+        ``` diagram
+               +- -+ +-   -+ +-         -+
+        float  |in | |byref| |{default N}|
+        double +- -+ +-   -+ +-         -+
+        ```
+
+        * The `in` annotation is optional because it is the default if neither
+        `out` nor `inout` annotations are present.
+
+        * The `byref` annotation should be specified iff the value is being
+        passed by reference, i.e. the function parameter is a pointer to the
+        value (e.g. `double *` at the C level). This is very rare for integer
+        values that are input only. In either case, whether the `byref`
+        parameter is present or not, the value at script level is still
+        specified directly and not through a variable.
+
+        * The `default` annotation may be used to supply a default value to
+        be passed if no argument is supplied for the parameter when the function
+        is invoked. All succeeding parameter in the parameter list must also
+        have default annotations.
+
+        **Examples**
+
+        C
+
+        ```
+        double sin(double x);
+        ```
+
+        CFFI
+
+        ```
+        LIBM sin double {x double}
+        ```
+
+        ##### Out and in-out floating point parameters
+
+        ``` diagram
+                       +-   -+ +-          -+
+        float    out   |byref| |storeonerror|
+        double   inout +-   -+ |storealways |
+                 retval        +-          -+
+        ```
+
+        * Output and in-out parameters in C are always passed as pointers
+        to the location where output value is to be stored. Thus `out` and
+        `inout` always imply `byref` which is redundant and need not be specified.
+
+        * The script level argument corresponding to `out` and `inout` parameters
+        are the name of the variable to which the output value is to be assigned.
+        For `inout` parameters this must exist at the time of function call and
+        hold a valid value for the type.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+
+        #### Structs
+
+        #### Pointers
+
+        #### Character strings
+
+        #### Pointers
+
+        #### Arrays
+
 
         ## Defining callbacks
 
