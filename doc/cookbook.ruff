@@ -135,10 +135,8 @@ XXX        LIBC open
         #### Floating point returns
 
         ``` diagram
-        +-     -+
-        | float |
-        | double|
-        +-     -+
+        float
+        double
         ```
 
         Floating point types `float` and `double` do not permit any annotations
@@ -182,21 +180,22 @@ XXX        LIBC open
         ##### Raw pointers
 
         ``` diagram
-                            +-      -+ +-                 -+
-        pointer[.TAG STRUCT]| counted| | nullok            |
-                            | unsafe | | lasterror         |
-                            +-      -+ | errno             |
-                                       | {onerror HANDLER} |
-                                       +-                 -+
+                      +-      -+ +-                 -+
+        pointer       | counted| | nullok            |
+        pointer.TAG   | unsafe | | lasterror         |
+        pointer.STRUCT+-      -+ | errno             |
+                                 | {onerror HANDLER} |
+                                 +-                 -+
         ```
 
 
-        * The `TAG` is optional but recommended wherever possible for additional
-        [tag-based][::Concepts::Pointer tags] type checks.
+        * The `TAG` and `STRUCT` are optional but recommended wherever possible
+        for additional [tag-based][::Concepts::Pointer tags] type checks.
 
-        * If the C pointer target is a C struct defined with [::cffi::Struct],
+        * `STRUCT` is a tag matching the name of a previous struct definition.
+        If the C pointer target is a C struct defined with [::cffi::Struct],
         it is recommended, but not mandatory, that the tag used be the name of
-        the struct command. This makes it convenient to access the referenced
+        the struct instance command. This makes it convenient to access the referenced
         memory using the struct [methods][::cffi::Struct].
 
         * By default, pointers returned from functions are marked as
@@ -597,11 +596,147 @@ XXX        LIBC open
         (for example an error code). See
         [Errors and output parameters][::Concepts::Errors and output parameters].
 
-        #### Structs
+        #### Struct parameters
 
-        #### Pointers
+        Struct values are represented as the script level as dictionaries.
+        This requires their definition as described in
+        [Structs][::Concepts::Structs] and [Defining structs].
 
-        #### Character strings
+        ##### Struct input parameters
+
+        ``` diagram
+                      +- -+ +-   -+ +-         -+ +-         -+
+        struct.STRUCT |in | |byref| |{default N}| |nullifempty|
+                      +- -+ +-   -+ +-         -+ +-         -+
+        ```
+
+        * The `in` annotation is optional because it is the default if neither
+        `out` nor `inout` annotations are present.
+
+        * The `byref` annotation should be specified iff the value is being
+        passed by reference, i.e. the function parameter is a pointer to a
+        struct value that is to be passed. Generally, input parameters passed
+        by reference will have `const` in the C parameter declaration.
+        Irrespective of this annotation, the argument is always a dictionary,
+        not a pointer.
+
+        * The `default` annotation may be used to supply a default value to
+        be passed if no argument is supplied for the parameter when the function
+        is invoked. All succeeding parameter in the parameter list must also
+        have default annotations.
+
+        * Some C functions accept a NULL pointer for optional parameters.
+        The `nullifempty` annotation identifies such parameters. In this case,
+        passing an empty dictionary as the script level argument will result
+        in a NULL pointer being passed to the function. This annotation
+        only makes sense in the presence of the `byref` annotation.
+
+        **Examples**
+
+        C
+
+        ```
+        int git_checkout_head(git_repository *repo, const git_checkout_options *opts);
+        ```
+
+        CFFI
+
+        ```
+        cffi::Struct create git_checkout_options {...}
+        LIBGIT function git_checkout_head {int zero} {
+            pRepo pointer.git_repository
+            opts  {struct.git_checkout_options byref nullifempty}
+        }
+        ```
+
+        ##### Out and in-out struct parameters
+
+        ``` diagram
+                            +-   -+ +-          -+
+        struct.STRUCT out   |byref| |storeonerror|
+                      inout +-   -+ |storealways |
+                      retval        +-          -+
+        ```
+
+        * Output and in-out parameters in C are always passed as pointers
+        to the location where output value is to be stored. Thus `out` and
+        `inout` always imply `byref` which is redundant and need not be specified.
+
+        * The script level argument corresponding to `out` and `inout` parameters
+        are the name of the variable to which the output value is to be assigned.
+        For `inout` parameters this must exist at the time of function call and
+        hold a valid value for the type.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+        These annotations are rarely applicable to struct output parameters.
+
+        **Examples**
+
+        C
+
+        ```
+        int GetWindowRect(void *hWnd, RECT *lpRect);
+        ```
+
+        CFFI
+
+        ```
+        cffi::Struct create RECT {left int top int right int bottom int}
+        LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct.RECT out}}
+        ```
+
+        #### String parameters
+
+        ##### Input string parameters
+
+        C does not have a string type and the `string` and `unistring`
+        CFFI types map to pointers to nul terminated character strings:
+        `char*` in the case of `string` and `Tcl_UniChar *` in the case
+        of `unistring`.
+
+        ``` diagram
+                         +- -+ +-         -+ +-   -+
+        string[.ENCODING]|in | |nullifempty| |byref|
+        unistring        +- -+ +-         -+ +-   -+
+        ```
+
+        * The `in` annotation is optional because it is the default if neither
+        `out` nor `inout` annotations are present.
+
+        * For the `string` type an optional encoding may be specified and
+        defaults to the system encoding. If a library API uses a specific
+        encoding (commonly UTF-8), it may be convenient to define a type
+        alias.
+
+        * The `byref` annotation should be specified iff the value is being
+        passed by reference, i.e. the function parameter is a pointer to the
+        pointer to the character string (double indirection)
+        This is rare for passing character string values
+        that are input only. In either case, whether the `byref`
+        parameter is present or not, the value at script level is still
+        specified directly and not through a variable.
+
+        * Some C functions accept a NULL pointer for optional parameters.
+        The `nullifempty` annotation identifies such parameters. In this case,
+        passing an empty string as the script level argument will result
+        in a NULL pointer being passed to the function.
+
+        ##### Input and output string parameters
+
+        TBD
+
 
         #### Pointers
 
@@ -610,12 +745,18 @@ XXX        LIBC open
 
         ## Defining callbacks
 
-        ## Defining structures
+        *This section to be written**
+
+        ## Defining structs
+
+        *This section to be written**
 
         ## Tips and tricks
 
+        *This section to be written**
+
         - understand the memory ownership conventions
-        - more than one structure or function definition
+        - duplicating structure or function definition
 
     }
 
