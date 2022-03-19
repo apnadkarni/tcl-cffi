@@ -707,9 +707,10 @@ XXX        LIBC open
         of `unistring`.
 
         ``` diagram
-                         +- -+ +-         -+ +-   -+
-        string[.ENCODING]|in | |nullifempty| |byref|
-        unistring        +- -+ +-         -+ +-   -+
+                        +- -+ +-         -+ +-   -+
+        string          |in | |nullifempty| |byref|
+        string.ENCODING +- -+ +-         -+ +-   -+
+        unistring
         ```
 
         * The `in` annotation is optional because it is the default if neither
@@ -735,10 +736,147 @@ XXX        LIBC open
 
         ##### Input and output string parameters
 
-        TBD
+        Character strings are returned from C functions in one of two ways:
 
+        * The C function expects the caller to supply a pointer to an array of
+        characters. The size of this array may be a compile time constant or
+        passed through another parameter to the function. The function then
+        stores the string in this buffer. The C parameter declaration is
+        of the form `char *buf` or `char buf[]`.
+
+        * The C function expects the caller to pass a pointer to a memory
+        location where it will store the pointer to a string that is either
+        dynamically allocated or an internal static string. The C declaration
+        is of the form `char **ptr_to_buf` reflecting the double indirection.
+
+        The two are handled differently in CFFI as described below.
+
+        **Output character arrays**
+
+        ``` diagram
+                         +-    -+ +-          -+
+        chars[N]         |out   | |storealways |
+        chars.ENCODING[N]|inout | |storeonerror|
+        unichars[N]      |retval| +-          -+
+                         +-    -+
+        ```
+
+        This is the first case described above where the C function expects
+        a pointer to a character (or `Tcl_UniChar` in the case of `unichars`)
+        array.
+
+        * The script level argument corresponding to `out` and `inout` parameters
+        are the name of the variable to which the output value is to be assigned.
+        For `inout` parameters this must exist at the time of function call and
+        hold a valid value for the type.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * The array size `N` in the declaration may either be an integer constant
+        or the name of a integer type parameter in the same function declaration.
+        See [Dynamically sized arrays][::Concepts::Dynamically sized arrays].
+
+        * If `ENCODING` is not specified, it defaults to the system encoding.
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+
+
+        **Examples**
+
+        C
+
+        ```
+        char *getcwd(char *buf, size_t size);
+        ```
+
+        CFFI
+
+        ```
+        LIBC function getcwd {string errno} {buf {chars[size] out} size size_t}
+        ```
+
+        **Output pointers to strings
+
+        The second case is when the C function parameter is a pointer to
+        pointer to a character string (`char **`).
+
+        How this is best handled depends on whether the returned pointer needs
+        to be available at the script level as a raw pointer, possibly for later
+        freeing. See [Pointer returns] for a more detailed discussion about
+        raw pointers versus implicit dereferencing.
+        If this is the case, see [Pointer out and in-out parameters] for
+        appropriate declarations.
+
+        If retention of the raw pointer is not required
+        (for example, pointer to static storage), then its most convenient to
+        implicitly declare it as an output parameter of
+
+        ``` diagram
+                        +-    -+ +-    -+ +-          -+
+        string          |out   | |nullok| |storealways |
+        string.ENCODING |retval| +-    -+ |storeonerror|
+        unistring       +-    -+          +-          -+
+        ```
+        * Output parameters in C are always passed as pointers
+        to the location where output value is to be stored. Thus `out`
+        always implies `byref` which is redundant and need not be specified.
+
+        * The script level argument corresponding to an `out` parameter
+        is the name of the variable to which the output value is to be assigned.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+        These annotations are rarely applicable to struct output parameters.
 
         #### Pointers
+
+
+
+        **Examples**
+
+        C
+
+        ```
+        int ConvertSidToStringSidA(SID *pSid, char **strSid);
+        ```
+
+        CFFI
+
+        ```
+        ADVAPI32 stdcall ConvertSidToStringSidA {int nonzero lasterror} {
+            pSid   pointer.SID
+            strSid pointer
+        }
+        KERNEL32 stdcall LocalFree {pointer nullok} {p {pointer dispose}}
+        ```
+
+        In this Win32 example, the returned pointer from `ConvertSidToStringSidW`
+        needs to be freed with `LocalFree` and hence needs to be declared
+        as a raw pointer. The string can be retrieved from the returned
+        pointer with [::cffi::memory tostring] before freeing it.
+
+        #### Binary arrays
 
         #### Arrays
 
