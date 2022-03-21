@@ -10,7 +10,7 @@ namespace eval ${NS}::memory {
         #
         # The returned memory must be eventually freed by calling [memory free].
         #
-        # See also: "memory free"
+        # See also: "memory new" "memory free"
         #
         # Returns a safe pointer to the allocated memory.
     }
@@ -80,6 +80,22 @@ namespace eval ${NS}::memory {
         #
         # See also: "memory get" "memory set"
     }
+    proc new {typespec initializer {tag {}}} {
+        # Allocates memory for a type and initializes it.
+        #  typespec - a type declaration
+        #  initializer - the type-specific value to use to initialize allocated memory.
+        #  tag - The optional tag for the returned pointer.
+        #
+        # The $typespec argument may be any type specificiation. If an
+        # array is specified of a larger size than the number of elements
+        # in $initializer, the remaining elements are zeroed out.
+        #
+        # The returned memory must be eventually freed by calling [memory free].
+        # See also: "memory allocate" "memory free"
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
+
     proc set {pointer typespec value {index 0}} {
         # Converts a value as per a type specification and stores it in memory
         # in native form

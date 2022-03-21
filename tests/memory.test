@@ -514,6 +514,12 @@ namespace eval cffi::test {
                 set p [cffi::memory new $type\[2\] [list 1 $val]]
                 cffi::memory get $p $type\[2\]
             } -result [list [expr {$type in $realTypes ? 1.0 : 1}] $val]
+            test memory-new-$type-array-1 "new $type array fill extra elements with zeroes" -cleanup {
+                cffi::memory free $p
+            } -body {
+                set p [cffi::memory new $type\[4\] [list 1 $val]]
+                cffi::memory get $p $type\[4\]
+            } -result [expr {$type in $realTypes? [list 1.0 $val 0.0 0.0] : [list 1 $val 0 0]}]
         }
         if {[info exists badValues($type)]} {
             test memory-new-$type-badvalue-0 "new $type bad value" -body {

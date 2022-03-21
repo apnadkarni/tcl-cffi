@@ -19,11 +19,11 @@ namespace eval Cookbook {
 
         A function definition consists of three components.
 
-        ```` diagram ditaa
+        ``` -caption "Function definition syntax" diagram ditaa
         +------------------+ +-----------+ +--------------+
         |Calling convention+ +Return type+ +Parameter list|
         +------------------+ +-----------+ +--------------+
-        ````
+        ```
 
         Sections below detail definition of each.
 
@@ -38,7 +38,7 @@ namespace eval Cookbook {
         header files. Most third party API's are defined using this convention.
         CFFI does not support any calling convention other than these two.
 
-        ``` diagram
+        ``` -caption "Calling convention syntax" diagram
            +-       -+
         LIB| function|
            | stdcall |
@@ -61,7 +61,7 @@ namespace eval Cookbook {
 
         #### Void returns
 
-        ``` diagram
+        ``` -caption "Syntax for void return type" diagram
         void
         ```
 
@@ -83,7 +83,7 @@ namespace eval Cookbook {
 
         #### Integer returns
 
-        ``` diagram
+        ``` -caption "Syntax for integer return types" diagram
                    +-         +-      -+ -+ +-           +-                 -+ -+
         schar      | {enum E} | bitmask|  | | zero       | lasterror         |  |
         uchar      +-         +-      -+ -+ | nonzero    | winerror          |  |
@@ -134,7 +134,7 @@ XXX        LIBC open
 
         #### Floating point returns
 
-        ``` diagram
+        ``` -caption "Syntax for floating point return types" diagram
         float
         double
         ```
@@ -179,24 +179,21 @@ XXX        LIBC open
 
         ##### Raw pointers
 
-        ``` diagram
+        ``` -caption "Syntax for raw pointer return type" diagram
                       +-      -+ +-                 -+
         pointer       | counted| | nullok            |
         pointer.TAG   | unsafe | | lasterror         |
-        pointer.STRUCT+-      -+ | errno             |
+                      +-      -+ | errno             |
                                  | {onerror HANDLER} |
                                  +-                 -+
         ```
 
-
-        * The `TAG` and `STRUCT` are optional but recommended wherever possible
-        for additional [tag-based][::Concepts::Pointer tags] type checks.
-
-        * `STRUCT` is a tag matching the name of a previous struct definition.
-        If the C pointer target is a C struct defined with [::cffi::Struct],
-        it is recommended, but not mandatory, that the tag used be the name of
-        the struct instance command. This makes it convenient to access the referenced
-        memory using the struct [methods][::cffi::Struct].
+        * The `TAG` is optional but recommended wherever possible for additional
+        [tag-based][::Concepts::Pointer tags] type checks. If the pointer's
+        target type is a struct, it is is recommended, but not mandatory, that
+        the tag used be the name of the struct instance command. This makes it
+        convenient to access the referenced memory using the struct
+        [methods][::cffi::Struct].
 
         * By default, pointers returned from functions are marked as
         [safe pointers][::Concepts::Pointer safety]. This is appropriate for
@@ -262,7 +259,7 @@ XXX        LIBC open
         For types **other than pointers to character (or unicode) strings**, the
         CFFI declaration has the form
 
-        ``` diagram
+        ``` -caption "Syntax for implicitly dereferenced pointers" diagram
                   +-      -+
         TYPE byref| nullok |
                   +-      -+
@@ -304,7 +301,7 @@ XXX        LIBC open
         For C pointers typed as `char *` which return pointers to character
         strings, the implicit dereference syntax is
 
-        ``` diagram
+        ``` -caption "Syntax for character string return types" diagram
               +-      -+
         STRING| nullok |
               +-      -+
@@ -341,7 +338,7 @@ XXX        LIBC open
 
         #### Struct returns
 
-        ``` diagram
+        ``` -caption "Syntax for struct return type" diagram
         struct.STRUCT
         ```
 
@@ -391,7 +388,7 @@ XXX        LIBC open
 
         ##### Integer input parameters
 
-        ``` diagram
+        ``` -caption "Syntax for integer input parameters" diagram
                   +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
         schar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
         uchar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
@@ -405,8 +402,8 @@ XXX        LIBC open
         ulonglong
         ```
 
-        * The `in` annotation is optional because it is the default if neither
-        `out` nor `inout` annotations are present.
+        * The `in` annotation is optional because it is the default if none of
+        `out`, `retval` or `inout` annotations is present.
 
         * The `byref` annotation should be specified iff the value is being
         passed by reference, i.e. the function parameter is a pointer to the
@@ -454,15 +451,15 @@ XXX        LIBC open
         ```
 
 
-        ##### Out and in-out integer parameters
+        ##### Output and input-output integer parameters
 
-        ``` diagram
-                        +-   -+ +-      -+ +-     -+ +-          -+ +-               -+
-        schar     out   |byref| |{enum E}| |bitmask| |storeonerror| |lasterror        |
-        uchar     inout +-   -+ +-      -+ +-     -+ |storealways | |winerror         |
-        short     retval                             +-          -+ |errno            |
-        ushort                                                      |{onerror HANDLER}|
-        int                                                         +-               -+
+        ``` -caption "Syntax for integer output and input-output parameters" diagram
+                        +-      -+ +-     -+ +-          -+ +-               -+
+        schar     out   |{enum E}| |bitmask| |storeonerror| |lasterror        |
+        uchar     inout +-      -+ +-     -+ |storealways | |winerror         |
+        short     retval                     +-          -+ |errno            |
+        ushort                                              |{onerror HANDLER}|
+        int                                                 +-               -+
         uint
         long
         ulong
@@ -529,14 +526,14 @@ XXX        LIBC open
 
         ##### Floating point input parameters
 
-        ``` diagram
+        ``` -caption "Syntax for floating point input parameters" diagram
                +- -+ +-   -+ +-         -+
         float  |in | |byref| |{default N}|
         double +- -+ +-   -+ +-         -+
         ```
 
-        * The `in` annotation is optional because it is the default if neither
-        `out` nor `inout` annotations are present.
+        * The `in` annotation is optional because it is the default if none of
+        `out`, `retval` or `inout` annotations is present.
 
         * The `byref` annotation should be specified iff the value is being
         passed by reference, i.e. the function parameter is a pointer to the
@@ -566,11 +563,11 @@ XXX        LIBC open
 
         ##### Out and in-out floating point parameters
 
-        ``` diagram
-                       +-   -+ +-          -+
-        float    out   |byref| |storeonerror|
-        double   inout +-   -+ |storealways |
-                 retval        +-          -+
+        ``` -caption "Syntax for floating point output and input-output parameters" diagram
+                        +-          -+
+        float    out    |storeonerror|
+        double   inout  |storealways |
+                 retval +-          -+
         ```
 
         * Output and in-out parameters in C are always passed as pointers
@@ -596,6 +593,186 @@ XXX        LIBC open
         (for example an error code). See
         [Errors and output parameters][::Concepts::Errors and output parameters].
 
+
+        #### Pointer parameters
+
+        As for return values, pointer parameters to C functions can be dealt
+        with either as raw pointers or as implicitly dereferenced values.
+
+        In general, pointers that are only used in the C API to pass arguments
+        by reference, for example to pass large or non-scalar input values
+        (as for structs and arrays) or receive output values, can be declared
+        as implicitly dereferenced. The CFFI declarations for these is
+        described in other sections with use of the `byref` and `out` annotations.
+
+        This section deals only with raw pointers where the pointer values are
+        directly visible at the script level. This is necessary when the pointers
+        reference resources that need to freed, or in more complex structures
+        in memory with multiple indirections etc.
+
+        ##### Raw pointer input parameters
+
+        ``` -caption "Syntax for input raw pointer parameters" diagram
+                      +- -+ +-   -+ +-     -+ +-              -+ +-    -+ +-              -+
+        pointer       |in | |byref| |counted| |dispose         | |nullok| |{default PTRVAL}|
+        pointer.TAG   +- -+ +-   -+ |unsafe | |disposeonsuccess| +-    -+ +-              -+
+                                    +-     -+ +-              -+
+        ```
+
+        * The `TAG` is optional but recommended wherever possible for additional
+        [tag-based][::Concepts::Pointer tags] type checks. If the pointer's
+        target type is a struct, it is is recommended, but not mandatory, that
+        the tag used be the name of the struct instance command. This makes it
+        convenient to access the referenced memory using the struct
+        [methods][::cffi::Struct].
+
+        * The `in` annotation is optional because it is the default if none of
+        `out`, `retval` or `inout` annotations is present.
+
+        * The `byref` annotation should be specified iff the pointer is being
+        passed by reference, i.e. the function parameter is a pointer to a
+        pointer. Generally, input parameters passed
+        by reference will have `const` in the C parameter declaration.
+
+        * By default, pointers passed into functions are expected to be
+        registered as safe pointers. They may be alternatively be annotated with
+        `counted` or `unsafe` if they are reference counted or unregistered.
+        For more details on pointer management and safety, see
+        [Pointer safety][::Concepts::Pointer safety].
+
+        * When a C function releases the resource associated with a registered
+        pointer (safe or counted), the pointer should be unregistered.
+        The `dispose` annotation should be placed on the parameter annotation
+        to convey to CFFI that the pointer should be unregistered. The
+        `disposeonsuccess` annotation is similar except that the pointer
+        is unregistered only in the case the function returns successfully.
+        For more details on pointer management and safety, see
+        [Pointer safety][::Concepts::Pointer safety].
+
+        * CFFI assumes by default that functions do not accept NULL pointers
+        and will raise an exception if an attempt is made to pass one. The
+        `nullok` annotation indicates that the function allows for the pointer
+        to be NULL.
+
+        * The `default` annotation may be used to supply a default value to
+        be passed if no argument is supplied for the parameter when the function
+        is invoked. All succeeding parameter in the parameter list must also
+        have default annotations.
+
+        **Examples**
+
+        C
+
+        ```
+        void free(void *ptr);
+        void *realloc(void *ptr, size_t size);
+        ```
+
+        CFFI
+
+        ```
+        LIBC function free void {ptr {pointer dispose}}
+        LIBC function realloc {pointer errno} {
+            ptr {pointer disposeonsuccess}
+            size size_t
+        }
+        ```
+
+        ##### Raw pointer out and in-out parameters
+
+        ``` -caption "Syntax for output and input-output raw pointer parameters" diagram
+                     +-    -+ +-     -+ +-              -+ +-    -+ +-              -+ +-          -+
+        pointer      |inout | |counted| |dispose         | |nullok| |{default PTRVAL}| |storealways |
+        pointer.TAG  |out   | |unsafe | |disposeonsuccess| +-    -+ +-              -+ |storeonerror|
+                     |retval| +-     -+ +-              -+                             +-          -+
+                     +-    -+
+        ```
+
+        * Output parameters in C are always passed as pointers
+        to the location where output value is to be stored. Thus `out`
+        always implies `byref` which is redundant and need not be specified.
+
+        * The script level argument corresponding to an `out` parameter
+        is the name of the variable to which the output value is to be assigned.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter pointer value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * By default, pointers returned in out and in-out parameters
+        are registered as safe pointers.
+        They may be alternatively be annotated with
+        `counted` or `unsafe` if they are to be registered as reference counted
+        or not to be registered at all.
+        For more details on pointer management and safety, see
+        [Pointer safety][::Concepts::Pointer safety].
+
+        * When a C function releases the resource associated with a registered
+        pointer (safe or counted), the pointer should be unregistered.
+        The `dispose` annotation should be placed on the parameter annotation
+        to convey to CFFI that the pointer should be unregistered. The
+        `disposeonsuccess` annotation is similar except that the pointer
+        is unregistered only in the case the function returns successfully.
+        The `dispose` and `disposeonsuccess` annotations is not valid with
+        the `out` or `retval` annotations.
+        For more details on pointer management and safety, see
+        [Pointer safety][::Concepts::Pointer safety].
+
+        * The `nullok` annotation indicates that pointers passed in and out
+        of the function can be NULL. Without the annotation, an exception is
+        raised if the pointer stored on output is NULL or in the case of `inout`
+        the pointer passed in is NULL.
+
+        * The `default` annotation may be used to supply a default pointer value to
+        be passed if no argument is supplied for the parameter when the function
+        is invoked. All succeeding parameter in the parameter list must also
+        have default annotations. This annotation cannot be used with `out`
+        and `retval` annotations.
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+
+        **Examples**
+
+        C
+
+        ```
+        int git_repository_open_bare(git_repository **out, const char *bare_path);
+        int ConvertSidToStringSidA(SID *pSid, char **strSid);
+        ```
+
+        CFFI
+
+        ```
+        LIBGIT2 function git_repository_open_bare {int zero} {
+            out {pointer.git_repository counted retval}
+            string bare_path
+        }
+        ADVAPI32 stdcall ConvertSidToStringSidA {int nonzero lasterror} {
+            pSid   pointer.SID
+            strSid pointer
+        }
+        KERNEL32 stdcall LocalFree {pointer nullok} {p {pointer dispose}}
+        ```
+
+        In the `libgit2` example, `out` is annotated as `counted` because
+        `git_repository` is a reference counted opaque structure. The `retval`
+        annotation is added to have CFFI return the output parameter value as
+        the result of the function.
+
+        In the Win32 example, the returned pointer from `ConvertSidToStringSidW`
+        needs to be freed with `LocalFree` and hence needs to be declared
+        as a raw pointer. The string can be retrieved from the returned
+        pointer with [::cffi::memory tostring] before freeing it.
+
+
         #### Struct parameters
 
         Struct values are represented as the script level as dictionaries.
@@ -604,14 +781,14 @@ XXX        LIBC open
 
         ##### Struct input parameters
 
-        ``` diagram
+        ``` -caption "Syntax for struct input parameters" diagram
                       +- -+ +-   -+ +-         -+ +-         -+
         struct.STRUCT |in | |byref| |{default N}| |nullifempty|
                       +- -+ +-   -+ +-         -+ +-         -+
         ```
 
-        * The `in` annotation is optional because it is the default if neither
-        `out` nor `inout` annotations are present.
+        * The `in` annotation is optional because it is the default if none of
+        `out`, `retval` or `inout` annotations is present.
 
         * The `byref` annotation should be specified iff the value is being
         passed by reference, i.e. the function parameter is a pointer to a
@@ -649,13 +826,13 @@ XXX        LIBC open
         }
         ```
 
-        ##### Out and in-out struct parameters
+        ##### Output and input-output struct parameters
 
-        ``` diagram
-                            +-   -+ +-          -+
-        struct.STRUCT out   |byref| |storeonerror|
-                      inout +-   -+ |storealways |
-                      retval        +-          -+
+        ``` -caption "Syntax for struct output and input-output parameters" diagram
+                             +-          -+
+        struct.STRUCT out    |storeonerror|
+                      inout  |storealways |
+                      retval +-          -+
         ```
 
         * Output and in-out parameters in C are always passed as pointers
@@ -701,40 +878,52 @@ XXX        LIBC open
 
         ##### Input string parameters
 
-        C does not have a string type and the `string` and `unistring`
-        CFFI types map to pointers to nul terminated character strings:
-        `char*` in the case of `string` and `Tcl_UniChar *` in the case
-        of `unistring`.
-
-        ``` diagram
-                        +- -+ +-         -+ +-   -+
-        string          |in | |nullifempty| |byref|
-        string.ENCODING +- -+ +-         -+ +-   -+
+        ``` -caption "Syntax for input character string parameters" diagram
+                        +- -+ +-   -+ +-         -+
+        string          |in | |byref| |nullifempty|
+        string.ENCODING +- -+ +-   -+ +-         -+
         unistring
         ```
 
-        * The `in` annotation is optional because it is the default if neither
-        `out` nor `inout` annotations are present.
+        * C does not have a string type and the `string` and `unistring` CFFI
+        types map to pointers to nul terminated character strings: `char*` in
+        the case of `string` and `Tcl_UniChar *` in the case of `unistring`. For
+        input parameters, they have the `const` attribute.
+
+        * The `in` annotation is optional because it is the default if none of
+        `out`, `retval` or `inout` annotations is present.
 
         * For the `string` type an optional encoding may be specified and
         defaults to the system encoding. If a library API uses a specific
-        encoding (commonly UTF-8), it may be convenient to define a type
-        alias.
+        encoding (commonly UTF-8), it may be convenient to define a type alias.
 
         * The `byref` annotation should be specified iff the value is being
         passed by reference, i.e. the function parameter is a pointer to the
-        pointer to the character string (double indirection)
-        This is rare for passing character string values
-        that are input only. In either case, whether the `byref`
-        parameter is present or not, the value at script level is still
-        specified directly and not through a variable.
+        pointer to the character string (double indirection). This is rare for
+        passing character string values that are input only. In either case,
+        whether the `byref` parameter is present or not, the value at script
+        level is still specified directly and not through a variable.
 
         * Some C functions accept a NULL pointer for optional parameters.
         The `nullifempty` annotation identifies such parameters. In this case,
         passing an empty string as the script level argument will result
         in a NULL pointer being passed to the function.
 
-        ##### Input and output string parameters
+        **Examples**
+
+        C
+
+        ```
+        int chdir(const char *path);
+        ```
+
+        CFFI
+
+        ```
+        LIBC function chdir {int zero errno} {path string}
+        ```
+
+        ##### Output and input-output string parameters
 
         Character strings are returned from C functions in one of two ways:
 
@@ -753,12 +942,12 @@ XXX        LIBC open
 
         **Output character arrays**
 
-        ``` diagram
-                         +-    -+ +-          -+
-        chars[N]         |out   | |storealways |
-        chars.ENCODING[N]|inout | |storeonerror|
-        unichars[N]      |retval| +-          -+
-                         +-    -+
+        ``` -caption "Syntax for character array output parameters" diagram
+                          +-    -+ +-          -+
+        chars[N]          |out   | |storealways |
+        chars.ENCODING[N] |inout | |storeonerror|
+        unichars[N]       |retval| +-          -+
+                          +-    -+
         ```
 
         This is the first case described above where the C function expects
@@ -805,7 +994,7 @@ XXX        LIBC open
         LIBC function getcwd {string errno} {buf {chars[size] out} size size_t}
         ```
 
-        **Output pointers to strings
+        **Output pointers to strings**
 
         The second case is when the C function parameter is a pointer to
         pointer to a character string (`char **`).
@@ -814,14 +1003,14 @@ XXX        LIBC open
         to be available at the script level as a raw pointer, possibly for later
         freeing. See [Pointer returns] for a more detailed discussion about
         raw pointers versus implicit dereferencing.
-        If this is the case, see [Pointer out and in-out parameters] for
+        If this is the case, see [Raw pointer out and in-out parameters] for
         appropriate declarations.
 
         If retention of the raw pointer is not required
         (for example, pointer to static storage), then its most convenient to
         implicitly declare it as an output parameter of
 
-        ``` diagram
+        ``` -caption "Syntax for output character string parameters" diagram
                         +-    -+ +-    -+ +-          -+
         string          |out   | |nullok| |storealways |
         string.ENCODING |retval| +-    -+ |storeonerror|
@@ -849,8 +1038,40 @@ XXX        LIBC open
         [Errors and output parameters][::Concepts::Errors and output parameters].
         These annotations are rarely applicable to struct output parameters.
 
-        #### Pointers
 
+        #### Binary string parameters
+
+        Binary strings are similar to strings except that instead of treating
+        pointers at the C level as character strings in Tcl, they treat them as
+        binary strings so there is no character encoding/decoding transformation
+        applied and nul characters have no special treatment.
+
+        ##### Input binary string parameters
+
+        ``` -caption "Syntax for input binary string parameters" diagram
+               +- -+ +-   -+ +-         -+
+        binary |in | |byref| |nullifempty|
+               +- -+ +-   -+ +-         -+
+        ```
+
+        * The usual C declarations that map to `binary` are `char *`,
+        `unsigned char *` and `void *`. Further, input parameters have the
+        `const` attribute.
+
+        * The `in` annotation is optional because it is the default if none of
+        `out`, `retval` or `inout` annotations is present.
+
+        * The `byref` annotation should be specified iff the value is being
+        passed by reference, i.e. the function parameter is a pointer to the
+        pointer to the array of bytes string (double indirection). This is rare
+        for passing binary values that are input only. In either case, whether
+        the `byref` parameter is present or not, the value at script level is
+        still specified directly and not through a variable.
+
+        * Some C functions accept a NULL pointer for optional parameters. The
+        `nullifempty` annotation identifies such parameters. In this case,
+        passing an zero-length binary string as the script level argument will
+        result in a NULL pointer being passed to the function.
 
 
         **Examples**
@@ -858,36 +1079,137 @@ XXX        LIBC open
         C
 
         ```
-        int ConvertSidToStringSidA(SID *pSid, char **strSid);
+        ssize_t write(int fd, const void *buf, size_t count);
         ```
 
         CFFI
 
         ```
-        ADVAPI32 stdcall ConvertSidToStringSidA {int nonzero lasterror} {
-            pSid   pointer.SID
-            strSid pointer
+        LIBC function write {ssize_t nonnegative errno} {
+            fd int
+            buf binary
+            count size_t
         }
-        KERNEL32 stdcall LocalFree {pointer nullok} {p {pointer dispose}}
         ```
 
-        In this Win32 example, the returned pointer from `ConvertSidToStringSidW`
-        needs to be freed with `LocalFree` and hence needs to be declared
-        as a raw pointer. The string can be retrieved from the returned
-        pointer with [::cffi::memory tostring] before freeing it.
 
-        #### Binary arrays
+        ##### Output and input-output binary string parameters
 
-        #### Arrays
+        Binary strings are returned from C functions in one of two ways:
 
+        * The C function expects the caller to supply a pointer to a memory
+        block interpreted simply as an array of bytes. The size of this memory
+        block may be a compile time constant or passed through another parameter
+        to the function. The function then stores the data in this memory
+        buffer. The C parameter declaration is generally one of `void *`, `char
+        *buf`, `char buf[]` (or the unsigned variants).
+
+        * The C function expects the caller to pass a pointer to a memory
+        location where it will store the pointer to a block of memory that is
+        either dynamically allocated or an internal buffer. The C
+        declaration is of the form `char **`, `unsigned char **` or
+        `void **` reflecting the double indirection.
+
+        The two are handled differently in CFFI as described below.
+
+        **Output byte arrays**
+
+        ``` -caption "Syntax for byte array output parameters" diagram
+                 +-    -+ +-          -+
+        bytes[N] |out   | |storealways |
+                 |inout | |storeonerror|
+                 |retval| +-          -+
+                 +-    -+
+        ```
+
+        This is the first case described above where the C function expects
+        a pointer to a byte array.
+
+        * The script level argument corresponding to `out` and `inout` parameters
+        are the name of the variable to which the output value is to be assigned.
+        For `inout` parameters this must exist at the time of function call and
+        hold a Tcl binary string.
+
+        * Use the `retval` annotation for output parameters where you want the
+        output parameter value from the function to be returned as the
+        function result in lieu of the actual function return value.
+        See [Output parameters as function result][::Concepts::Output parameters as function result].
+
+        * The array size `N` in the declaration may either be an integer constant
+        or the name of a integer type parameter in the same function declaration.
+        See [Dynamically sized arrays][::Concepts::Dynamically sized arrays].
+
+        * If the function return value is subject to error checks
+        (for example null pointer checks) and fails the checks, output
+        values are not stored in variables as they may hold garbage values.
+        The `storealways` annotation indicates the output value is
+        valid regardless of function failure. The `storeonerror` annotation
+        indicates the output value is valid **only** on function failure
+        (for example an error code). See
+        [Errors and output parameters][::Concepts::Errors and output parameters].
+
+        **Examples**
+
+        C
+
+        ```
+        ssize_t read(int fd, void *buf, size_t count);
+        ```
+
+        CFFI
+
+        ```
+        LIBC function read {ssize_t nonnegative errno} {
+            fd int
+            buf bytes[count]
+            count size_T
+        }
+        ```
+
+        **Output pointers to binary strings**
+
+        Another way of returning binary data is through a parameter that is a
+        pointer to pointer to the data (`char **` etc.). This case has to
+        be handled as [raw pointers][Raw pointer out and in-out parameters]
+        since, unlike for character strings, there is no way for CFFI to know the
+        size of the data being returned.
+
+
+        #### Arrays as parameters
+
+        ```
+
+        TYPE[N] type specific annotations ...
+
+        ```
+
+        * Arrays in C are always passed by reference, as a pointer to the
+        first element of the array. CFFI array type declarations therefore
+        are implicitly annotated as `byref`.
+
+        * The array size in the type declaration may be an integer constant
+        or specified as the name of another parameter. See
+        [Dynamically sized array][::Concepts::Dynamically sized arrays].
+
+        * The annotations permitted on an array type declaration are those
+        permitted for the base type. For example, integer array declarations
+        may have the `enum` annotation.
+
+        * At the script level, arrays are represented as lists except
+        for the special cases of
+        as [`chars`][String parameters] or [`bytes`][Binary string parameters]
+        where they are character or binary strings.
 
         ## Defining callbacks
 
-        *This section to be written**
+        *This section to be written*
+
+        * Pointers must be annotated as unsafe
+
 
         ## Defining structs
 
-        *This section to be written**
+        *This section to be written*
 
         ## Tips and tricks
 
@@ -895,7 +1217,9 @@ XXX        LIBC open
 
         - understand the memory ownership conventions
         - duplicating structure or function definition
-
+        - pointer casting
+        - use raw pointers for large data to avoid copies
+        - use memory get command to decode types
     }
 
 }
