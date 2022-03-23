@@ -1,19 +1,12 @@
 namespace eval Cookbook {
     variable _ruff_preamble {
 
-        While using CFFI to wrap a few ad-hoc functions is fairly straightforward,
-        wrapping a large API into a complete package can be more involved as
-        decisions how C types are translated to script level annotations. This
-        page provides some step-by-step guidance.
-
-        The description below uses the following terms:
-
-        `LIB` - Wrapper object for the shared library
-        `INTEGER` - any CFFI [integer types][::Concepts::Integer types]
-        `REAL` - any CFFI [floating point type][::Concepts::Floating point types]
-        `STRING` - the `string` and `unistring` types, the former with an optional
-        encoding attribute.
-        `STRUCT` - a [::cffi::Struct] name
+        While using CFFI to wrap a few ad-hoc functions is fairly
+        straightforward, wrapping a large API into a complete package can be
+        more involved as decisions how C types are translated to script level
+        annotations. This page provides some recipes for mapping C declarations
+        to CFFI declarations depending on the declaration context (parameter,
+        struct field etc.).
 
         ## Defining a function
 
@@ -39,10 +32,8 @@ namespace eval Cookbook {
         CFFI does not support any calling convention other than these two.
 
         ``` -caption "Calling convention syntax" diagram
-           +-       -+
-        LIB| function|
-           | stdcall |
-           +-       -+
+        LIB function
+            stdcall
         ```
 
         * Define using `stdcall` if the function is defined on 32-bit Windows
@@ -52,12 +43,25 @@ namespace eval Cookbook {
         * Define using `function` otherwise after ensuring it does not use
         some other esoteric platform-specific convention (rare).
 
+        **Examples**
+
+        C
+
+        ```
+        WINAPI DWORD GetCurrentProcessId(void);
+        int getpid(void);
+        ```
+
+        CFFI
+
+        ```
+        KERNEL32 stdcall GetCurrentProcessId ulong {}
+        LIBC function getpid int {}
+        ```
+
+        Note `WINAPI` in the Windows SDK headers maps to `__stdcall`.
+
         ### Return type declaration
-
-        The annotations applicable for function returns depend on the
-        function return type.
-
-        TBD - summary table mapping C -> CFFI
 
         #### Void returns
 
@@ -382,8 +386,6 @@ XXX        LIBC open
         the argument is the name of the variable where the value is stored and
         not the value itself.
 
-        TBD - summary table mapping C -> CFFI
-
         #### Integer parameters
 
         ##### Integer input parameters
@@ -613,10 +615,10 @@ XXX        LIBC open
         ##### Raw pointer input parameters
 
         ``` -caption "Syntax for input raw pointer parameters" diagram
-                      +- -+ +-   -+ +-     -+ +-              -+ +-    -+ +-              -+
-        pointer       |in | |byref| |counted| |dispose         | |nullok| |{default PTRVAL}|
-        pointer.TAG   +- -+ +-   -+ |unsafe | |disposeonsuccess| +-    -+ +-              -+
-                                    +-     -+ +-              -+
+                    +- -+ +-   -+ +-     -+ +-              -+ +-    -+ +-              -+
+        pointer     |in | |byref| |counted| |dispose         | |nullok| |{default PTRVAL}|
+        pointer.TAG +- -+ +-   -+ |unsafe | |disposeonsuccess| +-    -+ +-              -+
+                                  +-     -+ +-              -+
         ```
 
         * The `TAG` is optional but recommended wherever possible for additional
@@ -782,9 +784,9 @@ XXX        LIBC open
         ##### Struct input parameters
 
         ``` -caption "Syntax for struct input parameters" diagram
-                      +- -+ +-   -+ +-         -+ +-         -+
-        struct.STRUCT |in | |byref| |{default N}| |nullifempty|
-                      +- -+ +-   -+ +-         -+ +-         -+
+                      +- -+ +-   -+ +-            -+ +-         -+
+        struct.STRUCT |in | |byref| |{default DICT}| |nullifempty|
+                      +- -+ +-   -+ +-            -+ +-         -+
         ```
 
         * The `in` annotation is optional because it is the default if none of
@@ -1200,26 +1202,155 @@ XXX        LIBC open
         as [`chars`][String parameters] or [`bytes`][Binary string parameters]
         where they are character or binary strings.
 
-        ## Defining callbacks
-
-        *This section to be written*
-
-        * Pointers must be annotated as unsafe
-
-
         ## Defining structs
 
-        *This section to be written*
+        Native C struct values may be dealt with at the script level either
+        as Tcl dictionary values or kept in their native form and accessed
+        through raw pointers. Both methods require the struct to be defined
+        with [::cffi:Struct]. In the former case, the fields are accessed
+        using Tcl's `dict` command. In the latter case, the [::cffi::Struct]
+        accessor methods are used.
+
+        ### Field type declarations
+
+        The field type declarations in a [struct][::Concepts::Structs]
+        definition, while similar to function parameter type declarations,
+        differ from them in some respects.
+
+        * The `void` and `binary` base types cannot be used in struct fields.
+
+        * The annotations for each type are differ from those
+        applicable in a parameter context.
+
+        #### Integer fields
+
+        ``` -caption "Syntax for integer fields" diagram
+                  +-      -+ +-     -+ +-         -+ +-        -+ +-               -+
+        schar     |{enum E}| |bitmask| |{default N}| |structsize| |lasterror        |
+        uchar     +-      -+ +-     -+ +-         -+ +-        -+ |winerror         |
+        short                                                     |errno            |
+        ushort                                                    |{onerror HANDLER}|
+        int                                                       +-               -+
+        uint
+        long
+        ulong
+        longlong
+        ulonglong
+        ```
+
+        * If the `enum` annotation is present, the field is subject to
+        mapping to symbols from the [enumeration][::Concepts::Enumerations].
+
+        * If the `bitmask` annotation is present, the dictionary element
+        for the field is treated a list of integers that are bitwise OR-ed
+        to form the native field value.
+
+        * The `default` annotation specifies a default value to be used when
+        constructing a native struct from the dictionary representation if
+        the dictionary does not contain a key for the field.
+
+        * The `structsize` annotation specifies that the field should be
+        defaulted to the size of the native struct.
+
+        * Error handling annotations like `errno` may be present but are
+        ignored. This is to permit the same aliases to be used in both function
+        struct definitions.
+
+        #### Floating point fields
+
+        ``` -caption "Syntax for floating point fields"
+               +-         -+
+        float  |{default N}|
+        double +-         -+
+        ```
+
+        * The `default` annotation specifies a default value to be used when
+        constructing a native struct from the dictionary representation if
+        the dictionary does not contain a key for the field.
+
+        #### Pointer fields
+
+        ``` -caption "Syntax for input raw pointer parameters" diagram
+                    +-     -+ +-    -+ +-              -+
+        pointer     |counted| |nullok| |{default PTRVAL}|
+        pointer.TAG |unsafe | +-    -+ +-              -+
+                    +-     -+
+        ```
+
+        * The `TAG` is optional but recommended wherever possible for additional
+        [tag-based][::Concepts::Pointer tags] type checks. If the pointer's
+        target type is a struct, it is is recommended, but not mandatory, that
+        the tag used be the name of the struct instance command. This makes it
+        convenient to access the referenced memory using the struct
+        [methods][::cffi::Struct].
+
+        * The `counted` and `unsafe` annotations have their usual meaning
+        as described in [Pointer safety][::Concepts::Pointer safety].
+        By default, when a native C struct is constructed from its script
+        level dictionary representation, the pointer value for a field is
+        expected to have been registered as a safe pointer and an exception is
+        raised otherwise. Conversely, when a dictionary is constructed from a
+        native C struct, as output from a function for example, the extracted
+        pointer is registered as a safe pointer. This is often not the right
+        model for embedded pointers in structs unlike pointers directly returned
+        from functions with a clear resource allocation and freeing
+        semantics. Thus use of the `unsafe` annotation should be strongly
+        considered for field type declarations.
+
+        * The `nullok` annotation should be applied to any field that can
+        validly hold a NULL pointer. In the absence of an annotation,
+        an exception is raised if an attempt is made to assign the
+        field in a native struct a NULL pointer value.
+
+        * Pointer fields that hold pointers to character strings may be
+        alternatively declared as [string pointer fields][String pointer fields].
+
+        #### String pointer fields
+
+        ``` -caption "Syntax for string pointer fields" diagram
+                        +-         -+
+        string          |nullifempty|
+        string.ENCODING +-         -+
+        unistring
+        ```
+
+        * The `nullifempty` annotation may be used in cases where an empty
+        string at the script level should be stored as a NULL pointer in the
+        struct field.
+
+        As for function parameters, fields that hold pointers to character
+        strings can be more conveniently declared as one of the CFFI
+        string types if the raw pointer is not required for freeing of resources
+        or other purposes. There are is a restriction imposed when a struct
+        field is declared as a string type. The struct definition may be used
+        to pass and return parameters from functions but cannot be used
+        with the [::cffi::Struct new] or [::cffi::Struct allocate] methods
+        to allocate a native struct in memory.
+
+        #### Nested struct fields
+
+        A struct definition may include a field that is declared as
+        another struct.
+
+        ``` -caption "Syntax for nested struct fields" diagram
+                      +-         -+
+        struct.STRUCT |{default DICT}|
+                      +-         -+
+        ```
+
+        * A nested `STRUCT` struct may have a default value specified as a
+        dictionary mapping field names of `STRUCT` to field values.
 
         ## Tips and tricks
 
-        *This section to be written**
+        **This section to be written**
 
         - understand the memory ownership conventions
         - duplicating structure or function definition
         - pointer casting
         - use raw pointers for large data to avoid copies
         - use memory get command to decode types
+        - use defaults, -clear, structsize for structs
     }
 
 }

@@ -19,9 +19,31 @@ namespace eval ${NS}::callback {
         # Invoking the function pointer will result in $cmdprefix being called
         # with the additional arguments passed in the invocation. These must
         # match the parameter types of the prototype specified in the callback
-        # definition. These as well as the return type are restricted to be
-        # scalar values and strings. Moreover if the type is a pointer, it must
-        # annotated as `unsafe`.
+        # definition.
+        #
+        # The type declarations in a prototypes used for callbacks have certain
+        # restrictions. These arise because the "data flow" is now from script
+        # to the C shared library.
+        #
+        # The parameter and return type are restricted to be
+        # scalar values and strings.
+        #
+        # * The `out`, `inout` and `retval` annotations are not permitted. This
+        # means any values to be returned to the shared library must be
+        # through explicit raw pointers.
+        #
+        # * All pointer type declarations must have the unsafe annotation.
+        # Other pointer safety annotations `counted`, `dispose`,
+        # `disposeonsuccess` cannot be specified.
+        #
+        # * The value checking annotations `zero`, `nonzero`, `positive` and
+        # `nonnegative` cannot be specified for the prototype return type.
+        #
+        # * The error handling annotations `errno`, `winerror`, `lasterror`
+        # and `onerror` cannot be specified.
+        #
+        # * The `storeonerror` and `storealways` annotations cannot be
+        # specified.
         #
         # When $cmdprefix is called from a C function as a callback, it is executed
         # in the Tcl context from which the C function was called and thus has
