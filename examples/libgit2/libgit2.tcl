@@ -48,9 +48,7 @@ namespace eval $GIT_NS {
         # The order of loading these files is important!!!
         # Later files depend on earlier ones, just like the C headers
         variable scriptFiles {
-            common.tcl
             strarray.tcl
-            global.tcl
             errors.tcl
             types.tcl
             buffer.tcl
@@ -145,8 +143,9 @@ namespace eval $GIT_NS {
         cffi::alias define CB_PAYLOAD {pointer unsafe nullok {default NULL}}
         cffi::alias define git_object_size_t uint64_t
 
+        # Scripts needed for initialization
         # Note these are sourced into current namespace
-        foreach file $scriptFiles {
+        foreach file {common.tcl global.tcl} {
             source [file join $packageDirectory $file]
         }
 
@@ -156,6 +155,12 @@ namespace eval $GIT_NS {
         if {$major != 1 || $minor != 3} {
             error "libgit2 version $major.$minor.$rev is not supported. This package requires version 1.3. Note libgit2 does not guarantee ABI compatibility between minor releases."
         }
+
+        # Remaining scripts
+        foreach file $scriptFiles {
+            source [file join $packageDirectory $file]
+        }
+
 
         # Redefine to no-op
         proc init args "return $ret"

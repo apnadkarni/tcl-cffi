@@ -1333,7 +1333,7 @@ XXX        LIBC open
         or other purposes. There are is a restriction imposed when a struct
         field is declared as a string type. The struct definition may be used
         to pass and return parameters from functions but cannot be used
-        with the [::cffi::Struct new] or [::cffi::Struct allocate] methods
+        with the [::cffi::Struct.new] or [::cffi::Struct.allocate] methods
         to allocate a native struct in memory.
 
         #### Character array fields
