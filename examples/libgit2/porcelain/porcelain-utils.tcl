@@ -2,8 +2,8 @@
 # To be sourced into the application's namespace
 
 # Load the git package into the ::git namespace
-set GIT_NS ::git
-source [file join [file dirname [file dirname [info script]]] libgit2.tcl]
+set GIT_NS ::lg2
+source [file join [file dirname [file dirname [file normalize [info script]]]] libgit2.tcl]
 namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
 variable porcelain_version 0.1a0

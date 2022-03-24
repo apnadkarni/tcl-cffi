@@ -47,6 +47,12 @@ namespace eval $GIT_NS {
 
         # The order of loading these files is important!!!
         # Later files depend on earlier ones, just like the C headers
+        variable initScriptFiles {
+            common.tcl
+            global.tcl
+        }
+        # The order of loading these files is important!!!
+        # Later files depend on earlier ones, just like the C headers
         variable scriptFiles {
             strarray.tcl
             errors.tcl
@@ -145,7 +151,7 @@ namespace eval $GIT_NS {
 
         # Scripts needed for initialization
         # Note these are sourced into current namespace
-        foreach file {common.tcl global.tcl} {
+        foreach file $initScriptFiles {
             source [file join $packageDirectory $file]
         }
 
