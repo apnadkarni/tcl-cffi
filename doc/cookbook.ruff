@@ -1051,9 +1051,9 @@ XXX        LIBC open
         ##### Input binary string parameters
 
         ``` -caption "Syntax for input binary string parameters" diagram
-               +- -+ +-   -+ +-         -+
-        binary |in | |byref| |nullifempty|
-               +- -+ +-   -+ +-         -+
+               +- -+ +-   -+ +-         -+ +-               -+
+        binary |in | |byref| |nullifempty| |{default DEFAULT}|
+               +- -+ +-   -+ +-         -+ +-               -+
         ```
 
         * The usual C declarations that map to `binary` are `char *`,
@@ -1075,6 +1075,10 @@ XXX        LIBC open
         passing an zero-length binary string as the script level argument will
         result in a NULL pointer being passed to the function.
 
+        * The `default` annotation may be used to supply a default value to
+        be passed if no argument is supplied for the parameter when the function
+        is invoked. All succeeding parameter in the parameter list must also
+        have default annotations.
 
         **Examples**
 
@@ -1150,6 +1154,13 @@ XXX        LIBC open
         (for example an error code). See
         [Errors and output parameters][::Concepts::Errors and output parameters].
 
+        The difference between an array declared as `bytes[N]` versus
+        `schar[N]` or `uchars[N]` is that while both might be
+        arrays of `char` or `unsigned char` at the C level, the former
+        declaration will result in a Tcl binary string at the script
+        level while the latter declarations will result in lists of
+        integers.
+
         **Examples**
 
         C
@@ -1180,9 +1191,7 @@ XXX        LIBC open
         #### Arrays as parameters
 
         ```
-
         TYPE[N] type specific annotations ...
-
         ```
 
         * Arrays in C are always passed by reference, as a pointer to the
@@ -1327,6 +1336,50 @@ XXX        LIBC open
         with the [::cffi::Struct new] or [::cffi::Struct allocate] methods
         to allocate a native struct in memory.
 
+        #### Character array fields
+
+        ``` -caption "Syntax for character array fields" diagram
+
+        chars[N]          +-               -+
+        chars.ENCODING[N] |{default DEFAULT}|
+        unichars[N]       +-               -+
+        ```
+
+        Like `string` and `unistring`, the `chars` and `unichars` CFFI types are
+        character strings at the script level. However, while the former maps
+        to pointers at the C level, `chars` and `unichars` map to
+        `char[]` and `Tcl_UniChar[]` arrays.
+
+        * The `default` annotation may be used to supply a default value to
+        be stored in the native C struct if the dictionary representation
+        does not have a key matching the field.
+
+        * The array size `N` must be an positive integer constant and
+        not dynamically sized as is permitted for array parameters.
+
+        #### Byte array fields
+
+        ``` -caption "Syntax for byte array fields" diagram
+
+                 +-               -+
+        bytes[N] |{default DEFAULT}|
+                 +-               -+
+        ```
+
+        The difference between an array declared as `bytes[N]` versus
+        `schar[N]` or `uchars[N]` is that while both might be
+        arrays of `char` or `unsigned char` at the C level, the former
+        declaration will result in a Tcl binary string at the script
+        level while the latter declarations will result in lists of
+        integers.
+
+        * The `default` annotation may be used to supply a default value to
+        be stored in the native C struct if the dictionary representation
+        does not have a key matching the field.
+
+        * The array size `N` must be an positive integer constant and
+        not dynamically sized as is permitted for array parameters.
+
         #### Nested struct fields
 
         A struct definition may include a field that is declared as
@@ -1341,15 +1394,34 @@ XXX        LIBC open
         * A nested `STRUCT` struct may have a default value specified as a
         dictionary mapping field names of `STRUCT` to field values.
 
+        #### Array fields
+
+        ```
+        TYPE[N] type specific annotations ...
+        ```
+
+        * The array size `N` must be an positive integer constant and
+        not dynamically sized as is permitted for array parameters.
+
+        * The annotations permitted on an array type declaration are those
+        permitted for the base type. For example, integer array declarations
+        may have the `enum` annotation.
+
+        * At the script level, C arrays are represented as lists except
+        for the special cases of
+        as [`chars`][Character array fields] or [`bytes`][Byte array fields]
+        where they are character or byte arrays.
+
+
         ## Tips and tricks
 
         **This section to be written**
 
-        - understand the memory ownership conventions
         - duplicating structure or function definition
-        - pointer casting
+        - pointer casting - implicit and explicit
         - use raw pointers for large data to avoid copies
-        - use memory get command to decode types
+        - use memory get command to decode native memory in type-specific
+        manner
         - use defaults, -clear, structsize for structs
     }
 
