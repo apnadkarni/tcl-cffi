@@ -3,10 +3,19 @@
 # This file should be sourced into whatever namespace commands should
 # be created in.
 
-::cffi::Struct create git_worktree_add_options {
-    version {uint {default 1}}
-    lock    int
-    ref     PREFERENCE
+if {[lg2_abi_vsatisfies 1.4]} {
+    ::cffi::Struct create git_worktree_add_options {
+        version {uint {default 1}}
+        lock    int
+        ref     PREFERENCE
+        checkout_options struct.git_checkout_options
+    }
+} else {
+    ::cffi::Struct create git_worktree_add_options {
+        version {uint {default 1}}
+        lock    int
+        ref     PREFERENCE
+    }
 }
 
 ::cffi::enum flags git_worktree_prune_t {

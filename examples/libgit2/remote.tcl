@@ -96,23 +96,45 @@
     reserved               {pointer unsafe nullok}
 } -clear
 
-::cffi::Struct create git_fetch_options {
-    version          int
-    callbacks        struct.git_remote_callbacks
-    prune            GIT_FETCH_PRUNE_T
-    update_fetchhead int
-    download_tags    GIT_REMOTE_AUTOTAG_OPTION_T
-    proxy_opts       struct.git_proxy_options
-    custom_headers   struct.git_strarray
+
+if {[lg2_abi_vsatisfies 1.4]} {
+    ::cffi::Struct create git_fetch_options {
+        version          int
+        callbacks        struct.git_remote_callbacks
+        prune            GIT_FETCH_PRUNE_T
+        update_fetchhead int
+        download_tags    GIT_REMOTE_AUTOTAG_OPTION_T
+        proxy_opts       struct.git_proxy_options
+        follow_redirects GIT_REMOTE_REDIRECT_T
+        custom_headers   struct.lg2_strarray
+    }
+    ::cffi::Struct create git_push_options {
+        version uint
+        pb_parallelism uint
+        callbacks struct.git_remote_callbacks
+        proxy_opts struct.git_proxy_options
+        follow_redirects GIT_REMOTE_REDIRECT_T
+        custom_headers   struct.lg2_strarray
+    }
+} else {
+    ::cffi::Struct create git_fetch_options {
+        version          int
+        callbacks        struct.git_remote_callbacks
+        prune            GIT_FETCH_PRUNE_T
+        update_fetchhead int
+        download_tags    GIT_REMOTE_AUTOTAG_OPTION_T
+        proxy_opts       struct.git_proxy_options
+        custom_headers   struct.lg2_strarray
+    }
+    ::cffi::Struct create git_push_options {
+        version uint
+        pb_parallelism uint
+        callbacks struct.git_remote_callbacks
+        proxy_opts struct.git_proxy_options
+        custom_headers   struct.lg2_strarray
+    }
 }
 
-::cffi::Struct create git_push_options {
-    version uint
-    pb_parallelism uint
-    callbacks struct.git_remote_callbacks
-    proxy_opts struct.git_proxy_options
-    custom_headers   struct.git_strarray
-}
 
 libgit2 functions {
     git_remote_create GIT_ERROR_CODE {
@@ -316,4 +338,30 @@ libgit2 functions {
     }
 }
 
+if {[lg2_abi_vsatisfies 1.4]} {
+    ::cffi::enum flags git_remote_redirect_t {
+        GIT_REMOTE_REDIRECT_NONE
+        GIT_REMOTE_REDIRECT_INITIAL
+        GIT_REMOTE_REDIRECT_ALL
+    }
+    ::cffi::alias define GIT_REMOTE_REDIRECT_T {int {enum git_remote_redirect_t}}
+
+    ::cffi::Struct create git_remote_connect_options {
+        version uint
+        callbacks struct.git_remote_callbacks
+        proxy_opts struct.git_proxy_options
+        follow_redirects GIT_REMOTE_REDIRECT_T
+        custom_headers   struct.lg2_strarray
+    }
+
+    libgit2 function git_remote_connect_options_init GIT_ERROR_CODE {
+        opts {struct.git_remote_connect_options byref}
+        version {uint {default 1}}
+    }
+    libgit2 function git_remote_connect_ext GIT_ERROR_CODE {
+        pRemote PREMOTE
+        direction GIT_DIRECTION
+        opts {struct.git_remote_connect_options byref nullifempty nullok}
+    }
+}
 

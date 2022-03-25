@@ -86,3 +86,7 @@ libgit2 functions {
         pb {PPACKBUILDER nullok dispose}
     }
 }
+
+if {[lg2_abi_vsatisfies 1.4]} {
+    libgit2 function git_packbuilder_name STRING {pb PPACKBUILDER}
+}

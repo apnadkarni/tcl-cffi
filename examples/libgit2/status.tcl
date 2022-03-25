@@ -57,12 +57,23 @@
     index_to_workdir {pointer.git_diff_delta unsafe}
 }
 
-::cffi::Struct create git_status_options {
-    version  {uint {default 1}}
-    show     GIT_STATUS_SHOW_T
-    flags    GIT_STATUS_OPTS_T
-    pathspec struct.lg2_strarray
-    pBaseLine {PTREE nullok}
+if {[lg2_abi_vsatisfies 1.4]} {
+    ::cffi::Struct create git_status_options {
+        version  {uint {default 1}}
+        show     GIT_STATUS_SHOW_T
+        flags    GIT_STATUS_OPTS_T
+        pathspec struct.lg2_strarray
+        pBaseLine {PTREE nullok}
+        rename_threshold uint16_t
+    }
+} else {
+    ::cffi::Struct create git_status_options {
+        version  {uint {default 1}}
+        show     GIT_STATUS_SHOW_T
+        flags    GIT_STATUS_OPTS_T
+        pathspec struct.lg2_strarray
+        pBaseLine {PTREE nullok}
+    }
 }
 
 ::cffi::prototype function git_status_cb int {

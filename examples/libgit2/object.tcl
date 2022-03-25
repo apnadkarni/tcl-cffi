@@ -61,3 +61,13 @@ libgit2 functions {
             pSource POBJECT
     }
 }
+
+if {[lg2_abi_vsatisfies 1.4]} {
+    # TBD - what type should bufP be? Will depend on common usage
+    libgit2 function git_object_raw_content_is_valid GIT_ERROR_CODE {
+        valid {int retval}
+        bufP {pointer unsafe}
+        len size_t
+        type GIT_OBJECT_T
+    }
+}

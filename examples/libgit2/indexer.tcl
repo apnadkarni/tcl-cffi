@@ -48,6 +48,11 @@ libgit2 functions {
     git_indexer_free void {
             pIndexer {PINDEXER nullok dispose}
     }
+    git_indexer_hash {struct.git_oid byref} {
+        pIndexer PINDEXER
+    }
 }
 
-libgit2 function git_indexer_hash {struct.git_oid byref} {pIndexer PINDEXER}
+if {[lg2_abi_vsatisfies 1.4]} {
+    libgit2 function git_indexer_name STRING {pIndexer PINDEXER}
+}

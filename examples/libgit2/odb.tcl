@@ -171,5 +171,15 @@ libgit2 functions {
     }
 }
 
+if {[lg2_abi_vsatisfies 1.4]} {
+    ::cffi::enum flags git_odb_lookup_flags_t {
+        GIT_ODB_LOOKUP_NO_REFRESH
+    }
+    ::cffi::alias define GIT_ODB_LOOKUP_FLAGS_T {int {enum git_odb_lookup_flags_t}}
 
-
+    libgit2 function git_odb_exists_ext int {
+        db PODB
+        oid {struct.git_oid byref}
+        flags GIT_ODB_LOOKUP_FLAGS_T
+    }
+}

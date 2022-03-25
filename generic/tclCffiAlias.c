@@ -367,6 +367,7 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
 
     if (!strcmp(s, "C")) {
         ADDINTTYPE(size_t);
+        ADDINTTYPE(ssize_t);
         ADDINTTYPE(int8_t);
         ADDINTTYPE(uint8_t);
         ADDINTTYPE(int16_t);

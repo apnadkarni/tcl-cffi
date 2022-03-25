@@ -47,6 +47,7 @@
     GIT_DIFF_FLAG_NOT_BINARY
     GIT_DIFF_FLAG_VALID_ID
     GIT_DIFF_FLAG_EXISTS
+    GIT_DIFF_FLAG_VALID_SIZE
 }
 ::cffi::alias define GIT_DIFF_FLAG_T {int {enum git_diff_flag_t} bitmask}
 

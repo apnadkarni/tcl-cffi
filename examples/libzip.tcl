@@ -5,7 +5,7 @@
 
 # To use (assuming the libzip shared library is built and located)
 # package require libzip
-# cffi::init ?PATHTOLIBZIP?; # Call to init is required
+# cffi::libzip::init ?PATHTOLIBZIP?; # Call to init is required
 
 # To bind to libzip, you first need the libzip shared library :-)
 #

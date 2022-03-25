@@ -1,3 +1,6 @@
+# Binding to libgit2 using Tcl CFFI
+#
+# To build libgit2 on Windows:
 # Mingw build of libgit
 # mkdir build
 # cd build
@@ -31,6 +34,8 @@ if {![info exists GIT_NS]} {
 
 namespace eval $GIT_NS {
     variable packageDirectory [file dirname [file normalize [info script]]]
+    variable libgit2Path
+    variable libgit2SupportedVersions {1.3 1.4}
 }
 
 namespace eval $GIT_NS {
@@ -41,8 +46,8 @@ namespace eval $GIT_NS {
     # it up to the system loader to find one.
     proc init {{path ""}} {
         variable packageDirectory
-        variable functionDefinitions
         variable libgit2Path
+        variable libgit2SupportedVersions
 
 
         # The order of loading these files is important!!!
@@ -158,8 +163,10 @@ namespace eval $GIT_NS {
         set ret [git_libgit2_init]
 
         git_libgit2_version major minor rev
-        if {$major != 1 || $minor != 3} {
-            error "libgit2 version $major.$minor.$rev is not supported. This package requires version 1.3. Note libgit2 does not guarantee ABI compatibility between minor releases."
+        proc lg2_abi_version {} "return $major.minor.$rev"
+        proc lg2_abi_vsatisfies {args} {package vsatisfies [lg2_abi_version] {*}$args}
+        if {![lg2_abi_vsatisfies {*}$libgit2SupportedVersions]} {
+            error "libgit2 version $major.$minor.$rev is not supported. This package requires one of [join $libgit2SupportedVersions {, }]. Note libgit2 does not guarantee ABI compatibility between minor releases."
         }
 
         # Remaining scripts

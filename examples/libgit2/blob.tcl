@@ -87,3 +87,7 @@ libgit2 functions {
         src_blob PBLOB
     }
 }
+
+if {[lg2_abi_vsatisfies 1.4]} {
+    libgit2 function git_blob_data_is_binary int {data binary len size_t}
+}

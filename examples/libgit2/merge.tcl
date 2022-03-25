@@ -16,6 +16,7 @@
     GIT_MERGE_FAIL_ON_CONFLICT
     GIT_MERGE_SKIP_REUC
     GIT_MERGE_NO_RECURSIVE
+    GIT_MERGE_VIRTUAL_BASE
 }
 ::cffi::alias define GIT_MERGE_FLAG_T {int {enum git_merge_flag_t} bitmask}
 
@@ -37,6 +38,8 @@
     GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL    32
     GIT_MERGE_FILE_DIFF_PATIENCE            64
     GIT_MERGE_FILE_DIFF_MINIMAL             128
+    GIT_MERGE_FILE_STYLE_ZDIIF3             256
+    GIT_MERGE_FILE_ACCEPT_CONFLICTS         512
 }
 ::cffi::alias define GIT_MERGE_FILE_FLAG_T {int {enum git_merge_file_flag_t} bitmask}
 

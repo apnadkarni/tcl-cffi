@@ -23,11 +23,10 @@ set start_page {
     This page provides an introduction to the package. Details are described
     in
 
-    [Concepts][::Concepts] - Describes how C level constructs translate
-    to the Tcl script level
+    [Concepts][::Concepts] - Describes CFFI functionality.
 
     [Cookbook][::Cookbook] - Provides recipes for converting C declarations
-    to `cffi`.
+    to CFFI declarations.
 
     [::cffi] - Reference documentation for commands in the `::cffi` namespace.
 

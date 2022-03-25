@@ -1,9 +1,10 @@
 namespace eval Concepts {
     variable _ruff_preamble {
 
-        This page describes the mapping of C types and program elements to
-        the Tcl script level. Basic knowledge of the package as described in
-        [Quick start] is assumed.
+        This page describes some general concepts behind CFFI.
+        Basic knowledge of the package as described in
+        [Quick start] is assumed. For a more direct mapping of C
+        declarations to CFFI declarations see [Cookbook][::Cookbook].
 
         ## Scopes
 
