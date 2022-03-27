@@ -19,25 +19,25 @@ The `libgit2` API implements the equivalent of the plumbing commands and
 accordingly so does the `lg2` wrapper. Be warned that using the package requires
 understanding the `libgit2` API which in turn requires understanding git and its
 internal structures. The `porcelain` directory contains implementations of
-simpler versions of the high level `git` commands illustrate the use of the
+simpler versions of the high level `git` commands that illustrate the use of the
 plumbing command and which can be used as a starting point for more complete
-implemetations.
+implementations.
 
 ## Prerequisites
 
 The `lg2` package has two prerequisites.
 
-* The Tcl [`cffi`](https://cffi.magicsplat.com) extension must be present
-somewhere in the Tcl package search path.
+* The Tcl [`cffi`](https://cffi.magicsplat.com) extension, version 1.0b5 or
+later, must be present somewhere in the Tcl package search path.
 
 * The [`libgit2`](https://libgit2.org] shared library must be loadable. On most
 Unix/Linux systems `libgit2` can be installed using the system's package
-manager.
+manager. Currently the `lg2` package supports `libgit2` versions 1.3 and 1.4.
 
 **Important:** Only use supported **release* versions of `libgit2` as it does
 not guarantee ABI compatibility even between minor releases. Moreover, binaries built
 from repository sources may not work even if version numbers are the same since
-structures may change between releases.
+structures may change between releases. 
 
 ## Usage
 
@@ -46,8 +46,13 @@ path to the `libgit2` shared library. For example,
 
 ```
 package require lg2
-lg2::init /lib/x86_64-linux-gnu/libgit2.so
+lg2::lg2_init /lib/x86_64-linux-gnu/libgit2.so
 ```
+
+If no path is supplied to `lg2_init` it will try to locate `git2.dll` on
+Windows or `libgit2.so` on other platforms under architecture-specific 
+directories under the package directory. If not found there, it will just attempt
+to load using the unqualified shared library name.
 
 The scripts in the `porcelain` directory are standalone scripts that
 mimic the porcelain git commands. All support the `--help` option to 

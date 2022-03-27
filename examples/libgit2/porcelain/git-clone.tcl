@@ -3,6 +3,10 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
+# Copyright (c) 2022 Ashok P. Nadkarni
+# All rights reserved.
+# See LICENSE file for details.
+
 proc parse_clone_options {arguments} {
 
     # NOTE: getopt uses comments below to generate help. Careful about changing them.

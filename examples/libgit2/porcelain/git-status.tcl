@@ -3,6 +3,10 @@
 
 # NOTE COMMENTS ABOVE ARE AUTOMATICALLY DISPLAYED IN PROGRAM HELP
 
+# Copyright (c) 2022 Ashok P. Nadkarni
+# All rights reserved.
+# See LICENSE file for details.
+
 proc parse_status_options {arguments} {
     parse_options opt arg $arguments {
         -s {
@@ -213,9 +217,9 @@ proc print_long {pRepo pStatusList} {
         }
 
         if {$print_header} {
-            puts "# Changes to be committed:"
-            puts "#   (use \"git reset HEAD <file>...\" to unstage)"
-            puts "#"
+            puts "Changes to be committed:"
+            puts "  (use \"git reset HEAD <file>...\" to unstage)"
+            puts ""
             set print_header 0
         }
 
@@ -223,12 +227,12 @@ proc print_long {pRepo pStatusList} {
         set old [dict get $htoi_delta old_file path]
         set new [dict get $htoi_delta new_file path]
         if {$old ne "" && $new ne "" && $old ne $new} {
-            puts "#\t$istatus  $old -> $new"
+            puts "\t$istatus  $old -> $new"
         } else {
             if {$old ne ""} {
-                puts "#\t$istatus  $old"
+                puts "\t$istatus  $old"
             } else {
-                puts "#\t$istatus  $new"
+                puts "\t$istatus  $new"
             }
         }
     }
@@ -237,7 +241,7 @@ proc print_long {pRepo pStatusList} {
         set changes_in_index 0
     } else {
         set changes_in_index 1
-        puts "#"
+        puts ""
         set print_header 1
     }
 
@@ -262,22 +266,22 @@ proc print_long {pRepo pStatusList} {
             continue
         }
         if {$print_header} {
-            puts "# Changes not staged for commit:";
-            puts "#   (use \"git add$rm_in_workdir <file>...\" to update what will be committed)"
-            puts "#   (use \"git checkout -- <file>...\" to discard changes in working directory)";
-            puts "#"
+            puts "Changes not staged for commit:";
+            puts "  (use \"git add$rm_in_workdir <file>...\" to update what will be committed)"
+            puts "  (use \"git checkout -- <file>...\" to discard changes in working directory)";
+            puts ""
             set print_header 0
         }
         set itow_delta [git_diff_delta fromnative! $index_to_workdir]
         set old [dict get $itow_delta old_file path]
         set new [dict get $itow_delta new_file path]
         if {$old ne "" && $new ne "" && $old ne $new} {
-            puts "#\t$wstatus  $old -> $new"
+            puts "\t$wstatus  $old -> $new"
         } else {
             if {$old ne ""} {
-                puts "#\t$wstatus  $old"
+                puts "\t$wstatus  $old"
             } else {
-                puts "#\t$wstatus  $new"
+                puts "\t$wstatus  $new"
             }
         }
     }
@@ -286,7 +290,7 @@ proc print_long {pRepo pStatusList} {
         set changes_in_workdir 0
     } else {
         set changes_in_workdir 1
-        puts "#"
+        puts ""
         set print_header 1
     }
 
@@ -296,13 +300,13 @@ proc print_long {pRepo pStatusList} {
         dict with entry {}; # Explode entry -> status, head_to_index, index_to_workdir
         if {"GIT_STATUS_WT_NEW" in $status} {
             if {$print_header} {
-                puts "# Untracked files:"
-                puts "#   (use \"git add <file>...\" to include in what will be committed)"
-                puts "#"
+                puts "Untracked files:"
+                puts "  (use \"git add <file>...\" to include in what will be committed)"
+                puts ""
                 set print_header 0
             }
             set itow_delta [git_diff_delta fromnative! $index_to_workdir]
-            puts "#\t[dict get $itow_delta old_file path]"
+            puts "\t[dict get $itow_delta old_file path]"
         }
     }
 
@@ -312,13 +316,13 @@ proc print_long {pRepo pStatusList} {
         dict with entry {}; # Explode entry -> status, head_to_index, index_to_workdir
         if {"GIT_STATUS_IGNORED" in $status} {
             if {$print_header} {
-                puts "# Ignored files:"
-                puts "#   (use \"git add -f <file>...\" to include in what will be committed)"
-                puts "#"
+                puts "Ignored files:"
+                puts "  (use \"git add -f <file>...\" to include in what will be committed)"
+                puts ""
                 set print_header 1
             }
             set itow_delta [git_diff_delta fromnative! $index_to_workdir]
-            puts "#\t[dict get $itow_delta old_file path]"
+            puts "\t[dict get $itow_delta old_file path]"
         }
     }
 
@@ -346,7 +350,7 @@ proc show_branch {pRepo format} {
         }
     }
     if {$format eq "long"} {
-        puts "# On branch $branch"
+        puts "On branch $branch"
     } else {
         puts "## $branch"
     }
@@ -365,9 +369,9 @@ proc print_submod {pSubmod name payload} {
         # Keep track in caller's context of number of submodules
         upvar 1 submodule_count count
         if {$count == 0} {
-            puts "# Submodules"
+            puts "Submodules"
         }
-        puts "# - submodule '[git_submodule_name $pSubmod]' at [git_submodule_path $pSubmod]"
+        puts "- submodule '[git_submodule_name $pSubmod]' at [git_submodule_path $pSubmod]"
     } finally {
         if {! $was_safe} {
             # If we marked it as safe, dispose of it.

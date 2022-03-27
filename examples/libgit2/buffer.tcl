@@ -1,3 +1,7 @@
+# Copyright (c) 2022 Ashok P. Nadkarni
+# All rights reserved.
+# See LICENSE file for details.
+
 # Based on libgit2/include/buffer.h
 #
 # This file should be sourced into whatever namespace commands should
@@ -11,11 +15,7 @@
 
 ::cffi::alias define PBUF pointer.git_buf
 
-libgit2 functions {
-    git_buf_dispose void {
-        buffer PBUF
-    }
-}
+libgit2 function git_buf_dispose void {buffer PBUF}
 
 if {! [lg2_abi_vsatisfies 1.4]} {
     # These functions are NOT supported in 1.4 and later
@@ -26,20 +26,22 @@ if {! [lg2_abi_vsatisfies 1.4]} {
     # So the parameters are typed as pointers to make them more opaque and
     # reference as opposed to value based.
 
-    git_buf_grow GIT_ERROR_CODE {
-        buffer      PBUF
-        target_size size_t
-    }
-    git_buf_set GIT_ERROR_CODE {
-        buffer  PBUF
-        data    bytes[datalen]
-        datalen size_t
-    }
-    git_buf_is_binary int {
-        buffer  PBUF
-    }
-    git_buf_contains_nul int {
-        buffer  PBUF
+    libgit2 functions {
+        git_buf_grow GIT_ERROR_CODE {
+            buffer      PBUF
+            target_size size_t
+        }
+        git_buf_set GIT_ERROR_CODE {
+            buffer  PBUF
+            data    bytes[datalen]
+            datalen size_t
+        }
+        git_buf_is_binary int {
+            buffer  PBUF
+        }
+        git_buf_contains_nul int {
+            buffer  PBUF
+        }
     }
 }
 

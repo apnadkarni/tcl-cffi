@@ -1,3 +1,7 @@
+# Copyright (c) 2022 Ashok P. Nadkarni
+# All rights reserved.
+# See LICENSE file for details.
+
 # Based on libgit2/include/diff.h
 #
 # This file should be sourced into whatever namespace commands should

@@ -1,21 +1,20 @@
 # Set of utility routines used by the git porcelain examples
 # To be sourced into the application's namespace
 
+# Copyright (c) 2022 Ashok P. Nadkarni
+# All rights reserved.
+# See LICENSE file for details.
+
 # Load the git package into the ::git namespace
+package require lg2
+
+# The namespace kept changing during development so just make it a variable
 set GIT_NS ::lg2
-source [file join [file dirname [file dirname [file normalize [info script]]]] libgit2.tcl]
 namespace path [linsert [namespace path] 0 ${GIT_NS}]
 
 variable porcelain_version 0.1a0
 
-${GIT_NS}::init d:/temp/git2.dll
-
-# Just for debugging
-proc pdict d {
-    dict for {k v} $d {
-        puts "$k: $v"
-    }
-}
+lg2_init
 
 proc open_repository {} {
     # Opens a repository and returns a pointer to it.
