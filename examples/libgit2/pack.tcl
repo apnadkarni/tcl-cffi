@@ -67,9 +67,6 @@ libgit2 functions {
         progress_cb {pointer.git_indexer_progress_cb}
         progress_cb_payload CB_PAYLOAD
     }
-    git_packbuilder_hash {struct.git_oid byref} {
-        pb PPACKBUILDER
-    }
     git_packbuilder_foreach GIT_ERROR_CODE {
         pb PPACKBUILDER
         cb pointer.git_packbuilder_foreach_cb
@@ -93,4 +90,13 @@ libgit2 functions {
 
 if {[lg2_abi_vsatisfies 1.4]} {
     libgit2 function git_packbuilder_name STRING {pb PPACKBUILDER}
+}
+
+# Deprecated
+if {0} {
+    libgit2 functions {
+        git_packbuilder_hash {struct.git_oid byref} {
+            pb PPACKBUILDER
+        }
+    }
 }

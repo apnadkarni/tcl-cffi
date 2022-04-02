@@ -52,8 +52,14 @@ libgit2 functions {
     git_indexer_free void {
             pIndexer {PINDEXER nullok dispose}
     }
-    git_indexer_hash {struct.git_oid byref} {
-        pIndexer PINDEXER
+}
+
+# Deprecated
+if {0} {
+    libgit2 functions {
+        git_indexer_hash {struct.git_oid byref} {
+            pIndexer PINDEXER
+        }
     }
 }
 

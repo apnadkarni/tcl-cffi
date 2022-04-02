@@ -124,9 +124,6 @@ libgit2 functions {
     git_index_path STRING {
         index PINDEX
     }
-    git_index_checksum {struct.git_oid byref} {
-        index PINDEX
-    }
     git_index_read_tree GIT_ERROR_CODE {
         index PINDEX
         tree  PTREE
@@ -264,5 +261,14 @@ libgit2 functions {
     }
     git_index_conflict_iterator_free void {
         iterator {PINDEX_CONFLICT_ITERATOR nullok dispose}
+    }
+}
+
+# Deprecated
+if {0} {
+    libgit2 functions {
+        git_index_checksum {struct.git_oid byref} {
+            index PINDEX
+        }
     }
 }

@@ -102,6 +102,13 @@
 
 
 if {[lg2_abi_vsatisfies 1.4]} {
+    ::cffi::enum flags git_remote_redirect_t {
+        GIT_REMOTE_REDIRECT_NONE
+        GIT_REMOTE_REDIRECT_INITIAL
+        GIT_REMOTE_REDIRECT_ALL
+    }
+    ::cffi::alias define GIT_REMOTE_REDIRECT_T {int {enum git_remote_redirect_t}}
+
     ::cffi::Struct create git_fetch_options {
         version          int
         callbacks        struct.git_remote_callbacks
@@ -343,13 +350,6 @@ libgit2 functions {
 }
 
 if {[lg2_abi_vsatisfies 1.4]} {
-    ::cffi::enum flags git_remote_redirect_t {
-        GIT_REMOTE_REDIRECT_NONE
-        GIT_REMOTE_REDIRECT_INITIAL
-        GIT_REMOTE_REDIRECT_ALL
-    }
-    ::cffi::alias define GIT_REMOTE_REDIRECT_T {int {enum git_remote_redirect_t}}
-
     ::cffi::Struct create git_remote_connect_options {
         version uint
         callbacks struct.git_remote_callbacks
