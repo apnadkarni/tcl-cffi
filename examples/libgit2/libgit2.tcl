@@ -3,34 +3,6 @@
 # See LICENSE file for details.
 
 # Binding to libgit2 using Tcl CFFI. See README.md
-#
-# To build libgit2 on Windows:
-# Mingw build of libgit
-# mkdir build
-# cd build
-# cmake .. -G "MinGW Makefiles"
-# cmake --build .
-# or maybe
-# cmake --build . -DCMAKE_BUILD_TYPE=Release
-# or
-# cmake .. -G "MinGW Makefiles" -DBUILD_CLAR=OFF -DEMBED_SSH_PATH=/d/src/AAThirdparty/C,C++/libssh2-1.10.0 -DCMAKE_BUILD_TYPE=Release -DUSE_BUNDLED_ZLIB=ON
-# Edit build2\src\CMakeFiles\git2.dir linklibs.rsp to add -lbcrypt
-# For a verbose build, add "-- VERBOSE=1" before the cmake --build command
-
-
-# To build debug with examples (64-bit)
-# mkdir build
-# cmake .. -A x64 -DBUILD_EXAMPLES=ON
-# cmake --build .
-
-# Build Debug with VC++/ssh
-# (Note add -DCMAKE_BUILD_TYPE=Release for release builds)
-# cd libgit2
-# mkdir build
-# cd build
-#NOTE: USE FORWARD / in paths even for vc++ builds
-# cmake .. -A x64 -DBUILD_EXAMPLES=ON -DBUILD_CLAR=OFF -DEMBED_SSH_PATH="D:/src/AAThirdparty/C,C++/libssh2-1.10.0" -DCMAKE_INSTALL_PREFIX="D:/temp/lg2"
-# cmake --build . --target install
 
 namespace eval ::lg2 {
     variable packageDirectory [file dirname [file normalize [info script]]]

@@ -32,7 +32,11 @@ later, must be present somewhere in the Tcl package search path.
 
 * The [`libgit2`](https://libgit2.org] shared library must be loadable. On most
 Unix/Linux systems `libgit2` can be installed using the system's package
-manager. Currently the `lg2` package supports `libgit2` versions 1.3 and 1.4.
+manager. 
+
+Currently the `lg2` package supports `libgit2` versions 1.3 and 1.4. If the
+system package manager does not include `libgit2` or includes a different version,
+some hints about building it are given later.
 
 **Important:** Only use supported **release* versions of `libgit2` as it does
 not guarantee ABI compatibility even between minor releases. Moreover, binaries built
@@ -133,3 +137,113 @@ the path separator and will not work correctly with `\`. Moreover, some expect
 paths to be relative to top of the working directory.
 
 All of the above are illustrated by the samples in the `porcelain` directory.
+
+## Building the `libgit2` shared library
+
+*Note: the instructions below pertain to `libgit2` version 1.4.2. Other versions
+may need some tweaks as the build system has some differences between versions.
+
+In the event that the system does not provide a `libgit2` shared library or
+provides a version not supported by `lg2`, the sources can be downloaded from
+the [repository](https://github.com/libgit2/libgit2/releases). Make sure to
+only download an official release, not a repository snapshot.
+
+Instructions for building `libgit2` are given in the `README.md` file in the
+`libgit2` sources. Below are some examples and workarounds for some potential
+issues.
+
+The `cmake` program is required to do builds.
+
+### Building on Unix-like systems
+
+On Unix-like systems, first ensure the `zlib` and `libssh2` libraries are
+installed using the system's package manager. Then execute the following from a
+shell in the top-level `libgit2` source directory to build the shared library
+and run the test suite.
+
+```
+cmake -S . -B build/ubuntu -DCMAKE_BUILD_TYPE=Release -DDEPRECATE_HARD=ON -DUSE_SSH=ON
+cmake --build build/ubuntu
+cd build/ubuntu
+./libgit2_tests
+```
+
+### Building on Windows
+
+On Windows, the `libgit2` DLL may be build with either the MinGW/GCC tool chain
+or Visual Studio.
+
+#### Building with MinGW-W64
+
+The corresponding steps for Windows given below are a little more involved
+because (a) dependencies need to be installed and (b) as a preference, the build
+is configured to statically link the dependencies into the `libgit2` DLL so no
+additional DLLs need to be distributed.
+
+To build with MinGW-W64/gcc, commands below must be run from a MING64 shell
+(**not** the MSYS shell).
+
+First install the dependencies using `pacboy` (or the `pacman` equivalents)
+
+```
+pacboy sync libssh2-wincng
+```
+
+**Note** The `libssh2` package may be installed in lieu of `libssh2-wincng`.
+However, that requires the additional openssl libraries while `libssh2-wincng`
+uses native Win32 crypto functions and is preferred for that reason.
+
+Then run the following in the MINGW64 shell to build and test.
+
+```
+cmake -S . -B build/mingw64 -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DDEPRECATE_HARD=ON -DUSE_SSH=ON -DCMAKE_C_STANDARD_LIBRARIES="-lbcrypt -lcrypt32 -lws2_32" -DLIBSSH2_LIBRARIES=libssh2.a -DUSE_BUNDLED_ZLIB=ON -DHAVE_LIBSSH2_MEMORY_CREDENTIALS=1
+cmake --build build/mingw64
+cd build/mingw64
+./libgit2_tests
+```
+
+Note the options used:
+
+* `-DLIBSSH2_LIBRARIES=libssh2.a` forces static linking to `libssh2`
+* `-DUSE_BUNDLED_ZIP=ON` uses the zlib library within `libgit2` and eliminate
+the external dependency
+* The `CMAKE_C_STANDARD_LIBRARIES` and `HAVE_LIBSSH2_MEMORY_CREDENTIALS` work
+around some configuration bugs in `libgit2` that manifest themselves with static
+linking.
+
+Building a 32-bit version is similar except that the commands must be run
+in the `MINGW32` shell and not in the `MINGW64` one.
+
+```
+cmake -S . -B build/mingw32 -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DDEPRECATE_HARD=ON -DUSE_SSH=ON -DCMAKE_C_STANDARD_LIBRARIES="-lbcrypt -lcrypt32 -lws2_32" -DLIBSSH2_LIBRARIES=libssh2.a -DUSE_BUNDLED_ZLIB=ON -DHAVE_LIBSSH2_MEMORY_CREDENTIALS=1
+cmake --build build/mingw32
+cd build/mingw32
+./libgit2_tests
+```
+
+#### Building with Visual Studio
+
+Since there is no bundled `libssh2` with Visual Studio, download its 
+[source distribution](https://github.com/libssh2/libssh2/releases) and extract it
+to a local directory. No need to build it.
+
+*Important* Comment the line `include(SelectSSH)` in src/CMakeLists.txt in the
+`libgit2` distribution. See [Bug 6254](https://github.com/libgit2/libgit2/issues/6254).
+
+Then from a Visual Studio 64-bit prompt, run the following commands in the top
+level directory of the `libgit2` source distribution.
+
+```
+cmake -S . -B build\vs64 -A x64 -DEMBED_SSH_PATH="D:/src/AAThirdparty/C,C++/libssh2-1.10.0" -DUSE_BUNDLED_ZLIB=ON -DDEPRECATE_HARD=ON
+cmake --build build/vs64 --config Release
+cd build\vs64
+libgit2_tests
+```
+
+**NOTE:** Use forward slashes in -D definitions even for Visual Studio builds.
+
+If your directory is not on the C: drive, you may see a few test failures.
+
+The 32-bit build is similar except that you need to run the commands from a Visual
+Studio 32-bit prompt and the `-A` option should be left out or take the value 
+`Win32` instead of `x64`.
