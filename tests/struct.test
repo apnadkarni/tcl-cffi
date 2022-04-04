@@ -903,7 +903,7 @@ namespace eval cffi::test {
     } -body {
         S setnative $p c 42
         S setnative $p p $p
-        list [S get $p c] [string equal $p [S get $p p]]
+        list [S getnative $p c] [string equal $p [S getnative $p p]]
     } -result {42 1}
     test struct-setnative-2 "setnative at index" -setup {
         ::cffi::Struct create S {c schar d double}
@@ -926,7 +926,7 @@ namespace eval cffi::test {
         S destroy
     } -body {
         S setnative $p p [makeptr 1]
-        set ptrval [S get $p p]
+        set ptrval [S getnative $p p]
         list $ptrval [cffi::pointer isvalid $ptrval]
     } -result [list [makeptr 1] 0]
     test struct-setnative-error-0 "Unsafe pointer" -setup {

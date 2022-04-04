@@ -234,7 +234,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias load C
         lsort [cffi::alias list]
-    } -result [lprefixns int16_t int32_t int64_t int8_t size_t uint16_t uint32_t uint64_t uint8_t]
+    } -result [lprefixns SSIZE_T int16_t int32_t int64_t int8_t size_t ssize_t uint16_t uint32_t uint64_t uint8_t]
     test alias-load-C-1 "alias load" -setup {
         reset_aliases
     } -body {

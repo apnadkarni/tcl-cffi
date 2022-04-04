@@ -7,6 +7,7 @@
 
 #include "tcl.h"
 #include <sys/types.h>
+#include <stddef.h>
 
 #include "tclhBase.h"
 #include "tclhObj.h"
