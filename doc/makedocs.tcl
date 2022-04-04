@@ -5,7 +5,7 @@ package require ruff
 
 
 set NS cffi
-set version 1.0b4
+set version 1.0b5
 
 source cffi.ruff
 source start.ruff

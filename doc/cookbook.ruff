@@ -1216,7 +1216,7 @@ XXX        LIBC open
         Native C struct values may be dealt with at the script level either
         as Tcl dictionary values or kept in their native form and accessed
         through raw pointers. Both methods require the struct to be defined
-        with [::cffi:Struct]. In the former case, the fields are accessed
+        with [::cffi::Struct]. In the former case, the fields are accessed
         using Tcl's `dict` command. In the latter case, the [::cffi::Struct]
         accessor methods are used.
 

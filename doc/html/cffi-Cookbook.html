@@ -6,21 +6,729 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0b4)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0b5)</a>
 
 
             <div id="ruffButtonBar">
             <button id="ruffNavMove" onclick="ruffMoveNavPane()"></button>
             <button id="ruffToggleTheme" onclick="ruffNextTheme()"></button>
             </div>
-        </header><main class='ruff-layout-main ruff-bd'><h1 class='ruff'><a name='Cookbook'></a>Cookbook<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi_docindex.html#'>Index</a></span></h1>
+        </header><main class='ruff-layout-main ruff-bd'><h1 class='ruff'><a name='Cookbook'></a>Cookbook<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h1>
 <div style='clear:both;'></div>
-<p class='ruff'><em>This page under construction.</em></p>
+<p class='ruff'>While using CFFI to wrap a few ad-hoc functions is fairly straightforward, wrapping a large API into a complete package can be more involved as decisions how C types are translated to script level annotations. This page provides some recipes for mapping C declarations to CFFI declarations depending on the declaration context (parameter, struct field etc.).</p>
+<h2 class='ruff'><a name='::Cookbook-Defining a function'></a>Defining a function<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>A function definition consists of three components.</p>
+
+<figure id='::Cookbook-Function definition syntax' class='ruff-figure'>
+<img src='assets/Function-definition-syntax.svg'></img>
+<figcaption class='ruff-caption'>Figure 1. Function definition syntax</figcaption>
+</figure><p class='ruff'>Sections below detail definition of each.</p>
+<h3 class='ruff'><a name='::Cookbook-Calling convention'></a>Calling convention<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Check the header file or documentation of the function for the expected calling convention. Generally, this is only an issue if the application supports the 32-bit Windows platform. Note the function calling convention may be defined through a macro such as <code>WINAPI</code> etc. Most Windows OS API's are defined using the stdcall convention. The default C language calling convention is either unspecified or <code>_cdecl</code> in C header files. Most third party API's are defined using this convention. CFFI does not support any calling convention other than these two.</p>
+
+<figure id='::Cookbook-Calling convention syntax' class='ruff-figure'>
+<img src='assets/Calling-convention-syntax.svg'></img>
+<figcaption class='ruff-caption'>Figure 2. Calling convention syntax</figcaption>
+</figure><ul class='ruff'>
+<li>Define using <code>stdcall</code> if the function is defined on 32-bit Windows using <code>__stdcall</code> or its equivalent. Note on other platforms, including 64-bit Windows, this is treated as equivalent to <code>function</code></li>
+<li>Define using <code>function</code> otherwise after ensuring it does not use some other esoteric platform-specific convention (rare).</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+WINAPI DWORD GetCurrentProcessId(void);
+int getpid(void);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+KERNEL32 stdcall GetCurrentProcessId ulong {}
+LIBC function getpid int {}
+</pre>
+
+</figure><p class='ruff'>Note <code>WINAPI</code> in the Windows SDK headers maps to <code>__stdcall</code>.</p>
+<h3 class='ruff'><a name='::Cookbook-Return type declaration'></a>Return type declaration<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<h4 class='ruff'><a name='::Cookbook-Void returns'></a>Void returns<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for void return type' class='ruff-figure'>
+<img src='assets/Syntax-for-void-return-type.svg'></img>
+<figcaption class='ruff-caption'>Figure 3. Syntax for void return type</figcaption>
+</figure><p class='ruff'>The <code>void</code> return type does not permit any annotations.</p>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+void tzset(void)
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function tzset void {}
+</pre>
+
+</figure><h4 class='ruff'><a name='::Cookbook-Integer returns'></a>Integer returns<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for integer return types' class='ruff-figure'>
+<img src='assets/Syntax-for-integer-return-types.svg'></img>
+<figcaption class='ruff-caption'>Figure 4. Syntax for integer return types</figcaption>
+</figure><ul class='ruff'>
+<li>If the returned values are constrained to a set and a symbolic representation is preferred, optionally add the <code>enum</code> attribute with the enumeration defined as a literal or separately through the <a href="cffi-cffi.html#::cffi::enum" title="::cffi::enum" class='ruff_cmd'>::cffi::enum</a> command.</li>
+<li>If a symbolic representation is preferred as above and the value is actually a bit mask, optionally add the <code>bitmask</code> attribute to have the value returned as a list of symbols from the enumeration.</li>
+<li>If return values may indicate error conditions, add an error checking annotation like <code>zero</code>, <code>nonzero</code> etc.</li>
+<li>If a error checking annotation is added and additional detail is available from the system, add <code>lasterror</code>, <code>winerror</code> or <code>errno</code> as appropriate. If error information is available through some other API, add the <code>onerror</code> handler. This may also be used to filter errors or convert error conditions to success.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int open(const char *pathname, int flags);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+XXX        LIBC open
+
+</pre>
+
+</figure><h4 class='ruff'><a name='::Cookbook-Floating point returns'></a>Floating point returns<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for floating point return types' class='ruff-figure'>
+<img src='assets/Syntax-for-floating-point-return-types.svg'></img>
+<figcaption class='ruff-caption'>Figure 5. Syntax for floating point return types</figcaption>
+</figure><p class='ruff'>Floating point types <code>float</code> and <code>double</code> do not permit any annotations on return type declarations.</p>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+double sin(double x);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBM function sin double {x double}
+</pre>
+
+</figure><h4 class='ruff'><a name='::Cookbook-Pointer returns'></a>Pointer returns<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Pointer return values may be dealt with at the script level either as raw pointers or as implicitly dereferenced values.</p>
+<ul class='ruff'>
+<li>Declare the function as returning a raw pointer if the returned pointers point to resources that have to be freeing at a later point. If typed as implicitly dereferenced values, the raw pointer will not be available for freeing.</li>
+<li>Declare the function as returning an implicitly dereferenced value if the returned pointers point to some internal or static storage that does not need to be freed. An example is the <code>strerror</code> C runtime library function. Note that implicitly dereferenced types are a convenience; they may be typed as raw pointers instead while the reverse will likely produce memory leaks.</li>
+</ul>
+<p class='ruff'>The type declarations for raw and implicitly dereferenced pointers are separately described below.</p>
+<h5 class='ruff'>Raw pointers</h5>
+<figure id='::Cookbook-Syntax for raw pointer return type' class='ruff-figure'>
+<img src='assets/Syntax-for-raw-pointer-return-type.svg'></img>
+<figcaption class='ruff-caption'>Figure 6. Syntax for raw pointer return type</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>TAG</code> is optional but recommended wherever possible for additional <a href="cffi-Concepts.html#::Concepts-Pointer tags" title="tag-based" >tag-based</a> type checks. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command. This makes it convenient to access the referenced memory using the struct <a href="cffi-cffi.html#::cffi::Struct" title="methods" class='ruff_cmd'>methods</a>.</li>
+<li>By default, pointers returned from functions are marked as <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="safe pointers" >safe pointers</a>. This is appropriate for unique pointers that are returned for allocated resources and are only valid until they are deallocated through a corresponding <em>free</em> function. A variation is when the pointer returned is not unique as is the case for reference counted resources. In this case the pointer should be annotated as <code>counted</code>. For cases where neither of the above apply, for example there is no clear transfer of ownership or freeing, or pointers are internal to the API, there are two choices. First, it can be defaulted as a safe pointer. In this case, since there is no <em>free</em> function, the <a href="cffi-cffi.html#::cffi::pointer dispose" title="::cffi::pointer dispose" class='ruff_cmd'>::cffi::pointer dispose</a> command must be called at the appropriate time by the application to unregister the pointer. Alternatively, the <code>unsafe</code> annotation can be added to the declaration. In this case, there is no need to unregister the pointer but it can only be used in places (arguments and struct fields) that also have the <code>unsafe</code> annotation. For more details on pointer management and safety, see <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</li>
+<li>Irrespective of the pointer safety annotations, NULL pointers returned from functions will by default raise a generic <em>Pointer is NULL</em> exception. As for integer return values, if additional information is available from the system or API, the type can be annoted with <code>lasterror</code>, <code>errno</code> or <code>onerror</code>. On the other hand, if a NULL pointer is a valid return value, the <code>nullok</code> annotation will suppress the exception and return a NULL pointer at the script level.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+void *malloc(size_t sz);
+FILE *fopen(const char *pathname, const char *mode);
+git_tree_entry *git_tree_entry_byname(git_tree *, const char *filename);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC malloc {pointer errno} {sz size_t}
+LIBC fopen {pointer.FILE errno} {pathname string mode string}
+LIBGIT git_tree_entry_byname {pointer.git_tree_entry unsafe} {
+    pTree {pointer.git_tree counted}
+    filename string
+    }
+</pre>
+
+</figure><p class='ruff'>The <code>unsafe</code> and <code>counted</code> annotations on <code>git_tree_entry_byname</code> arise from the libgit2 API. The returned pointer is internal to libgit2 and hence marked as unsafe while <code>git_tree</code> structs are reference counted.</p>
+<h5 class='ruff'>Implicitly dereferenced pointers</h5><p class='ruff'>Raw pointers at script level, while as versatile as their C counterparts, are not as convenient to use as plain old values. Additional steps are needed to access the memory as script level values. Declaring pointer return types as implicitly dereferenced obviates the need for this additional step. As stated earlier, implicit dereferencing should only be done when there is no need for the pointer value itself for freeing later.</p>
+<p class='ruff'>For types <strong>other than pointers to character (or unicode) strings</strong>, the CFFI declaration has the form</p>
+
+<figure id='::Cookbook-Syntax for implicitly dereferenced pointers' class='ruff-figure'>
+<img src='assets/Syntax-for-implicitly-dereferenced-pointers.svg'></img>
+<figcaption class='ruff-caption'>Figure 7. Syntax for implicitly dereferenced pointers</figcaption>
+</figure><p class='ruff'>where <code>TYPE</code> may be one of the numeric types or a <code>STRUCT</code>. The <code>byref</code> annotation on the return type declaration denotes that the function return value is nominally a pointer that references the true function result.</p>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+struct git_oid *git_tree_oid(git_tree *pTree);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBGIT function git_tree_oid {struct.git_oid byref} {pTree pointer.git_tree}
+</pre>
+
+</figure><p class='ruff'>A call to the <code>git_tree_oid</code> function will then return the <code>git_oid</code> struct (assumed defined previously with <a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>) in its script level dictionary form. The actual C level pointer is not accessible but not needed as it is internal to the <code>git_tree</code> and not to be freed or manipulated.</p>
+<p class='ruff'>As for raw pointers, a null pointer return will raise an exception by default. The <code>nullok</code> annotation may suppress the exception in the case that <code>TYPE</code> is a struct with defaults defined for all fields (possibly with the <code>-clear</code> option). In that the dictionary corresponding to a struct value with all fields defaulted is returned. For all other types and structs with at least one field without a default, an exception is raised irrespective of <code>nullok</code>.</p>
+<p class='ruff'>For C pointers typed as <code>char *</code> which return pointers to character strings, the implicit dereference syntax is</p>
+
+<figure id='::Cookbook-Syntax for character string return types' class='ruff-figure'>
+<img src='assets/Syntax-for-character-string-return-types.svg'></img>
+<figcaption class='ruff-caption'>Figure 8. Syntax for character string return types</figcaption>
+</figure><p class='ruff'>The <code>byref</code> is not present because <code>string</code> and <code>unistring</code> are already implicit pointers, (<code>string byref</code> would correspond to <code>char **</code>, not <code>char *</code>). An optional <code>nullok</code> annotation will cause a NULL pointer return to be mapped to the empty string instead of generating an exception.</p>
+<p class='ruff'>Note that if <code>STRING</code> is <code>string</code>, an encoding identifier may be optionally attached, e.g. <code>string.utf-8</code>.</p>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+const char *strerror(int);
+char *strstr(const char *haystack, const char *needle);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function strerror string {error_code int}
+LIBC function strstr {string nullok} {haystack string needle string}
+</pre>
+
+</figure><p class='ruff'>Note the definition of <code>strstr</code> to return an empty string if the needle is not found instead of raising an exception.</p>
+<h4 class='ruff'><a name='::Cookbook-Struct returns'></a>Struct returns<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for struct return type' class='ruff-figure'>
+<img src='assets/Syntax-for-struct-return-type.svg'></img>
+<figcaption class='ruff-caption'>Figure 9. Syntax for struct return type</figcaption>
+</figure><p class='ruff'>A struct function return type does not permit any annotations. <code>STRUCT</code> must be a previously defined <a href="cffi-Concepts.html#::Concepts-Structs" title="::Struct" >::Struct</a>. Returning a struct by value is rarely seen in C API's.</p>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+typedef struct {
+    int quot;
+    int rem;
+} div_t;
+div_t div (int numer, int denom);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+Struct create div_t {quot int rem int}
+LIBC function struct.div_t {numer int denom int}
+</pre>
+
+</figure><h3 class='ruff'><a name='::Cookbook-Parameter declaration'></a>Parameter declaration<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Parameters to a C function may be used to pass values to the function (input parameters), retrieve values from the function (output parameters), or (input-output parameters).</p>
+<p class='ruff'>Scalar values and structs that are passed by value are always input parameters. Input parameters may also be passed by reference via a pointer, generally with a <code>const</code> attribute to indicate the function does not modify the referenced value.</p>
+<p class='ruff'>Output and input-output parameters are always passed to C function as pointers to a location where the value is stored. At the script level the argument is the name of the variable where the value is stored and not the value itself.</p>
+<h4 class='ruff'><a name='::Cookbook-Integer parameters'></a>Integer parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<h5 class='ruff'>Integer input parameters</h5>
+<figure id='::Cookbook-Syntax for integer input parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-integer-input-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 10. Syntax for integer input parameters</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
+<li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the value (e.g. <code>int *</code> at the C level). This is very rare for integer values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
+<li>Add the <code>enum</code> annotation to pass <a href="cffi-Concepts.html#::Concepts-Enumerations" title="enumeration" >enumeration</a> symbolic values for readability purposes. Note integer values will still be accepted.</li>
+<li>If the parameter holds a bit mask, add the <code>bitmask</code> annotation which allows the argument to be a list of integers which will be bitwise OR-ed to construct the value passed to the function. May be combined with <code>enum</code> to pass a list of symbols.</li>
+<li>The <code>default</code> annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations.</li>
+<li>Error handling annotations like <code>errno</code> may be present but are ignored. This is to permit the same aliases to be used in both return and parameter declarations.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int SetHandleInformation(void * hObject, unsigned long dwMask, unsigned long dwFlags);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::enum define HANDLE_FLAGS {INHERIT 1 PROTECT_FROM_CLOSE 2}
+KERNEL32 stdcall SetHandleInformation {int nonzero lasterror} {
+    hObject pointer
+    dwMask {ulong {enum HANDLE_FLAGS} bitmask}
+    dwFlags {ulong {enum HANDLE_FLAGS} bitmask}
+}
+</pre>
+
+</figure><h5 class='ruff'>Output and input-output integer parameters</h5>
+<figure id='::Cookbook-Syntax for integer output and input-output parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-integer-output-and-input-output-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 11. Syntax for integer output and input-output parameters</figcaption>
+</figure><ul class='ruff'>
+<li>Output and in-out parameters in C are always passed as pointers to the location where output value is to be stored. Thus <code>out</code> and <code>inout</code> always imply <code>byref</code> which is redundant and need not be specified.</li>
+<li>The script level argument corresponding to <code>out</code> and <code>inout</code> parameters are the name of the variable to which the output value is to be assigned. For <code>inout</code> parameters this must exist at the time of function call and hold a valid value for the type.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>Add the <code>enum</code> annotation if output values are to be mapped to symbolic names for readability. Further, if the values returned are actually bitmasks, add <code>bitmask</code> to have the returned value transformed to a list of symbolic names.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</li>
+<li>Error handling annotations like <code>errno</code> may be present but are ignored. This is to permit the same aliases to be used in both return and parameter declarations.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int GetHandleInformation(void*  hObject, unsigned long *lpdwFlags);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::enum define HANDLE_FLAGS {INHERIT 1 PROTECT_FROM_CLOSE 2}
+KERNEL32 stdcall GetHandleInformation {int nonzero lasterror} {
+    hObject pointer
+    flags {ulong retval {enum HANDLE_FLAGS} bitmask}
+}
+</pre>
+
+</figure><h1 class='ruff'><a name='::Cookbook-TODO'></a>TODO<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h1>
+<div style='clear:both;'></div>
+<p class='ruff'>double output parameter double modf (double x, double* intpart);</p>
+<h4 class='ruff'><a name='::Cookbook-Floating point parameters'></a>Floating point parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<h5 class='ruff'>Floating point input parameters</h5>
+<figure id='::Cookbook-Syntax for floating point input parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-floating-point-input-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 12. Syntax for floating point input parameters</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
+<li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the value (e.g. <code>double *</code> at the C level). This is very rare for integer values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
+<li>The <code>default</code> annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+double sin(double x);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBM sin double {x double}
+</pre>
+
+</figure><h5 class='ruff'>Out and in-out floating point parameters</h5>
+<figure id='::Cookbook-Syntax for floating point output and input-output parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-floating-point-output-and-input-output-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 13. Syntax for floating point output and input-output parameters</figcaption>
+</figure><ul class='ruff'>
+<li>Output and in-out parameters in C are always passed as pointers to the location where output value is to be stored. Thus <code>out</code> and <code>inout</code> always imply <code>byref</code> which is redundant and need not be specified.</li>
+<li>The script level argument corresponding to <code>out</code> and <code>inout</code> parameters are the name of the variable to which the output value is to be assigned. For <code>inout</code> parameters this must exist at the time of function call and hold a valid value for the type.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Pointer parameters'></a>Pointer parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>As for return values, pointer parameters to C functions can be dealt with either as raw pointers or as implicitly dereferenced values.</p>
+<p class='ruff'>In general, pointers that are only used in the C API to pass arguments by reference, for example to pass large or non-scalar input values (as for structs and arrays) or receive output values, can be declared as implicitly dereferenced. The CFFI declarations for these is described in other sections with use of the <code>byref</code> and <code>out</code> annotations.</p>
+<p class='ruff'>This section deals only with raw pointers where the pointer values are directly visible at the script level. This is necessary when the pointers reference resources that need to freed, or in more complex structures in memory with multiple indirections etc.</p>
+<h5 class='ruff'>Raw pointer input parameters</h5>
+<figure id='::Cookbook-Syntax for input raw pointer parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-input-raw-pointer-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 25. Syntax for input raw pointer parameters</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>TAG</code> is optional but recommended wherever possible for additional <a href="cffi-Concepts.html#::Concepts-Pointer tags" title="tag-based" >tag-based</a> type checks. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command. This makes it convenient to access the referenced memory using the struct <a href="cffi-cffi.html#::cffi::Struct" title="methods" class='ruff_cmd'>methods</a>.</li>
+<li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
+<li>The <code>byref</code> annotation should be specified iff the pointer is being passed by reference, i.e. the function parameter is a pointer to a pointer. Generally, input parameters passed by reference will have <code>const</code> in the C parameter declaration.</li>
+<li>By default, pointers passed into functions are expected to be registered as safe pointers. They may be alternatively be annotated with <code>counted</code> or <code>unsafe</code> if they are reference counted or unregistered. For more details on pointer management and safety, see <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</li>
+<li>When a C function releases the resource associated with a registered pointer (safe or counted), the pointer should be unregistered. The <code>dispose</code> annotation should be placed on the parameter annotation to convey to CFFI that the pointer should be unregistered. The <code>disposeonsuccess</code> annotation is similar except that the pointer is unregistered only in the case the function returns successfully. For more details on pointer management and safety, see <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</li>
+<li>CFFI assumes by default that functions do not accept NULL pointers and will raise an exception if an attempt is made to pass one. The <code>nullok</code> annotation indicates that the function allows for the pointer to be NULL.</li>
+<li>The <code>default</code> annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+void free(void *ptr);
+void *realloc(void *ptr, size_t size);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function free void {ptr {pointer dispose}}
+LIBC function realloc {pointer errno} {
+    ptr {pointer disposeonsuccess}
+    size size_t
+}
+</pre>
+
+</figure><h5 class='ruff'>Raw pointer out and in-out parameters</h5>
+<figure id='::Cookbook-Syntax for output and input-output raw pointer parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-output-and-input-output-raw-pointer-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 15. Syntax for output and input-output raw pointer parameters</figcaption>
+</figure><ul class='ruff'>
+<li>Output parameters in C are always passed as pointers to the location where output value is to be stored. Thus <code>out</code> always implies <code>byref</code> which is redundant and need not be specified.</li>
+<li>The script level argument corresponding to an <code>out</code> parameter is the name of the variable to which the output value is to be assigned.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter pointer value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>By default, pointers returned in out and in-out parameters are registered as safe pointers. They may be alternatively be annotated with <code>counted</code> or <code>unsafe</code> if they are to be registered as reference counted or not to be registered at all. For more details on pointer management and safety, see <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</li>
+<li>When a C function releases the resource associated with a registered pointer (safe or counted), the pointer should be unregistered. The <code>dispose</code> annotation should be placed on the parameter annotation to convey to CFFI that the pointer should be unregistered. The <code>disposeonsuccess</code> annotation is similar except that the pointer is unregistered only in the case the function returns successfully. The <code>dispose</code> and <code>disposeonsuccess</code> annotations is not valid with the <code>out</code> or <code>retval</code> annotations. For more details on pointer management and safety, see <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</li>
+<li>The <code>nullok</code> annotation indicates that pointers passed in and out of the function can be NULL. Without the annotation, an exception is raised if the pointer stored on output is NULL or in the case of <code>inout</code> the pointer passed in is NULL.</li>
+<li>The <code>default</code> annotation may be used to supply a default pointer value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations. This annotation cannot be used with <code>out</code> and <code>retval</code> annotations.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int git_repository_open_bare(git_repository **out, const char *bare_path);
+int ConvertSidToStringSidA(SID *pSid, char **strSid);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBGIT2 function git_repository_open_bare {int zero} {
+    out {pointer.git_repository counted retval}
+    string bare_path
+}
+ADVAPI32 stdcall ConvertSidToStringSidA {int nonzero lasterror} {
+    pSid   pointer.SID
+    strSid pointer
+}
+KERNEL32 stdcall LocalFree {pointer nullok} {p {pointer dispose}}
+</pre>
+
+</figure><p class='ruff'>In the <code>libgit2</code> example, <code>out</code> is annotated as <code>counted</code> because <code>git_repository</code> is a reference counted opaque structure. The <code>retval</code> annotation is added to have CFFI return the output parameter value as the result of the function.</p>
+<p class='ruff'>In the Win32 example, the returned pointer from <code>ConvertSidToStringSidW</code> needs to be freed with <code>LocalFree</code> and hence needs to be declared as a raw pointer. The string can be retrieved from the returned pointer with <a href="cffi-cffi.html#::cffi::memory tostring" title="::cffi::memory tostring" class='ruff_cmd'>::cffi::memory tostring</a> before freeing it.</p>
+<h4 class='ruff'><a name='::Cookbook-Struct parameters'></a>Struct parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Struct values are represented as the script level as dictionaries. This requires their definition as described in <a href="cffi-Concepts.html#::Concepts-Structs" title="Structs" >Structs</a> and <a href="cffi-Cookbook.html#::Cookbook-Defining structs" title="Defining structs" >Defining structs</a>.</p>
+<h5 class='ruff'>Struct input parameters</h5>
+<figure id='::Cookbook-Syntax for struct input parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-struct-input-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 16. Syntax for struct input parameters</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
+<li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to a struct value that is to be passed. Generally, input parameters passed by reference will have <code>const</code> in the C parameter declaration. Irrespective of this annotation, the argument is always a dictionary, not a pointer.</li>
+<li>The <code>default</code> annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations.</li>
+<li>Some C functions accept a NULL pointer for optional parameters. The <code>nullifempty</code> annotation identifies such parameters. In this case, passing an empty dictionary as the script level argument will result in a NULL pointer being passed to the function. This annotation only makes sense in the presence of the <code>byref</code> annotation.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int git_checkout_head(git_repository *repo, const git_checkout_options *opts);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::Struct create git_checkout_options {...}
+LIBGIT function git_checkout_head {int zero} {
+    pRepo pointer.git_repository
+    opts  {struct.git_checkout_options byref nullifempty}
+}
+</pre>
+
+</figure><h5 class='ruff'>Output and input-output struct parameters</h5>
+<figure id='::Cookbook-Syntax for struct output and input-output parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-struct-output-and-input-output-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 17. Syntax for struct output and input-output parameters</figcaption>
+</figure><ul class='ruff'>
+<li>Output and in-out parameters in C are always passed as pointers to the location where output value is to be stored. Thus <code>out</code> and <code>inout</code> always imply <code>byref</code> which is redundant and need not be specified.</li>
+<li>The script level argument corresponding to <code>out</code> and <code>inout</code> parameters are the name of the variable to which the output value is to be assigned. For <code>inout</code> parameters this must exist at the time of function call and hold a valid value for the type.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>. These annotations are rarely applicable to struct output parameters.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int GetWindowRect(void *hWnd, RECT *lpRect);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::Struct create RECT {left int top int right int bottom int}
+LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct.RECT out}}
+</pre>
+
+</figure><h4 class='ruff'><a name='::Cookbook-String parameters'></a>String parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<h5 class='ruff'>Input string parameters</h5>
+<figure id='::Cookbook-Syntax for input character string parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-input-character-string-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 18. Syntax for input character string parameters</figcaption>
+</figure><ul class='ruff'>
+<li>C does not have a string type and the <code>string</code> and <code>unistring</code> CFFI types map to pointers to nul terminated character strings: <code>char*</code> in the case of <code>string</code> and <code>Tcl_UniChar *</code> in the case of <code>unistring</code>. For input parameters, they have the <code>const</code> attribute.</li>
+<li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
+<li>For the <code>string</code> type an optional encoding may be specified and defaults to the system encoding. If a library API uses a specific encoding (commonly UTF-8), it may be convenient to define a type alias.</li>
+<li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the pointer to the character string (double indirection). This is rare for passing character string values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
+<li>Some C functions accept a NULL pointer for optional parameters. The <code>nullifempty</code> annotation identifies such parameters. In this case, passing an empty string as the script level argument will result in a NULL pointer being passed to the function.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+int chdir(const char *path);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function chdir {int zero errno} {path string}
+</pre>
+
+</figure><h5 class='ruff'>Output and input-output string parameters</h5><p class='ruff'>Character strings are returned from C functions in one of two ways:</p>
+<ul class='ruff'>
+<li>The C function expects the caller to supply a pointer to an array of characters. The size of this array may be a compile time constant or passed through another parameter to the function. The function then stores the string in this buffer. The C parameter declaration is of the form <code>char *buf</code> or <code>char buf[]</code>.</li>
+<li>The C function expects the caller to pass a pointer to a memory location where it will store the pointer to a string that is either dynamically allocated or an internal static string. The C declaration is of the form <code>char **ptr_to_buf</code> reflecting the double indirection.</li>
+</ul>
+<p class='ruff'>The two are handled differently in CFFI as described below.</p>
+<p class='ruff'><strong>Output character arrays</strong></p>
+
+<figure id='::Cookbook-Syntax for character array output parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-character-array-output-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 19. Syntax for character array output parameters</figcaption>
+</figure><p class='ruff'>This is the first case described above where the C function expects a pointer to a character (or <code>Tcl_UniChar</code> in the case of <code>unichars</code>) array.</p>
+<ul class='ruff'>
+<li>The script level argument corresponding to <code>out</code> and <code>inout</code> parameters are the name of the variable to which the output value is to be assigned. For <code>inout</code> parameters this must exist at the time of function call and hold a valid value for the type.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>The array size <code>N</code> in the declaration may either be an integer constant or the name of a integer type parameter in the same function declaration. See <a href="cffi-Concepts.html#::Concepts-Dynamically sized arrays" title="Dynamically sized arrays" >Dynamically sized arrays</a>.</li>
+<li>If <code>ENCODING</code> is not specified, it defaults to the system encoding.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+char *getcwd(char *buf, size_t size);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function getcwd {string errno} {buf {chars[size] out} size size_t}
+</pre>
+
+</figure><p class='ruff'><strong>Output pointers to strings</strong></p>
+<p class='ruff'>The second case is when the C function parameter is a pointer to pointer to a character string (<code>char **</code>).</p>
+<p class='ruff'>How this is best handled depends on whether the returned pointer needs to be available at the script level as a raw pointer, possibly for later freeing. See <a href="cffi-Cookbook.html#::Cookbook-Pointer returns" title="Pointer returns" >Pointer returns</a> for a more detailed discussion about raw pointers versus implicit dereferencing. If this is the case, see <a href="cffi-Cookbook.html#::Cookbook-Raw pointer out and in-out parameters" title="Raw pointer out and in-out parameters" >Raw pointer out and in-out parameters</a> for appropriate declarations.</p>
+<p class='ruff'>If retention of the raw pointer is not required (for example, pointer to static storage), then its most convenient to implicitly declare it as an output parameter of</p>
+
+<figure id='::Cookbook-Syntax for output character string parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-output-character-string-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 20. Syntax for output character string parameters</figcaption>
+</figure><ul class='ruff'>
+<li>Output parameters in C are always passed as pointers to the location where output value is to be stored. Thus <code>out</code> always implies <code>byref</code> which is redundant and need not be specified.</li>
+<li>The script level argument corresponding to an <code>out</code> parameter is the name of the variable to which the output value is to be assigned.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>. These annotations are rarely applicable to struct output parameters.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Binary string parameters'></a>Binary string parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Binary strings are similar to strings except that instead of treating pointers at the C level as character strings in Tcl, they treat them as binary strings so there is no character encoding/decoding transformation applied and nul characters have no special treatment.</p>
+<h5 class='ruff'>Input binary string parameters</h5>
+<figure id='::Cookbook-Syntax for input binary string parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-input-binary-string-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 21. Syntax for input binary string parameters</figcaption>
+</figure><ul class='ruff'>
+<li>The usual C declarations that map to <code>binary</code> are <code>char *</code>, <code>unsigned char *</code> and <code>void *</code>. Further, input parameters have the <code>const</code> attribute.</li>
+<li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
+<li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the pointer to the array of bytes string (double indirection). This is rare for passing binary values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
+<li>Some C functions accept a NULL pointer for optional parameters. The <code>nullifempty</code> annotation identifies such parameters. In this case, passing an zero-length binary string as the script level argument will result in a NULL pointer being passed to the function.</li>
+<li>The <code>default</code> annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations.</li>
+</ul>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+ssize_t write(int fd, const void *buf, size_t count);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function write {ssize_t nonnegative errno} {
+    fd int
+    buf binary
+    count size_t
+}
+</pre>
+
+</figure><h5 class='ruff'>Output and input-output binary string parameters</h5><p class='ruff'>Binary strings are returned from C functions in one of two ways:</p>
+<ul class='ruff'>
+<li>The C function expects the caller to supply a pointer to a memory block interpreted simply as an array of bytes. The size of this memory block may be a compile time constant or passed through another parameter to the function. The function then stores the data in this memory buffer. The C parameter declaration is generally one of <code>void *</code>, <code>char *buf</code>, <code>char buf[]</code> (or the unsigned variants).</li>
+<li>The C function expects the caller to pass a pointer to a memory location where it will store the pointer to a block of memory that is either dynamically allocated or an internal buffer. The C declaration is of the form <code>char **</code>, <code>unsigned char **</code> or <code>void **</code> reflecting the double indirection.</li>
+</ul>
+<p class='ruff'>The two are handled differently in CFFI as described below.</p>
+<p class='ruff'><strong>Output byte arrays</strong></p>
+
+<figure id='::Cookbook-Syntax for byte array output parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-byte-array-output-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 22. Syntax for byte array output parameters</figcaption>
+</figure><p class='ruff'>This is the first case described above where the C function expects a pointer to a byte array.</p>
+<ul class='ruff'>
+<li>The script level argument corresponding to <code>out</code> and <code>inout</code> parameters are the name of the variable to which the output value is to be assigned. For <code>inout</code> parameters this must exist at the time of function call and hold a Tcl binary string.</li>
+<li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
+<li>The array size <code>N</code> in the declaration may either be an integer constant or the name of a integer type parameter in the same function declaration. See <a href="cffi-Concepts.html#::Concepts-Dynamically sized arrays" title="Dynamically sized arrays" >Dynamically sized arrays</a>.</li>
+<li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</li>
+</ul>
+<p class='ruff'>The difference between an array declared as <code>bytes[N]</code> versus <code>schar[N]</code> or <code>uchars[N]</code> is that while both might be arrays of <code>char</code> or <code>unsigned char</code> at the C level, the former declaration will result in a Tcl binary string at the script level while the latter declarations will result in lists of integers.</p>
+<p class='ruff'><strong>Examples</strong></p>
+<p class='ruff'>C</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+ssize_t read(int fd, void *buf, size_t count);
+</pre>
+
+</figure><p class='ruff'>CFFI</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function read {ssize_t nonnegative errno} {
+    fd int
+    buf bytes[count]
+    count size_T
+}
+</pre>
+
+</figure><p class='ruff'><strong>Output pointers to binary strings</strong></p>
+<p class='ruff'>Another way of returning binary data is through a parameter that is a pointer to pointer to the data (<code>char **</code> etc.). This case has to be handled as <a href="cffi-Cookbook.html#::Cookbook-Raw pointer out and in-out parameters" title="raw pointers" >raw pointers</a> since, unlike for character strings, there is no way for CFFI to know the size of the data being returned.</p>
+<h4 class='ruff'><a name='::Cookbook-Arrays as parameters'></a>Arrays as parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+TYPE[N] type specific annotations ...
+</pre>
+
+</figure><ul class='ruff'>
+<li>Arrays in C are always passed by reference, as a pointer to the first element of the array. CFFI array type declarations therefore are implicitly annotated as <code>byref</code>.</li>
+<li>The array size in the type declaration may be an integer constant or specified as the name of another parameter. See <a href="cffi-Concepts.html#::Concepts-Dynamically sized arrays" title="Dynamically sized array" >Dynamically sized array</a>.</li>
+<li>The annotations permitted on an array type declaration are those permitted for the base type. For example, integer array declarations may have the <code>enum</code> annotation.</li>
+<li>At the script level, arrays are represented as lists except for the special cases of as <a href="cffi-Cookbook.html#::Cookbook-String parameters" title="`chars`" >`chars`</a> or <a href="cffi-Cookbook.html#::Cookbook-Binary string parameters" title="`bytes`" >`bytes`</a> where they are character or binary strings.</li>
+</ul>
+<h2 class='ruff'><a name='::Cookbook-Defining structs'></a>Defining structs<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'>Native C struct values may be dealt with at the script level either as Tcl dictionary values or kept in their native form and accessed through raw pointers. Both methods require the struct to be defined with <a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>. In the former case, the fields are accessed using Tcl's <code>dict</code> command. In the latter case, the <a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> accessor methods are used.</p>
+<h3 class='ruff'><a name='::Cookbook-Field type declarations'></a>Field type declarations<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>The field type declarations in a <a href="cffi-Concepts.html#::Concepts-Structs" title="struct" >struct</a> definition, while similar to function parameter type declarations, differ from them in some respects.</p>
+<ul class='ruff'>
+<li>The <code>void</code> and <code>binary</code> base types cannot be used in struct fields.</li>
+<li>The annotations for each type are differ from those applicable in a parameter context.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Integer fields'></a>Integer fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for integer fields' class='ruff-figure'>
+<img src='assets/Syntax-for-integer-fields.svg'></img>
+<figcaption class='ruff-caption'>Figure 23. Syntax for integer fields</figcaption>
+</figure><ul class='ruff'>
+<li>If the <code>enum</code> annotation is present, the field is subject to mapping to symbols from the <a href="cffi-Concepts.html#::Concepts-Enumerations" title="enumeration" >enumeration</a>.</li>
+<li>If the <code>bitmask</code> annotation is present, the dictionary element for the field is treated a list of integers that are bitwise OR-ed to form the native field value.</li>
+<li>The <code>default</code> annotation specifies a default value to be used when constructing a native struct from the dictionary representation if the dictionary does not contain a key for the field.</li>
+<li>The <code>structsize</code> annotation specifies that the field should be defaulted to the size of the native struct.</li>
+<li>Error handling annotations like <code>errno</code> may be present but are ignored. This is to permit the same aliases to be used in both function struct definitions.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Floating point fields'></a>Floating point fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for floating point fields' class='ruff-snippet ruff-figure'><pre class='ruff'>
+       +-         -+
+float  |{default N}|
+double +-         -+
+</pre>
+
+<figcaption class='ruff-caption'>Figure 24. Syntax for floating point fields</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>default</code> annotation specifies a default value to be used when constructing a native struct from the dictionary representation if the dictionary does not contain a key for the field.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Pointer fields'></a>Pointer fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for input raw pointer parameters' class='ruff-figure'>
+<img src='assets/Syntax-for-input-raw-pointer-parameters.svg'></img>
+<figcaption class='ruff-caption'>Figure 25. Syntax for input raw pointer parameters</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>TAG</code> is optional but recommended wherever possible for additional <a href="cffi-Concepts.html#::Concepts-Pointer tags" title="tag-based" >tag-based</a> type checks. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command. This makes it convenient to access the referenced memory using the struct <a href="cffi-cffi.html#::cffi::Struct" title="methods" class='ruff_cmd'>methods</a>.</li>
+<li>The <code>counted</code> and <code>unsafe</code> annotations have their usual meaning as described in <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>. By default, when a native C struct is constructed from its script level dictionary representation, the pointer value for a field is expected to have been registered as a safe pointer and an exception is raised otherwise. Conversely, when a dictionary is constructed from a native C struct, as output from a function for example, the extracted pointer is registered as a safe pointer. This is often not the right model for embedded pointers in structs unlike pointers directly returned from functions with a clear resource allocation and freeing semantics. Thus use of the <code>unsafe</code> annotation should be strongly considered for field type declarations.</li>
+<li>The <code>nullok</code> annotation should be applied to any field that can validly hold a NULL pointer. In the absence of an annotation, an exception is raised if an attempt is made to assign the field in a native struct a NULL pointer value.</li>
+<li>Pointer fields that hold pointers to character strings may be alternatively declared as <a href="cffi-Cookbook.html#::Cookbook-String pointer fields" title="string pointer fields" >string pointer fields</a>.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-String pointer fields'></a>String pointer fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for string pointer fields' class='ruff-figure'>
+<img src='assets/Syntax-for-string-pointer-fields.svg'></img>
+<figcaption class='ruff-caption'>Figure 26. Syntax for string pointer fields</figcaption>
+</figure><ul class='ruff'>
+<li>The <code>nullifempty</code> annotation may be used in cases where an empty string at the script level should be stored as a NULL pointer in the struct field.</li>
+</ul>
+<p class='ruff'>As for function parameters, fields that hold pointers to character strings can be more conveniently declared as one of the CFFI string types if the raw pointer is not required for freeing of resources or other purposes. There are is a restriction imposed when a struct field is declared as a string type. The struct definition may be used to pass and return parameters from functions but cannot be used with the <a href="cffi-cffi.html#::cffi::Struct::new" title="::cffi::Struct.new" class='ruff_cmd'>::cffi::Struct.new</a> or <a href="cffi-cffi.html#::cffi::Struct::allocate" title="::cffi::Struct.allocate" class='ruff_cmd'>::cffi::Struct.allocate</a> methods to allocate a native struct in memory.</p>
+<h4 class='ruff'><a name='::Cookbook-Character array fields'></a>Character array fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for character array fields' class='ruff-figure'>
+<img src='assets/Syntax-for-character-array-fields.svg'></img>
+<figcaption class='ruff-caption'>Figure 27. Syntax for character array fields</figcaption>
+</figure><p class='ruff'>Like <code>string</code> and <code>unistring</code>, the <code>chars</code> and <code>unichars</code> CFFI types are character strings at the script level. However, while the former maps to pointers at the C level, <code>chars</code> and <code>unichars</code> map to <code>char[]</code> and <code>Tcl_UniChar[]</code> arrays.</p>
+<ul class='ruff'>
+<li>The <code>default</code> annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field.</li>
+<li>The array size <code>N</code> must be an positive integer constant and not dynamically sized as is permitted for array parameters.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Byte array fields'></a>Byte array fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure id='::Cookbook-Syntax for byte array fields' class='ruff-figure'>
+<img src='assets/Syntax-for-byte-array-fields.svg'></img>
+<figcaption class='ruff-caption'>Figure 28. Syntax for byte array fields</figcaption>
+</figure><p class='ruff'>The difference between an array declared as <code>bytes[N]</code> versus <code>schar[N]</code> or <code>uchars[N]</code> is that while both might be arrays of <code>char</code> or <code>unsigned char</code> at the C level, the former declaration will result in a Tcl binary string at the script level while the latter declarations will result in lists of integers.</p>
+<ul class='ruff'>
+<li>The <code>default</code> annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field.</li>
+<li>The array size <code>N</code> must be an positive integer constant and not dynamically sized as is permitted for array parameters.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Nested struct fields'></a>Nested struct fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>A struct definition may include a field that is declared as another struct.</p>
+
+<figure id='::Cookbook-Syntax for nested struct fields' class='ruff-figure'>
+<img src='assets/Syntax-for-nested-struct-fields.svg'></img>
+<figcaption class='ruff-caption'>Figure 29. Syntax for nested struct fields</figcaption>
+</figure><ul class='ruff'>
+<li>A nested <code>STRUCT</code> struct may have a default value specified as a dictionary mapping field names of <code>STRUCT</code> to field values.</li>
+</ul>
+<h4 class='ruff'><a name='::Cookbook-Array fields'></a>Array fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+TYPE[N] type specific annotations ...
+</pre>
+
+</figure><ul class='ruff'>
+<li>The array size <code>N</code> must be an positive integer constant and not dynamically sized as is permitted for array parameters.</li>
+<li>The annotations permitted on an array type declaration are those permitted for the base type. For example, integer array declarations may have the <code>enum</code> annotation.</li>
+<li>At the script level, C arrays are represented as lists except for the special cases of as <a href="cffi-Cookbook.html#::Cookbook-Character array fields" title="`chars`" >`chars`</a> or <a href="cffi-Cookbook.html#::Cookbook-Byte array fields" title="`bytes`" >`bytes`</a> where they are character or byte arrays.</li>
+</ul>
+<h2 class='ruff'><a name='::Cookbook-Tips and tricks'></a>Tips and tricks<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<p class='ruff'><strong>This section to be written</strong></p>
+<ul class='ruff'>
+<li>duplicating structure or function definition</li>
+<li>pointer casting - implicit and explicit</li>
+<li>use raw pointers for large data to avoid copies</li>
+<li>use memory get command to decode native memory in type-specific manner</li>
+<li>use defaults, -clear, structsize for structs</li>
+</ul>
 </main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
 <li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>
 <hr>
 <li class='ruff-toc1'><a href='cffi-Concepts.html'>Concepts</a></li>
 <li class='ruff-toc1'><a class='ruff-highlight' href='cffi-Cookbook.html'>Cookbook</a></li>
 <li class='ruff-toc1'><a href='cffi-cffi.html'>cffi</a></li>
-<hr><li class='ruff-toc1'><a href='#Cookbook'>Cookbook</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
+<hr><li class='ruff-toc2'><a href='#::Cookbook-Defining a function'>Defining a function</a></li><li class='ruff-toc3'><a href='#::Cookbook-Calling convention'>Calling convention</a></li><li class='ruff-toc3'><a href='#::Cookbook-Return type declaration'>Return type declaration</a></li><li class='ruff-toc4'><a href='#::Cookbook-Void returns'>Void returns</a></li><li class='ruff-toc4'><a href='#::Cookbook-Integer returns'>Integer returns</a></li><li class='ruff-toc4'><a href='#::Cookbook-Floating point returns'>Floating point returns</a></li><li class='ruff-toc4'><a href='#::Cookbook-Pointer returns'>Pointer returns</a></li><li class='ruff-toc4'><a href='#::Cookbook-Struct returns'>Struct returns</a></li><li class='ruff-toc3'><a href='#::Cookbook-Parameter declaration'>Parameter declaration</a></li><li class='ruff-toc4'><a href='#::Cookbook-Integer parameters'>Integer parameters</a></li><li class='ruff-toc4'><a href='#::Cookbook-Floating point parameters'>Floating point parameters</a></li><li class='ruff-toc4'><a href='#::Cookbook-Pointer parameters'>Pointer parameters</a></li><li class='ruff-toc4'><a href='#::Cookbook-Struct parameters'>Struct parameters</a></li><li class='ruff-toc4'><a href='#::Cookbook-String parameters'>String parameters</a></li><li class='ruff-toc4'><a href='#::Cookbook-Binary string parameters'>Binary string parameters</a></li><li class='ruff-toc4'><a href='#::Cookbook-Arrays as parameters'>Arrays as parameters</a></li><li class='ruff-toc2'><a href='#::Cookbook-Defining structs'>Defining structs</a></li><li class='ruff-toc3'><a href='#::Cookbook-Field type declarations'>Field type declarations</a></li><li class='ruff-toc4'><a href='#::Cookbook-Integer fields'>Integer fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-Floating point fields'>Floating point fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-Pointer fields'>Pointer fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-String pointer fields'>String pointer fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-Character array fields'>Character array fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-Byte array fields'>Byte array fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-Nested struct fields'>Nested struct fields</a></li><li class='ruff-toc4'><a href='#::Cookbook-Array fields'>Array fields</a></li><li class='ruff-toc2'><a href='#::Cookbook-Tips and tricks'>Tips and tricks</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>

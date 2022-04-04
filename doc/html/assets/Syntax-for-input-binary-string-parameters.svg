@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<svg 
+    xmlns='http://www.w3.org/2000/svg'
+    width='560'
+    height='70'
+    shape-rendering='geometricPrecision'
+    version='1.0'>
+  <defs>
+    <filter id='f2' x='0' y='0' width='200%' height='200%'>
+      <feOffset result='offOut' in='SourceGraphic' dx='5' dy='5' />
+      <feGaussianBlur result='blurOut' in='offOut' stdDeviation='3' />
+      <feBlend in='SourceGraphic' in2='blurOut' mode='normal' />
+    </filter>
+  </defs>
+  <g stroke-width='1' stroke-linecap='square' stroke-linejoin='round'>
+    <rect x='0' y='0' width='560' height='70' style='fill: #ffffff'/>
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M95.0 21.0 L85.0 21.0 L85.0 49.0 L95.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M115.0 49.0 L125.0 49.0 L125.0 21.0 L115.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M155.0 49.0 L145.0 49.0 L145.0 21.0 L155.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M195.0 49.0 L205.0 49.0 L205.0 21.0 L195.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M235.0 49.0 L225.0 49.0 L225.0 21.0 L235.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M335.0 21.0 L345.0 21.0 L345.0 49.0 L335.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M375.0 21.0 L365.0 21.0 L365.0 49.0 L375.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M535.0 21.0 L545.0 21.0 L545.0 49.0 L535.0 49.0 ' />
+    <text x='19' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[binary]]></text>
+    <text x='94' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[in]]></text>
+    <text x='157' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[byref]]></text>
+    <text x='247' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[nullifempty]]></text>
+    <text x='392' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[{default DEFAULT}]]></text>
+  </g>
+</svg>

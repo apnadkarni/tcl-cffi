@@ -23,7 +23,7 @@ Major features of the package are
 
 - Implicit conversions of numerics, strings, structs and arrays
 - Safety mechanisms for pointers
-- Automatic encoding of string values passed and returned from C functions
+- Encoding of string values passed and returned from C functions
 - Exception generation based on C function return values
 - Proc-like argument processing with defaults, error messages etc.
 - Utilities for managing memory and conversion to native formats
@@ -33,6 +33,38 @@ Major features of the package are
 Limitations in the current version include
 
 - No support of functions taking variable number of arguments
+
+- No support for *asynchronous* callbacks
+
+## Changes in 1.0b5
+
+- Added a *Cookbook* section to documentation to help mapping C declarations
+to CFFI.
+
+- Added the `retval` annotation to return a output parameter as the
+command result.
+
+- Added `getnativefields` method to retrieve multiple field values from a
+native struct.
+
+- Added `new` method for struct instances to allocate and initialize a native
+struct in memory.
+
+- Added implicit and explicit casting for pointers.
+
+- The `enum value` and `enum name` commands now accept defaults.
+
+- **Incompatibility** The `get` and `set` methods for struct instances
+renamed to `getnative` and `setnative`.
+
+- **Incompatibility** The `callback` and `callback_free` commands are now
+part of a `callback` command ensemble.
+
+- **Incompatibility** The last element of a bitmask enumeration list returns original
+integer value.
+
+- Miscellaneous bug fixes. 
+
 
 ## Changes in 1.0b4
 
