@@ -1,26 +1,29 @@
 #
 # Tcl package index file - generated from pkgIndex.tcl.in
 #
+
 package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
     [list apply [list {dir} {
-        namespace eval @PACKAGE_NAME@ { variable dll_path }
-        # On windows, dlls are in subdirectories to permit single 32/64-bit distro
-        if {$::tcl_platform(platform) eq "windows"} {
-            if {$::tcl_platform(machine) eq "amd64"} {
-                set @PACKAGE_NAME@::dll_path [file join $dir AMD64 "@PKG_LIB_FILE@"]
-            } else {
-                set @PACKAGE_NAME@::dll_path [file join $dir X86 "@PKG_LIB_FILE@"]
-            }
-            # Allow for same dir for "make test"
-            if {![file exists $@PACKAGE_NAME@::dll_path]} {
-                set @PACKAGE_NAME@::dll_path [file join $dir "@PKG_LIB_FILE@"]
-            }
-        } else {
-            set @PACKAGE_NAME@::dll_path [file join $dir "@PKG_LIB_FILE@"]
-        }
-        # Following is split across two lines because of an nmakehlp bug that
-        # only substitutes a token (PACKAGE_NAME) once on a line. Blech!
-        uplevel #0 load $@PACKAGE_NAME@::dll_path \
-            @PACKAGE_NAME@
-    }] $dir]
+        set dllname "@PKG_LIB_FILE@"
+        set package "@PACKAGE_NAME@"
+        set package_ns ::$package
 
+        # First try to load from current directory. If that fails, try from
+        # arch-specific subdirectories
+        set path [file join $dir $dllname]
+        if {[catch {uplevel #0 load $path $package}]} {
+            package require platform
+            foreach platform [platform::patterns [platform::identify]] {
+                if {$platform eq "tcl"} continue
+                set path [file join $dir $platform $dllname]
+                if {![catch {uplevel #0 load $path $package}]} {
+                    break
+                }
+            }
+        }
+        if {[namespace exists $package_ns]} {
+            # Load was successful
+            set ${package_ns}::dll_path $path
+            set ${package_ns}::package_dir $dir
+        }
+    }] $dir]

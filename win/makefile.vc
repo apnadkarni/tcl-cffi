@@ -40,6 +40,14 @@ USE_DYNCALL = 0
 KEYFILE = ffi.h
 !endif
 
+# Override shared library installation directory
+!if "$(ARCH)" == "AMD64"
+DLLSUBDIR = win32-x86_64
+!else
+DLLSUBDIR = win32-ix86
+!endif
+
+
 PRJ_DEFINES = $(PRJ_DEFINES)
 
 !ifndef EXTDIR
@@ -100,27 +108,22 @@ PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
 !endif
 
 # Define the standard targets
+# We do not use the standard predefined install targets because we want
+# to load binaries from platform-specific subdirectories of the package
+# directory.
+DISABLE_TARGET_install = 1
 !include "$(_RULESDIR)\targets.vc"
 
-# We cannot just redirect to the default-pkgindex-tea target for our extension
-# because we want to replace MACHINE as well.
-pkgindex: $(ROOT)\pkgIndex.tcl.in
-	@if exist $(ROOT)\pkgIndex.tcl.in nmakehlp -s << $(ROOT)\pkgIndex.tcl.in > $(OUT_DIR)\pkgIndex.tcl
-@PACKAGE_VERSION@    $(DOTVERSION)
-@PACKAGE_NAME@       $(PRJ_PACKAGE_TCLNAME)
-@PACKAGE_TCLNAME@    $(PRJ_PACKAGE_TCLNAME)
-@PKG_LIB_FILE@       $(PRJLIBNAME)
-@MACHINE@            $(MACHINE)
-<<
+pkgindex: default-pkgindex-tea
 
 # The default install target only installs binaries and scripts so add
 # an additional target for our documentation. Note this *adds* a target
 # since no commands are listed after it. The original targets for
 # install (from targets.vc) will remain.
-install: $(PRJLIB) default-install-docs-html
-	@echo Installing binaries to '$(LIB_INSTALL_DIR)\$(MACHINE)'
-	@if not exist "$(LIB_INSTALL_DIR)\$(MACHINE)" mkdir "$(LIB_INSTALL_DIR)\$(MACHINE)"
-	@$(CPY) $(PRJLIB) "$(LIB_INSTALL_DIR)\$(MACHINE)" >NUL
+install: $(PRJLIB) default-install-docs-html default-install-scripts
+	@echo Installing binaries to '$(LIB_INSTALL_DIR)\$(DLLSUBDIR)'
+	@if not exist "$(LIB_INSTALL_DIR)\$(DLLSUBDIR)" mkdir "$(LIB_INSTALL_DIR)\$(DLLSUBDIR)"
+	@$(CPY) $(PRJLIB) "$(LIB_INSTALL_DIR)\$(DLLSUBDIR)" >NUL
 
 $(PRJ_OBJS): $(HEADERS) $(ROOT)\configure.ac
 

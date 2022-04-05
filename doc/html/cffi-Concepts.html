@@ -615,7 +615,7 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 </ul>
 <p class='ruff'>An error condition arising from one of the error checking annotations or a null pointer results in an exception being generated unless the <code>onerror</code> annotation is specified (see below). However, the default error message generated is generic and does not provide detail about why the error occured. The following error retrieval annotations specify how detail about the error is to be obtained.</p>
 <table class='ruff_deflist'>
-<tr><td><code>errno</code></td><td>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function.</td></tr>
+<tr><td><code>errno</code></td><td>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function. <strong>Note:</strong> This annotation should only be used if the wrapped function uses the same C runtime as the <code>cffi</code> extension.</td></tr>
 <tr><td><code>lasterror</code></td><td>(Windows only). The error code and message is retrieved using the Windows <code>GetLastError</code> and <code>FormatMessage</code> functions.</td></tr>
 <tr><td><code>winerror</code></td><td>(Windows only). The numeric return value is itself the Windows error code and the error message is generated with <code>FormatMessage</code>. This annotation can only be used with the <code>zero</code> error checking annotation.</td></tr>
 </table>

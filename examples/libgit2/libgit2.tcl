@@ -88,20 +88,23 @@ namespace eval ::lg2 {
 
         # Try find a libgit2 shared library to locate
         if {$::tcl_platform(platform) eq "windows"} {
-            set filename git2.dll
+            # Names depend on compiler (mingw/vc)
+            set filenames [list libgit2.dll git2.dll]
         } else {
-            set filename libgit2[info sharedlibextension]
+            set filenames [list libgit2[info sharedlibextension]]
         }
         package require platform
         foreach platform [platform::patterns [platform::identify]] {
             if {$platform eq "tcl"} continue
-            set path [file join $packageDirectory $platform $filename]
-            if {[file exists $path]} {
-                return $path
+            foreach filename $filenames {
+                set path [file join $packageDirectory $platform $filename]
+                if {[file exists $path]} {
+                    return $path
+                }
             }
         }
-        # Not found. Just return the shared library name.
-        return $filename
+        # Not found. Just return the shared library name
+        return [lindex $filenames 0]
     }
 
     # This function must be called to initialize the package with the path

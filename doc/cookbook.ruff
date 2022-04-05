@@ -32,8 +32,8 @@ namespace eval Cookbook {
         CFFI does not support any calling convention other than these two.
 
         ``` -caption "Calling convention syntax" diagram
-        LIB function
-            stdcall
+        LIB function RETURNTYPE PARAMLIST
+        LIB stdcall RETURNTYPE PARAMLIST
         ```
 
         * Define using `stdcall` if the function is defined on 32-bit Windows

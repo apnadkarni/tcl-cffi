@@ -1204,7 +1204,9 @@ namespace eval Concepts {
         detail about the error is to be obtained.
 
         `errno` - The POSIX error is stored in `errno`. The error message is
-        generated using the C runtime `strerror` function.
+        generated using the C runtime `strerror` function. **Note:** This
+        annotation should only be used if the wrapped function uses the same
+        C runtime as the `cffi` extension.
         `lasterror` - (Windows only). The error code and message is retrieved
         using the Windows `GetLastError` and `FormatMessage` functions.
         `winerror` - (Windows only). The numeric return value is itself the

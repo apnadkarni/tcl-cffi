@@ -38,7 +38,7 @@ Limitations in the current version include
 
 ## Changes in 1.0b5
 
-- Added a *Cookbook* section to documentation to help mapping C declarations
+- Added a *Cookbook* section to documentation to help in mapping C declarations
 to CFFI.
 
 - Added the `retval` annotation to return a output parameter as the

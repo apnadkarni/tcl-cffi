@@ -405,6 +405,10 @@ install-lib-binaries: binaries
 	    ext=`echo $$p|sed -e "s/.*\.//"`; \
 	    if test "x$(MACHINE)" = "x"; then \
 	        todir="$(DESTDIR)$(pkglibdir)"; \
+	    elif test "x$(MACHINE)" = "xAMD64"; then \
+		todir="$(DESTDIR)$(pkglibdir)/win32-x86_64"; \
+	    elif test "x$(MACHINE)" = "xX86"; then \
+		todir="$(DESTDIR)$(pkglibdir)/win32-ix86"; \
 	    else \
 		todir="$(DESTDIR)$(pkglibdir)/$(MACHINE)"; \
 	    fi; \
