@@ -3,9 +3,16 @@
 
 package require ruff
 
+# Extract version from configure
+proc get_version {ac_path} {
+    set fd [open $ac_path]
+    regexp {AC_INIT\(\[cffi\],\[(\d+\.\d+[.ab]\d+)\]\)} [read $fd] -> ver
+    close $fd
+    return $ver
+}
 
 set NS cffi
-set version 1.0b5
+set version [get_version [file join [file dirname [info script]] .. configure.ac]]
 
 source cffi.ruff
 source start.ruff
@@ -48,7 +55,7 @@ if {[llength $argv] == 0 || "html" in $argv} {
 if {[llength $argv] == 0 || "nroff" in $argv} {
     ruff::document [list Concepts Cookbook $NS] \
         -format nroff \
-        -outfile $NS.man \
-        -outdir [file join [file dirname [info script]] man] \
+        -outfile $NS.3tcl \
+        -outdir [file join [file dirname [info script]] man man3] \
         {*}$common
 }

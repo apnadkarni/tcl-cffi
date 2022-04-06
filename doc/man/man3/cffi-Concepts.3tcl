@@ -1,0 +1,1518 @@
+'\"
+'\" '\" Copyright (c) Ashok P\&. Nadkarni
+'\"
+.TH "Concepts" 3tcl 1\&.0\&.7 "cffi" "Tcl CFFI package"
+.SH NAME
+Concepts - Commands in namespace Concepts
+.SH CONCEPTS
+.PP
+This page describes some general concepts behind CFFI\&.
+Basic knowledge of the package as described in
+\fIQuick start\fP is assumed\&. For a more direct mapping of C
+declarations to CFFI declarations see \fICookbook\fP\&.
+.SH SCOPES
+.PP
+To avoid conflicts arising from the same name being used
+in different in packages layered on CFFI, program elements like
+type aliases, enumerations, prototypes and pointer tags are defined
+within an enclosing \fIscope\fP\&. The scope is named after the Tcl namespace in
+which the defining command is invoked\&.
+.PP
+For example, assuming the libgit2 and libzip namespaces are used for
+wrapping shared libraries of the same name, the following definition for
+the STATUS alias used in two (imagined) functions would not be in
+conflict as they have different scopes\&.
+.PP
+.RS 4n
+.nf
+namespace eval libgit2 {
+    cffi::Wrapper create lib1 libgit2\&.so
+    cffi::alias define STATUS int
+    lib1 function git_commit STATUS {}
+}
+namespace eval libzip {
+    cffi::Wrapper create lib2 libzip\&.so
+    cffi::alias define STATUS long
+    lib2 function libzip_open STATUS {path string}
+}
+.fi
+.RE
+.PP
+When a program element name is referenced from another definition, if
+the name is not fully qualified it is first looked up in the scope of
+the definition\&. If not found, it is looked up in the global space\&.
+In the above definition of libzip_open, the STATUS alias is resolved
+in the libzip scope\&. If it had not been defined there, the global
+scope would be checked\&. To refer to a name in any other scope, it must
+be fully qualified, for example ::libgit2::STATUS\&.
+.PP
+Note that although CFFI scopes are named after Tcl namespaces, they are
+not directly tied to them\&. For example, deleting will a Tcl namespace
+will not cause the scope of the same name to disappear\&.
+.SH "TYPE DECLARATIONS"
+.PP
+A type declaration consists of a data type followed by zero or more
+annotations that further specify handling of values of the type\&. For
+example, the nonzero annotation on a function return type indicates a
+return value of zero should be treated as an error\&.
+.PP
+For example, a type declaration for a parameter might look like
+.PP
+.RS 4n
+.nf
+int {default 0} byref
+.fi
+.RE
+.PP
+where the base data type is an integer, the default annotation specifies
+a value to be used if no argument is supplied and byref indicates that
+the value is actually passed by reference\&.
+.PP
+Type declarations appear in three different contexts:
+.TP
+\(bu
+As the return type from a function
+.TP
+\(bu
+As a parameter in a function declaration
+.TP
+\(bu
+As a field in a struct
+.PP
+The permitted data types and annotations are dependent on the context
+in which the type declaration appears\&.
+.SH "TYPE ANNOTATIONS"
+.PP
+The table below summarizes the available type annotations and the types
+and contexts in which they are allowed\&.
+.RS 4n
+.TP
+bitmask
+The parameter, function return or field value is treated as an integer formed by a bitwise-OR of a list of integer values\&.
+.TP
+byref
+The parameter or function return value is passed or returned by reference\&.
+.TP
+counted
+The parameter, function return or field value is a reference counted pointer whose validity is checked\&. See \fIPointer safety\fP\&.
+.TP
+default
+Specifies a default value to use for a parameter or field\&.
+.TP
+dispose
+The parameter is a pointer that is unregistered irrespective of function return status\&. See \fIPointer safety\fP\&.
+.TP
+disposeonsuccess
+The parameter is a pointer that is disposed only if function returns successfully\&. See \fIPointer safety\fP\&.
+.TP
+enum
+The parameter, return value or field is an enumeration\&.
+.TP
+errno
+If the function return value indicates an error condition, the error code is available via the C RTL errno variable\&.
+.TP
+in
+Marks a parameter passed to a function as input to the function\&. See \fIInput and output parameters\fP\&.
+.TP
+inout
+Marks a parameter passed to a function as both input and output\&. See \fIInput and output parameters\fP\&.
+.TP
+lasterror
+If the function return value indicates an error condition, the error code is available via the Windows GetLastError API\&.
+.TP
+nonnegative
+Raise an exception if the function return value is negative\&.
+.TP
+nonzero
+Raise an exception if the function return values is zero\&.
+.TP
+nullifempty
+Treat the empty string or struct dictionary in a parameter or field as a NULL pointer\&. See \fIStrings as NULL pointers\fP\&.
+.TP
+nullok
+Do not raise an exception if a parameter, return value or field is a NULL pointer\&. See \fINull pointers\fP\&.
+.TP
+onerror
+Specifies an error handler if a function return value indicates an error condition\&.
+.TP
+out
+Marks a parameter as output-only from a function\&. See \fIInput and output parameters\fP\&.
+.TP
+positive
+Raise an exception if a function return value is negative or zero\&.
+.TP
+retval
+Marks the parameter as an output parameter whose value is to be returned as the result of the function\&. See \fIOutput parameters as function result\fP\&.
+.TP
+storealways
+Treat an output parameter as valid regardless of any error indications from the function call\&.
+.TP
+storeonerror
+Treat an output parameter as valid only in the presence of error indication from a function call\&.
+.TP
+structsize
+Default a field value to the size of the containing struct\&.
+.TP
+unsafe
+Do not do any pointer validation on a parameter, return value or field\&. See \fIPointer safety\fP\&.
+.TP
+winerror
+Treat the function return value as a Windows status code\&.
+.TP
+zero
+Raise an exception if a function return value is not zero\&.
+.RE
+.PP
+Later sections will further detail usage of the above\&.
+.SH "DATA TYPES"
+.PP
+CFFI data types correspond to C types and may be
+.TP
+\(bu
+the void type
+.TP
+\(bu
+scalars, such as integers and pointers
+.TP
+\(bu
+arrays and structs
+.TP
+\(bu
+string and unistring types which are actually scalar pointers at the C level but treated as nul-terminated character strings by CFFI\&.
+.PP
+The \fItype info\fP, \fItype size\fP and
+\fItype count\fP commands may be used to obtain information
+about a type\&.
+.PP
+.RS 4n
+.nf
+% cffi::type info {int[10]}
+Size 40 Count 10 Alignment 4 Definition {{int[10]}} BaseSize 4
+.fi
+.RE
+.SS "THE VOID TYPE"
+.PP
+This corresponds to the C void type and is only permitted as the
+return type of a function\&. Note that the C void * type
+is declared as a \fIpointer\fP type\&.
+.SS "INTEGER TYPES"
+.PP
+The following integer types are supported\&.
+.RS 4n
+.TP
+schar
+C signed char
+.TP
+uchar
+C unsigned char
+.TP
+short
+C signed short
+.TP
+ushort
+C unsigned short
+.TP
+int
+C signed int
+.TP
+uint
+C unsigned int
+.TP
+long
+C signed long
+.TP
+ulong
+C unsigned long
+.TP
+longlong
+C signed long long
+.TP
+ulonglong
+C unsigned long long
+.RE
+.SS "FLOATING POINT TYPES"
+.PP
+The following floating point types are supported\&.
+.RS 4n
+.TP
+float
+C float
+.TP
+double
+C double
+.RE
+.SS ARRAYS
+.PP
+Arrays are declared as
+.PP
+.RS 4n
+.nf
+TYPE[N]
+.fi
+.RE
+.PP
+where N is a positive integer indicating the number of elements
+in an array of values of type TYPE\&. At the script level, arrays
+are represented as Tcl lists\&.
+.PP
+\fBDynamically sized arrays\fR
+.PP
+Additionally, within parameter declarations, N may also be the name
+of a parameter within the same function declarations\&. In this case,
+the array is sized dynamically depending on the value of the referenced
+parameter at the time the call is made\&. This is useful in the common
+case of a function writing to a buffer\&. For example, consider
+the Win32 API for generating random numbers
+.PP
+.RS 4n
+.nf
+BOOL CryptGenRandom(HCRYPTPROV hProv, DWORD dwLen, BYTE *pbBuffer);
+.fi
+.RE
+.PP
+Here pbBuffer is really a pointer to an array that is of size dwLen\&.
+Assuming the ADVAPI32\&.DLL DLL has already been wrapped as advapi32
+and Win32 type aliases loaded, one might define the CFFI wrapper as
+.PP
+.RS 4n
+.nf
+advapi32 stdcall CryptGenRandom BOOL {
+    hProv HANDLE
+    dwLen DWORD
+    pbBuffer {uchar[512] out}
+}
+.fi
+.RE
+.PP
+However this can can lead to corruption if the function is mistakenly
+called with the dwLen argument greater than 512\&.
+A safer way to define the function is
+.PP
+.RS 4n
+.nf
+advapi32 stdcall CryptGenRandom BOOL {
+    hProv HANDLE
+    dwLen DWORD
+    pbBuffer {uchar[dwLen] out}
+}
+.fi
+.RE
+.PP
+This ensures a buffer of the correct size is passed to the function based on
+the length passed in the call\&.
+.PP
+If the size argument used by a dynamic array type is passed as 0, an error
+is raised unless the type declaration includes a nullok annotation\&. In
+that case, the array pointer argument is passed as NULL to the function\&.
+.PP
+\fBArrays as strings\fR
+.PP
+C arrays are generally represented as a list at the script level\&. So in
+the above example, the value stored in pbBuffer would be seen in Tcl
+as a list of unsigned 8-bit integer values\&. Sometimes this list representation
+is not the most appropriate or convenient\&.
+.PP
+For example, the returned data
+from CryptGenRandom might be better handled as a binary string\&. CFFI
+provides the types bytes, chars and unichars that are defined as
+arrays but treat C arrays of 8-bit values as strings instead\&.
+See \fIStrings\fP and \fIBinary strings\fP for more information\&.
+.SS POINTERS
+.PP
+Pointers are declared in one of the following forms:
+.PP
+.RS 4n
+.nf
+pointer
+pointer\&.TAG
+.fi
+.RE
+.PP
+The first is the equivalent of a void* C pointer\&. The second form
+associates the pointer type with a tag\&.
+.PP
+Pointer values are currently represented in the form
+.PP
+.RS 4n
+.nf
+ADDRESS^TAG
+.fi
+.RE
+.PP
+where the tag is optional as in declarations\&. Applications must not rely
+on this specific representation as it is subject to change\&. Instead the
+pointer ensemble command set should be used to manipulate pointers\&.
+In particular, the \fI::cffi::pointer make\fP command constructs a pointer
+from a memory address and tag\&. The \fI::cffi::pointer address\fP and
+\fI::cffi::pointer tag\fP do the reverse\&.
+.PP
+\fBPointer tags\fR
+.PP
+A pointer tag is used to provide for some measure of type safety\&. Tags
+can be associated with pointer values as well as pointer type
+declarations\&. The tag attached to a pointer value must match the tag for
+the struct field it is assigned to or the function parameter it is
+passed as\&. Otherwise an error is raised\&. Tags also provide a typing
+mechanism for function pointers\&. This is described in \fIPrototypes and function pointers\fP\&.
+.PP
+Note however that, although similar, pointer tags are orthogonal to the
+type system\&. Any tag may be associated with a pointer type or value,
+irrespective of the underlying C pointer type\&.
+.PP
+Tags for pointer types are defined in the corresponding struct field
+or function parameter declarations\&. Pointer values are associated with
+the tags of the type through which they are created, qualified with a
+scope\&. For example, the pointer returned by a function declared in the
+global namespace
+.PP
+.RS 4n
+.nf
+LIB function get_path pointer\&.PATH {}
+.fi
+.RE
+.PP
+will be tagged with ::PATH\&. On the other hand if the function was
+declared within a namespace ns
+.PP
+.RS 4n
+.nf
+namespace eval ns {
+    LIB function get_path pointer\&.PATH {}
+}
+.fi
+.RE
+.PP
+pointers returned from the function would be tagged with ::ns::PATH\&.
+Furthermore, the tag in the definition may be fully qualified as
+.PP
+.RS 4n
+.nf
+namespace eval ns {
+    LIB function get_path pointer\&.::ns2::PATH {}
+}
+.fi
+.RE
+.PP
+in which case returned pointers have the same exact tag\&. Note the scope ns2
+need not even correspond to a Tcl namespace\&.
+.PP
+Pointers can only be assigned to a struct field or passed as a
+parameter if the corresponding pointer type in the struct field or
+parameter definition has the same tag\&. If there is no tag specifed for
+the pointer field or parameter, it will accept pointer values with any
+tag analogous to a C void * pointer\&.
+.PP
+\fBCasting pointers\fR
+.PP
+Normally a pointer with a tag is not accepted as a function
+argument or struct field if it differs from the tag in the
+declaration\&. There are two exceptions to this:
+.TP
+\(bu
+a pointer declaration with no tag is treated as a void* and will accept pointer values with any tag\&.
+.TP
+\(bu
+a pointer declaration with a tag will accept pointers with tags that are declared as castable to it\&. This is similar to pointers to subclasses being accepted as pointers to superclasses\&.
+.PP
+This \fIpointer castable\fP command enables this
+second feature\&. For example,
+.PP
+.RS 4n
+.nf
+::cffi::pointer castable Rectangle Shape
+.fi
+.RE
+.PP
+will result in any pointer value with tag Rectangle being accepted
+wherever the tag Shape is accepted\&. Note this implies transitivity\&.
+.PP
+A pointer may also be cast explicitly to one with a different tag
+with the \fIpointer cast\fP command\&. This requires
+that the existing tag is castable to the new tag\&. So given the above
+example,
+.TP
+\(bu
+pointer\&.Rectangle will be implicitly accepted as a pointer\&.Shape
+.TP
+\(bu
+a pointer\&.Shape value can be explicitly cast to pointer\&.Rectangle\&. The reverse is also possible but not needed because for the first point\&.
+.TP
+\(bu
+a pointer\&.Circle cannot be directly cast to pointer\&.Rectangle or vice versa\&.
+.PP
+In case the pointer is a safe (registered) pointer, explicit casts
+change the tag associated with the registered pointer\&.
+.PP
+For debugging and troubleshooting purposes, the
+\fIpointer castables\fP command may be used
+to list the tags that are castable and their mappings\&.
+.PP
+\fBPointer safety\fR
+.PP
+Pointer type checking via tags does not protect against errors related
+to invalid pointers, double frees etc\&. To provide some level of
+protection against these types of errors, pointers returned from
+functions, either as return values or through output parameters are by
+default registered in an internal table\&. These are referred to as \fIsafe\fP
+pointers\&. Any pointer use is then checked for registration and an
+error raised if it is not found\&.
+.PP
+Pointers that have been registered are unregistered when they are
+passed to a C function as an argument for a parameter that has been
+annotated with the dispose or disposeonsuccess annotation\&.
+.PP
+The following fragment illustrates safe pointers\&. The fragment assumes a
+wrapper object crtl for the C runtime library has already been
+created\&.
+.PP
+.RS 4n
+.nf
+% crtl function malloc pointer {sz size_t}
+% crtl function free void {ptr {pointer dispose}}
+% set p [malloc 10]
+0x55dbb8b2ca10^void
+% free $p
+% free $p
+Pointer 0x55dbb8b2ca10^ is not registered\&.
+.fi
+.RE
+.PP
+The pointer returned by malloc is automatically registered\&. When
+the free function is invoked, its argument is checked for registration\&.
+Moreover, because the free function's ptr parameter has the
+dispose annotation, it is unregistered before the function is called\&.
+The second call to free therefore fails as desired\&.
+.PP
+The disposeonsuccess annotation is similar to dispose except that if
+the function return type includes error check annotations, the
+pointer is unregistered only if the return value passes the error checks\&.
+.PP
+\fBReference counted pointers\fR
+.PP
+Some C API's return the same resource pointer multiple
+times while internally maintaining a reference count\&. Examples are
+dlopen on Linux or LoadLibrary and COM API's on Windows\&.
+Such pointers need to be declared with the counted attribute\&.
+This works similarly to the default safe pointers except that the
+same pointer value can be registered multiple times\&. Correspondingly,
+the pointer can be accessed until the same number of calls are made
+to a function that disposes of the pointer\&. The Linux example
+below illustrates this\&.
+.PP
+.RS 4n
+.nf
+% cffi::Wrapper create crtl
+::crtl
+% crtl function dlopen {pointer counted} {path string flags int}
+% crtl function dlclose int {dlptr {pointer dispose}}
+% set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc\&.so\&.6 1]
+0x00007fb07ebb7500^
+% set dlptrA [dlopen /usr/lib/x86_64-linux-gnu/libc\&.so\&.6 1]
+0x00007fb07ebb7500^
+.fi
+.RE
+.PP
+Note the same pointer value was returned from both calls\&. We can
+then call dlclose multiple times but not more than the number of times
+dlopen was called\&.
+.PP
+.RS 4n
+.nf
+% dlclose $dlptrA
+0
+% dlclose $dlptrA
+0
+% dlclose $dlptrA
+Pointer 0x00007fb07ebb7500^ is not registered\&.
+.fi
+.RE
+.PP
+\fBUnsafe pointers\fR
+.PP
+C being C, there are many situations where pointers are generated and
+passed around in a somewhat ad hoc manner with no clear
+ownership\&. For such situations where safe and counted pointers can raise
+exceptions that are false positives, pointer declarations can be
+annotated as unsafe\&. Return values from functions and output
+parameters with this annotation will not be registered as safe pointers\&.
+Conversely, input parameters with this designation will not be checked
+for registration\&.
+.PP
+In addition to the implicit registration of pointers, applications can
+explicitly control pointer registration or with the \fI::cffi::pointer check\fP,
+\fI::cffi::pointer safe\fP, \fI::cffi::pointer counted\fP and
+\fI::cffi::pointer dispose\fP commands\&.
+.PP
+\fBNull pointers\fR
+.PP
+At the script level, a null pointers is any pointer whose address
+component is 0\&. The token NULL may also be used for this purpose\&.
+.PP
+Null pointers have their own safety checks and are independent of the
+pointer registration mechanisms described above\&. By default,
+a function result that is a null pointer is treated as an error and
+triggers the function's error handling mechanisms\&. Similarly, an attempt
+to pass a null pointer to a function or store it as a field value
+in a C struct will raise an exception\&. This can be overridden by
+including the nullok annotation on the function return, parameter
+or structure fields type definition\&. For return values of type string
+and unistring with this annotation, an empty string is returned when
+the called function returns NULL\&. In case of structs that are returned
+by reference, a nullok annotation will map a NULL return value to
+a struct with default values for all fields\&. If any field does not
+have a default, an error is raised\&.
+.PP
+Note that when returned as output parameters from a function,
+either directly or embedded as struct field, null pointers are
+permitted even without the nullok annotation\&.
+.PP
+\fBMemory operations\fR
+.PP
+Pointers are ofttimes returned by functions but more often than not the
+referenced memory has to be allocated and passed in to functions\&. Some
+type constructs like strings and structs hide this at the script level
+but there are times when direct access to the memory content addressed
+by pointers is desired\&.
+.PP
+The memory command ensemble provides such functionality\&. The commands
+\fI::cffi::memory allocate\fP and \fI::cffi::memory free\fP provide memory management
+facilities\&. Access to the content is available through
+\fI::cffi::memory tobinary\fP and \fI::cffi::memory frombinary\fP commands which
+convert to and from Tcl binary strings\&. The \fI::cffi::memory get\fP and
+\fI::cffi::memory set\fP commands provide type-aware access to read and
+write memory\&.
+.SS STRINGS
+.PP
+Strings in C are generally represented in memory as a sequence of null
+terminated bytes in some specific encoding\&. They may be declared either
+as a char * or as an array of char where the size of the array
+places a limit on the maximum length\&.
+.PP
+At the script level, these can be declared in multiple ways:
+.RS 4n
+.TP
+pointer
+As discussed in the previous section, this is a pointer to raw memory\&. To access the underlying string, the memory referenced by the pointer has to be converted into a Tcl string value with the \fI::cffi::memory tostring\fP command\&.
+.TP
+string\&.ENCODING
+Values declared using this type are still pointers at the C level but are converted to and from Tcl strings implicitly at the C API interface itself using the specified encoding\&. If \&.ENCODING is left off, the system encoding is used\&.
+.TP
+unistring
+This is similar to string\&.ENCODING except the values are Tcl_UniChar* at the C level and the encoding is implicitly the one used by Tcl for the Tcl_UniChar data type\&.
+.TP
+chars\&.ENCODING
+The value is an array of characters at the C level\&. The type must always appear as an array, for example, chars\&.utf-8[10] and not as a scalar chars\&.utf-8\&. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding\&. Following standard C rules, arrays are passed by reference as function arguments and thus an declaration of chars[10] would also be passed into a function as a char*\&. Within a struct definition on the other hand, it would be stored as an array\&.
+.TP
+unichars
+The value is an array of Tcl_UniChar characters and follows the same rules as chars except that the encoding is always that used by Tcl for the Tcl_UniChar type\&.
+.RE
+.PP
+The choice of using pointer, string (and unistring), or chars
+(and unichars) depends on the C declaration and context as well as
+convenience\&.
+.TP
+\(bu
+Function parameters of type char* that are purely input are best declared as string or unistring\&.
+.TP
+\(bu
+Function parameters that are actually output buffers in which the called function stores the output string value are best declared as chars[]\&. Generally these have an associated parameter which indicates the buffer size\&. In such cases the output parameter can be declared as (for example) chars[nchars] where nchars is the name of the parameter containing the buffer size\&.
+.TP
+\(bu
+Function output parameters that are stored by the called function as pointer to strings can be declared as out parameters of type string or unistring in the limited case where the stored pointer does not need to be disposed of (e\&.g\&. a pointer to a statically allocated string is being returned)\&. In the general case, these parameters have to be declared as pointers so they can be freed or otherwise disposed\&.
+.TP
+\(bu
+Function return values cannot be declared as chars or unichars as C itself does not support array return values\&. Generally, functions typed as returning char * need to be declaring as returning pointer as the pointers have to be explicitly managed\&. Only in the specific cases where the returned pointer is static or does not need to be disposed of for some other reason, the return value can be typed as string or unistring\&.
+.PP
+The examples below illustrate use cases for each of the above to wrap
+these directory related functions\&.
+.PP
+.RS 4n
+.nf
+char *get_current_dir_name(void);
+char *getcwd(char *buf, size_t size);
+int chdir(const char *path);
+.fi
+.RE
+.PP
+The first function, get_current_dir_name returns a pointer to malloc'ed
+memory that must be freed\&. We cannot use the string type for implicit
+conversion to strings because we need access to the raw pointer so it
+can be freed\&. We are thus forced to stick to the use of pointers\&. Our
+CFFI wrapper would be defined as (assuming libc is wrapper object)
+.PP
+.RS 4n
+.nf
+libc function get_current_dir_name pointer {}
+libc function free void {p {pointer dispose}}
+.fi
+.RE
+.PP
+We need the free function because as stated by the
+get_current_dir_name man page, the returned pointer is malloc'ed and
+has to be freed by the application\&. (Note the use of dispose in the
+parameter declaration as described in \fIPointer safety\fP\&.)
+.PP
+The actual use of the function would involve explicit pointer handling\&.
+.PP
+.RS 4n
+.nf
+% set p [get_current_dir_name]
+0x0000558b92986d60^
+% puts [cffi::memory tostring $p]
+/mnt/d/src/tcl-cffi/build-ubuntu-x64
+% free $p
+.fi
+.RE
+.PP
+The second function getcwd requires the caller to supply the buffer
+into which the directory path will be written\&. The buffer size the
+function expects is not a constant but rather given by the value of the
+size argument\&. While this function could also be wrapped using pointers
+and explicitly allocated memory, it is much simpler to use the chars
+type to supply a buffer\&.
+.PP
+.RS 4n
+.nf
+libc function getcwd string {buf {chars[size] out} size int}
+.fi
+.RE
+.PP
+Two notable points about this definition: first, the use of dynamic
+arrays for parameters as described in \fIDynamically sized arrays\fP\&. Second,
+the return type is string because the pointer returned by getcwd is
+the same as the pointer passed in and since CFFI is automatically managing
+that memory, there is no need to get a hold of the raw pointer\&.
+.PP
+This simplifies the usage, for the return value as well as output argument:
+.PP
+.RS 4n
+.nf
+% puts [getcwd dir 256]
+/mnt/d/src/tcl-cffi/build-ubuntu-x64
+% puts $dir
+/mnt/d/src/tcl-cffi/build-ubuntu-x64
+.fi
+.RE
+.PP
+The final example only involves passing in a path to the chdir function\&.
+Since we are dealing with only passing a constant string, this is the
+simplest case\&. Just defining the parameter as string suffices\&.
+.PP
+.RS 4n
+.nf
+libc function chdir int {dir string}
+.fi
+.RE
+.PP
+Usage is also straightforward\&.
+.PP
+.RS 4n
+.nf
+% chdir /tmp
+0
+% getcwd dir 512
+/tmp
+.fi
+.RE
+.PP
+\fBStrings as NULL pointers\fR
+.PP
+Some API's allow for char* pointer parameters or struct fields to be NULL\&.
+If these are wrapped as string or unistring, the nullifempty annotation
+can be used to specify that empty string values should be passed or stored
+as NULL pointers as opposed to pointers to an empty string\&.
+.SS "BINARY STRINGS"
+.PP
+While the string, unistring, chars and unichars types deal with
+character strings, the types binary or bytes serve a similar purpose
+for dealing with binary data - a sequence of bytes in memory\&. The
+binary type translates to a C unsigned char * type where the memory
+is treated as a Tcl binary string (byte array)\&. Similarly, the bytes
+type is analogous to the chars type except it declares a size array of
+bytes, not characters in an encoding\&. These types are converted between
+Tcl values and C values with the Tcl_GetByteArrayFromObj and
+Tcl_NewByteArrayFromObj functions\&.
+.PP
+Consider the wrapper for the CryptGenRandom function that we saw
+earlier\&.
+.PP
+.RS 4n
+.nf
+advapi32 stdcall CryptGenRandom BOOL {
+    hProv HANDLE
+    dwLen DWORD
+    pbBuffer {uchar[dwLen] out}
+}
+.fi
+.RE
+.PP
+When this function is called as
+.PP
+.RS 4n
+.nf
+CryptGenRandom $hProv 100 data
+.fi
+.RE
+.PP
+the random bytes are returned in the variable data as a list of 100
+integer values in the range 0-255\&.
+.PP
+Most applications of random data would probably prefer this be a binary
+string instead\&. The function wrapper would therefore be better defined as
+.PP
+.RS 4n
+.nf
+advapi32 stdcall CryptGenRandom BOOL {
+    hProv HANDLE
+    dwLen DWORD
+    pbBuffer {uchar[dwLen] out}
+}
+.fi
+.RE
+.PP
+Now the above call to the function would result in variable data
+containing a binary string of length 100\&.
+.PP
+While the bytes type corresponds to chars, the binary type
+corresponds to string\&. The underlying C type is actually a pointer,
+not an array\&. Because there is no inherent length indicator as there
+is for string type which is nul-terminated, binary can only be
+used in type declaration for input parameters to a function and in
+no other context\&. The function receives the data as retrieved by
+Tcl's Tcl_GetByteArrayFromObj function\&.
+.PP
+The binary type also has property that zero length binary strings
+map to NULL pointers being passed to the function\&.
+.SS STRUCTS
+.PP
+C structs are wrapped through the \fI::cffi::Struct\fP class\&. This
+encapsulates the layout of the struct and provides various methods for
+manipulation\&. A structure layout is a list of alternating field name and
+type declarations\&. An example of a definition would be
+.PP
+.RS 4n
+.nf
+::cffi::Struct create Point {
+    x int
+    y int
+}
+.fi
+.RE
+.PP
+A struct field may be of any type except void and binary\&. In addition,
+fields that are string or unistring impose certain limitations\&. They
+can be used in structs that are passed in and out of functions as arguments
+but cannot be allocated from the heap using methods like allocate,
+tonative etc\&.
+.PP
+As for function parameters, field types can have associated annotations\&.
+For example, the above definition may be changed to assign default
+values to fields\&.
+.PP
+.RS 4n
+.nf
+::cffi::Struct create Point {
+    x {int {default 0}}
+    y {int {default 0}}
+}
+.fi
+.RE
+.PP
+Annotations that may be applied to field type declarations include
+.TP
+\(bu
+\fIunsafe\fP, \fIcounted\fP and \fInullok\fP for pointer types
+.TP
+\(bu
+\fIenum\fP and \fIbitmask\fP for integer types
+.TP
+\(bu
+\fInullifempty\fP for string and unistring types\&.
+.TP
+\(bu
+structsize\&. This annotation is specific to field type declarations and results in fields being automatically initialized to the size of the struct if no value is supplied in the dictionary value for the struct\&. This is a common convention in Win32 APIs\&.
+.TP
+\(bu
+The errno, winerror, lasterror and onerror annotations may be specified for fields but are ignored\&. This is to allow sharing of \fItype aliases\fP between field declarations and function return type declarations\&.
+.PP
+Once defined, structs can be referenced in function prototypes and
+in other structs as struct\&.STRUCTNAME, for example struct\&.Point\&.
+Referencing is scope-based\&. If the struct name is not fully qualified,
+it is looked up in the current Tcl namespace and then in the global
+scope\&.
+.PP
+At the script level, C struct values are represented as dictionaries
+with field names as dictionary keys\&. An exception is raised if any field
+is missing unless the field declaration has a default annotation or
+the struct is defined with the -clear option which defaults all fields
+to a zero value\&.
+.PP
+Alternatively, structs can also be manipulated as native C structs in memory
+using raw pointers and explicit transforms\&. For example,
+.PP
+.RS 4n
+.nf
+% set pPoint [Point allocate]
+0x00000211cb924de0^Point
+% Point tonative
+wrong # args: should be "Point tonative POINTER INITIALIZER ?INDEX?"
+% Point tonative $pPoint {x 0 y 1}
+% Point fromnative $pPoint
+x 0 y 1
+% Point setnative $pPoint x 42
+% Point fromnative $pPoint
+x 42 y 1
+.fi
+.RE
+.PP
+\fBNOTE\fP: structs that are manipulated as raw structs in memory cannot
+contain fields of type string and unistring\&. They must use raw pointers
+and explicitly manage their target memory\&.
+.PP
+The package provides other methods to access fields and otherwise
+manipulate native structs in memory\&. See \fI::cffi::Struct\fP\&.
+.SH "TYPE ALIASES"
+.PP
+Type aliases provide a convenient way to bind data types and one or more
+annotations\&. They can then be used in type declarations in the same
+manner as the built-in types\&.
+.PP
+In addition to avoiding repetition, type aliases facilitate abstraction\&.
+For example, many Windows API's have an output parameter that is typed as
+a fixed size buffer of length MAX_PATH characters\&. A type alias
+OUTPUT_PATH defined as
+.PP
+.RS 4n
+.nf
+cffi::alias define OUTPUT_PATH {unichar[512] out}
+.fi
+.RE
+.PP
+can be used in function and struct field declarations\&.
+.PP
+Similarly, type aliases can be used to hide platform differences\&. For
+example, in the following function prototype,
+.PP
+.RS 4n
+.nf
+kernel stdcall HeapCreate pointer\&.HEAP {opts uint initSize SIZE_T maxSize SIZE_T}
+.fi
+.RE
+.PP
+SIZE_T is an alias that resolves to either uint or ulonglong
+depending on whether the platform is 32- or 64-bit\&.
+.PP
+Various points to note about type aliases:
+.TP
+\(bu
+A type alias must begin with an alphabetic character, an underscore or a colon\&. Subsequent characters may be one of these or a digit\&.
+.TP
+\(bu
+Type aliases can be nested, i\&.e\&. one alias may be defined in terms of another\&.
+.TP
+\(bu
+When a type alias is used in a declaration, additional annotations may be specified\&. These are merged with those included in the type alias definition\&.
+.TP
+\(bu
+Type aliases are scoped\&. If the alias name in a definition is not fully qualified, it is qualified with the name of the current Tcl namespace\&. If an alias name is not fully qualified on use, it is looked up using the current Tcl namespace as the scope and the global scope if not found there\&.
+.PP
+For convenience, the package provides the \fI::cffi::alias load\fP command
+which defines some standard C type aliases like size_t as well as some
+platform-specific type aliases such as HANDLE on Windows\&.
+.PP
+Currently defined type aliases can be listed with the
+\fI::cffi::alias list\fP command and removed with
+\fI::cffi::alias delete\fP\&.
+.SH ENUMERATIONS
+.PP
+Enumerations allow the use of symbolic constants in place of integral
+values passed as arguments to functions\&. Their primary purpose is
+similar to preprocessor #define constants and enum types in C\&.
+They are defined and otherwise managed through the cffi::enum
+command ensemble\&. The fragment below provides an example\&.
+.PP
+.RS 4n
+.nf
+cffi::enum define CMARK_OPTS {
+    DEFAULT 0
+    NORMALIZE 256
+    VALIDATE 512
+    SMART 1024
+}
+cmarkLib function cmark_render_html pointer {
+    root pointer\&.cmark_node
+    opts {int {enum CMARK_OPTS}}
+}
+set htmlptr [cmark_render_html $root NORMALIZE]
+.fi
+.RE
+.PP
+Alternatives to the \fI::cffi::enum define\fP command used above include
+\fI::cffi::enum sequence\fP and \fI::cffi::enum flags\fP which are convenient
+for defining sequential values and bit masks respectively\&.
+.PP
+Enumeration can also be used in literal form where they are directly
+expressed in the type definition\&. For example, the cmark_render_html
+function could also be defined as below without the CMARK_OPTS
+named enumeration\&.
+.PP
+.RS 4n
+.nf
+cffiLib function cmark_render_html pointer {
+    root pointer\&.cmark_node
+    opts {int {enum {
+        DEFAULT 0
+        NORMALIZE 256
+        VALIDATE 512
+        SMART 1024
+    }}}
+}
+.fi
+.RE
+.PP
+When combined with the bitmask annotation, bitmasks can be
+symbolically represented as a list\&.
+.PP
+.RS 4n
+.nf
+cffiLib function cmark_render_html pointer {
+    root pointer\&.cmark_node
+    opts {int bitmask {enum CMARK_OPTS}}
+}
+set htmlptr [cmark_render_html $root {SMART NORMALIZE}]
+.fi
+.RE
+.SH FUNCTIONS
+.PP
+To invoke a function in a DLL or shared library, the library must first
+be loaded through the creation of a \fI::cffi::Wrapper\fP object\&.
+The \fI::cffi::Wrapper\&.function\fP and
+\fI::cffi::Wrapper\&.stdcall\fP methods of the object can then be
+used to create Tcl commands that wrap individual functions implemented
+in the library\&.
+.SS "CALLING CONVENTIONS"
+.PP
+The 32-bit Windows platform uses two common calling conventions for
+functions: the default C calling convention and the stdcall calling
+convention which is used by most system libraries\&. These differ in
+terms of parameter and stack management and it is crucial that the
+correct convention be used when defining the corresponding FFI\&.
+.TP
+\(bu
+The \fI::cffi::Wrapper\&.function\fP method should be used for declaring C functions that use the default C calling convention\&.
+.TP
+\(bu
+The \fI::cffi::Wrapper\&.stdcall\fP method should be used for declaring C functions that use the stdcall calling convention\&.
+.PP
+Other than use of the two separate methods for definition, there is
+no difference in terms of the function prototype used for definition
+or the method of invocation\&.
+.PP
+Note that this difference in calling convention is only applicable to
+32-bit Windows\&. For other platforms, including 64-bit Windows, stdcall
+behaves in identical fashion to function\&.
+.SS "FUNCTION WRAPPERS"
+.PP
+The function wrapping methods
+\fIfunction\fP and
+\fIstdcall\fP have the following syntax:
+.PP
+.RS 4n
+.nf
+DLLOBJ function FNNAME RETTYPE PARAMS
+DLLOBJ stdcall FNNAME RETTYPE PARAMS
+.fi
+.RE
+.PP
+where DLLOBJ is the object wrapping a shared library, FNNAME is the
+name of the function (and an optional Tcl alias) within the library,
+RETTYPE is the function return type declaration and PARAMS is a list
+of alternating parameter names and type declarations\&. The type
+declarations may include annotations that control behaviour and
+conversion between Tcl and C values\&.
+.PP
+The C function may then be invoked as FNNAME like any other Tcl command\&.
+.SS "RETURN TYPES"
+.PP
+A function return declaration is a type or type alias followed by zero
+or more annotations\&. The resolved type must not be void or an array
+including chars, unichars, binary and bytes\&. Note pointers to
+these are permitted\&.
+.PP
+In the case of string and unistring types, the script level return
+values are constructed by dereferencing the returned pointer as
+character strings\&. Since the underlying pointer is not available, any
+storage cannot be freed and these types should only be used as the
+return type in cases where that is not needed (for example, when the
+function returns pointers to static strings)\&.
+.PP
+Returning structs from functions is only supported by the libffi
+backend\&.
+.PP
+\fBReturn annotations\fR
+.PP
+The following annotations may be follow the type in a return type
+declaration\&.
+.TP
+\(bu
+The \fIenum\fP annotation may be used for integer types\&. The integer return value from the function will be returned by the command as the corresponding enumeration member name and as the integer value itself if the enumeration does not have a matching member\&.
+.TP
+\(bu
+The bitmask annotation may be used for integer types\&. This only has effect if the enum annotation is also present\&. In that case the returned value from the mapped command is a list of enumeration member names matching the bits set in the returned value followed by the original integer value\&.
+.TP
+\(bu
+The \fIerror checking annotations\fP zero, nonzero, nonnegative, positive may be specified for integer types\&. If present, any function return value that does not satisfy the annotation will be treated as an error\&. See \fIError handling\fP for more\&.
+.TP
+\(bu
+The \fIerror reporting annotations\fP errno, lasterror, winerror and onerror may be specified for integer types and with the exception of winerror for pointer, string and unistring types\&. (Remember that string and unistring are both pointers under the covers\&.) For integer types they require one of the above error checking annotations to also be present to have effect\&.
+.TP
+\(bu
+The unsafe and counted \fIpointer safety\fP annotations may be specified for pointer types\&. By default, pointers returned from functions are registered as safe pointers\&. The counted annotation registers them as reference counted safe pointers\&. Pointers returned with the unsafe annotation are not registered at all\&.
+.TP
+\(bu
+The byref annotation can be used with any type when the function return value is a pointer to that type\&. If specified, the returned pointer is implicitly dereferenced and a value of the target type of the pointer is returned\&. Note however that the original pointer returned is not accessible at the script level and so this should only be used when that is acceptable, e\&.g\&. the pointer is to static or internal storage that does not need to be freed\&.
+.SS PARAMETERS
+.PP
+The PARAMS argument in a function prototype is a list of alternating
+parameter name and parameter type declaration elements\&.
+A parameter type declaration may begin with any supported type except
+void and may be followed a sequence of optional type annotations\&.
+.PP
+\fBInput and output parameters\fR
+.PP
+Parameters of a function may be used to pass data to the function
+(pure input parameters), get data back from the function
+(pure output parameters) or both\&. CFFI parameter type declarations
+denote these with the in, out and inout annotations respectively\&.
+If none of these annotations are present, the parameter defaults to an
+implicit in annotation\&.
+.PP
+In addition arguments may be passed to the function either by value or
+by reference where the pointer to the value is passed\&. Parameters that
+are pure input are normally passed by value\&. In some cases, functions
+take even pure input arguments by reference, (for example large
+structures)\&. In such cases, the CFFI parameter declaration should have
+the byref annotation to indicate that a pointer to the value should be
+passed and not the value itself\&. Note that arrays are always passed by
+reference in C so array types do not need to be explicitly annotated
+with byref as they default to that in any case\&.
+.PP
+In the case of in parameters, at the time of calling the function the
+argument must be specified as a Tcl value even when the byref
+annotation is present\&. The passing through a pointer to the reference
+is implicit\&.
+.PP
+\fBNOTE:\fP In the case of string and unistring, in parameters
+correspond to char * and Tcl_UniChar * respectively, while in
+byref map to char ** and Tcl_UniChar **\&.
+.PP
+Parameters that are out or inout are always passed by reference
+irrespective of whether the byref annotation is present or not\&. The
+argument to the function must be specified as the name of a variable in
+the caller's context\&. For inout parameters, the variable must exist
+and contain a valid value for the parameter type\&. For out parameters,
+the variable need not exist\&. In both cases, on return from the function
+the output value stored in the parameter by the function will be stored
+in the variable\&. Note that inout cannot be used with string and
+unistring types while neither out nor inout can be used with
+binary\&.
+.PP
+There are some subtleties with respect to error handling that are
+relevant to output parameters and must be accounted for in declarations\&.
+See \fIErrors and output parameters\fP for more on this\&.
+.PP
+\fBOutput parameters as function result\fR
+.PP
+Many functions return values as pairs with the function return value
+being a status or error code and the actual function result being
+returned as an output parameter\&. In such cases, the retval annotation
+on the output parameter can be used to return it as the result
+of the wrapped command\&.
+.PP
+The retval annotation
+.TP
+\(bu
+implies the out and byref annotations and cannot be combined with the in or inout annotations\&.
+.TP
+\(bu
+can be placed on at most one parameter declaration for a function
+.TP
+\(bu
+the function return value must be an integral type
+.TP
+\(bu
+the function return type must have one of the \fIerror checking annotation\fP for integer types\&. These are used for checking the original return value from the C function as always, and not the parameter output value\&.
+.PP
+The parameter annotated with retval does not appear in the
+wrapped command signature
+(i\&.e\&. it is not supplied as an argument in the invocation)\&.
+.PP
+The return value will be the parameter output value only if the
+function's native return value passes the error checks\&. Otherwise,
+an exception is raised as usual\&.
+.PP
+See \fIDelegating return values\fP for an example of retval usage\&.
+.PP
+\fBParameter annotations\fR
+.PP
+The following annotations may follow the type in a parameter type
+declaration:
+.TP
+\(bu
+The in, out, retval and inout annotations as described in the \fIprevious\fP section\&.
+.TP
+\(bu
+The byref annotation specifies that argument is to be passed by reference (the function actually takes a pointer to the actual value) and not by value\&. This only has effect for input parameters as parameters with out and inout annotations always have arguments passed by reference irrespective of whether the byref annotation is present or not\&. Arrays are also always passed by reference even if they are input only\&.
+.TP
+\(bu
+The unsafe, counted, dispose and disposeonsuccess annotations may be specified for pointer types\&. By default, pointer values passed in for in and inout parameters are checked for validity\&. Conversely, by default out and inout pointers returned from the function are registered as valid safe pointers\&. Pointer types annotated with counted behave similarly except they are registered as reference counted safe pointers instead of normal safe pointers\&. On the other hand, the unsafe annotation disables all safety related mechanisms\&. The arguments are neither checked for validity, nor registered as safe pointers\&. The dispose and disposeonsuccess annotations are only valid for in and inout parameters\&. They mark the parameter as holding a pointer that will be freed by the function and cause CFFI to unregister the pointer (modulo reference counting if applicable)\&. The difference between dispose and disposeonsuccess is that the latter will only unregister the pointer if the function returns without any error indication\&. For more on pointer safety mechanisms, see \fIPointer safety\fP\&.
+.TP
+\(bu
+The enum annotation may be used for integer types\&. It has an associated argument that specifies an \fIEnum\fP, either a defined name or a dictionary literal\&. For in and inout parameters, this allows enumeration member names to be used in lieu of integers though the latter are also accepted\&. For out and inout parameters, the integer value stored by the function is returned to script level as the enumeration member name if a mapping exists and as the original integer otherwise\&.
+.TP
+\(bu
+The bitmask annotation may be used for integer types\&. For in and inout parameters with this annotation accept a list of integer values and perform a bit-wise OR operation on these passing the result to the function\&. If the parameter also has the enum annotation the list may contain enumeration member names as well\&. Correspondingly, the output values for out and inout are converted to a list of enumeration member names with the last element being the integer value itself\&. This annotation should be used with enumerations whose values are bit flags\&.
+.TP
+\(bu
+The default annotation may be used for pure input parameters\&. The associated value is passed to the function if an argument is not explicitly supplied\&. The annotation comprises of a list of two elements, the first being the annotation default and the second being the value to use\&. As for Tcl procs, if a default is specified for a parameter, all subsequent parameters must also have a default specified\&.
+.TP
+\(bu
+The nullifempty annotation is available only for in parameters of type string, unistring, binary and struct\&. If present, a NULL pointer is passed into the C function if the passed argument is an empty string in the case of string or unistring and an empty dictionary in the case of struct\&. This facility is useful for API's where NULL pointers signify default options\&. Note that the binary type always has nullifempty implied even if not explicitly specified\&.
+.TP
+\(bu
+The storeonerror and storealways annotations are only applicable when either out or inout annotations are present\&. These control storage of output parameters in the presence of errors\&. See \fIErrors and output parameters\fP\&.
+.PP
+\fBStructs as parameters\fR
+.PP
+In the case of parameters that are structs,
+the input argument for the parameter when the function is
+called should be a dictionary value\&. Conversely, output parameter
+results are returned as a dictionary of the same form\&.
+.PP
+Passing of structs by reference is supported by both the dyncall
+and libffi backends but only the latter supports passing by value\&.
+.SS "ERROR HANDLING"
+.PP
+C functions generally indicate errors through their return value\&.
+Details of the error are either in the return value itself or intended
+to be retrieved by some other mechanism such as errno\&.
+.PP
+One way to deal with this at the script level is to simply check the
+return value (generally an integer or pointer) and take appropriate
+action\&. This has two downsides\&. The first is that error conditions in
+Tcl are almost always signalled by raising an exception rather than
+through a return status mechanism so checking status on every call is
+not very idiomatic\&. The second, perhaps more important, downside is that
+the detail behind the error, stored in errno or available via
+GetLastError() on Windows, is more often than not lost by the time the
+Tcl interpreter returns to the script level\&.
+.PP
+\fBError annotations\fR
+.PP
+Two additional sets of type annotations are provided to solve these
+issues\&. The first set of annotations is used to define the error check
+conditions to be applied to function return values\&. The second set is
+used to specify how the error detail is to be retrieved\&.
+.PP
+The following annotations for error checking can be used for
+\fBinteger\fP return types\&.
+.RS 4n
+.TP
+zero
+The value must be zero\&.
+.TP
+nonzero
+The value must be non-zero\&.
+.TP
+nonnegative
+The value must be zero or greater\&.
+.TP
+positive
+The value must be greater than zero\&.
+.RE
+.PP
+The return value from every call to the function is then checked as to
+whether it satisfies the condition\&. Failure to do so is treated as an
+error condition\&.
+.PP
+An error condition is also generated when a function returning
+a pointer returns a null pointer\&. This is also true for string and
+unistring return types as well as struct types that are returned
+by reference since those are all pointers beneath the covers\&.
+This treatment of null pointers as errors can be overridden with the
+the nullok annotation\&. If this annotation is specified and the function
+returns a NULL pointer,
+.TP
+\(bu
+for pointer types, the NULL pointer is returned to the caller
+.TP
+\(bu
+for string and unistring types, an empty string is returned to the caller
+.TP
+\(bu
+for struct byref types, a dictionary with default field values is returned\&. If any field does not have a default specified in the struct definition, an error is raised\&.
+.PP
+An error condition arising from one of the error checking annotations or
+a null pointer results in an exception being generated unless the
+onerror annotation is specified (see below)\&. However, the default
+error message generated is generic and does not provide detail about why
+the error occured\&. The following error retrieval annotations specify how
+detail about the error is to be obtained\&.
+.RS 4n
+.TP
+errno
+The POSIX error is stored in errno\&. The error message is generated using the C runtime strerror function\&. \fBNote:\fP This annotation should only be used if the wrapped function uses the same C runtime as the cffi extension\&.
+.TP
+lasterror
+(Windows only)\&. The error code and message is retrieved using the Windows GetLastError and FormatMessage functions\&.
+.TP
+winerror
+(Windows only)\&. The numeric return value is itself the Windows error code and the error message is generated with FormatMessage\&. This annotation can only be used with the zero error checking annotation\&.
+.RE
+.PP
+Any of these annotations can be applied to integer types while the
+errno and lasterror can be used with pointer types as well\&.
+.PP
+In addition, the onerror annotation provides a means for customizing
+error handling when the error is from a library and not a system error\&.
+The annotation takes an additional argument which is a command prefix to
+be invoked when an error checking annotation is triggered\&.
+When this command prefix is invoked, a dictionary with the call information
+is passed\&. The dictionary contains the following keys:
+.RS 4n
+.TP
+Result
+The return value from the function that triggered the error handler\&.
+.TP
+In
+A nested dictionary mapping all  in and inout parameter names to the values passed in to the called function\&.
+.TP
+Out
+A dictionary mapping all inout and out parameter names to the values returned on output by the function\&. These only include output parameters marked as storealways or storeonerror\&.
+.TP
+Command
+The Tcl command for which the error handler was triggered\&. This key will not be present if the function was invoked with an address through the \fI::cffi::call\fP command\&.
+.RE
+.PP
+The result of the handler execution is returned as the
+function call result and may be a normal result or a raised exception\&.
+The handler may use upvar for access to the calling script's context
+including any input or output arguments to the original function call\&.
+.PP
+This onerror facility may be used to ignore errors, provide default
+values as well as raise exceptions with more detailed library-specific
+information\&. Note that the use of a onerror handler that returns
+normally is \fBnot\fP the same as not specifying any error checking
+annotations because the function return is still treated as an error
+condition in terms of the output variables as described in
+\fIErrors and output parameters\fP\&.
+.PP
+\fBNOTE:\fP Although the errno, lasterror, winerror and onerror
+annotations have effect only with respect to function return values, they
+can also be specified for parameters and struct fields where they are
+silently ignored\&. This is to permit the same type alias (e\&.g\&. status codes)
+to be used in all three declaration contexts\&.
+.PP
+\fBErrors and output parameters\fR
+.PP
+An important consideration in the presence of errors is how the called
+function deals with output (including input-output) parameters\&. There
+are three possibilities:
+.TP
+\(bu
+The function only writes to the output parameter on success
+.TP
+\(bu
+The function always writes to the output parameter
+.TP
+\(bu
+The function only writes to the output parameter on error, for example an error code\&.
+.PP
+The distinction is particularly crucial for non-scalar output\&. Output
+parameters that have not been written to may result in corruption or
+crashes if the memory is accessed for conversion to Tcl script level
+values\&.
+.PP
+By default, script level output variables are only written to when the
+error checks pass (including the case where none are specified)\&. This is
+the first case above\&. If the storealways annotation is specified for
+a parameter, it is stored irrespective of whether an error check failed
+or not\&. This is the second case\&. Finally, the storeonerror
+annotation targets the third case\&. The output parameter is stored only
+if an error check fails\&.
+.PP
+Note that an error checking annotation must be present for any of these
+to have an effect\&.
+.SS "PROTOTYPES AND FUNCTION POINTERS"
+.PP
+The function wrapping methods
+\fIfunction\fP and
+\fIstdcall\fP described earlier bind a
+function type definition consisting of the return type and parameters
+with the address of a function as specified by its name\&. For some uses,
+it is useful to be able to independently specify the function type
+information independent of the function address\&. The
+\fI::cffi::prototype function\fP and \fI::cffi::prototype stdcall\fP commands
+are provided for this purpose\&. They take a very similar form to
+the corresponding methods:
+.PP
+.RS 4n
+.nf
+cffi::prototype function NAME RETTYPE PARAMS
+cffi::prototype stdcall NAME RETTYPE PARAMS
+.fi
+.RE
+.PP
+where RETTYPE and PARAMS are as described in
+\fIFunction wrappers\fP\&. The commands result in the creation of
+a function prototype NAME which can be used as tags for pointers
+to functions\&. The \fI::cffi::call\fP command can then be used to invoke
+the pointer target\&.
+.PP
+For example, consider the following C fragment
+.PP
+.RS 4n
+.nf
+typedef int ADDER(int, int);
+ADDER *function_returning_adder();
+ADDER *fnptr = function_returning_adder();
+fnptr(1,2);
+.fi
+.RE
+.PP
+This would be translated into CFFI as
+.PP
+.RS 4n
+.nf
+cffi::prototype function ADDER int {x int y int}
+DLLOBJ function function_returning_adder pointer\&.ADDER {}
+set fnptr [function_returning_adder]
+cffi::call $fnptr 1 2
+.fi
+.RE
+.SH CALLBACKS
+.PP
+Some C functions take a parameter that is a pointer to a function that is
+then invoked by the called outer function, often in iterative fashion passing
+elements of some data set in turn\&. Wrapping such functions involves the
+following steps:
+.TP
+\(bu
+Definition of a \fIprototype\fP as described in the previous section\&. This must match the declaration of the callback function\&. There are certain restrictions placed on the parameter types that can be used with callbacks\&. These are listed in the \fI::cffi::callback\fP reference\&.
+.TP
+\(bu
+Definition of the outer function with the callback parameter type set as a pointer to the function
+.TP
+\(bu
+Creation of the callback function pointer via the \fI::cffi::callback\fP command that wraps a Tcl command that should be invoked as the callback
+.TP
+\(bu
+Invoking the outer function
+.TP
+\(bu
+Freeing the callback function pointer with \fI::cffi::callback free\fP when no longer needed\&. Note it may be used multiple times before freeing\&.
+.PP
+Currently callbacks are only supported with the libffi backend\&.
+.PP
+\fBWarning:\fP CFFI callbacks can only be used when the called function
+invokes them before returning\&. They are not suitable in cases where
+the callback is called at a later time after the function returns\&. Doing
+so will likely result in a crash\&.
+.PP
+Use of callbacks is illustrated below for the ftw function available
+on some platforms to iterate through files and directories\&. The C
+declaration of the function is
+.PP
+.RS 4n
+.nf
+int ftw(const char *dirpath,
+        int (*fn) (const char *fpath, const struct stat *sb,
+                   int typeflag),
+        int nopenfd);
+.fi
+.RE
+.PP
+The second argument fn to this function is a pointer to a callback
+function that will be called for every file under the directory
+specified by the first argument\&.
+.PP
+To wrap this function with CFFI, first a prototype is defined that
+matches the declaration for the fn parameter\&.
+.PP
+.RS 4n
+.nf
+% cffi::prototype function ftw_callback int {fpath string sbP {pointer\&.stat unsafe} typeflag int}
+::ftw_callback
+.fi
+.RE
+.PP
+Then the ftw function is itself wrapped with the callback argument
+referencing the prototype\&.
+.PP
+.RS 4n
+.nf
+% cffi::Wrapper create libc libc\&.so\&.6
+::libc
+% libc function ftw int {dirpath string fn pointer\&.ftw_callback nopenfd int}
+::ftw
+.fi
+.RE
+.PP
+Next the callback function pointer is created\&.
+.PP
+.RS 4n
+.nf
+proc print_name {fpath pSb typeflag} {puts $fpath; return 0}
+% set cb [cffi::callback new ftw_callback print_name -1]
+0x00007f1a56661010^::ftw_callback
+.fi
+.RE
+.PP
+The ftw function can then be invoked with this callback function pointer\&.
+.PP
+.RS 4n
+.nf
+% ftw [pwd] $cb 5
+/mnt/d/src/tcl-cffi/build-ubuntu-x64
+/mnt/d/src/tcl-cffi/build-ubuntu-x64/cffitest\&.so
+/mnt/d/src/tcl-cffi/build-ubuntu-x64/config\&.log
+/mnt/d/src/tcl-cffi/build-ubuntu-x64/config\&.status
+\&.\&.\&.output elided\&.\&.\&.
+.fi
+.RE
+.PP
+Finally, the callback pointer can be freed assuming we will not need
+it again\&.
+.PP
+.RS 4n
+.nf
+% cffi::callback free $cb
+.fi
+.RE
+.PP
+It is useful to know that the callback command is invoked in the Tcl
+context from which the outer function was invoked\&. For example, if we
+wanted to collect file names instead of printing them out, we could
+collect them in a variable\&.
+.PP
+.RS 4n
+.nf
+% proc collect_names {namevar fpath pSb typeflag} {
+    upvar 1 $namevar names
+    lappend names $fpath
+    return 0
+}
+% set files {}
+% set cb [cffi::callback new ftw_callback [list collect_names files] -1]
+0x00007f1a56661080^::ftw_callback
+% ftw [pwd] $cb 5
+0
+% set files
+/mnt/d/src/tcl-cffi/build-ubuntu-x64 \&.\&.\&.
+.fi
+.RE
+.PP
+The above example also shows that the second argument to cffi::callback
+is a command prefix, not necessarily a single-word command, to which
+the arguments from the callback invocation itself are appended\&.
+

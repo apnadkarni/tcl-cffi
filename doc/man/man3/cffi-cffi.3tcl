@@ -1,0 +1,3131 @@
+'\"
+'\" '\" Copyright (c) Ashok P\&. Nadkarni
+'\"
+.TH "cffi" 3tcl 1\&.0\&.7 "cffi" "Tcl CFFI package"
+.SH NAME
+cffi - Commands in namespace cffi
+.SH SYNOPSIS
+\fBalias\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBalias body\fP \fIalias_name\fP
+.br
+\fBalias clear\fP
+.br
+\fBalias define\fP \fIname definition\fP
+.br
+\fBalias define\fP \fIaliasdefs\fP
+.br
+\fBalias delete\fP \fIpattern\fP
+.br
+\fBalias list\fP \fI?pattern?\fP
+.br
+\fBalias load\fP \fIalias_set\fP
+.br
+\fBcall\fP \fIfnptr ?args?\fP
+.br
+\fBcallback\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBcallback free\fP \fIcb\fP
+.br
+\fBcallback new\fP \fIprotoname cmdprefix error_value\fP
+.br
+\fBenum\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBenum clear\fP
+.br
+\fBenum define\fP \fIenumname enumdefs\fP
+.br
+\fBenum delete\fP \fIpattern\fP
+.br
+\fBenum flags\fP \fIenumname membernames\fP
+.br
+\fBenum list\fP \fIpattern\fP
+.br
+\fBenum mask\fP \fIenumname membernames\fP
+.br
+\fBenum members\fP \fIenumname\fP
+.br
+\fBenum name\fP \fIenumname membervalue ?default?\fP
+.br
+\fBenum sequence\fP \fIenumname membernames start 0\fP
+.br
+\fBenum unmask\fP \fIenumname mask\fP
+.br
+\fBenum value\fP \fIenumname membername ?default?\fP
+.br
+\fBhelp\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBhelp function\fP \fIFUNCNAME\fP
+.br
+\fBhelp functions\fP \fI?FUNCPATTERN?\fP
+.br
+\fBlimits\fP \fItype\fP
+.br
+\fBmemory\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBmemory allocate\fP \fIsizespec ?tag?\fP
+.br
+\fBmemory fill\fP \fIpointer bytevalue count\fP
+.br
+\fBmemory free\fP \fIpointer\fP
+.br
+\fBmemory frombinary\fP \fIbin_value ?tag?\fP
+.br
+\fBmemory fromstring\fP \fIvalue ?encoding?\fP
+.br
+\fBmemory get\fP \fIpointer typespec ?index?\fP
+.br
+\fBmemory get!\fP \fIpointer typespec ?index?\fP
+.br
+\fBmemory new\fP \fItypespec initializer ?tag?\fP
+.br
+\fBmemory set\fP \fIpointer typespec value ?index?\fP
+.br
+\fBmemory set!\fP \fIpointer typespec value ?index?\fP
+.br
+\fBmemory tobinary\fP \fIpointer size\fP
+.br
+\fBmemory tobinary!\fP \fIpointer size\fP
+.br
+\fBmemory tostring\fP \fIpointer ?encoding?\fP
+.br
+\fBmemory tostring!\fP \fIpointer ?encoding?\fP
+.br
+\fBpkgconfig\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBpkgconfig get\fP \fIkey\fP
+.br
+\fBpkgconfig list\fP
+.br
+\fBpointer\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBpointer address\fP \fIpointer\fP
+.br
+\fBpointer cast\fP \fIpointer ?TAG?\fP
+.br
+\fBpointer castable\fP \fIsubtag supertag\fP
+.br
+\fBpointer castables\fP
+.br
+\fBpointer check\fP \fIpointer\fP
+.br
+\fBpointer counted\fP \fIpointer\fP
+.br
+\fBpointer dispose\fP \fIpointer\fP
+.br
+\fBpointer isnull\fP \fIpointer\fP
+.br
+\fBpointer isvalid\fP \fIpointer\fP
+.br
+\fBpointer list\fP \fI?args?\fP
+.br
+\fBpointer make\fP \fIaddress ?tag?\fP
+.br
+\fBpointer safe\fP \fIpointer\fP
+.br
+\fBpointer tag\fP \fIpointer\fP
+.br
+\fBprototype\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBprototype delete\fP \fIpattern\fP
+.br
+\fBprototype function\fP \fIname fntype parameters\fP
+.br
+\fBprototype list\fP \fI?pattern?\fP
+.br
+\fBprototype stdcall\fP \fIname fntype parameters\fP
+.br
+\fBtype\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBtype count\fP \fItype\fP
+.br
+\fBtype info\fP \fItypedecl ?parse_mode?\fP
+.br
+\fBtype size\fP \fItype\fP
+.br
+\fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
+.br
+\fBStruct new\fP \fIdefinition ?args?\fP
+.br
+\fBOBJECT allocate\fP \fI?count?\fP
+.br
+\fBOBJECT describe\fP
+.br
+\fBOBJECT fieldpointer\fP \fIpointer fieldname ?tag? ?index?\fP
+.br
+\fBOBJECT free\fP \fIpointer\fP
+.br
+\fBOBJECT frombinary\fP \fIbin_value\fP
+.br
+\fBOBJECT fromnative\fP \fIpointer ?index?\fP
+.br
+\fBOBJECT fromnative!\fP \fIpointer ?index?\fP
+.br
+\fBOBJECT getnative\fP \fIpointer fieldname ?index?\fP
+.br
+\fBOBJECT getnativefields\fP \fIpointer fieldnames ?index?\fP
+.br
+\fBOBJECT info\fP
+.br
+\fBOBJECT name\fP
+.br
+\fBOBJECT new\fP \fI?initval?\fP
+.br
+\fBOBJECT setnative\fP \fIpointer fieldname value ?index?\fP
+.br
+\fBOBJECT tobinary\fP \fIdict_value\fP
+.br
+\fBOBJECT tonative\fP \fIpointer initializer ?index?\fP
+.br
+\fBWrapper create OBJNAME\fP \fIpath\fP
+.br
+\fBWrapper new\fP \fIpath\fP
+.br
+\fBOBJECT destroy\fP
+.br
+\fBOBJECT addressof\fP \fIsymbol\fP
+.br
+\fBOBJECT function\fP \fIfnname fntype parameters\fP
+.br
+\fBOBJECT functions\fP \fIfnlist\fP
+.br
+\fBOBJECT path\fP
+.br
+\fBOBJECT stdcall\fP \fIfnname fntype parameters\fP
+.br
+\fBOBJECT stdcalls\fP \fIfnlist\fP
+.br
+.SH ::CFFI
+.PP
+This is the reference for commands in the cffi namespace\&. See the \fIStart page\fP [URL: cffi\&.html] for an introductory usage guide\&. See \fIConcepts\fP for a mapping of C types and program elements to the script level\&.
+.PP
+The package is loaded in standard fashion with package require:
+.PP
+.RS 4n
+.nf
+package require cffi
+.fi
+.RE
+.SH COMMANDS
+.PP
+.RS -4n
+\fBalias\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBalias\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIbody\fP
+Returns the resolved body of an alias\&.
+.TP
+\fIclear\fP
+Deletes all aliases from the interpreter\&.
+.TP
+\fIdefine\fP
+Defines one or more type aliases\&.
+.TP
+\fIdelete\fP
+Deletes aliases matching a pattern\&.
+.TP
+\fIlist\fP
+Returns a list of aliases that match the specified pattern\&.
+.TP
+\fIload\fP
+Loads predefined type aliases\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBalias body\fR (::cffi)
+.RE
+.PP
+Returns the resolved body of an alias\&.
+.RS 4n\fBalias body\fP \fIalias_name\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+alias_name
+Name of alias to be retrieved\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The alias must be one defined in the current \fIscope\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the resolved body of an alias\&.
+.PP
+.RS -4n
+\fBalias clear\fR (::cffi)
+.RE
+.PP
+Deletes all aliases from the interpreter
+.RS 4n\fBalias clear\fP
+.br
+.RE
+.PP
+.RS -4n
+\fBalias define\fR (::cffi)
+.RE
+.PP
+Defines one or more type aliases\&.
+.RS 4n\fBalias define\fP \fIname definition\fP
+.br
+\fBalias define\fP \fIaliasdefs\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+aliasdefs
+Dictionary mapping alias names to their definition\&.
+.TP
+definition
+Definition for the alias\&.
+.TP
+name
+Name for type alias\&. Must begin with an alphabetic character and may contain alphanumerics and underscore\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Given two arguments, creates an alias of the given name for passed
+definition\&. If a single argument is provided, it must be a dictionary
+mapping alias names to their definitions\&.
+.PP
+An error will be raised if an alias name matches a built-in
+type or if an alias of that name already exists with a different
+definition in the same scope\&.
+.PP
+The definition may itself be based on an existing alias\&. In this
+case the existing alias is immediately resolved and expanded
+as part of the definition so further changes to it are not reflected
+in the alias being defined\&.
+.PP
+See \fIType aliases\fP for more on type aliases\&.
+.PP
+.RS -4n
+\fBalias delete\fR (::cffi)
+.RE
+.PP
+Deletes aliases matching a pattern\&.
+.RS 4n\fBalias delete\fP \fIpattern\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pattern
+Pattern to match against aliases\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command deletes all aliases whose name matches the specified
+pattern\&. The conditions for matching the pattern are:
+.TP
+\(bu
+the tail of the pattern must match the tail of the alias name using Tcl's glob pattern matching rules\&.
+.TP
+\(bu
+the scope component of the alias name must match exactly\&.
+.PP
+.RS -4n
+\fBalias list\fR (::cffi)
+.RE
+.PP
+Returns a list of aliases that match the specified pattern\&.
+.RS 4n\fBalias list\fP \fI?pattern?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pattern
+Pattern to match against aliases\&. Optional, default *\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command returns the alias names that match the specified pattern\&.
+The conditions for matching the pattern are:
+.TP
+\(bu
+the tail of the pattern must match the tail of the alias name using Tcl's glob pattern matching rules\&.
+.TP
+\(bu
+the scope component of the alias name must match exactly\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of aliases that match the specified pattern\&.
+.PP
+.RS -4n
+\fBalias load\fR (::cffi)
+.RE
+.PP
+Loads predefined type aliases\&.
+.RS 4n\fBalias load\fP \fIalias_set\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+alias_set
+The alias set to load\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The aliases are loaded into the calling scope\&.
+.PP
+The possible values of \fI$alias_set\fP are C, win32 (Windows only),
+or posix (platform dependent)\&.
+.PP
+The C predefined alias set includes
+int8_t uint8_t int16_t uint16_t int32_t
+uint32_t int64_t uint64_t size_t ssize_t
+.PP
+The win32 predefined alias set includes BOOL BOOLEAN BYTE
+CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT
+INT_PTR LONG LONGLONG LONG_PTR LPARAM LPVOID
+LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT
+UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM
+.PP
+The posix alias set is platform dependent\&. In POSIX compliant
+environments, it includes blkcnt_t blksize_t clock_t
+dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t
+mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t
+time_t uid_t\&. On Windows, it only includes dev_t ino_t off_t
+time_t\&.
+.PP
+.RS -4n
+\fBcall\fR (::cffi)
+.RE
+.PP
+Invokes a C function through a function pointer\&.
+.RS 4n\fBcall\fP \fIfnptr ?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+fnptr
+A pointer value tagged with a \fIprototype\fP
+.TP
+args
+Additional arguments to pass to the C function\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The passed pointer \fI$fnptr\fP tag must corresponding to a function
+prototype defined through the \fIprototype function\fP or
+\fIprototype stdcall\fP commands\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the value returned by the invoked C function\&.
+.PP
+.RS -4n
+\fBcallback\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBcallback\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIfree\fP
+Frees a callback pointer\&.
+.TP
+\fInew\fP
+Wraps a script level command into a C function\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBcallback free\fR (::cffi)
+.RE
+.PP
+Frees a callback pointer
+.RS 4n\fBcallback free\fP \fIcb\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+cb
+A function pointer allocated with \fIcallback new\fP
+.RE
+.PP
+.RS -4n
+\fBcallback new\fR (::cffi)
+.RE
+.PP
+Wraps a script level command into a C function
+.RS 4n\fBcallback new\fP \fIprotoname cmdprefix error_value\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+protoname
+The name of a prototype created through the \fIprototype function\fP or \fIprototype stdcall\fP commands\&.
+.TP
+cmdprefix
+The command prefix that should be invoked when the created C function is called\&.
+.TP
+error_value
+Not documented\&.
+.TP
+error_result
+The value that should be returned if the command prefix raises an exception\&. This is optional if the function prototype specifies the void return type\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned function pointer can be invoked through the \fIcall\fP command
+but the common usage is for it to be passed to
+a C function that takes a callback function as an argument\&.
+.PP
+Invoking the function pointer will result in \fI$cmdprefix\fP being called
+with the additional arguments passed in the invocation\&. These must
+match the parameter types of the prototype specified in the callback
+definition\&.
+.PP
+The type declarations in a prototypes used for callbacks have certain
+restrictions\&. These arise because the "data flow" is now from script
+to the C shared library\&.
+.PP
+The parameter and return type are restricted to be
+scalar values and strings\&.
+.TP
+\(bu
+The out, inout and retval annotations are not permitted\&. This means any values to be returned to the shared library must be through explicit raw pointers\&.
+.TP
+\(bu
+All pointer type declarations must have the unsafe annotation\&. Other pointer safety annotations counted, dispose, disposeonsuccess cannot be specified\&.
+.TP
+\(bu
+The value checking annotations zero, nonzero, positive and nonnegative cannot be specified for the prototype return type\&.
+.TP
+\(bu
+The error handling annotations errno, winerror, lasterror and onerror cannot be specified\&.
+.TP
+\(bu
+The storeonerror and storealways annotations cannot be specified\&.
+.PP
+When \fI$cmdprefix\fP is called from a C function as a callback, it is executed
+in the Tcl context from which the C function was called and thus has
+access to the script level local variables etc\&.
+.PP
+When no longer needed, the callback should be freed with the
+\fIcallback free\fP command\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a callback function pointer that can be called from C native code\&.
+.PP
+.RS -4n
+\fBenum\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBenum\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIclear\fP
+Deletes all enumerations from the interpreter\&.
+.TP
+\fIdefine\fP
+Defines a new enumeration\&.
+.TP
+\fIdelete\fP
+Deletes enumerations\&.
+.TP
+\fIflags\fP
+Defines an enumeration as bit flags\&.
+.TP
+\fIlist\fP
+Lists enumerations\&.
+.TP
+\fImask\fP
+Returns an integer mask formed by bitwise OR-ing the passed enumeration members\&.
+.TP
+\fImembers\fP
+Returns a dictionary containing the members in an enumeration\&.
+.TP
+\fIname\fP
+Returns the symbolic name of a value in an enumeration\&.
+.TP
+\fIsequence\fP
+Defines an enumeration with consecutive member values\&.
+.TP
+\fIunmask\fP
+Returns a list of enumeration member names corresponding to the bits set in \fI$mask\fP\&. enumeration members\&.
+.TP
+\fIvalue\fP
+Returns the value of an enumeration member\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBenum clear\fR (::cffi)
+.RE
+.PP
+Deletes all enumerations from the interpreter
+.RS 4n\fBenum clear\fP
+.br
+.RE
+.PP
+.RS -4n
+\fBenum define\fR (::cffi)
+.RE
+.PP
+Defines a new enumeration\&.
+.RS 4n\fBenum define\fP \fIenumname enumdefs\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+enumdefs
+Dictionary of enumeration member names to their values\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Parameter declarations can reference the enumeration to indicate
+that the corresponding symbol names are acceptible as arguments
+and will be replaced by the corresponding value in the function call\&.
+Enumeration member values must be integers\&.
+.PP
+.RS -4n
+\fBenum delete\fR (::cffi)
+.RE
+.PP
+Deletes enumerations\&.
+.RS 4n\fBenum delete\fP \fIpattern\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pattern
+Pattern to match\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command deletes all enumerations whose name matches the specified
+pattern\&. The conditions for matching the pattern are:
+.TP
+\(bu
+the tail of the pattern must match the tail of the enumeration name using Tcl's glob pattern matching rules\&.
+.TP
+\(bu
+the scope component of the enumeration name must match exactly\&.
+.PP
+.RS -4n
+\fBenum flags\fR (::cffi)
+.RE
+.PP
+Defines an enumeration as bit flags
+.RS 4n\fBenum flags\fP \fIenumname membernames\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+membernames
+List of names of the enumeration members\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+For example,
+.PP
+.RS 4n
+.nf
+enum flags E {A B C}
+.fi
+.RE
+.PP
+would define an enumeration with A, B, C values being 1, 2 and 4\&.
+.PP
+.RS -4n
+\fBenum list\fR (::cffi)
+.RE
+.PP
+Lists enumerations\&.
+.RS 4n\fBenum list\fP \fIpattern\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pattern
+Pattern to match\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command returns the names of all enumerations whose name matches
+the specified pattern\&. The conditions for matching the pattern are:
+.TP
+\(bu
+the tail of the pattern must match the tail of the enumeration name using Tcl's glob pattern matching rules\&.
+.TP
+\(bu
+the scope component of the enumeration name must match exactly\&.
+.PP
+.RS -4n
+\fBenum mask\fR (::cffi)
+.RE
+.PP
+Returns an integer mask formed by bitwise OR-ing the passed
+enumeration members
+.RS 4n\fBenum mask\fP \fIenumname membernames\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration in the current \fIscope\fP
+.TP
+membernames
+List of member names and integer values\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns an integer mask formed by bitwise OR-ing the passed
+enumeration members
+.PP
+\fBSee also\fR
+.PP
+\fIenum unmask\fP
+.PP
+.RS -4n
+\fBenum members\fR (::cffi)
+.RE
+.PP
+Returns a dictionary containing the members in an enumeration\&.
+.RS 4n\fBenum members\fP \fIenumname\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration whose elements are to be returned\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary containing the members in an enumeration\&.
+.PP
+.RS -4n
+\fBenum name\fR (::cffi)
+.RE
+.PP
+Returns the symbolic name of a value in an enumeration\&.
+.RS 4n\fBenum name\fP \fIenumname membervalue ?default?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+membervalue
+Value of an enumeration member\&.
+.TP
+default
+Value to be returned if the member value is not found\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command will raise an error if \fI$membervalue\fP is not present in
+the enumeration and no default is provided, or if \fI$enumname\fP is
+itself undefined\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the symbolic name of a value in an enumeration\&.
+.PP
+.RS -4n
+\fBenum sequence\fR (::cffi)
+.RE
+.PP
+Defines an enumeration with consecutive member values
+.RS 4n\fBenum sequence\fP \fIenumname membernames start 0\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+membernames
+List of names of the enumeration members\&.
+.TP
+start 0
+Not documented\&.
+.TP
+start
+Value of first enumeration member\&.
+.RE
+.PP
+.RS -4n
+\fBenum unmask\fR (::cffi)
+.RE
+.PP
+Returns a list of enumeration member names corresponding to the
+bits set in \fI$mask\fP\&.
+enumeration members
+.RS 4n\fBenum unmask\fP \fIenumname mask\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+mask
+Integer bit mask value\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The last element of the returned list is \fI$mask\fP itself\&.
+Generally, the enumeration should consist of values that do not have
+overlapping bits set (commonly a single bit is set in each
+member value)\&. This is not enforced but results might not be
+as expected if this condition is not met\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of enumeration member names corresponding to the
+bits set in \fI$mask\fP\&.
+enumeration members
+.PP
+\fBSee also\fR
+.PP
+\fIenum mask\fP
+.PP
+.RS -4n
+\fBenum value\fR (::cffi)
+.RE
+.PP
+Returns the value of an enumeration member
+.RS 4n\fBenum value\fP \fIenumname membername ?default?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+membername
+Name of the enumeration member to retrieve\&.
+.TP
+default
+Default value to be returned if the membername is not found\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command will raise an error if \fI$membername\fP is not present in
+the enumeration and no default is provided, or if \fI$enumname\fP is
+itself undefined\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the value of an enumeration member
+.PP
+.RS -4n
+\fBhelp\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBhelp\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIfunction\fP
+Returns a string describing the syntax for a CFFI wrapped function\&.
+.TP
+\fIfunctions\fP
+Returns a list of CFFI-wrapped functions matching the pattern FUNCPATTERN
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBhelp function\fR (::cffi)
+.RE
+.PP
+Returns a string describing the syntax for a CFFI wrapped function
+.RS 4n\fBhelp function\fP \fIFUNCNAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+FUNCNAME
+Name of a wrapped function\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a string describing the syntax for a CFFI wrapped function
+.PP
+.RS -4n
+\fBhelp functions\fR (::cffi)
+.RE
+.PP
+Returns a list of CFFI-wrapped functions matching the pattern FUNCPATTERN
+.RS 4n\fBhelp functions\fP \fI?FUNCPATTERN?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+FUNCPATTERN
+Glob pattern to match\&. Optional, default *\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Note that like Tcl's info commands the pattern is interpreted relative
+to the current namespace\&. So for example, to obtain the list of
+commands within a namespace, the namespace must also be included
+in the pattern\&. For example,
+.PP
+.RS 4n
+.nf
+cffi::help functions ::libzip::*
+.fi
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of CFFI-wrapped functions matching the pattern FUNCPATTERN
+.PP
+.RS -4n
+\fBlimits\fR (::cffi)
+.RE
+.PP
+Get the lower and upper limits for an integral base type
+.RS 4n\fBlimits\fP \fItype\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+type
+The base type\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a pair containing the minimum and maximum values
+for the specified type\&.
+.PP
+.RS -4n
+\fBmemory\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBmemory\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIallocate\fP
+Allocates memory of the specified size\&.
+.TP
+\fIfill\fP
+Fills memory locations to a specified value\&.
+.TP
+\fIfree\fP
+Frees the memory referenced by the passed pointer\&.
+.TP
+\fIfrombinary\fP
+Allocates memory and copied the passed Tcl binary string into it\&.
+.TP
+\fIfromstring\fP
+Allocates memory and stores a Tcl string in it in the specified encoding\&.
+.TP
+\fIget\fP
+Converts a native value in memory into a Tcl script level value\&.
+.TP
+\fIget!\fP
+Converts a value as per a type specification and stores it in memory in native form\&.
+.TP
+\fInew\fP
+Allocates memory for a type and initializes it\&.
+.TP
+\fIset\fP
+Converts a value as per a type specification and stores it in memory in native form\&.
+.TP
+\fIset!\fP
+Converts a value as per a type specification and stores it in memory in native form\&.
+.TP
+\fItobinary\fP
+Returns the content of a memory block as a Tcl binary string\&.
+.TP
+\fItobinary!\fP
+Returns the content of a memory block as a Tcl binary string\&.
+.TP
+\fItostring\fP
+Returns the content of a memory block as a Tcl string\&.
+.TP
+\fItostring!\fP
+Returns the content of a memory block as a Tcl string\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBmemory allocate\fR (::cffi)
+.RE
+.PP
+Allocates memory of the specified size
+.RS 4n\fBmemory allocate\fP \fIsizespec ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+sizespec
+Requested size of memory block\&. This may be specified either as an integer value or a type specification\&.
+.TP
+tag
+Tag for the returned pointer\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned memory must be eventually freed by calling \fImemory free\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory new\fP, \fImemory free\fP
+.PP
+.RS -4n
+\fBmemory fill\fR (::cffi)
+.RE
+.PP
+Fills memory locations to a specified value
+.RS 4n\fBmemory fill\fP \fIpointer bytevalue count\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to memory\&.
+.TP
+bytevalue
+A value in the range 0-255
+.TP
+count
+Number of bytes to be fill\&.
+.RE
+.PP
+.RS -4n
+\fBmemory free\fR (::cffi)
+.RE
+.PP
+Frees the memory referenced by the passed pointer
+.RS 4n\fBmemory free\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to memory to free\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The memory must have been allocated using \fImemory allocate\fP,
+\fImemory frombinary\fP, \fImemory fromstring\fP or one of the methods of
+a \fIStruct\fP object\&. Null pointers are silently ignored\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory allocate\fP
+.PP
+.RS -4n
+\fBmemory frombinary\fR (::cffi)
+.RE
+.PP
+Allocates memory and copied the passed Tcl binary string into it\&.
+.RS 4n\fBmemory frombinary\fP \fIbin_value ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+bin_value
+A Tcl binary value\&.
+.TP
+tag
+Tag for the returned pointer\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned memory must be eventually freed by calling \fImemory free\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tobinary\fP, \fImemory tobinary!\fP
+.PP
+.RS -4n
+\fBmemory fromstring\fR (::cffi)
+.RE
+.PP
+Allocates memory and stores a Tcl string in it in the specified encoding\&.
+.RS 4n\fBmemory fromstring\fP \fIvalue ?encoding?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+value
+Tcl string value\&.
+.TP
+encoding
+The encoding to use for conversion\&. If unspecified or the empty string, the system encoding is used\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned memory must be eventually freed by calling \fImemory free\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tostring\fP, \fImemory tostring!\fP
+.PP
+.RS -4n
+\fBmemory get\fR (::cffi)
+.RE
+.PP
+Converts a native value in memory into a Tcl script level value
+.RS 4n\fBmemory get\fP \fIpointer typespec ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Base address of memory location\&. The pointer must be a safe pointer but the tag is immaterial\&.
+.TP
+typespec
+Type specification to use for conversion\&.
+.TP
+index
+The index in memory at which the value is to be stored\&. Care must be taken this is within bounds of the allocated space\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command converts the data at a memory location into a Tcl script
+object as per the type specification \fI$typespec\fP\&. The memory address of
+the data is given by \fI$pointer\fP if \fI$index\fP is unspecified or 0\&.
+Otherwise \fI$index\fP is treated as an index into an array based at
+\fI$pointer\fP whose elements are of the type defined by \fI$typespec\fP and
+memory address used is that of the slot given by \fI$index\fP\&.
+For example, if \fI$typespec\fP is int and \fI$index\fP is 2,
+the memory address from which the value is read is at byte offset 8
+assuming ints occupy 4 bytes\&. If \fI$typespec\fP is int[3], then the size
+of the type specification is 12, and an index of 2 will correspond to
+a byte offset of 24, not 8\&. Be aware of these semantics when reading
+arrays using non-0 indices\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory get!\fP, \fImemory set\fP
+.PP
+.RS -4n
+\fBmemory get!\fR (::cffi)
+.RE
+.PP
+Converts a value as per a type specification and stores it in memory
+in native form
+.RS 4n\fBmemory get!\fP \fIpointer typespec ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Base address of memory location\&. The pointer is not checked for validity\&.
+.TP
+typespec
+Not documented\&.
+.TP
+index
+Not documented\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+This command is identical to the \fImemory get\fP command except that it does
+not require \fI$pointer\fP to be a safe pointer\&. See the documentation of
+that command for details\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory get\fP, \fImemory set\fP
+.PP
+.RS -4n
+\fBmemory new\fR (::cffi)
+.RE
+.PP
+Allocates memory for a type and initializes it\&.
+.RS 4n\fBmemory new\fP \fItypespec initializer ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+typespec
+A type declaration\&.
+.TP
+initializer
+The type-specific value to use to initialize allocated memory\&.
+.TP
+tag
+The optional tag for the returned pointer\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The \fI$typespec\fP argument may be any type specificiation\&. If an
+array is specified of a larger size than the number of elements
+in \fI$initializer\fP, the remaining elements are zeroed out\&.
+.PP
+The returned memory must be eventually freed by calling \fImemory free\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory allocate\fP, \fImemory free\fP
+.PP
+.RS -4n
+\fBmemory set\fR (::cffi)
+.RE
+.PP
+Converts a value as per a type specification and stores it in memory
+in native form
+.RS 4n\fBmemory set\fP \fIpointer typespec value ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Base address of memory location\&. The pointer must be a safe pointer but the tag is immaterial\&.
+.TP
+typespec
+Type specification\&.
+.TP
+value
+The script level value to be stored\&.
+.TP
+index
+The index in memory at which the value is to be stored\&. Care must be taken this is within bounds of the allocated space\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command converts \fI$value\fP into the native form corresponding to
+the type specification \fI$typespec\fP\&. If \fI$index\fP is unspecified or 0, the
+native value is stored at the memory address given by \fI$pointer\fP\&.
+Otherwise \fI$index\fP is the treated as an index into an array whose elements
+are of the type defined by \fI$typespec\fP and the value is stored in the slot
+given by \fI$index\fP\&. For example, if \fI$typespec\fP is int and \fI$index\fP is 2,
+the memory address at which the value is written is at byte offset 8
+assuming ints occupy 4 bytes\&. If \fI$typespec\fP is int[3], then the size
+of the type specification is 12, and an index of 2 will correspond to
+a byte offset of 24, not 8\&. Be aware of these semantics when writing
+arrays to non-0 indices to avoid memory corruption\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory get\fP, \fImemory set!\fP
+.PP
+.RS -4n
+\fBmemory set!\fR (::cffi)
+.RE
+.PP
+Converts a value as per a type specification and stores it in memory
+in native form
+.RS 4n\fBmemory set!\fP \fIpointer typespec value ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Base address of memory location\&. The pointer is not checked for validity\&.
+.TP
+typespec
+Type specification\&.
+.TP
+value
+The script level value to be stored\&.
+.TP
+index
+The index in memory at which the value is to be stored\&. Care must be taken this is within bounds of the allocated space\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+This command is identical to the \fImemory set\fP command except that it does
+not require \fI$pointer\fP to be a safe pointer\&. See the documentation of that
+command for details\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory get\fP, \fImemory set\fP
+.PP
+.RS -4n
+\fBmemory tobinary\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block as a Tcl binary string\&.
+.RS 4n\fBmemory tobinary\fP \fIpointer size\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to memory\&.
+.TP
+size
+Number of bytes to copy from the memory block\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block as a Tcl binary string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tobinary!\fP, \fImemory frombinary\fP
+.PP
+.RS -4n
+\fBmemory tobinary!\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block as a Tcl binary string\&.
+.RS 4n\fBmemory tobinary!\fP \fIpointer size\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory\&.
+.TP
+size
+Number of bytes to copy from the memory block\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Unlike the \fImemory tobinary\fP method, this does not check the validity
+of \fI$pointer\fP and should be used with care\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block as a Tcl binary string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tobinary\fP, \fImemory frombinary\fP
+.PP
+.RS -4n
+\fBmemory tostring\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block as a Tcl string\&.
+.RS 4n\fBmemory tostring\fP \fIpointer ?encoding?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to memory\&.
+.TP
+encoding
+The encoding to use for conversion\&. If unspecified or the empty string, the system encoding is used\&. Optional, default ""\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block as a Tcl string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tostring!\fP, \fImemory fromstring\fP
+.PP
+.RS -4n
+\fBmemory tostring!\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block as a Tcl string\&.
+.RS 4n\fBmemory tostring!\fP \fIpointer ?encoding?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory\&.
+.TP
+encoding
+The encoding to use for conversion\&. If unspecified or the empty string, the system encoding is used\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Unlike the \fImemory tostring\fP method, this does not check the validity
+of \fI$pointer\fP and should be used with care\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block as a Tcl string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tostring!\fP, \fImemory fromstring\fP
+.PP
+.RS -4n
+\fBpkgconfig\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBpkgconfig\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIget\fP
+Gets the value of a configuration key\&.
+.TP
+\fIlist\fP
+Returns the list of keys containing information about the package configuration\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBpkgconfig get\fR (::cffi)
+.RE
+.PP
+Gets the value of a configuration key\&.
+.RS 4n\fBpkgconfig get\fP \fIkey\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+key
+One of the keys returned by \fIpkgconfig list\fP command\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The following keys are supported\&.
+.RS 4n
+.TP
+backend
+Returns libffi or dyncall indicating the backend FFI library in use\&.
+.TP
+version
+The package version\&.
+.TP
+compiler
+Identifies the compiler used to build the extension\&.
+.RE
+.PP
+.RS -4n
+\fBpkgconfig list\fR (::cffi)
+.RE
+.PP
+Returns the list of keys containing information about
+the package configuration\&.
+.RS 4n\fBpkgconfig list\fP
+.br
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the list of keys containing information about
+the package configuration\&.
+.PP
+.RS -4n
+\fBpointer\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBpointer\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIaddress\fP
+Returns the address component of the pointer\&.
+.TP
+\fIcast\fP
+Casts a pointer to a new tag\&.
+.TP
+\fIcastable\fP
+Specifies that pointers with tag \fI$subtag\fP are acceptable in declarations that require \fI$supertag\fP\&.
+.TP
+\fIcastables\fP
+Returns a list of tags that have been marked as castable with the \fIpointer castable\fP command\&.\&.
+.TP
+\fIcheck\fP
+Validates a pointer and raise an exception if invalid\&.
+.TP
+\fIcounted\fP
+Registers a pointer as a counted pointer\&.
+.TP
+\fIdispose\fP
+Unregisters a safe or counted pointer\&.
+.TP
+\fIisnull\fP
+Returns true if the pointer is a NULL pointer, false otherwise\&.
+.TP
+\fIisvalid\fP
+Validates a pointer\&.
+.TP
+\fIlist\fP
+Returns a list of registered pointers optionally filtered by a tag\&.
+.TP
+\fImake\fP
+Return a pointer for a memory address\&.
+.TP
+\fIsafe\fP
+Registers a pointer as a safe uncounted pointer\&.
+.TP
+\fItag\fP
+Returns the pointer tag\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBpointer address\fR (::cffi)
+.RE
+.PP
+Returns the address component of the pointer\&.
+.RS 4n\fBpointer address\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer whose address component is to be returned\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the address component of the pointer\&.
+.PP
+.RS -4n
+\fBpointer cast\fR (::cffi)
+.RE
+.PP
+Casts a pointer to a new tag\&.
+.RS 4n\fBpointer cast\fP \fIpointer ?TAG?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be cast\&.
+.TP
+tag
+New tag to apply\&. This will be qualified with the current scope if not fully qualified\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The cast will fail if the TAG is not castable to or from the
+pointer's tag\&. See \fICasting pointers\fP\&.
+.PP
+If TAG is not specified, any existing tag is removed from the pointer
+(effectively marking it as a void* pointer)\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a pointer with the same address and new tag
+.PP
+.RS -4n
+\fBpointer castable\fR (::cffi)
+.RE
+.PP
+Specifies that pointers with tag \fI$subtag\fP are acceptable in declarations
+that require \fI$supertag\fP\&.
+.RS 4n\fBpointer castable\fP \fIsubtag supertag\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+subtag
+Tag which is to be marked as acceptable wherever \fI$supertag\fP is expected\&. Will be qualified with current scope if necessary\&.
+.TP
+supertag
+Tag which should accept \fI$subtag\fP tagged pointers\&. Will be qualified with current scope if necessary\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+See \fICasting pointers\fP for more information\&.
+.PP
+.RS -4n
+\fBpointer castables\fR (::cffi)
+.RE
+.PP
+Returns a list of tags that have been marked as castable with the
+\fIpointer castable\fP command\&.\&.
+.RS 4n\fBpointer castables\fP
+.br
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of tags that have been marked as castable with the
+\fIpointer castable\fP command\&.\&.
+.PP
+.RS -4n
+\fBpointer check\fR (::cffi)
+.RE
+.PP
+Validates a pointer and raise an exception if invalid\&.
+.RS 4n\fBpointer check\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be validated\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+For a pointer to be treated as valid,
+.TP
+\(bu
+it must not be NULL
+.TP
+\(bu
+it must be registered
+.TP
+\(bu
+if it is tagged, the tag must be the same as that of the registration\&.
+.PP
+If any of the above conditions is not met, an error exception is raised\&.
+Note that if \fI$pointer\fP is untagged, the tag of the registration is not
+checked\&.
+.PP
+See \fIPointers\fP for more on pointer
+safety and registration\&.
+.PP
+.RS -4n
+\fBpointer counted\fR (::cffi)
+.RE
+.PP
+Registers a pointer as a counted pointer
+.RS 4n\fBpointer counted\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be registered\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+A counted pointer may be registered multiple times\&. An error
+is raised if the pointer is NULL or already registered as
+an uncounted pointer\&.
+.PP
+See \fIPointers\fP for more on counted
+pointers and registration\&.
+.PP
+.RS -4n
+\fBpointer dispose\fR (::cffi)
+.RE
+.PP
+Unregisters a safe or counted pointer
+.RS 4n\fBpointer dispose\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be unregistered\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Note that the command only unregisters the pointer\&. It does
+not do anything in terms of releases any resources associated
+with the pointer\&.
+.PP
+An error is raised if the pointer is not registered unless it
+is a null pointer in which case it is ignored without error\&.
+.PP
+See \fIPointers\fP for more on pointer
+safety and registration\&.
+.PP
+.RS -4n
+\fBpointer isnull\fR (::cffi)
+.RE
+.PP
+Returns true if the pointer is a NULL pointer, false otherwise\&.
+.RS 4n\fBpointer isnull\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be checked\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns true if the pointer is a NULL pointer, false otherwise\&.
+.PP
+.RS -4n
+\fBpointer isvalid\fR (::cffi)
+.RE
+.PP
+Validates a pointer\&.
+.RS 4n\fBpointer isvalid\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be validated\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+For a pointer to be treated as valid,
+.TP
+\(bu
+it must not be NULL
+.TP
+\(bu
+it must be registered
+.TP
+\(bu
+if it is tagged, the tag must be the same as that of the registration\&.
+.PP
+Return a boolean true value if all the above conditions are met,
+otherwise false\&.
+.PP
+See \fIPointers\fP for more on pointer
+safety and registration\&.
+.PP
+.RS -4n
+\fBpointer list\fR (::cffi)
+.RE
+.PP
+Returns a list of registered pointers optionally filtered by a tag\&.
+.RS 4n\fBpointer list\fP \fI?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+args
+If specified, must be a single argument which is a tag\&. Only pointers matching the tag are returned\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of registered pointers optionally filtered by a tag\&.
+.PP
+.RS -4n
+\fBpointer make\fR (::cffi)
+.RE
+.PP
+Return a pointer for a memory address
+.RS 4n\fBpointer make\fP \fIaddress ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+address
+Memory address as a positive integer\&.
+.TP
+tag
+If not fully qualified, this will be qualified with the current namespace name\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned pointer is not registered as safe\&. The caller
+can use the \fIpointer safe\fP command to mark it as such if so desired\&.
+.PP
+.RS -4n
+\fBpointer safe\fR (::cffi)
+.RE
+.PP
+Registers a pointer as a safe uncounted pointer
+.RS 4n\fBpointer safe\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be registered\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+An error is raised if the pointer is already registered
+or is a NULL pointer\&.
+.PP
+See \fIPointers\fP for more on pointer
+safety and registration\&.
+.PP
+.RS -4n
+\fBpointer tag\fR (::cffi)
+.RE
+.PP
+Returns the pointer tag
+.RS 4n\fBpointer tag\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer whose tag is to be returned\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+An empty string is returned if the pointer is not tagged\&.
+.PP
+See \fIPointers\fP for more on pointer tags\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the pointer tag
+.PP
+.RS -4n
+\fBprototype\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBprototype\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIdelete\fP
+Deletes prototypes matching a pattern\&.
+.TP
+\fIfunction\fP
+Defines a function prototype for calling a function using the default C calling convention\&.
+.TP
+\fIlist\fP
+Returns a list of prototypes matching the specified pattern\&.
+.TP
+\fIstdcall\fP
+Defines a function prototype for calling a function using the stdcall calling convention\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBprototype delete\fR (::cffi)
+.RE
+.PP
+Deletes prototypes matching a pattern\&.
+.RS 4n\fBprototype delete\fP \fIpattern\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pattern
+Pattern to match\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The pattern matching algorithm is the same as that of Tcl's
+string match command\&.
+It is not an error if the pattern does not match any prototypes\&.
+.PP
+.RS -4n
+\fBprototype function\fR (::cffi)
+.RE
+.PP
+Defines a function prototype for calling a function using the default
+C calling convention\&.
+.RS 4n\fBprototype function\fP \fIname fntype parameters\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+name
+Name for the prototype\&. Must begin with an alphabetic character and may contain alphanumerics and underscore\&.
+.TP
+fntype
+The type definition for the return value from the function\&.
+.TP
+parameters
+List of alternating parameter name and type definitions\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The \fI$fntype\fP and \fI$parameters\fP take the same form and have the same
+semantics as described for the \fI::cffi::Wrapper\&.function\fP method
+for defining functions\&. However, unlike that method, this command
+does not create a command for invoking a C function\&. It only defines
+a prototype that can then be used in conjunction with a C function
+address to invoke that function\&.
+.PP
+See \fIPrototypes and function pointers\fP for more details\&.
+.PP
+\fBSee also\fR
+.PP
+\fI::cffi::Wrapper\&.function\fP
+.PP
+.RS -4n
+\fBprototype list\fR (::cffi)
+.RE
+.PP
+Returns a list of prototypes matching the specified pattern\&.
+.RS 4n\fBprototype list\fP \fI?pattern?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pattern
+Pattern to match\&. Optional, default *\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The pattern matching algorithm is the same as that of Tcl's
+string match command\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of prototypes matching the specified pattern\&.
+.PP
+.RS -4n
+\fBprototype stdcall\fR (::cffi)
+.RE
+.PP
+Defines a function prototype for calling a function using the stdcall
+calling convention\&.
+.RS 4n\fBprototype stdcall\fP \fIname fntype parameters\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+name
+Name for the prototype\&. Must begin with an alphabetic character and may contain alphanumerics and underscore\&.
+.TP
+fntype
+The type definition for the return value from the function\&.
+.TP
+parameters
+List of alternating parameter name and type definitions\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The \fI$fntype\fP and \fI$parameters\fP take the same form and have the same
+semantics as described for the \fI::cffi::Wrapper\&.stdcall\fP method
+for defining functions\&. However, unlike that method, this command
+does not create a command for invoking a C function\&. It only defines
+a prototype that can then be used in conjunction with a C function
+address to invoke that function\&.
+.PP
+See \fIPrototypes and function pointers\fP for more details\&.
+.PP
+\fBSee also\fR
+.PP
+\fI::cffi::Wrapper\&.stdcall\fP
+.PP
+.RS -4n
+\fBtype\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBtype\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIcount\fP
+Returns the count of elements in an array type\&.
+.TP
+\fIinfo\fP
+Returns a dictionary containing various information about a type declaration\&.
+.TP
+\fIsize\fP
+Returns the size of a type in terms of the number of bytes of memory occupied by that type\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBtype count\fR (::cffi)
+.RE
+.PP
+Returns the count of elements in an array type
+.RS 4n\fBtype count\fP \fItype\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+type
+A type definition or alias\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+A return value of 0 indicates the type is not an array\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the count of elements in an array type
+.PP
+.RS -4n
+\fBtype info\fR (::cffi)
+.RE
+.PP
+Returns a dictionary containing various information about a type
+declaration
+.RS 4n\fBtype info\fP \fItypedecl ?parse_mode?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+typedecl
+A type declaration\&.
+.TP
+parse_mode
+One of param, return, field\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The type is parsed as a parameter type declaration, a function return
+type declaration or a structure field type declaration depending
+on the \fI$parse_mode\fP argument\&. If this is unspecified or an empty
+string, it is parsed in generic fashion and no context-specific
+validation is done\&.
+.PP
+The returned dictionary contains the following keys:
+.RS 4n
+.TP
+Alignment
+The memory alignment needed for a value of that type\&.
+.TP
+BaseSize
+The number of bytes to store a single value of the type when the type is an array\&. For scalars, same as Size\&.
+.TP
+Count
+0 for scalar values, else indicates the type is an array with that number of elements\&.
+.TP
+Size
+The number of bytes of memory needed to store a value of that type\&.
+.TP
+Definition
+The type declaration after applying any defaults\&. For type aliases, this is the resolved type definition\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary containing various information about a type
+declaration
+.PP
+.RS -4n
+\fBtype size\fR (::cffi)
+.RE
+.PP
+Returns the size of a type in terms of the number of bytes of memory
+occupied by that type\&.
+.RS 4n\fBtype size\fP \fItype\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+type
+A type definition or alias\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+In the case of array types, the size includes the size of the entire
+array and not the size of a single element\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the size of a type in terms of the number of bytes of memory
+occupied by that type\&.
+.SH CLASSES
+.PP
+.RS -4n
+\fBStruct\fR (::cffi)
+.RE
+.PP
+\fBMethod summary\fR
+.RS 4n
+.TP
+constructor
+Constructor for the class\&.
+.TP
+allocate
+Allocates memory for one or more C structs\&.
+.TP
+describe
+Returns a human-readable description of the C struct definition\&.
+.TP
+fieldpointer
+Returns a pointer corresponding to the address of a field within a native structure\&.
+.TP
+free
+Frees memory that was allocated for a native C struct\&.
+.TP
+frombinary
+Decodes a Tcl binary string containing a native C struct into a Tcl dictionary\&.
+.TP
+fromnative
+Decodes native C struct(s) in memory into a Tcl dictionary\&.
+.TP
+fromnative!
+Decodes native C struct(s) in memory into a Tcl dictionary\&.
+.TP
+getnative
+Returns the value of a field in a native structure in memory\&.
+.TP
+getnativefields
+Retrieve values of multiple fields from a native struct in memory\&.
+.TP
+info
+Returns a dictionary containing information about the struct layout\&.
+.TP
+name
+Returns the name of the struct\&.
+.TP
+new
+Allocates and initializes a native struct in memory\&.
+.TP
+setnative
+Sets the value of a field in a native structure in memory\&.
+.TP
+tobinary
+Encodes the Tcl representation of a C struct value into a Tcl binary string\&.
+.TP
+tonative
+Writes the Tcl dictionary representation of a C struct value to memory in native form\&.
+.RE
+.PP
+.RS -4n
+\fBconstructor\fR (::cffi::Struct)
+.RE
+.PP
+Constructs a script level object that maps to a C struct definition\&.
+.RS 4n\fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
+.br
+\fBStruct new\fP \fIdefinition ?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+definition
+Defines the layout and type of the C struct fields\&.
+.TP
+args
+Options\&. Currently the only option is -clear
+.RE
+.PP
+\fBDescription\fR
+.PP
+The created object can be used to pass arguments to and from
+functions, allocate memory, encode and decode native C structs
+in memory etc\&.
+.PP
+The \fI$definition\fP argument is a dictionary mapping field names to the
+corresponding types\&. See \fIStructs\fP for more
+information\&.
+.PP
+The name of the created struct is the same as the name of the
+returned object without the initial :: global namespace qualifier\&.
+This name can be retrieved with the \fIname\fP method and is used to
+identify the struct when tagging pointers and for typing function
+parameters and nested struct fields\&.
+.PP
+If the -clear option is present, the memory of structures of this
+type is cleared before the field values are initialized\&. In this case,
+missing field values in a struct value will not result in an error
+being raised even if no default annotation is included for the field\&.
+This also effectively provides a default zero value for all fields\&.
+.PP
+.RS -4n
+\fBallocate\fR (::cffi::Struct)
+.RE
+.PP
+Allocates memory for one or more C structs\&.
+.RS 4n\fBOBJECT allocate\fP \fI?count?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+count
+Number of structs to allocate\&. Optional, default 1\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The allocated memory is not initialized even if the struct definition
+includes the -clear option\&.
+.PP
+It must be freed by calling the \fIfree\fP method\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory tagged with the
+struct name\&.
+.PP
+.RS -4n
+\fBdescribe\fR (::cffi::Struct)
+.RE
+.PP
+Returns a human-readable description of the C struct definition\&.
+.RS 4n\fBOBJECT describe\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+This is primarily for debugging and troubleshooting purposes\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a human-readable description of the C struct definition\&.
+.PP
+.RS -4n
+\fBfieldpointer\fR (::cffi::Struct)
+.RE
+.PP
+Returns a pointer corresponding to the address of a field within a
+native structure
+.RS 4n\fBOBJECT fieldpointer\fP \fIpointer fieldname ?tag? ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+.TP
+fieldname
+Name of the field\&.
+.TP
+tag
+Tag for the returned pointer\&. Optional, default ""\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Note the returned pointer is not registered as a safe pointer\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a pointer corresponding to the address of a field within a
+native structure
+.PP
+.RS -4n
+\fBfree\fR (::cffi::Struct)
+.RE
+.PP
+Frees memory that was allocated for a native C struct\&.
+.RS 4n\fBOBJECT free\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+A pointer returned by \fIallocate\fP
+.RE
+.PP
+.RS -4n
+\fBfrombinary\fR (::cffi::Struct)
+.RE
+.PP
+Decodes a Tcl binary string containing a native C struct into
+a Tcl dictionary\&.
+.RS 4n\fBOBJECT frombinary\fP \fIbin_value\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+bin_value
+A Tcl binary value containing the C struct\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the dictionary representation\&.
+.PP
+.RS -4n
+\fBfromnative\fR (::cffi::Struct)
+.RE
+.PP
+Decodes native C struct(s) in memory into a Tcl dictionary\&.
+.RS 4n\fBOBJECT fromnative\fP \fIpointer ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to the C struct or array of structs in memory\&.
+.TP
+index
+The index position at which the struct is to be written\&. Note this interpreted as an \fBindex\fP into an array of structs, not as a byte offset into memory\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The decoded dictionary or dictionaries are keyed by the field
+names of the struct\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary of the decoded struct\&.
+.PP
+\fBSee also\fR
+.PP
+\fIfromnative!\fP, \fItonative\fP, \fIfrombinary\fP
+.PP
+.RS -4n
+\fBfromnative!\fR (::cffi::Struct)
+.RE
+.PP
+Decodes native C struct(s) in memory into a Tcl dictionary\&.
+.RS 4n\fBOBJECT fromnative!\fP \fIpointer ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Unsafe pointer to the C struct or array of structs in memory\&.
+.TP
+index
+The index position at which the struct is to be written\&. Note this interpreted as an \fBindex\fP into an array of structs, not as a byte offset into memory\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The decoded dictionary or dictionaries are keyed by the field
+names of the struct\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary of the decoded struct\&.
+.PP
+\fBSee also\fR
+.PP
+\fIfromnative\fP, \fItonative\fP, \fIfrombinary\fP
+.PP
+.RS -4n
+\fBgetnative\fR (::cffi::Struct)
+.RE
+.PP
+Returns the value of a field in a native structure in memory
+.RS 4n\fBOBJECT getnative\fP \fIpointer fieldname ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+.TP
+fieldname
+Name of the field\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+In the case of fields of type pointer, the returned pointer is registered
+as a safe pointer unless the field was marked with the unsafe annotation\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the value of a field in a native structure in memory
+.PP
+.RS -4n
+\fBgetnativefields\fR (::cffi::Struct)
+.RE
+.PP
+Retrieve values of multiple fields from a native struct in memory\&.
+.RS 4n\fBOBJECT getnativefields\fP \fIpointer fieldnames ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+.TP
+fieldnames
+List of field names\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of field values in the same order as \fI$fieldnames\fP
+.PP
+.RS -4n
+\fBinfo\fR (::cffi::Struct)
+.RE
+.PP
+Returns a dictionary containing information about the struct layout
+.RS 4n\fBOBJECT info\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary has the following fields:
+.RS 4n
+.TP
+Size
+Size of the struct\&.
+.TP
+Alignment
+Struct alignment\&.
+.TP
+Fields
+Dictionary of fields keyed by field name\&. The value is another nested dictionary with keys \fISize\fP, \fIOffset\fP, and \fIDefinition\fP containing the size, offset in struct, and type definition of the field\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary containing information about the struct layout
+.PP
+.RS -4n
+\fBname\fR (::cffi::Struct)
+.RE
+.PP
+Returns the name of the struct\&.
+.RS 4n\fBOBJECT name\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+Note the name of the struct is different from the name of
+the object name\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the name of the struct\&.
+.PP
+.RS -4n
+\fBnew\fR (::cffi::Struct)
+.RE
+.PP
+Allocates and initializes a native struct in memory\&.
+.RS 4n\fBOBJECT new\fP \fI?initval?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+initval
+Initial value for the struct as a dictionary mapping field names to values\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+If no argument is supplied or fields are missing, defaults from the
+struct definition are used for initialization\&. An error is raised
+if any fields are not defaulted\&.
+.PP
+The allocated memory must be freed by calling the \fIfree\fP method for the
+struct\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory tagged with the
+struct name\&.
+.PP
+.RS -4n
+\fBsetnative\fR (::cffi::Struct)
+.RE
+.PP
+Sets the value of a field in a native structure in memory
+.RS 4n\fBOBJECT setnative\fP \fIpointer fieldname value ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+.TP
+fieldname
+Name of the field\&.
+.TP
+value
+Value to store in the field\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+.RS -4n
+\fBtobinary\fR (::cffi::Struct)
+.RE
+.PP
+Encodes the Tcl representation of a C struct value into a
+Tcl binary string\&.
+.RS 4n\fBOBJECT tobinary\fP \fIdict_value\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+dict_value
+A Tcl dictionary representation of a C struct value\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the binary string containing the native C struct\&.
+.PP
+.RS -4n
+\fBtonative\fR (::cffi::Struct)
+.RE
+.PP
+Writes the Tcl dictionary representation of a C struct value to memory
+in native form\&.
+.RS 4n\fBOBJECT tonative\fP \fIpointer initializer ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
+.TP
+initializer
+The Tcl dictionary value\&.
+.TP
+index
+The index position at which the struct is to be written\&. Note this interpreted as an \fBindex\fP into an array of structs, not as a byte offset into memory\&. Optional, default 0\&.
+.RE
+.PP
+\fBSee also\fR
+.PP
+\fIfromnative\fP, \fItobinary\fP
+.PP
+.RS -4n
+\fBWrapper\fR (::cffi)
+.RE
+.PP
+\fBMethod summary\fR
+.RS 4n
+.TP
+constructor
+Constructor for the class\&.
+.TP
+destructor
+Destructor for the class\&.
+.TP
+addressof
+Returns the address of a symbol from the loaded library\&.
+.TP
+function
+Creates a Tcl command to invoke a C function in the loaded library\&.
+.TP
+functions
+Creates Tcl commands for multiple C functions within the loaded library\&.
+.TP
+path
+Returns the file system path for the wrapped library or image wrapped by the object\&.
+.TP
+stdcall
+Creates a Tcl command to invoke a C function that uses the __stdcall calling convention from the loaded library\&.\&.
+.TP
+stdcalls
+Creates Tcl commands for multiple C functions within the loaded library that all use the __stdcall calling convention\&.
+.RE
+.PP
+.RS -4n
+\fBconstructor\fR (::cffi::Wrapper)
+.RE
+.PP
+Wraps a shared library / DLL, loading it in the process\&.
+.RS 4n\fBWrapper create OBJNAME\fP \fIpath\fP
+.br
+\fBWrapper new\fP \fIpath\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+path
+Path to the shared library\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+It is strongly recommended that the path to the shared library be
+specified as an absolute path\&. Otherwise, it is located in a
+system-specific manner involving operating system version, environment
+variables, registry settings (on Windows), phase of the moon etc\&.\&.
+This is not advisable for both reliability and security reasons\&.
+.PP
+When no longer needed, the object can be deleted in the usual manner
+(via rename to an empty string) or by invoking its destroy method\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the name of the created object\&.
+.PP
+.RS -4n
+\fBdestructor\fR (::cffi::Wrapper)
+.RE
+.PP
+Destroys the object and releases internal resources\&.
+.RS 4n\fBOBJECT destroy\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The managed library may be unloaded if there is nothing else
+holding a reference to it\&.
+.PP
+.RS -4n
+\fBaddressof\fR (::cffi::Wrapper)
+.RE
+.PP
+Returns the address of a symbol from the loaded library\&.
+.RS 4n\fBOBJECT addressof\fP \fIsymbol\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+symbol
+Name of the symbol\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command will raise an error if the symbol is not found\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the address of a symbol from the loaded library\&.
+.PP
+.RS -4n
+\fBfunction\fR (::cffi::Wrapper)
+.RE
+.PP
+Creates a Tcl command to invoke a C function in the loaded library\&.
+.RS 4n\fBOBJECT function\fP \fIfnname fntype parameters\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+fnname
+Name of the function and optionally, Tcl command\&.
+.TP
+fntype
+The type definition for the return value from the function\&.
+.TP
+parameters
+List of alternating parameter name and type definitions\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command creates a Tcl command corresponding to a C function
+contained in the library\&. The function must be one that follows the
+default C calling convention (See \fICalling conventions\fP)\&.
+.PP
+The \fI$fnname\fP argument is a one or two element list, the first being the
+name of the C function and the second, if present, being the name of
+the corresponding Tcl command\&. The latter defaults to the former if
+unspecified\&. Unless fully qualified, the command is created in the
+namespace from which it is called\&.
+.PP
+The return type of the C function is specified through the \fI$fntype\fP
+argument which should be a \fItype declaration\fP\&.
+.PP
+The \fI$parameters\fP argument is a list of alternating parameter names and
+type declarations that describe the parameters of the C
+function\&. The parameter name is only used to construct error messages
+while the latter determines how arguments are converted and passed to
+the C function\&.
+.PP
+The return type as well as parameter type declarations may have
+annotations that control semantics and behavior with respect to
+how values are passed and converted between Tcl and C\&. See
+\fIFunctions\fP for details of these\&.
+.PP
+The command will raise an error if the function identified by
+\fI$cname\fP is not found in the loaded DLL\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the name of the created Tcl command\&.
+.PP
+.RS -4n
+\fBfunctions\fR (::cffi::Wrapper)
+.RE
+.PP
+Creates Tcl commands for multiple C functions within the loaded library\&.
+.RS 4n\fBOBJECT functions\fP \fIfnlist\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+fnlist
+List of function definitions\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+This is a wrapper around the \fIfunction\fP method that provides some
+syntactic sugar for defining multiple functions\&. The \fI$fnlist\fP
+argument is a flat (not nested) list of function name, return type and
+parameter list in the same form as described for the \fIfunction\fP
+method\&.
+.PP
+.RS -4n
+\fBpath\fR (::cffi::Wrapper)
+.RE
+.PP
+Returns the file system path for the wrapped library or image wrapped
+by the object\&.
+.RS 4n\fBOBJECT path\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned path may be or may not be normalized and may be
+in native form or Tcl's canonical form\&. If no path argument
+was provided to the constructor, an empty string may be returned
+on some platforms\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the file system path for the wrapped library or image wrapped
+by the object\&.
+.PP
+.RS -4n
+\fBstdcall\fR (::cffi::Wrapper)
+.RE
+.PP
+Creates a Tcl command to invoke a C function that uses the
+__stdcall calling convention from the loaded library\&.\&.
+.RS 4n\fBOBJECT stdcall\fP \fIfnname fntype parameters\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+fnname
+Name of the function and optionally, Tcl command\&.
+.TP
+fntype
+The type definition for the return value from the function\&.
+.TP
+parameters
+List of alternating parameter name and type definitions\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command creates a Tcl command corresponding to a C function
+contained in the library\&. The function must be one that follows the
+__stdcall calling convention (See \fICalling conventions\fP)\&. The only
+platform where this differs from the C calling convention is
+32-bit Windows\&. On other platforms, this method is a synonym for
+\fIfunction\fP\&.
+.PP
+See \fIfunction\fP for other details\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the name of the created Tcl command\&.
+.PP
+.RS -4n
+\fBstdcalls\fR (::cffi::Wrapper)
+.RE
+.PP
+Creates Tcl commands for multiple C functions within the loaded library
+that all use the __stdcall calling convention\&.
+.RS 4n\fBOBJECT stdcalls\fP \fIfnlist\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+fnlist
+List of function definitions\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+This is a wrapper around the \fIstdcall\fP method that provides some
+syntactic sugar for defining multiple functions\&. The \fI$fnlist\fP
+argument is a flat (not nested) list of function name, return type and
+parameter list in the same form as described for the \fIstdcall\fP
+method\&.
+

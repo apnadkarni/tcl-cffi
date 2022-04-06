@@ -1,0 +1,779 @@
+'\"
+'\" '\" Copyright (c) Ashok P\&. Nadkarni
+'\"
+.TH "cffi" 3tcl 1\&.0\&.7 "cffi" "Tcl CFFI package"
+.SH NAME
+Introduction - Tcl CFFI package
+.SH "GETTING STARTED"
+.PP
+This package implements a \fIforeign function interface\fP (FFI) for Tcl\&.
+.SH OVERVIEW
+.PP
+A FFI provides the ability for Tcl to invoke, with some limitations,
+arbitrary functions from any dynamically linked shared library without
+having to write C code\&.
+.PP
+Calling a C function from a shared library (or DLL, using the term
+interchangeably) using cffi involves
+.TP
+\(bu
+Loading the library into the process by instantiating a \fI::cffi::Wrapper\fP object\&.
+.TP
+\(bu
+Defining commands that wrap the C functions of interest through method calls on the \fIWrapper\fP object\&.
+.TP
+\(bu
+Invoking the wrapped commands as any other Tcl commands\&.
+.PP
+This page provides an introduction to the package\&. Details are described
+in
+.RS 4n
+.TP
+\fIConcepts\fP
+Describes CFFI functionality\&.
+.TP
+\fICookbook\fP
+Provides recipes for converting C declarations to CFFI declarations\&.
+.TP
+\fI::cffi\fP
+Reference documentation for commands in the ::cffi namespace\&.
+.RE
+.PP
+Some tutorial material is available at \fImagicsplat\fP [URL: https://www\&.magicsplat\&.com/blog/tags/cffi/]
+and the \fIexamples\fP [URL: https://github\&.com/apnadkarni/tcl-cffi/tree/main/examples]
+directory in the repository\&.
+.SH DOWNLOADS
+.PP
+Source distributions and binaries for some platforms are available from
+[URL: https://sourceforge\&.net/projects/magicsplat/files/cffi]\&.
+.SH INSTALLATION
+.PP
+Binary distributions can be extracted into any directory present in
+Tcl's auto_path variable\&.
+.PP
+For instructions on building and installing from source, see the BUILD\&.md
+file in the source distribution\&. The package can be built with one of two
+back end libraries that implement FFI functionality:
+.TP
+\(bu
+\fIlibffi\fP [URL: http://sourceware\&.org/libffi/]
+.TP
+\(bu
+\fIdyncall\fP [URL: https://dyncall\&.org]
+.PP
+The selection of the back end library to use is made at build time as described
+in the build instructions\&. Note the dyncall backend has some
+\fIlimitations\fP compared to libffi\&.
+.SH "QUICK START"
+.PP
+The following examples illustrate basic usage of the package\&. Most examples
+use Windows as they have standard system libraries in known locations\&. The
+usage is identical on other platforms\&.
+.SS "BASIC CALLS"
+.PP
+After loading the package, the user32 system DLL which contains the
+functions of interest is loaded\&.
+.PP
+.RS 4n
+.nf
+% package require cffi
+1\&.0b4
+% cffi::Wrapper create user32 [file join $env(windir) system32 user32\&.dll]
+::user32
+.fi
+.RE
+.PP
+This creates a shared library object that can then be used for defining
+functions implemented within the library\&. It is recommended to always pass a
+full path to the shared library though that is not strictly required\&.
+.PP
+The next step is to define the prototype for the function to get a handle
+to the desktop window\&. In C, this would look like
+.PP
+.RS 4n
+.nf
+HWND GetDesktopWindow();
+.fi
+.RE
+.PP
+where HWND is actually a C pointer typedef\&.
+.PP
+To call this function from Tcl we first have to define a wrapper for it\&.
+Wrappers can be defined with either the \fIfunction\fP
+or \fIstdcall\fP methods on the shared library object
+that implements the function\&. The two commands are identical on all
+platforms except 32-bit Windows where function is used to call
+functions that use the C calling convention while stdcall is used to call
+functions using the stdcall calling convention\&. On all other platforms,
+including 64-bit Windows, the two are identical\&. Since we are demonstrating
+using Windows, the stdcall command is used in some of the examples\&.
+.PP
+The prototype for the above Windows function can then be defined as:
+.PP
+.RS 4n
+.nf
+% user32 stdcall GetDesktopWindow pointer\&.HWND {}
+.fi
+.RE
+.PP
+The last argument is the parameter list which in this case is empty\&.
+The pointer\&.HWND return value is a tagged pointer\&. As
+illustrated later, pointer tags help in type safety\&. The definition could
+have as well just typed it as pointer which would be the equivalent of
+void* in C but that would lose the ability to check types\&.
+.PP
+The C function can be called as any other Tcl command\&.
+.PP
+.RS 4n
+.nf
+% set win [GetDesktopWindow]
+0x0000000000010010^HWND
+.fi
+.RE
+.PP
+Note how the return pointer value is tagged as HWND\&.
+.SS STRUCTURES
+.PP
+To retrieve the dimensions of this window we need to call the
+GetWindowRect function from the same library\&. This has a slightly
+more complex prototype\&.
+.PP
+.RS 4n
+.nf
+int GetWindowRect(HWND hWnd, RECT *lpRect);
+.fi
+.RE
+.PP
+In particular, the window dimensions are returned in a RECT structure
+whose address is passed in to the function\&. We thus need to first define a
+corresponding structure\&.
+.PP
+.RS 4n
+.nf
+% cffi::Struct create RECT {left int top int right int bottom int}
+::RECT
+.fi
+.RE
+.PP
+A structure is defined simply by a list of alternating field names and
+types of which int is one of several numeric types available\&. The result
+is a Struct object which can be used in function declarations, memory
+allocations and other places\&.
+.PP
+The GetWindowRect function is wrapped using this struct definition\&.
+.PP
+.RS 4n
+.nf
+% user32 stdcall GetWindowRect int {hwnd pointer\&.HWND rect {struct\&.RECT out}}
+.fi
+.RE
+.PP
+The parameter list for a function follows the same form as for structs,
+an alternating list of parameter names and type declarations\&.
+.PP
+Note how the type for the second parameter, rect, is specified\&. In
+general, type declarations consist of a type optionally followed by a list
+of annotations that serve multiple purposes\&. In this case struct\&.RECT
+specifies the data type while out is an annotation that indicates it is an
+output parameter for the function and thus to be passed by reference\&. At the
+script level, the parameter must then be a \fBvariable name\fP, and not a
+\fBvalue\fP, into which the output can be stored\&.
+.PP
+The function is called as:
+.PP
+.RS 4n
+.nf
+% GetWindowRect $win dimensions
+1
+% set dimensions
+left 0 top 0 right 1920 bottom 1080
+.fi
+.RE
+.PP
+As seen above, struct values are automatically decoded into dictionaries
+with keys corresponding to struct field names\&. We could
+have also selected to receive structs as binary values in their native
+form as shown further on\&.
+.SS "STRINGS AND BINARIES"
+.PP
+The char * type in C is more often than not used for null-terminated
+strings\&. These may be dealt with in the same fashion as pointers at the
+script level as discussed in \fIPointers\fP\&. However, in most
+cases it is more convenient to use the string and chars types\&. The
+difference between the two is that the former corresponds to a C
+char * pointer while the latter corresponds to a C char[N] array\&.
+When passed to a function, of course both are passed as char * pointers
+but the latter is more convenient for output buffers where the parameter
+corresponds to a output buffer of some maximum size\&. The former on the
+other hand is convenient for input parameters where the size is of no
+concern\&.
+.PP
+The following fragment illustrates their use\&.
+.PP
+.RS 4n
+.nf
+% cffi::Wrapper create kernel kernel32\&.dll
+::kernel
+% kernel stdcalls {
+    GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
+    SetCurrentDirectoryA uint {path string}
+}
+.fi
+.RE
+.PP
+In the above declaration the path argument is declared as an array
+whose size is given by another parameter nchars instead of an integer
+constant\&. This makes for fewer errors in calling C functions which expect
+a size and pointer combination of parameters where a larger size than
+the declared array size may be mistakenly passed\&.
+.PP
+The above functions can then be simply invoked\&.
+.PP
+.RS 4n
+.nf
+% GetCurrentDirectoryA 512 buffer
+40
+% set buffer
+D:\\src\\tcl-cffi\\win\\Release_AMD64_VC1916
+% SetCurrentDirectoryA d:/temp
+1
+% pwd
+D:/Temp
+% SetCurrentDirectoryA $buffer
+1
+% pwd
+D:/src/tcl-cffi/win/Release_AMD64_VC1916
+.fi
+.RE
+.PP
+In the above examples, the strings in all cases are encoded in the system
+encoding before being passed to the C function\&. Similarly, the output
+buffers returned by the C function are assumed to be in system encoding
+and translated into Tcl's internal form accordingly\&. Both string and
+chars can be tagged with an encoding name\&. For example, if the functions
+were defined using string\&.jis0208 or chars[512]\&.jis0208, the JIS0208
+encoding would be used to transform the strings in both directions\&.
+.PP
+The package has other related types that serve a similar purpose\&.
+.TP
+\(bu
+The unistring and unichars type are analogous to string and chars except they assume the encoding is that of the Tcl_UniChar C type and have all sizes specified in Tcl_UniChar units as opposed to chars/bytes\&. This is primarily useful on Windows\&.
+.TP
+\(bu
+The binary and bytes types are again analogous except they assume binary data (Tcl byte array at the C level)\&.
+.SS "ERROR CHECKING"
+.PP
+C functions indicate errors primarily through their return values\&. In
+some cases, the return value is the error code while in others it
+is only a boolean status indicator with
+detail being available either through another function such as
+GetLastError on Windows or a global variable such as errno\&.
+.PP
+Here is an attempt to change to a non-existing directory\&.
+.PP
+.RS 4n
+.nf
+% SetCurrentDirectoryA "nosuchdir"
+0
+.fi
+.RE
+.PP
+The return value of 0 here indicates failure\&. The caller must then
+specifically check for errors\&. Moreover, if the return value does not
+actually indicate cause of error, another call has to be made to
+GetLastError etc\&.\&. This has multiple issues:
+.TP
+\(bu
+first, caller has to specifically check for errors,
+.TP
+\(bu
+second, and more important, by the time a secondary call is made to retrieve errno etc\&. the originally error is likely to have been overwritten\&.
+.PP
+To deal with the first, a return type can be annotated with
+conditions that specify expected return values\&. Since
+SetCurrentDirectory returns a non-zero value on success, the function
+return type may be annotated with nonzero\&. Our previous definition of
+SetCurrentDirectoryA can instead be written as
+.PP
+.RS 4n
+.nf
+% kernel stdcall SetCurrentDirectoryA {int nonzero} {path string}
+.fi
+.RE
+.PP
+Passing a non-existing directory will then raise an error exception\&.
+.PP
+.RS 4n
+.nf
+% SetCurrentDirectoryA "nosuchdir"
+Invalid value "0"\&. Function returned an error value\&.
+.fi
+.RE
+.PP
+Note however, that the error message is generic and only indicates
+the function return value did not meet the expected success criterion\&.
+To fix this, the function definition can include an annotation
+for an error retrieval mechanism:
+.PP
+.RS 4n
+.nf
+% kernel stdcall SetCurrentDirectoryA {int nonzero lasterror} {path string}
+% SetCurrentDirectoryA "nosuchdir"
+The system cannot find the file specified\&.
+% set errorCode
+cffi WINERROR {The system cannot find the file specified\&. }
+.fi
+.RE
+.PP
+With the inclusion lasterror in the type declaration, the error message is much
+clearer\&. This also eliminates the second issue mentioned above with the
+error detail being lost before the function to retrieve it is called\&.
+.PP
+While lasterror implies GetLastError as the retrieval
+mechanism and is specific to Windows, other annotations for error retrieval
+are also available\&. For example, the errno annotation serves a similar
+purpose except it retrieves the error based on the errno facility which
+is cross-platform and commonly applicable to both the C runtime as well
+as system calls on Unix\&.
+.PP
+For cases where the error is library-specific and not derived from the system,
+the onerror annotation can be used to customize the handling of error
+conditions\&. See the \fIexamples\fP [URL: https://github\&.com/apnadkarni/tcl-cffi/tree/main/examples] in the source repository\&.
+.SS "DELEGATING RETURN VALUES"
+.PP
+When a function's return value is used primarily as a status indicator with
+the actual result being returned through an output parameter, it can be
+more convenient to return the output parameter value as the result of the
+wrapped command\&. For example, consider the earlier definition of
+GetCurrentDirectoryA
+.PP
+.RS 4n
+.nf
+kernel stdcall GetCurrentDirectoryA uint {nchars int path {chars[nchars] out}}
+.fi
+.RE
+.PP
+This was in turn invoked as
+.PP
+.RS 4n
+.nf
+% GetCurrentDirectoryA 512 buffer
+40
+% set buffer
+D:\\src\\tcl-cffi\\win\\Release_AMD64_VC1916
+.fi
+.RE
+.PP
+The return value from the function, the number of characters, is not very
+useful at the Tcl level except to indicate errors when zero\&. We can instead
+have the wrapped command return the actual path as the return value by
+annotating the buffer with retval\&.
+.PP
+.RS 4n
+.nf
+% kernel stdcall GetCurrentDirectoryA {int nonzero} {nchars {int {default 512}} path {chars[nchars] retval}}
+::GetCurrentDirectoryA
+% GetCurrentDirectoryA
+D:\\src\\tcl-cffi\\win\\Release_AMD64_VC1916
+.fi
+.RE
+.PP
+The invocation now feels more natural\&. In addition to the retval
+annotation for the parameter, the nonzero error checking annotation
+was added to the function return value\&. An error checking annotation
+is required for use of retval\&.
+.PP
+The default annotation is not required but is a convenience so
+we do not have to specify a buffer size at the call site\&.
+.SS "POINTERS AND MEMORY"
+.PP
+Pointers are ubiquitous in C\&. They give C much of its power while also being
+the source of many bugs\&. In many cases, pointers can be avoided through the
+use of the out parameters and struct, string and binary types that
+use pointers under the covers\&. Many times though, this is not possible or
+desirable and raw access to the native storage of the data is needed\&. The
+pointer type provides this access while also attempting to guard against
+some common errors through multiple mechanisms:
+.TP
+\(bu
+Pointers can be optionally tagged so a pointer to the wrong resource type is not inadvertently passed where a different one is expected\&.
+.TP
+\(bu
+Pointers are marked as \fIsafe\fP by default when returned from a function\&. Safe pointers are registered in an internal table which is checked whenever a pointer is accessed\&. It is sometimes necessary to bypass this check and the unsafe attribute is provided for the purpose\&.
+.TP
+\(bu
+Null pointers passed as parameters or returned from functions will raise a Tcl exception by default\&. The nullok annotation provides for cases where NULL pointers can be legitimately used\&.
+.PP
+Note a pointer tag is \fBnot\fP the same as a data type\&. For example, you may
+have a single C structure type XY containing two numerical fields\&. You can
+choose to tag pointers to the structure with two different tags, Point and
+Dimensions depending on whether it is used as co-ordinates of a point or
+as width and height dimensions\&. The two tags will be treated as different\&.
+.PP
+The examples below repeat the previous ones, but this time using pointers
+in place of structs and strings\&.
+.PP
+First, define the call to GetWindowRect using pointers\&. Note we are renaming
+the function as GetWindowRectAsPointer so as to distinguish from our previous
+definition\&.
+.PP
+.RS 4n
+.nf
+% user32 stdcall {GetWindowRect GetWindowRectAsPointer} int {hwnd pointer\&.HWND rect pointer\&.RECT}
+.fi
+.RE
+.PP
+Since the pointer value itself is passed by value, notice the rect parameter
+in the function definition was \fBnot\fP marked as an out parameter and was
+passed as a value in the actual call itself\&.
+.PP
+Unlike the case with the struct type, memory to hold the structure has now to be
+explicitly allocated because we are passing raw pointers\&.
+.PP
+.RS 4n
+.nf
+% set prect [RECT allocate]
+0x00000274be29a510^RECT
+% GetWindowRectAsPointer $win $prect
+1
+.fi
+.RE
+.PP
+Finally, the structure contents can be extracted\&.
+.PP
+.RS 4n
+.nf
+% RECT fromnative $prect
+left 0 top 0 right 1920 bottom 1080
+.fi
+.RE
+.PP
+It is not even strictly necessary to even define a structure at all\&. Below
+is yet another way to get dimensions without making use of the RECT
+struct and using direct memory allocation\&.
+.PP
+.RS 4n
+.nf
+% set praw [cffi::memory allocate 16 RECT]
+0x000001E53EAB8F90^RECT
+% GetWindowRectAsPointer $win $praw
+1
+% binary scan [cffi::memory tobinary $praw 16] iiii left top right bottom
+4
+% puts [list $left $top $right $bottom]
+0 0 1920 1080
+% cffi::memory free $praw
+.fi
+.RE
+.PP
+In the above fragment, cffi::memory allocate is used to allocate memory
+tagged as RECT\&. Note that this does \fBnot\fP require that the \fBstruct\fP
+RECT have been previously defined\&. The cffi::memory tobinary command
+is then used to convert the allocated memory content to a Tcl binary string\&.
+.PP
+The use of struct definitions is to be preferred to this raw memory access
+for convenience and safety reasons\&. Still, there are cases, for example
+variable length structures in memory, where this is required\&.
+.PP
+As an example of the protection against errors offered by pointer tags,
+here is an attempt to retrieve the window dimensions where the arguments
+are passed in the wrong order\&.
+.PP
+.RS 4n
+.nf
+% GetWindowRect $prect $win
+Value "0x000001E53EA3BEB0^RECT" has the wrong type\&. Pointer type mismatch\&.
+.fi
+.RE
+.PP
+While tags offer protection against type mismatches, another mechanism
+guards against invalid pointers and double frees\&. For example, attempting to
+free memory that we already freed above results in an error being raised\&.
+.PP
+.RS 4n
+.nf
+% cffi::memory free $praw
+Pointer 000001E53EAB8F90^ is not registered\&.
+.fi
+.RE
+.PP
+Similarly, explicitly allocated struct storage needs to be freed\&.
+Attempting to free multiple times will raise an error\&. The first
+call below succeeds but the second fails\&.
+.PP
+.RS 4n
+.nf
+% RECT free $prect
+% RECT free $prect
+Pointer 000001E53EA3BEB0^ of type RECT is not registered\&.
+.fi
+.RE
+.PP
+Needless to say, these protection mechanisms are far from foolproof\&.
+.PP
+The above mechanism for detecting invalid pointers can clearly work for
+memory allocated through the package where it can be internally tracked\&. But
+what about allocations done through calls to loaded shared libraries? For
+this, the package treats any pointer returned from a function or through an
+output parameter as a valid pointer and registers it internally\&. Any
+pointers that are passed as input to a function are by default checked to
+ensure they were previously registered and an error raised otherwise\&. The
+question then remains as to how and when the pointer is marked as invalid\&.
+The dispose type attribute is provided for this purpose\&.
+.PP
+The following Windows calls to allocate heaps illustrate the use\&.
+The C functions are prototyped as
+.PP
+.RS 4n
+.nf
+HANDLE HeapCreate(DWORD  flOptions, SIZE_T dwInitialSize, SIZE_T dwMaximumSize);
+BOOL HeapDestroy(HANDLE hHeap);
+.fi
+.RE
+.PP
+The above C prototypes use Windows type definitions\&. Rather than translate
+them into appropriate (32- or 64-bit) native C types, the \fI::cffi::alias define\fP
+command, detailed later, allows platform-specific type definitions to be
+predefined\&.
+.PP
+.RS 4n
+.nf
+cffi::alias load win32
+.fi
+.RE
+.PP
+On Windows, this will define common types like DWORD etc\&. so the
+above functions can be wrapped as
+.PP
+.RS 4n
+.nf
+kernel stdcall HeapCreate pointer\&.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
+kernel stdcall HeapDestroy {BOOL nonzero lasterror} {heapPtr {pointer\&.HEAP dispose}}
+.fi
+.RE
+.PP
+The pointer value returned from HeapCreate is by default registered as a valid
+pointer\&. When the pointer is passed to HeapDestroy, it is first validated\&.
+The presence of the dispose attribute will then remove its registration
+causing any further attempts to use it, for example even to free it, to fail\&.
+.PP
+.RS 4n
+.nf
+% set p [HeapCreate 0 1024 1024]
+0x00000274c0b50000^HEAP
+% HeapDestroy $p
+1
+% HeapDestroy $p
+Pointer 0x00000274c0b50000^HEAP is not registered\&.
+.fi
+.RE
+.PP
+Here is another example, this time
+from Linux\&. Note the tag SOMETHING, chosen to reinforce that tags
+have no semantics in terms of
+the actual type that the pointer references\&. A tag of FILE would have
+of course been more reflective of the referenced type, but this is not
+mandated\&.
+.PP
+.RS 4n
+.nf
+% cffi::Wrapper create libc libc\&.so\&.6
+::libc
+% libc function fopen {pointer\&.SOMETHING errno} {path string mode string}
+% libc function fclose int {file {pointer\&.SOMETHING dispose}}
+% set fileptr [fopen test\&.txt w]
+0x55a273bf32e0^SOMETHING
+% fclose $fileptr
+0
+% fclose $fileptr
+Pointer 0x55a273bf32e0^SOMETHING is not registered\&.
+.fi
+.RE
+.PP
+As an aside, note the use of the errno annotation above\&. An attempt
+to open a non-existent file for reading will return a NULL pointer which
+by default causes cffi to raise an exception\&. The errno annotation
+retrieves the system error for a more readable error message\&.
+.PP
+.RS 4n
+.nf
+% set fileptr [fopen nosuchfile\&.txt r]
+No such file or directory
+.fi
+.RE
+.PP
+There are a couple of situations where the pointer registration mechanism
+is a hindrance\&.
+.TP
+\(bu
+One is when the pointer is acquired by some means other than through a call made through this package\&.
+.TP
+\(bu
+Another case is when the pointer is to a resource that is reference counted and whose acquisition may return the same pointer value multiple times\&.
+.PP
+To deal with the first case, a pointer return type or parameter may have
+the unsafe attribute\&. This will result in bypassing of any pointer
+registration or checks\&. So for example, if the heap functions had been
+defined as below, multiple calls could be made to HeapDestroy\&.
+\fBNOTE: Do not actually try it as your shell will crash as Windows
+does not itself check pointer validity for HeapDestroy\&.\fP
+.PP
+.RS 4n
+.nf
+kernel stdcall HeapCreate {pointer\&.HEAP unsafe} {opts DWORD initSize SIZE_T maxSize SIZE_T}
+kernel stdcall HeapDestroy {BOOL nonzero lasterror} {heapPtr {pointer\&.HEAP unsafe}}
+.fi
+.RE
+.PP
+Note that unsafe pointers only bypass registration checks; the pointer
+tags are still verified if present\&.
+.PP
+The second case has to do with API calls like LoadLibrary which we can
+prototype as
+.PP
+.RS 4n
+.nf
+kernel stdcall LoadLibraryA pointer\&.HMODULE {path string}
+kernel stdcall FreeLibrary BOOL {libhandle {pointer\&.HMODULE dispose}}
+.fi
+.RE
+.PP
+When multiple calls are made to LoadLibraryA, it returns the \fIsame\fP pointer
+while keeping an internal reference count\&. The expectation is for the application
+to make the same number of calls to FreeLibrary\&. However, the following
+sequence of calls fails because the first call to FreeLibrary unregisters
+the pointer resulting in failure of the second call to FreeLibrary\&.
+.PP
+.RS 4n
+.nf
+% set libptr [LoadLibraryA advapi32\&.dll]
+0x00007ff8f4ba0000^::HMODULE
+% set libptr [LoadLibraryA advapi32\&.dll]
+0x00007ff8f4ba0000^::HMODULE
+% FreeLibrary $libptr
+1
+% FreeLibrary $libptr
+Pointer 0x00007ff8f4ba0000^::HMODULE is not registered\&.
+.fi
+.RE
+.PP
+The counted attribute is provided for this use case\&. When specified, the
+pointer is still registered but permits multiple registrations and a
+corresponding number of disposals\&. To illustrate,
+.PP
+.RS 4n
+.nf
+kernel stdcall LoadLibraryA {pointer\&.HMODULE counted} {path string}
+kernel stdcall FreeLibrary BOOL {libhandle {pointer\&.HMODULE dispose}}
+.fi
+.RE
+.PP
+Now multiple registrations are allowed which stay valid until
+a corresponding number of disposals are done\&. An additional attempt to
+free will fail as desired\&.
+.PP
+.RS 4n
+.nf
+% set libptr [LoadLibraryA advapi32\&.dll]
+0x00007FFDD0000000^HMODULE
+% set libptr2 [LoadLibraryA advapi32\&.dll]
+0x00007FFDD0000000^HMODULE
+% FreeLibrary $libptr
+1
+% FreeLibrary $libptr2
+1
+% FreeLibrary $libptr
+Pointer 00007FFDD0000000 of type HMODULE is not registered\&.
+.fi
+.RE
+.SS "TYPE ALIASES"
+.PP
+Type aliases are a convenience feature to avoid repetition and improve
+readability\&. They may be added with the \fI::cffi::alias define\fP command\&. As an
+example, consider our previous prototype for the SetCurrentDirectoryA
+function\&.
+.PP
+.RS 4n
+.nf
+kernel stdcall SetCurrentDirectoryA {int nonzero lasterror} {path string}
+.fi
+.RE
+.PP
+This return type declaration is very common for Windows API calls\&. Instead
+of repeating this triple for every such call, a new type can be defined for
+the purpose and used in all prototypes\&.
+.PP
+.RS 4n
+.nf
+cffi::alias define LASTERROR {int nonzero lasterror}
+kernel stdcall SetCurrentDirectoryA LASTERROR {path string}
+.fi
+.RE
+.PP
+This facility is also useful for abstracting platform differences\&. For
+example, many windows allocation functions use the C typedef SIZE_T
+which translates to either a 64-bit or 32-bit C integer type depending
+on whether the program was built for 32- or 64-bit Windows\&. Instead of
+defining separate prototypes for every function using the type, a single
+type definition can be used\&.
+.PP
+.RS 4n
+.nf
+if {$tcl_platform(pointerSize) == 8} {
+    cffi::alias define SIZE_T ulonglong
+} else {
+    cffi::alias define SIZE_T uint
+}
+kernel stdcalls {
+    HeapCreate pointer\&.HEAP {opts DWORD initSize SIZE_T maxSize SIZE_T}
+    HeapDestroy LASTERROR {heapPtr {pointer\&.HEAP dispose}}
+    HeapAlloc pointer {heapPtr pointer\&.HEAP flags uint size SIZE_T}
+}
+.fi
+.RE
+.PP
+As a further convenience, the \fI::cffi::alias load\fP command defines commonly
+useful typedefs including cross-platform ones such as size_t as well
+as platform-specific ones such as HANDLE, DWORD etc\&. on Windows\&.
+.SS "MEMORY UTILITIES"
+.PP
+There are times when an application is forced to drop down to raw C pointer
+and memory manipulation\&. The memory and pointer command ensembles implement
+functionality useful for this purpose\&. See the reference documentation for
+a description\&.
+.SS INTROSPECTION
+.PP
+The package includes a help command ensemble that is useful during
+interactive development\&. The \fI::cffi::help function\fP command describes
+the syntax for a command wrapping a C function\&.
+.PP
+.RS 4n
+.nf
+% cffi::help function GetWindowRect
+Syntax: GetWindowRect hwnd rect
+.fi
+.RE
+.PP
+The \fI::cffi::help functions\fP command lists wrapped functions matching a pattern\&.
+.PP
+.RS 4n
+.nf
+% cffi::help functions Heap*
+HeapCreate HeapDestroy
+.fi
+.RE
+.SS LIMITATIONS
+.PP
+The current version has the following limitations:
+.TP
+\(bu
+C functions with a variable number of arguments are not implemented\&.
+.PP
+In addition, the dyncall backend has the following additional limitations:
+.TP
+\(bu
+Structs can only be passed by reference, not value\&.
+.TP
+\(bu
+Callbacks into Tcl from C functions are not implemented\&.
+

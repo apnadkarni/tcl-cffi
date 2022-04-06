@@ -4,7 +4,7 @@
 namespace eval ${NS}::memory {
     proc allocate {sizespec {tag {}}} {
         # Allocates memory of the specified size
-        #  specsize - requested size of memory block. This may be specified
+        #  sizespec - requested size of memory block. This may be specified
         #   either as an integer value or a type specification.
         #  tag - Tag for the returned pointer.
         #

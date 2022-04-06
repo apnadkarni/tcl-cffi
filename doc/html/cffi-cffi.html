@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0b5)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0.7)</a>
 
 
             <div id="ruffButtonBar">
@@ -349,9 +349,8 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Allocates memory of the specified size</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>memory allocate</span> <span class='ruff_arg'>sizespec ?tag?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>sizespec</code></td><td>Not documented.</td></tr>
+<tr><td><code>sizespec</code></td><td>Requested size of memory block. This may be specified either as an integer value or a type specification.</td></tr>
 <tr><td><code>tag</code></td><td>Tag for the returned pointer. Optional, default <code>&quot;&quot;</code>.</td></tr>
-<tr><td><code>specsize</code></td><td>Requested size of memory block. This may be specified either as an integer value or a type specification.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>

@@ -1,0 +1,1407 @@
+'\"
+'\" '\" Copyright (c) Ashok P\&. Nadkarni
+'\"
+.TH "Cookbook" 3tcl 1\&.0\&.7 "cffi" "Tcl CFFI package"
+.SH NAME
+Cookbook - Commands in namespace Cookbook
+.SH COOKBOOK
+.PP
+While using CFFI to wrap a few ad-hoc functions is fairly
+straightforward, wrapping a large API into a complete package can be
+more involved as decisions how C types are translated to script level
+annotations\&. This page provides some recipes for mapping C declarations
+to CFFI declarations depending on the declaration context (parameter,
+struct field etc\&.)\&.
+.SH "DEFINING A FUNCTION"
+.PP
+A function definition consists of three components\&.
+.PP
+.RS 4n
+.nf
++------------------+ +-----------+ +--------------+
+|Calling convention+ +Return type+ +Parameter list|
++------------------+ +-----------+ +--------------+
+
+\fIFunction definition syntax\fP
+
+.fi
+.RE
+.PP
+Sections below detail definition of each\&.
+.SS "CALLING CONVENTION"
+.PP
+Check the header file or documentation of the function for the expected
+calling convention\&. Generally, this is only an issue if the application
+supports the 32-bit Windows platform\&. Note the function calling
+convention may be defined through a macro such as WINAPI etc\&. Most
+Windows OS API's are defined using the stdcall convention\&. The default C
+language calling convention is either unspecified or _cdecl in C
+header files\&. Most third party API's are defined using this convention\&.
+CFFI does not support any calling convention other than these two\&.
+.PP
+.RS 4n
+.nf
+LIB function RETURNTYPE PARAMLIST
+LIB stdcall RETURNTYPE PARAMLIST
+
+\fICalling convention syntax\fP
+
+.fi
+.RE
+.TP
+\(bu
+Define using stdcall if the function is defined on 32-bit Windows using __stdcall or its equivalent\&. Note on other platforms, including 64-bit Windows, this is treated as equivalent to function
+.TP
+\(bu
+Define using function otherwise after ensuring it does not use some other esoteric platform-specific convention (rare)\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+WINAPI DWORD GetCurrentProcessId(void);
+int getpid(void);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+KERNEL32 stdcall GetCurrentProcessId ulong {}
+LIBC function getpid int {}
+.fi
+.RE
+.PP
+Note WINAPI in the Windows SDK headers maps to __stdcall\&.
+.SS "RETURN TYPE DECLARATION"
+.PP
+\fBVoid returns\fR
+.PP
+.RS 4n
+.nf
+void
+
+\fISyntax for void return type\fP
+
+.fi
+.RE
+.PP
+The void return type does not permit any annotations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+void tzset(void)
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function tzset void {}
+.fi
+.RE
+.PP
+\fBInteger returns\fR
+.PP
+.RS 4n
+.nf
+           +-         +-      -+ -+ +-           +-                 -+ -+
+schar      | {enum E} | bitmask|  | | zero       | lasterror         |  |
+uchar      +-         +-      -+ -+ | nonzero    | winerror          |  |
+short                               | positive   | errno             |  |
+ushort                              | nonnegative| {onerror HANDLER} |  |
+int                                 +-           +-                 -+ -+
+uint
+long
+ulong
+longlong
+ulonglong
+
+\fISyntax for integer return types\fP
+
+.fi
+.RE
+.TP
+\(bu
+If the returned values are constrained to a set and a symbolic representation is preferred, optionally add the enum attribute with the enumeration defined as a literal or separately through the \fI::cffi::enum\fP command\&.
+.TP
+\(bu
+If a symbolic representation is preferred as above and the value is actually a bit mask, optionally add the bitmask attribute to have the value returned as a list of symbols from the enumeration\&.
+.TP
+\(bu
+If return values may indicate error conditions, add an error checking annotation like zero, nonzero etc\&.
+.TP
+\(bu
+If a error checking annotation is added and additional detail is available from the system, add lasterror, winerror or errno as appropriate\&. If error information is available through some other API, add the onerror handler\&. This may also be used to filter errors or convert error conditions to success\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int open(const char *pathname, int flags);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+XXX        LIBC open
+
+.fi
+.RE
+.PP
+\fBFloating point returns\fR
+.PP
+.RS 4n
+.nf
+float
+double
+
+\fISyntax for floating point return types\fP
+
+.fi
+.RE
+.PP
+Floating point types float and double do not permit any annotations
+on return type declarations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+double sin(double x);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBM function sin double {x double}
+.fi
+.RE
+.PP
+\fBPointer returns\fR
+.PP
+Pointer return values may be dealt with at the script level either as
+raw pointers or as implicitly dereferenced values\&.
+.TP
+\(bu
+Declare the function as returning a raw pointer if the returned pointers point to resources that have to be freeing at a later point\&. If typed as implicitly dereferenced values, the raw pointer will not be available for freeing\&.
+.TP
+\(bu
+Declare the function as returning an implicitly dereferenced value if the returned pointers point to some internal or static storage that does not need to be freed\&. An example is the strerror C runtime library function\&. Note that implicitly dereferenced types are a convenience; they may be typed as raw pointers instead while the reverse will likely produce memory leaks\&.
+.PP
+The type declarations for raw and implicitly dereferenced pointers are
+separately described below\&.
+.PP
+\fBRaw pointers\fR
+.PP
+.RS 4n
+.nf
+              +-      -+ +-                 -+
+pointer       | counted| | nullok            |
+pointer\&.TAG   | unsafe | | lasterror         |
+              +-      -+ | errno             |
+                         | {onerror HANDLER} |
+                         +-                 -+
+
+\fISyntax for raw pointer return type\fP
+
+.fi
+.RE
+.TP
+\(bu
+The TAG is optional but recommended wherever possible for additional \fItag-based\fP type checks\&. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command\&. This makes it convenient to access the referenced memory using the struct \fImethods\fP\&.
+.TP
+\(bu
+By default, pointers returned from functions are marked as \fIsafe pointers\fP\&. This is appropriate for unique pointers that are returned for allocated resources and are only valid until they are deallocated through a corresponding \fIfree\fP function\&. A variation is when the pointer returned is not unique as is the case for reference counted resources\&. In this case the pointer should be annotated as counted\&. For cases where neither of the above apply, for example there is no clear transfer of ownership or freeing, or pointers are internal to the API, there are two choices\&. First, it can be defaulted as a safe pointer\&. In this case, since there is no \fIfree\fP function, the \fI::cffi::pointer dispose\fP command must be called at the appropriate time by the application to unregister the pointer\&. Alternatively, the unsafe annotation can be added to the declaration\&. In this case, there is no need to unregister the pointer but it can only be used in places (arguments and struct fields) that also have the unsafe annotation\&. For more details on pointer management and safety, see \fIPointer safety\fP\&.
+.TP
+\(bu
+Irrespective of the pointer safety annotations, NULL pointers returned from functions will by default raise a generic \fIPointer is NULL\fP exception\&. As for integer return values, if additional information is available from the system or API, the type can be annoted with lasterror, errno or onerror\&. On the other hand, if a NULL pointer is a valid return value, the nullok annotation will suppress the exception and return a NULL pointer at the script level\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+void *malloc(size_t sz);
+FILE *fopen(const char *pathname, const char *mode);
+git_tree_entry *git_tree_entry_byname(git_tree *, const char *filename);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC malloc {pointer errno} {sz size_t}
+LIBC fopen {pointer\&.FILE errno} {pathname string mode string}
+LIBGIT git_tree_entry_byname {pointer\&.git_tree_entry unsafe} {
+    pTree {pointer\&.git_tree counted}
+    filename string
+    }
+.fi
+.RE
+.PP
+The unsafe and counted annotations on git_tree_entry_byname arise
+from the libgit2 API\&. The returned pointer is internal to libgit2 and
+hence marked as unsafe while git_tree structs are reference counted\&.
+.PP
+\fBImplicitly dereferenced pointers\fR
+.PP
+Raw pointers at script level, while as versatile as their C counterparts,
+are not as convenient to use as plain old values\&. Additional steps are
+needed to access the memory as script level values\&. Declaring pointer
+return types as implicitly dereferenced obviates the need for this
+additional step\&. As stated earlier, implicit dereferencing should only
+be done when there is no need for the pointer value itself for freeing
+later\&.
+.PP
+For types \fBother than pointers to character (or unicode) strings\fP, the
+CFFI declaration has the form
+.PP
+.RS 4n
+.nf
+          +-      -+
+TYPE byref| nullok |
+          +-      -+
+
+\fISyntax for implicitly dereferenced pointers\fP
+
+.fi
+.RE
+.PP
+where TYPE may be one of the numeric types or a STRUCT\&.
+The byref annotation on the return type declaration denotes that
+the function return value is nominally a pointer that references
+the true function result\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+struct git_oid *git_tree_oid(git_tree *pTree);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBGIT function git_tree_oid {struct\&.git_oid byref} {pTree pointer\&.git_tree}
+.fi
+.RE
+.PP
+A call to the git_tree_oid function will then return the git_oid
+struct (assumed defined previously with \fI::cffi::Struct\fP) in its
+script level dictionary form\&. The actual C level pointer is not
+accessible but not needed as it is internal to the git_tree and
+not to be freed or manipulated\&.
+.PP
+As for raw pointers, a null pointer return will raise an exception
+by default\&. The nullok annotation may suppress the exception in the
+case that TYPE is a struct with defaults defined for all fields
+(possibly with the -clear option)\&. In that the dictionary
+corresponding to a struct value with all fields defaulted is returned\&.
+For all other types and structs with at least one field without a
+default, an exception is raised irrespective of nullok\&.
+.PP
+For C pointers typed as char * which return pointers to character
+strings, the implicit dereference syntax is
+.PP
+.RS 4n
+.nf
+      +-      -+
+STRING| nullok |
+      +-      -+
+
+\fISyntax for character string return types\fP
+
+.fi
+.RE
+.PP
+The byref is not present because string and unistring are
+already implicit pointers,
+(string byref would correspond to char **, not char *)\&.
+An optional nullok annotation will cause a NULL pointer return
+to be mapped to the empty string instead of generating an exception\&.
+.PP
+Note that if STRING is string, an encoding identifier may be
+optionally attached, e\&.g\&. string\&.utf-8\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+const char *strerror(int);
+char *strstr(const char *haystack, const char *needle);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function strerror string {error_code int}
+LIBC function strstr {string nullok} {haystack string needle string}
+.fi
+.RE
+.PP
+Note the definition of strstr to return an empty string if the
+needle is not found instead of raising an exception\&.
+.PP
+\fBStruct returns\fR
+.PP
+.RS 4n
+.nf
+struct\&.STRUCT
+
+\fISyntax for struct return type\fP
+
+.fi
+.RE
+.PP
+A struct function return type does not permit any annotations\&.
+STRUCT must be a previously defined \fI::Struct\fP\&.
+Returning a struct by value is rarely seen in C API's\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+typedef struct {
+    int quot;
+    int rem;
+} div_t;
+div_t div (int numer, int denom);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+Struct create div_t {quot int rem int}
+LIBC function struct\&.div_t {numer int denom int}
+.fi
+.RE
+.SS "PARAMETER DECLARATION"
+.PP
+Parameters to a C function may be used to pass values to the function
+(input parameters), retrieve values from the function (output parameters),
+or (input-output parameters)\&.
+.PP
+Scalar values and structs that are passed by value are always input
+parameters\&. Input parameters may also be passed by reference via a pointer,
+generally with a const attribute to indicate the function does not
+modify the referenced value\&.
+.PP
+Output and input-output parameters are always passed to C function
+as pointers to a location where the value is stored\&. At the script level
+the argument is the name of the variable where the value is stored and
+not the value itself\&.
+.PP
+\fBInteger parameters\fR
+.PP
+\fBInteger input parameters\fR
+.PP
+.RS 4n
+.nf
+          +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
+schar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
+uchar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
+short                                                      |errno            |
+ushort                                                     |{onerror HANDLER}|
+int                                                        +-               -+
+uint
+long
+ulong
+longlong
+ulonglong
+
+\fISyntax for integer input parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
+.TP
+\(bu
+The byref annotation should be specified iff the value is being passed by reference, i\&.e\&. the function parameter is a pointer to the value (e\&.g\&. int * at the C level)\&. This is very rare for integer values that are input only\&. In either case, whether the byref parameter is present or not, the value at script level is still specified directly and not through a variable\&.
+.TP
+\(bu
+Add the enum annotation to pass \fIenumeration\fP symbolic values for readability purposes\&. Note integer values will still be accepted\&.
+.TP
+\(bu
+If the parameter holds a bit mask, add the bitmask annotation which allows the argument to be a list of integers which will be bitwise OR-ed to construct the value passed to the function\&. May be combined with enum to pass a list of symbols\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&.
+.TP
+\(bu
+Error handling annotations like errno may be present but are ignored\&. This is to permit the same aliases to be used in both return and parameter declarations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int SetHandleInformation(void * hObject, unsigned long dwMask, unsigned long dwFlags);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+cffi::enum define HANDLE_FLAGS {INHERIT 1 PROTECT_FROM_CLOSE 2}
+KERNEL32 stdcall SetHandleInformation {int nonzero lasterror} {
+    hObject pointer
+    dwMask {ulong {enum HANDLE_FLAGS} bitmask}
+    dwFlags {ulong {enum HANDLE_FLAGS} bitmask}
+}
+.fi
+.RE
+.PP
+\fBOutput and input-output integer parameters\fR
+.PP
+.RS 4n
+.nf
+                +-      -+ +-     -+ +-          -+ +-               -+
+schar     out   |{enum E}| |bitmask| |storeonerror| |lasterror        |
+uchar     inout +-      -+ +-     -+ |storealways | |winerror         |
+short     retval                     +-          -+ |errno            |
+ushort                                              |{onerror HANDLER}|
+int                                                 +-               -+
+uint
+long
+ulong
+longlong
+ulonglong
+
+\fISyntax for integer output and input-output parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+Output and in-out parameters in C are always passed as pointers to the location where output value is to be stored\&. Thus out and inout always imply byref which is redundant and need not be specified\&.
+.TP
+\(bu
+The script level argument corresponding to out and inout parameters are the name of the variable to which the output value is to be assigned\&. For inout parameters this must exist at the time of function call and hold a valid value for the type\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+Add the enum annotation if output values are to be mapped to symbolic names for readability\&. Further, if the values returned are actually bitmasks, add bitmask to have the returned value transformed to a list of symbolic names\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.TP
+\(bu
+Error handling annotations like errno may be present but are ignored\&. This is to permit the same aliases to be used in both return and parameter declarations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int GetHandleInformation(void*  hObject, unsigned long *lpdwFlags);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+cffi::enum define HANDLE_FLAGS {INHERIT 1 PROTECT_FROM_CLOSE 2}
+KERNEL32 stdcall GetHandleInformation {int nonzero lasterror} {
+    hObject pointer
+    flags {ulong retval {enum HANDLE_FLAGS} bitmask}
+}
+.fi
+.RE
+.SH TODO
+.PP
+double output parameter
+double modf (double x, double* intpart);
+.PP
+\fBFloating point parameters\fR
+.PP
+\fBFloating point input parameters\fR
+.PP
+.RS 4n
+.nf
+       +- -+ +-   -+ +-         -+
+float  |in | |byref| |{default N}|
+double +- -+ +-   -+ +-         -+
+
+\fISyntax for floating point input parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
+.TP
+\(bu
+The byref annotation should be specified iff the value is being passed by reference, i\&.e\&. the function parameter is a pointer to the value (e\&.g\&. double * at the C level)\&. This is very rare for integer values that are input only\&. In either case, whether the byref parameter is present or not, the value at script level is still specified directly and not through a variable\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+double sin(double x);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBM sin double {x double}
+.fi
+.RE
+.PP
+\fBOut and in-out floating point parameters\fR
+.PP
+.RS 4n
+.nf
+                +-          -+
+float    out    |storeonerror|
+double   inout  |storealways |
+         retval +-          -+
+
+\fISyntax for floating point output and input-output parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+Output and in-out parameters in C are always passed as pointers to the location where output value is to be stored\&. Thus out and inout always imply byref which is redundant and need not be specified\&.
+.TP
+\(bu
+The script level argument corresponding to out and inout parameters are the name of the variable to which the output value is to be assigned\&. For inout parameters this must exist at the time of function call and hold a valid value for the type\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.PP
+\fBPointer parameters\fR
+.PP
+As for return values, pointer parameters to C functions can be dealt
+with either as raw pointers or as implicitly dereferenced values\&.
+.PP
+In general, pointers that are only used in the C API to pass arguments
+by reference, for example to pass large or non-scalar input values
+(as for structs and arrays) or receive output values, can be declared
+as implicitly dereferenced\&. The CFFI declarations for these is
+described in other sections with use of the byref and out annotations\&.
+.PP
+This section deals only with raw pointers where the pointer values are
+directly visible at the script level\&. This is necessary when the pointers
+reference resources that need to freed, or in more complex structures
+in memory with multiple indirections etc\&.
+.PP
+\fBRaw pointer input parameters\fR
+.PP
+.RS 4n
+.nf
+            +- -+ +-   -+ +-     -+ +-              -+ +-    -+ +-              -+
+pointer     |in | |byref| |counted| |dispose         | |nullok| |{default PTRVAL}|
+pointer\&.TAG +- -+ +-   -+ |unsafe | |disposeonsuccess| +-    -+ +-              -+
+                          +-     -+ +-              -+
+
+\fISyntax for input raw pointer parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+The TAG is optional but recommended wherever possible for additional \fItag-based\fP type checks\&. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command\&. This makes it convenient to access the referenced memory using the struct \fImethods\fP\&.
+.TP
+\(bu
+The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
+.TP
+\(bu
+The byref annotation should be specified iff the pointer is being passed by reference, i\&.e\&. the function parameter is a pointer to a pointer\&. Generally, input parameters passed by reference will have const in the C parameter declaration\&.
+.TP
+\(bu
+By default, pointers passed into functions are expected to be registered as safe pointers\&. They may be alternatively be annotated with counted or unsafe if they are reference counted or unregistered\&. For more details on pointer management and safety, see \fIPointer safety\fP\&.
+.TP
+\(bu
+When a C function releases the resource associated with a registered pointer (safe or counted), the pointer should be unregistered\&. The dispose annotation should be placed on the parameter annotation to convey to CFFI that the pointer should be unregistered\&. The disposeonsuccess annotation is similar except that the pointer is unregistered only in the case the function returns successfully\&. For more details on pointer management and safety, see \fIPointer safety\fP\&.
+.TP
+\(bu
+CFFI assumes by default that functions do not accept NULL pointers and will raise an exception if an attempt is made to pass one\&. The nullok annotation indicates that the function allows for the pointer to be NULL\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+void free(void *ptr);
+void *realloc(void *ptr, size_t size);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function free void {ptr {pointer dispose}}
+LIBC function realloc {pointer errno} {
+    ptr {pointer disposeonsuccess}
+    size size_t
+}
+.fi
+.RE
+.PP
+\fBRaw pointer out and in-out parameters\fR
+.PP
+.RS 4n
+.nf
+             +-    -+ +-     -+ +-              -+ +-    -+ +-              -+ +-          -+
+pointer      |inout | |counted| |dispose         | |nullok| |{default PTRVAL}| |storealways |
+pointer\&.TAG  |out   | |unsafe | |disposeonsuccess| +-    -+ +-              -+ |storeonerror|
+             |retval| +-     -+ +-              -+                             +-          -+
+             +-    -+
+
+\fISyntax for output and input-output raw pointer parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+Output parameters in C are always passed as pointers to the location where output value is to be stored\&. Thus out always implies byref which is redundant and need not be specified\&.
+.TP
+\(bu
+The script level argument corresponding to an out parameter is the name of the variable to which the output value is to be assigned\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter pointer value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+By default, pointers returned in out and in-out parameters are registered as safe pointers\&. They may be alternatively be annotated with counted or unsafe if they are to be registered as reference counted or not to be registered at all\&. For more details on pointer management and safety, see \fIPointer safety\fP\&.
+.TP
+\(bu
+When a C function releases the resource associated with a registered pointer (safe or counted), the pointer should be unregistered\&. The dispose annotation should be placed on the parameter annotation to convey to CFFI that the pointer should be unregistered\&. The disposeonsuccess annotation is similar except that the pointer is unregistered only in the case the function returns successfully\&. The dispose and disposeonsuccess annotations is not valid with the out or retval annotations\&. For more details on pointer management and safety, see \fIPointer safety\fP\&.
+.TP
+\(bu
+The nullok annotation indicates that pointers passed in and out of the function can be NULL\&. Without the annotation, an exception is raised if the pointer stored on output is NULL or in the case of inout the pointer passed in is NULL\&.
+.TP
+\(bu
+The default annotation may be used to supply a default pointer value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&. This annotation cannot be used with out and retval annotations\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int git_repository_open_bare(git_repository **out, const char *bare_path);
+int ConvertSidToStringSidA(SID *pSid, char **strSid);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBGIT2 function git_repository_open_bare {int zero} {
+    out {pointer\&.git_repository counted retval}
+    string bare_path
+}
+ADVAPI32 stdcall ConvertSidToStringSidA {int nonzero lasterror} {
+    pSid   pointer\&.SID
+    strSid pointer
+}
+KERNEL32 stdcall LocalFree {pointer nullok} {p {pointer dispose}}
+.fi
+.RE
+.PP
+In the libgit2 example, out is annotated as counted because
+git_repository is a reference counted opaque structure\&. The retval
+annotation is added to have CFFI return the output parameter value as
+the result of the function\&.
+.PP
+In the Win32 example, the returned pointer from ConvertSidToStringSidW
+needs to be freed with LocalFree and hence needs to be declared
+as a raw pointer\&. The string can be retrieved from the returned
+pointer with \fI::cffi::memory tostring\fP before freeing it\&.
+.PP
+\fBStruct parameters\fR
+.PP
+Struct values are represented as the script level as dictionaries\&.
+This requires their definition as described in
+\fIStructs\fP and \fIDefining structs\fP\&.
+.PP
+\fBStruct input parameters\fR
+.PP
+.RS 4n
+.nf
+              +- -+ +-   -+ +-            -+ +-         -+
+struct\&.STRUCT |in | |byref| |{default DICT}| |nullifempty|
+              +- -+ +-   -+ +-            -+ +-         -+
+
+\fISyntax for struct input parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
+.TP
+\(bu
+The byref annotation should be specified iff the value is being passed by reference, i\&.e\&. the function parameter is a pointer to a struct value that is to be passed\&. Generally, input parameters passed by reference will have const in the C parameter declaration\&. Irrespective of this annotation, the argument is always a dictionary, not a pointer\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&.
+.TP
+\(bu
+Some C functions accept a NULL pointer for optional parameters\&. The nullifempty annotation identifies such parameters\&. In this case, passing an empty dictionary as the script level argument will result in a NULL pointer being passed to the function\&. This annotation only makes sense in the presence of the byref annotation\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int git_checkout_head(git_repository *repo, const git_checkout_options *opts);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+cffi::Struct create git_checkout_options {\&.\&.\&.}
+LIBGIT function git_checkout_head {int zero} {
+    pRepo pointer\&.git_repository
+    opts  {struct\&.git_checkout_options byref nullifempty}
+}
+.fi
+.RE
+.PP
+\fBOutput and input-output struct parameters\fR
+.PP
+.RS 4n
+.nf
+                     +-          -+
+struct\&.STRUCT out    |storeonerror|
+              inout  |storealways |
+              retval +-          -+
+
+\fISyntax for struct output and input-output parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+Output and in-out parameters in C are always passed as pointers to the location where output value is to be stored\&. Thus out and inout always imply byref which is redundant and need not be specified\&.
+.TP
+\(bu
+The script level argument corresponding to out and inout parameters are the name of the variable to which the output value is to be assigned\&. For inout parameters this must exist at the time of function call and hold a valid value for the type\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&. These annotations are rarely applicable to struct output parameters\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int GetWindowRect(void *hWnd, RECT *lpRect);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+cffi::Struct create RECT {left int top int right int bottom int}
+LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct\&.RECT out}}
+.fi
+.RE
+.PP
+\fBString parameters\fR
+.PP
+\fBInput string parameters\fR
+.PP
+.RS 4n
+.nf
+                +- -+ +-   -+ +-         -+
+string          |in | |byref| |nullifempty|
+string\&.ENCODING +- -+ +-   -+ +-         -+
+unistring
+
+\fISyntax for input character string parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+C does not have a string type and the string and unistring CFFI types map to pointers to nul terminated character strings: char* in the case of string and Tcl_UniChar * in the case of unistring\&. For input parameters, they have the const attribute\&.
+.TP
+\(bu
+The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
+.TP
+\(bu
+For the string type an optional encoding may be specified and defaults to the system encoding\&. If a library API uses a specific encoding (commonly UTF-8), it may be convenient to define a type alias\&.
+.TP
+\(bu
+The byref annotation should be specified iff the value is being passed by reference, i\&.e\&. the function parameter is a pointer to the pointer to the character string (double indirection)\&. This is rare for passing character string values that are input only\&. In either case, whether the byref parameter is present or not, the value at script level is still specified directly and not through a variable\&.
+.TP
+\(bu
+Some C functions accept a NULL pointer for optional parameters\&. The nullifempty annotation identifies such parameters\&. In this case, passing an empty string as the script level argument will result in a NULL pointer being passed to the function\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+int chdir(const char *path);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function chdir {int zero errno} {path string}
+.fi
+.RE
+.PP
+\fBOutput and input-output string parameters\fR
+.PP
+Character strings are returned from C functions in one of two ways:
+.TP
+\(bu
+The C function expects the caller to supply a pointer to an array of characters\&. The size of this array may be a compile time constant or passed through another parameter to the function\&. The function then stores the string in this buffer\&. The C parameter declaration is of the form char *buf or char buf[]\&.
+.TP
+\(bu
+The C function expects the caller to pass a pointer to a memory location where it will store the pointer to a string that is either dynamically allocated or an internal static string\&. The C declaration is of the form char **ptr_to_buf reflecting the double indirection\&.
+.PP
+The two are handled differently in CFFI as described below\&.
+.PP
+\fBOutput character arrays\fP
+.PP
+.RS 4n
+.nf
+                  +-    -+ +-          -+
+chars[N]          |out   | |storealways |
+chars\&.ENCODING[N] |inout | |storeonerror|
+unichars[N]       |retval| +-          -+
+                  +-    -+
+
+\fISyntax for character array output parameters\fP
+
+.fi
+.RE
+.PP
+This is the first case described above where the C function expects
+a pointer to a character (or Tcl_UniChar in the case of unichars)
+array\&.
+.TP
+\(bu
+The script level argument corresponding to out and inout parameters are the name of the variable to which the output value is to be assigned\&. For inout parameters this must exist at the time of function call and hold a valid value for the type\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+The array size N in the declaration may either be an integer constant or the name of a integer type parameter in the same function declaration\&. See \fIDynamically sized arrays\fP\&.
+.TP
+\(bu
+If ENCODING is not specified, it defaults to the system encoding\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+char *getcwd(char *buf, size_t size);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function getcwd {string errno} {buf {chars[size] out} size size_t}
+.fi
+.RE
+.PP
+\fBOutput pointers to strings\fP
+.PP
+The second case is when the C function parameter is a pointer to
+pointer to a character string (char **)\&.
+.PP
+How this is best handled depends on whether the returned pointer needs
+to be available at the script level as a raw pointer, possibly for later
+freeing\&. See \fIPointer returns\fP for a more detailed discussion about
+raw pointers versus implicit dereferencing\&.
+If this is the case, see \fIRaw pointer out and in-out parameters\fP for
+appropriate declarations\&.
+.PP
+If retention of the raw pointer is not required
+(for example, pointer to static storage), then its most convenient to
+implicitly declare it as an output parameter of
+.PP
+.RS 4n
+.nf
+                +-    -+ +-    -+ +-          -+
+string          |out   | |nullok| |storealways |
+string\&.ENCODING |retval| +-    -+ |storeonerror|
+unistring       +-    -+          +-          -+
+
+\fISyntax for output character string parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+Output parameters in C are always passed as pointers to the location where output value is to be stored\&. Thus out always implies byref which is redundant and need not be specified\&.
+.TP
+\(bu
+The script level argument corresponding to an out parameter is the name of the variable to which the output value is to be assigned\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&. These annotations are rarely applicable to struct output parameters\&.
+.PP
+\fBBinary string parameters\fR
+.PP
+Binary strings are similar to strings except that instead of treating
+pointers at the C level as character strings in Tcl, they treat them as
+binary strings so there is no character encoding/decoding transformation
+applied and nul characters have no special treatment\&.
+.PP
+\fBInput binary string parameters\fR
+.PP
+.RS 4n
+.nf
+       +- -+ +-   -+ +-         -+ +-               -+
+binary |in | |byref| |nullifempty| |{default DEFAULT}|
+       +- -+ +-   -+ +-         -+ +-               -+
+
+\fISyntax for input binary string parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+The usual C declarations that map to binary are char *, unsigned char * and void *\&. Further, input parameters have the const attribute\&.
+.TP
+\(bu
+The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
+.TP
+\(bu
+The byref annotation should be specified iff the value is being passed by reference, i\&.e\&. the function parameter is a pointer to the pointer to the array of bytes string (double indirection)\&. This is rare for passing binary values that are input only\&. In either case, whether the byref parameter is present or not, the value at script level is still specified directly and not through a variable\&.
+.TP
+\(bu
+Some C functions accept a NULL pointer for optional parameters\&. The nullifempty annotation identifies such parameters\&. In this case, passing an zero-length binary string as the script level argument will result in a NULL pointer being passed to the function\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+ssize_t write(int fd, const void *buf, size_t count);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function write {ssize_t nonnegative errno} {
+    fd int
+    buf binary
+    count size_t
+}
+.fi
+.RE
+.PP
+\fBOutput and input-output binary string parameters\fR
+.PP
+Binary strings are returned from C functions in one of two ways:
+.TP
+\(bu
+The C function expects the caller to supply a pointer to a memory block interpreted simply as an array of bytes\&. The size of this memory block may be a compile time constant or passed through another parameter to the function\&. The function then stores the data in this memory buffer\&. The C parameter declaration is generally one of void *, char *buf, char buf[] (or the unsigned variants)\&.
+.TP
+\(bu
+The C function expects the caller to pass a pointer to a memory location where it will store the pointer to a block of memory that is either dynamically allocated or an internal buffer\&. The C declaration is of the form char **, unsigned char ** or void ** reflecting the double indirection\&.
+.PP
+The two are handled differently in CFFI as described below\&.
+.PP
+\fBOutput byte arrays\fP
+.PP
+.RS 4n
+.nf
+         +-    -+ +-          -+
+bytes[N] |out   | |storealways |
+         |inout | |storeonerror|
+         |retval| +-          -+
+         +-    -+
+
+\fISyntax for byte array output parameters\fP
+
+.fi
+.RE
+.PP
+This is the first case described above where the C function expects
+a pointer to a byte array\&.
+.TP
+\(bu
+The script level argument corresponding to out and inout parameters are the name of the variable to which the output value is to be assigned\&. For inout parameters this must exist at the time of function call and hold a Tcl binary string\&.
+.TP
+\(bu
+Use the retval annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value\&. See \fIOutput parameters as function result\fP\&.
+.TP
+\(bu
+The array size N in the declaration may either be an integer constant or the name of a integer type parameter in the same function declaration\&. See \fIDynamically sized arrays\fP\&.
+.TP
+\(bu
+If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.PP
+The difference between an array declared as bytes[N] versus
+schar[N] or uchars[N] is that while both might be
+arrays of char or unsigned char at the C level, the former
+declaration will result in a Tcl binary string at the script
+level while the latter declarations will result in lists of
+integers\&.
+.PP
+\fBExamples\fP
+.PP
+C
+.PP
+.RS 4n
+.nf
+ssize_t read(int fd, void *buf, size_t count);
+.fi
+.RE
+.PP
+CFFI
+.PP
+.RS 4n
+.nf
+LIBC function read {ssize_t nonnegative errno} {
+    fd int
+    buf bytes[count]
+    count size_T
+}
+.fi
+.RE
+.PP
+\fBOutput pointers to binary strings\fP
+.PP
+Another way of returning binary data is through a parameter that is a
+pointer to pointer to the data (char ** etc\&.)\&. This case has to
+be handled as \fIraw pointers\fP
+since, unlike for character strings, there is no way for CFFI to know the
+size of the data being returned\&.
+.PP
+\fBArrays as parameters\fR
+.PP
+.RS 4n
+.nf
+TYPE[N] type specific annotations \&.\&.\&.
+.fi
+.RE
+.TP
+\(bu
+Arrays in C are always passed by reference, as a pointer to the first element of the array\&. CFFI array type declarations therefore are implicitly annotated as byref\&.
+.TP
+\(bu
+The array size in the type declaration may be an integer constant or specified as the name of another parameter\&. See \fIDynamically sized array\fP\&.
+.TP
+\(bu
+The annotations permitted on an array type declaration are those permitted for the base type\&. For example, integer array declarations may have the enum annotation\&.
+.TP
+\(bu
+At the script level, arrays are represented as lists except for the special cases of as \fI`chars`\fP or \fI`bytes`\fP where they are character or binary strings\&.
+.SH "DEFINING STRUCTS"
+.PP
+Native C struct values may be dealt with at the script level either
+as Tcl dictionary values or kept in their native form and accessed
+through raw pointers\&. Both methods require the struct to be defined
+with \fI::cffi::Struct\fP\&. In the former case, the fields are accessed
+using Tcl's dict command\&. In the latter case, the \fI::cffi::Struct\fP
+accessor methods are used\&.
+.SS "FIELD TYPE DECLARATIONS"
+.PP
+The field type declarations in a \fIstruct\fP
+definition, while similar to function parameter type declarations,
+differ from them in some respects\&.
+.TP
+\(bu
+The void and binary base types cannot be used in struct fields\&.
+.TP
+\(bu
+The annotations for each type are differ from those applicable in a parameter context\&.
+.PP
+\fBInteger fields\fR
+.PP
+.RS 4n
+.nf
+          +-      -+ +-     -+ +-         -+ +-        -+ +-               -+
+schar     |{enum E}| |bitmask| |{default N}| |structsize| |lasterror        |
+uchar     +-      -+ +-     -+ +-         -+ +-        -+ |winerror         |
+short                                                     |errno            |
+ushort                                                    |{onerror HANDLER}|
+int                                                       +-               -+
+uint
+long
+ulong
+longlong
+ulonglong
+
+\fISyntax for integer fields\fP
+
+.fi
+.RE
+.TP
+\(bu
+If the enum annotation is present, the field is subject to mapping to symbols from the \fIenumeration\fP\&.
+.TP
+\(bu
+If the bitmask annotation is present, the dictionary element for the field is treated a list of integers that are bitwise OR-ed to form the native field value\&.
+.TP
+\(bu
+The default annotation specifies a default value to be used when constructing a native struct from the dictionary representation if the dictionary does not contain a key for the field\&.
+.TP
+\(bu
+The structsize annotation specifies that the field should be defaulted to the size of the native struct\&.
+.TP
+\(bu
+Error handling annotations like errno may be present but are ignored\&. This is to permit the same aliases to be used in both function struct definitions\&.
+.PP
+\fBFloating point fields\fR
+.PP
+.RS 4n
+.nf
+       +-         -+
+float  |{default N}|
+double +-         -+
+
+\fISyntax for floating point fields\fP
+
+.fi
+.RE
+.TP
+\(bu
+The default annotation specifies a default value to be used when constructing a native struct from the dictionary representation if the dictionary does not contain a key for the field\&.
+.PP
+\fBPointer fields\fR
+.PP
+.RS 4n
+.nf
+            +-     -+ +-    -+ +-              -+
+pointer     |counted| |nullok| |{default PTRVAL}|
+pointer\&.TAG |unsafe | +-    -+ +-              -+
+            +-     -+
+
+\fISyntax for input raw pointer parameters\fP
+
+.fi
+.RE
+.TP
+\(bu
+The TAG is optional but recommended wherever possible for additional \fItag-based\fP type checks\&. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command\&. This makes it convenient to access the referenced memory using the struct \fImethods\fP\&.
+.TP
+\(bu
+The counted and unsafe annotations have their usual meaning as described in \fIPointer safety\fP\&. By default, when a native C struct is constructed from its script level dictionary representation, the pointer value for a field is expected to have been registered as a safe pointer and an exception is raised otherwise\&. Conversely, when a dictionary is constructed from a native C struct, as output from a function for example, the extracted pointer is registered as a safe pointer\&. This is often not the right model for embedded pointers in structs unlike pointers directly returned from functions with a clear resource allocation and freeing semantics\&. Thus use of the unsafe annotation should be strongly considered for field type declarations\&.
+.TP
+\(bu
+The nullok annotation should be applied to any field that can validly hold a NULL pointer\&. In the absence of an annotation, an exception is raised if an attempt is made to assign the field in a native struct a NULL pointer value\&.
+.TP
+\(bu
+Pointer fields that hold pointers to character strings may be alternatively declared as \fIstring pointer fields\fP\&.
+.PP
+\fBString pointer fields\fR
+.PP
+.RS 4n
+.nf
+                +-         -+
+string          |nullifempty|
+string\&.ENCODING +-         -+
+unistring
+
+\fISyntax for string pointer fields\fP
+
+.fi
+.RE
+.TP
+\(bu
+The nullifempty annotation may be used in cases where an empty string at the script level should be stored as a NULL pointer in the struct field\&.
+.PP
+As for function parameters, fields that hold pointers to character
+strings can be more conveniently declared as one of the CFFI
+string types if the raw pointer is not required for freeing of resources
+or other purposes\&. There are is a restriction imposed when a struct
+field is declared as a string type\&. The struct definition may be used
+to pass and return parameters from functions but cannot be used
+with the \fI::cffi::Struct\&.new\fP or \fI::cffi::Struct\&.allocate\fP methods
+to allocate a native struct in memory\&.
+.PP
+\fBCharacter array fields\fR
+.PP
+.RS 4n
+.nf
+
+chars[N]          +-               -+
+chars\&.ENCODING[N] |{default DEFAULT}|
+unichars[N]       +-               -+
+
+\fISyntax for character array fields\fP
+
+.fi
+.RE
+.PP
+Like string and unistring, the chars and unichars CFFI types are
+character strings at the script level\&. However, while the former maps
+to pointers at the C level, chars and unichars map to
+char[] and Tcl_UniChar[] arrays\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field\&.
+.TP
+\(bu
+The array size N must be an positive integer constant and not dynamically sized as is permitted for array parameters\&.
+.PP
+\fBByte array fields\fR
+.PP
+.RS 4n
+.nf
+
+         +-               -+
+bytes[N] |{default DEFAULT}|
+         +-               -+
+
+\fISyntax for byte array fields\fP
+
+.fi
+.RE
+.PP
+The difference between an array declared as bytes[N] versus
+schar[N] or uchars[N] is that while both might be
+arrays of char or unsigned char at the C level, the former
+declaration will result in a Tcl binary string at the script
+level while the latter declarations will result in lists of
+integers\&.
+.TP
+\(bu
+The default annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field\&.
+.TP
+\(bu
+The array size N must be an positive integer constant and not dynamically sized as is permitted for array parameters\&.
+.PP
+\fBNested struct fields\fR
+.PP
+A struct definition may include a field that is declared as
+another struct\&.
+.PP
+.RS 4n
+.nf
+              +-         -+
+struct\&.STRUCT |{default DICT}|
+              +-         -+
+
+\fISyntax for nested struct fields\fP
+
+.fi
+.RE
+.TP
+\(bu
+A nested STRUCT struct may have a default value specified as a dictionary mapping field names of STRUCT to field values\&.
+.PP
+\fBArray fields\fR
+.PP
+.RS 4n
+.nf
+TYPE[N] type specific annotations \&.\&.\&.
+.fi
+.RE
+.TP
+\(bu
+The array size N must be an positive integer constant and not dynamically sized as is permitted for array parameters\&.
+.TP
+\(bu
+The annotations permitted on an array type declaration are those permitted for the base type\&. For example, integer array declarations may have the enum annotation\&.
+.TP
+\(bu
+At the script level, C arrays are represented as lists except for the special cases of as \fI`chars`\fP or \fI`bytes`\fP where they are character or byte arrays\&.
+.SH "TIPS AND TRICKS"
+.PP
+\fBThis section to be written\fP
+.TP
+\(bu
+duplicating structure or function definition
+.TP
+\(bu
+pointer casting - implicit and explicit
+.TP
+\(bu
+use raw pointers for large data to avoid copies
+.TP
+\(bu
+use memory get command to decode native memory in type-specific manner
+.TP
+\(bu
+use defaults, -clear, structsize for structs
+
