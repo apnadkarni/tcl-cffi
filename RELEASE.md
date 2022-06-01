@@ -2,19 +2,21 @@
 
 A manual process that should be automated. Some day ...
 
-Assumes release tagged as v1.0b5 in working directory ...
+Assumes release tagged as in working directory ...
+
+Assumes version set in environment variable CFFIVER (e.g. 1.0.7)
 
 ## Preliminaries
 
 Update Docs
 
 - README.md
-- Update version in makedocs.tcl and generate documentation
+- Generate documentation
+- Tag release
 - Commit
 - Push to github
-- Verify CI builds pass
-- Tag release
 - Push tag to github
+- Verify CI builds pass
 
 ## Windows binaries
 
@@ -23,13 +25,15 @@ architecture-specific subdirectory). This builds the *libffi* version.
 
 ```
 cd build-mingw-x64
+export CFFIVERNODOT=${CFFIVER//./}
 rm *
 ../configure --with-tcl=/d/tcl/mingw-8610/x64/lib --prefix=/d/tcl --exec-prefix=/d/tcl --enable-64bit
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b5/AMD64/tclcffi10b5.dll
-ldd tclcffi10b5.dll
+strip -s /d/tcl/lib/cffi$CFFIVER/win32-x86_64/tclcffi$CFFIVERNODOT.dll
+ldd tclcffi$CFFIVERNODOT.dll
+cp cffitest.dll /d/tcl/lib/cffi$CFFIVER/win32-x86_64
 ```
 
 Ensure the ldd output does not show dependency on libffi.dll
@@ -38,13 +42,15 @@ From MINGW32 shell
 
 ```
 cd build-mingw-x86
+export CFFIVERNODOT=${CFFIVER//./}
 rm *
 ../configure --with-tcl=/d/tcl/mingw-8610/x86/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x86/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x86/include  --prefix=/d/tcl --exec-prefix=/d/tcl
 make
 make test
 make install
-strip -s /d/tcl/lib/cffi1.0b5/x86/tclcffi10b5.dll
-ldd tclcffi10b5.dll
+strip -s /d/tcl/lib/cffi$CFFIVER/win32-ix86/tclcffi$CFFIVERNODOT.dll
+ldd tclcffi$CFFIVERNODOT.dll
+cp cffitest.dll /d/tcl/lib/cffi$CFFIVER/win32-ix86
 ```
 
 Ensure the ldd output does not show dependency on libffi.dll
@@ -60,14 +66,16 @@ d:\tcl\archive\868-vc6\x86\bin\tclsh86t.exe all.tcl
 
 Copy README.md and LICENSE into distribution directory.
 
-Zip up the distribution from d:\tcl\lib\cffi1.0b5
+Delete the cffitest.dll from both architectures.
+
+Zip up the distribution from d:\tcl\lib\cffi$CFFIVER
 
 ## Windows sources
 
 From the *top* of the source repository
 
 ```
-git archive --prefix cffi1.0b5-src/ -o d:\src\cffi1.0b5-src.zip v1.0b5
+git archive --prefix cffi%CFFIVER%-src/ -o d:\src\cffi%CFFIVER%-src.zip v%CFFIVER%
 ```
 
 Extract the archive somewhere and ensure it builds.
@@ -78,7 +86,7 @@ When generating a distribution from Windows, line endings are CR-LF. Rather than
 fixing them after the fact, clone the repository in WSL.
 
 ```
-git archive --prefix cffi1.0b5-src/ -o ../cffi1.0b5-src.tgz v1.0b5
+git archive --prefix cffi$CFFIVER-src/ -o ../cffi$CFFIVER-src.tgz v$CFFIVER
 ```
 
 Extract the archive somewhere and ensure it builds.

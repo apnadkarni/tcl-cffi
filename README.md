@@ -36,6 +36,13 @@ Limitations in the current version include
 
 - No support for *asynchronous* callbacks
 
+## Changes in 1.0.7
+
+First official release.
+
+- Load from platform specific directory.
+- Install manpages on Unix.
+
 ## Changes in 1.0b5
 
 - Added a *Cookbook* section to documentation to help in mapping C declarations
