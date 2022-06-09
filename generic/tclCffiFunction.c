@@ -1946,7 +1946,15 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
     if (nNames == 0 || nNames > 2)
         return Tclh_ErrorInvalidValue(ip, nameObj, "Empty or invalid function name specification.");
 
-    fn = CffiLibFindSymbol(ip, libCtxP->libH, nameObjs[0]);
+#if defined(_WIN32) && !defined(_WIN64)
+    fn = CffiLibFindSymbol(ip,
+                           libCtxP->libH,
+                           nameObjs[0],
+                           callMode == CffiStdcallABI() ? CFFI_F_LOOKUP_STDCALL
+                                                        : 0);
+#else
+    fn = CffiLibFindSymbol(ip, libCtxP->libH, nameObjs[0], 0);
+#endif
     if (fn == NULL)
         return Tclh_ErrorNotFound(ip, "Symbol", nameObjs[0], NULL);
 
@@ -1964,4 +1972,3 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                                  paramsObj,
                                  callMode);
 }
-

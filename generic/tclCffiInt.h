@@ -246,10 +246,10 @@ typedef struct CffiTypeAndAttrs {
 #ifdef CFFI_USE_DYNCALL
 typedef DCint CffiABIProtocol;
 #endif
+
 #ifdef CFFI_USE_LIBFFI
 typedef ffi_abi CffiABIProtocol;
 #endif
-
 /*
  * Union of value types supported by dyncall
  */
@@ -489,6 +489,7 @@ typedef enum CffiFlags {
     CFFI_F_ALLOW_UNSAFE        = 0x1, /* No pointer validity check */
     CFFI_F_PRESERVE_ON_ERROR   = 0x2, /* Preserve original content on error */
     CFFI_F_SKIP_ERROR_MESSAGES = 0x4, /* Don't store error in interp */
+    CFFI_F_LOOKUP_STDCALL      = 0x8, /* Lookup alternate name as well */
 } CffiFlags;
 
 /*
@@ -642,7 +643,10 @@ CffiProto *
 CffiProtoGet(CffiInterpCtx *ipCtxP, Tcl_Obj *protoNameObj);
 
 void CffiLibCtxUnref(CffiLibCtx *ctxP);
-void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj);
+void *CffiLibFindSymbol(Tcl_Interp *ip,
+                        CffiLoadHandle libH,
+                        Tcl_Obj *symbolObj,
+                        CffiFlags flags);
 CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
 Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
 
@@ -727,7 +731,6 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
     return DC_CALL_C_DEFAULT;
 #endif
 }
-
 #define CffiReloadArg CffiDyncallReloadArg
 void CffiDyncallReloadArg(CffiCall *callP,
                         CffiArgument *argP,

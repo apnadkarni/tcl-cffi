@@ -211,7 +211,7 @@ CffiWrapperAddressOfCmd(Tcl_Interp *ip,
     void *addr;
 
     CFFI_ASSERT(objc == 3);
-    addr = CffiLibFindSymbol(ip, ctxP->libH, objv[2]);
+    addr = CffiLibFindSymbol(ip, ctxP->libH, objv[2], CFFI_F_LOOKUP_STDCALL);
     if (addr) {
         Tcl_SetObjResult(ip, Tclh_ObjFromAddress(addr));
         return TCL_OK;

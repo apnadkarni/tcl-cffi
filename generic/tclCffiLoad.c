@@ -28,25 +28,49 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP)
  * Returns the value of a symbol in a loaded shared library.
  *
  * Parameters:
- * ip - interpreter
+ * ip - interpreter for error messages. May be NULL.
  * libH - handle to the loaded library
  * symbolObj - symbol name
+ * flags - if the CFFI_F_LOOKUP_STDCALL is set, an alternate
+ *     name for the symbol is also looked up. Other bits are ignored.
  *
  * Note there is no way to distinguish between a symbol being
  * present with a 0 value and a missing symbol. In both cases, the
  * function will return *NULL*.
  *
+ * Currently the alternate name for a symbol only applies to 32-bit Windows
+ * build where if the symbol is not found, the lookup is retried with
+ * a _ prefix. This is to allow for the stdcall convention.
+ *
+ *
  * Returns:
  * Returns the symbol value or *NULL* is symbol is not found.
  */
-void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj)
+void *
+CffiLibFindSymbol(Tcl_Interp *ip,
+                  CffiLoadHandle libH,
+                  Tcl_Obj *symbolObj,
+                  CffiFlags flags)
 {
     void *addr;
+
 #ifdef CFFI_USE_TCLLOAD
-    addr = Tcl_FindSymbol(ip, libH, Tcl_GetString(symbolObj));
-    /* Error message already set but rewrite below for consistency */
+    addr = Tcl_FindSymbol(NULL, libH, Tcl_GetString(symbolObj));
 #else
     addr = dlFindSymbol(libH, Tcl_GetString(symbolObj));
+#endif
+
+#if defined(_WIN32) && !defined(_WIN64)
+    if (addr == NULL && (flags & CFFI_F_LOOKUP_STDCALL)) {
+        Tcl_Obj *altNameObj = Tcl_ObjPrintf("_%s", Tcl_GetString(symbolObj));
+        Tcl_IncrRefCount(altNameObj);
+        Tcl_DecrRefCount(altNameObj);
+#ifdef CFFI_USE_TCLLOAD
+        addr = Tcl_FindSymbol(NULL, libH, Tcl_GetString(altNameObj));
+#else
+        addr = dlFindSymbol(libH, Tcl_GetString(altNameObj));
+#endif
+    }
 #endif
     if (addr == NULL && ip != NULL) {
         Tclh_ErrorNotFound(ip, "Symbol", symbolObj, NULL);
