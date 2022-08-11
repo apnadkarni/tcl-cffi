@@ -11,12 +11,12 @@ package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
         # First try to load from current directory. If that fails, try from
         # arch-specific subdirectories
         set path [file join $dir $dllname]
-        if {[catch {uplevel #0 load $path $package}]} {
+        if {[catch {uplevel #0 [list load $path $package]}]} {
             package require platform
             foreach platform [platform::patterns [platform::identify]] {
                 if {$platform eq "tcl"} continue
                 set path [file join $dir $platform $dllname]
-                if {![catch {uplevel #0 load $path $package}]} {
+                if {![catch {uplevel #0 [list load $path $package]}]} {
                     break
                 }
             }
