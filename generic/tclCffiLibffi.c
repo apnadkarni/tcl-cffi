@@ -434,13 +434,22 @@ vamoose:
         /*
          * Either original eval raised error or could not convert above.
          * Store the designated error value. Should not fail since object
-         * value should have been checked at callback definition time. In
-         * any case, no way to further signal that something has gone wrong.
+         * value should have been checked at callback definition time
+         * but if void error cannot be reported this way.
          */
-        (void)CffiLibffiCallbackStoreResult(ipCtxP,
-                                            &cbP->protoP->returnType.typeAttrs,
-                                            cbP->errorResultObj,
-                                            retP);
+        if (CffiLibffiCallbackStoreResult(ipCtxP,
+                                          &cbP->protoP->returnType.typeAttrs,
+                                          cbP->errorResultObj,
+                                          retP)
+                != TCL_OK
+            || cbP->protoP->returnType.typeAttrs.dataType.baseType
+                   == CFFI_K_TYPE_VOID) {
+            /* Could not store error or void type. Background error */
+            if (ipCtxP->interp) {
+                Tcl_SetObjResult(ipCtxP->interp, cbP->errorResultObj);
+                Tcl_BackgroundError(ipCtxP->interp);
+            }
+        }
     }
     if (mark)
         MemLifoPopMark(mark);
