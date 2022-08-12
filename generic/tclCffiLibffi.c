@@ -446,7 +446,14 @@ vamoose:
                    == CFFI_K_TYPE_VOID) {
             /* Could not store error or void type. Background error */
             if (ipCtxP->interp) {
-                Tcl_SetObjResult(ipCtxP->interp, cbP->errorResultObj);
+                if (cbP->errorResultObj) {
+                    Tcl_SetObjResult(ipCtxP->interp, cbP->errorResultObj);
+                } else {
+                    /* May be NULL for void */
+                    Tcl_AppendResult(
+                        ipCtxP->interp, "Error in callback.", NULL);
+                }
+
                 Tcl_BackgroundError(ipCtxP->interp);
             }
         }
