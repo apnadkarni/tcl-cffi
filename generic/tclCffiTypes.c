@@ -1643,7 +1643,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                    * array size */
             if (nvalues > count)
                 nvalues = count;
-            if (1 || ! (flags & CFFI_F_PRESERVE_ON_ERROR)) {
+            if (! (flags & CFFI_F_PRESERVE_ON_ERROR)) {
                 for (indx = 0; indx < nvalues; ++indx) {
                     CHECK(CffiNativeScalarFromObj(ipCtxP,
                                                   typeAttrsP,

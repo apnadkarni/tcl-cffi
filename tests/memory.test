@@ -358,8 +358,13 @@ namespace eval cffi::test {
                 } -cleanup {
                     cffi::memory free $p
                 } -body {
-                    cffi::memory set $p $type $badValues($type)
-                } -result {expected.*but got|Invalid value|missing.*key} -returnCodes error -match regexp
+                    cffi::memory set $p $type $val
+                    list [cffi::memory get $p $type] \
+                        [catch {cffi::memory set $p $type $badValues($type)} errorMsg] \
+                        [regexp {expected.*but got|Invalid value|missing.*key} $errorMsg] \
+                        [cffi::memory get $p $type]
+                } -result [list $val 1 1 $val]
+
             }
 
             test memory-get-$type-badindex-0 "get $type - bad index" -setup {
@@ -469,6 +474,37 @@ namespace eval cffi::test {
     } -body {
         cffi::memory get $p void 0
     } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
+
+    # Error in middle value should not change array
+    foreach type [list {*}$numericTypes struct.::StructValue] {
+        set arrtype "$type\[3\]"
+        set val $testValues($type)
+        if {$type in $numericTypes} {
+            set anotherval 0
+        } else {
+            set anotherval {2 3}
+        }
+        test memory-set-$type-bug128-0 "set $type bad value in array" -setup {
+            set p [cffi::memory new $arrtype [list $val $val $val]]
+        } -cleanup {
+            cffi::memory free $p
+        } -body {
+            list [cffi::memory get $p $arrtype] \
+                [catch {cffi::memory set $p $arrtype [list $anotherval $badValues($type) $val]} errorMsg] \
+                [regexp {expected.*but got|Invalid value|missing.*key} $errorMsg] \
+                [cffi::memory get $p $arrtype]
+        } -result [list [list $val $val $val] 1 1 [list $val $val $val]]
+    }
+    test memory-set-struct-bug128-1 "set $type bad value in struct" -setup {
+        set p [cffi::memory new struct.::StructValue {c 0 i 1}]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        list [cffi::memory get $p struct.::StructValue] \
+            [catch {cffi::memory set $p struct.::StructValue {c 99 i x}} errorMsg] \
+            [regexp {expected.*but got|Invalid value|missing.*key} $errorMsg] \
+            [cffi::memory get $p struct.::StructValue]
+    } -result [list [list c 0 i 1] 1 1 [list c 0 i 1]]
 
     ###################################################
 

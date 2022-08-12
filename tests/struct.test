@@ -358,43 +358,43 @@ namespace eval cffi::test {
     
     test struct-tonative-error-0 "struct tonative bad value" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
-        set p [::S allocate]
+        set p [::S new {c 0 i 1 s 2}]
     } -cleanup {
         S free $p
         rename S ""
     } -body {
-        S tonative $p {c a i 0 s 0}
-    } -result {expected integer but got "a" Error converting field ::S.c to a native value.} -returnCodes error
+        list [catch {S tonative $p {c 10 i x s 11}} emsg] $emsg [S fromnative $p]
+    } -result [list 1 {expected integer but got "x" Error converting field ::S.i to a native value.} {c 0 i 1 s 2}]
 
     test struct-tonative-error-1 "struct tonative missing field" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
-        set p [::S allocate]
+        set p [::S new {c 0 i 1 s 2}]
     } -cleanup {
         S free $p
         rename S ""
     } -body {
-        S tonative $p {i 0 s 0}
-    } -result {Struct field "c" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.c to a native value.} -returnCodes error
+        list [catch {S tonative $p {c 10 i 11}} emsg] $emsg [S fromnative $p]
+    } -result [list 1 {Struct field "s" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.s to a native value.} {c 0 i 1 s 2}]
 
     test struct-tonative-error-2 "struct tonative chars overflow" -setup {
-        cffi::Struct create ::S {c chars[3]}
-        set p [::S allocate]
+        cffi::Struct create ::S {i int c chars[3]}
+        set p [::S new {i 0 c ab}]
     } -cleanup {
         S free $p
         rename S ""
     } -body {
-        S tonative $p {c abcd}
-    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
+        list [catch {S tonative $p {i 42 c abcd}} emsg] $emsg [S fromnative $p]
+    } -result [list 1 {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} {i 0 c ab}]
 
     test struct-tonative-error-6 "struct tonative unichars overflow" -setup {
-        cffi::Struct create ::S {c unichars[3]}
-        set p [::S allocate]
+        cffi::Struct create ::S {i int c unichars[3]}
+        set p [::S new {i 0 c ab}]
     } -cleanup {
         S free $p
         rename S ""
     } -body {
-        S tonative $p {c abcd}
-    } -result {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
+        list [catch {S tonative $p {i 42 c abcd}} emsg] $emsg [S fromnative $p]
+    } -result [list 1 {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} {i 0 c ab}]
 
     test struct-tonative-error-7 "struct tonative bytes overflow" -setup {
         cffi::Struct create ::S {c bytes[3]}
