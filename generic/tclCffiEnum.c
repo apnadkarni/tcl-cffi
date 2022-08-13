@@ -368,7 +368,8 @@ CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *fqnObj;
     Tcl_Obj **names;
     int nNames;
-    int start;
+    Tcl_WideInt start;
+    Tcl_WideInt value;
     int ret;
     int i;
 
@@ -378,20 +379,26 @@ CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     CHECK(Tcl_ListObjGetElements(ip, objv[3], &nNames, &names));
 
     if (objc == 5)
-        CHECK(Tclh_ObjToInt(ip, objv[4], &start));
+        CHECK(Tclh_ObjToWideInt(ip, objv[4], &start));
     else
         start = 0;
 
 
     /* We will create as list and let it be shimmered to dictionary as needed */
     enumObj = Tcl_NewListObj(2 * nNames, NULL);
-    for (i = 0; i < nNames; ++i) {
-        if (CffiNameSyntaxCheck(ip, names[i]) != TCL_OK) {
+    for (value = start, i = 0; i < nNames; ++value, ++i) {
+        Tcl_Obj **objs;
+        int nobjs;
+        if (Tcl_ListObjGetElements(NULL, names[i], &nobjs, &objs) != TCL_OK
+            || nobjs == 0 || nobjs > 2
+            || CffiNameSyntaxCheck(ip, objs[0]) != TCL_OK
+            || (nobjs == 2
+                && Tcl_GetWideIntFromObj(ip, objs[1], &value) != TCL_OK)) {
             Tcl_DecrRefCount(enumObj);
-            return TCL_ERROR;
+            return Tclh_ErrorInvalidValue(ip, names[i], "Invalid enum sequence member definition.");
         }
-        Tcl_ListObjAppendElement(NULL, enumObj, names[i]);
-        Tcl_ListObjAppendElement(NULL, enumObj, Tcl_NewIntObj(start++));
+        Tcl_ListObjAppendElement(NULL, enumObj, objs[0]);
+        Tcl_ListObjAppendElement(NULL, enumObj, Tcl_NewWideIntObj(value));
     }
 
     Tcl_IncrRefCount(enumObj);

@@ -117,12 +117,12 @@ namespace eval cffi::test {
         lsort [cffi::enum list]
     } -result [lprefix [namespace current]:: E E2 X]
 
-    test enum-9 "Define empty sequence" -setup {
+    test enum-9 "Define flags" -setup {
         reset_enums
     } -body {
-        cffi::enum sequence E {}
+        cffi::enum flags E {a b c}
         cffi::enum members E
-    } -result {}
+    } -result {a 1 b 2 c 4}
 
     test enum-10 "Define sequence" -setup {
         reset_enums
@@ -137,14 +137,20 @@ namespace eval cffi::test {
         cffi::enum sequence E {a b} 42
         cffi::enum members E
     } -result {a 42 b 43}
-    
-    test enum-12 "Define flags" -setup {
+
+    test enum-12 "Define empty sequence" -setup {
         reset_enums
     } -body {
-        cffi::enum flags E {a b c}
+        cffi::enum sequence E {}
         cffi::enum members E
-    } -result {a 1 b 2 c 4}
+    } -result {}
 
+    test enum-13 "Define sequence with explicit value" -setup {
+        reset_enums
+    } -body {
+        cffi::enum sequence E {{a -1} b {c 42} d}
+        cffi::enum members E
+    } -result {a -1 b 0 c 42 d 43}
 
     test enum-error-0 "Invalid enum" -body {
         cffi::enum define X {a 1 b}
@@ -156,11 +162,19 @@ namespace eval cffi::test {
 
     test enum-error-2 "Invalid member name in sequence" -body {
         cffi::enum sequence X {1 2 3 4}
-    } -result {Invalid value "1". Invalid name syntax.} -returnCodes error
+    } -result {Invalid value "1". Invalid enum sequence member definition.} -returnCodes error
 
     test enum-error-3 "Invalid member name in flags" -body {
         cffi::enum flags X {1 2 3 4}
     } -result {Invalid value "1". Invalid name syntax.} -returnCodes error
+
+    test enum-error-4 "Invalid member value in sequence" -body {
+        cffi::enum sequence X {{a x} 2}
+    } -result {Invalid value "a x". Invalid enum sequence member definition.} -returnCodes error
+
+    test enum-error-5 "Invalid member value in sequence" -body {
+        cffi::enum sequence X {{a 1 2} 2}
+    } -result {Invalid value "a 1 2". Invalid enum sequence member definition.} -returnCodes error
 
     test enum-value-0 "Get first enum member value" -setup {
         reset_enums

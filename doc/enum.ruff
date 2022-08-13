@@ -64,11 +64,23 @@ namespace eval ${NS}::enum {
         # the enumeration and no default is provided, or if $enumname is
         # itself undefined.
     }
-    proc sequence {enumname membernames {{start 0}}} {
+    proc sequence {enumname membernames {start 0}} {
         # Defines an enumeration with consecutive member values
         #  enumname - name of the enumeration
         #  membernames - list of names of the enumeration members
         #  start - value of first enumeration member
+        # Each element of $membernames should have one or two elements,
+        # the first being the name of the member and the second, if
+        # present, being its value.If the second element is not present,
+        # the member is assigned a value one greater than the previous
+        # value assigned. The first member is assigned value 0 if it
+        # has no explicit assigned value.
+        #
+        # The $start parameter is present for backward compatibility
+        # and indicates the first value to be assigned to the sequence.
+        # For future compatibility, the two-element form for the first
+        # enum member should be used instead if a starting value
+        # other than the default zero is desired.
     }
     proc unmask {enumname mask} {
         # Returns a list of enumeration member names corresponding to the
@@ -77,8 +89,8 @@ namespace eval ${NS}::enum {
         #  enumname - name of the enumeration
         #  mask - Integer bit mask value
         # The last element of the returned list is $mask itself.
-        # Generally, the enumeration should consist of values that do not have
-        # overlapping bits set (commonly a single bit is set in each
+        # Generally, the enumeration should consist of values that do not
+        # have overlapping bits set (commonly a single bit is set in each
         # member value). This is not enforced but results might not be
         # as expected if this condition is not met.
         # See also: "enum mask"
