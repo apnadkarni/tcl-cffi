@@ -344,7 +344,10 @@ proc cffi::test::make_unsafe_pointers args {
         makeptr $addr
     }
 }
-
+proc cffi::test::pointer_unsafe_add {p incr args} {
+    set addr [pointer address $p]
+    return [makeptr [incr addr $incr] {*}$args]
+}
 # Resets all enums
 proc cffi::test::reset_enums {} {
     cffi::enum clear

@@ -267,11 +267,11 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP,
  *
  * Parameters:
  * ip - interpreter
- * objc - count of elements in objv[]. Should be 3 or 4 including command
+ * objc - count of elements in objv[]. Should be 4 or 5 including command
  *        and subcommand.
  * objv - argument array.
- * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
- *        checked for validity.
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated
+ *        as unsafe and not checked for validity.
  *
  * Returns the *objv[3]* bytes of memory referenced by the wrapped pointer
  * in *objv[2]* as a *Tcl_Obj* byte array. The passed in pointer should be
@@ -291,6 +291,7 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     unsigned int len;
+    Tcl_WideInt off;
 
     if (flags & CFFI_F_ALLOW_UNSAFE)
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
@@ -303,7 +304,20 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
     }
 
     CHECK(Tclh_ObjToUInt(ip, objv[3], &len));
-    Tcl_SetObjResult(ip, Tcl_NewByteArrayObj(pv, len));
+
+    if (objc < 5)
+        off = 0;
+    else {
+        CHECK(Tclh_ObjToRangedInt(ip, objv[4], INT_MIN, INT_MAX, &off));
+        if (off < 0 && !(flags & CFFI_F_ALLOW_UNSAFE)) {
+            return Tclh_ErrorInvalidValue(
+                ip,
+                objv[4],
+                "Negative offsets are not allowed for safe pointers.");
+        }
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewByteArrayObj(off + (char*) pv, len));
     return TCL_OK;
 }
 
@@ -382,8 +396,9 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
  *        checked for validity.
  *
  * The memory pointed to by *objv[2]* is treated as a null-terminated string
- * in the encoding specified by *objv[3]*. If *objv[3]* is not specified,
- * the system encoding is used.
+ * in the system encoding unless an encoding is specified in objv[3].
+ * The returned string is the string at offset 0 or at the offset specified
+ * by objv[3] or objv[4] depending on whether an encoding is present.
  *
  * The passed in pointer should be registered unless the CFFI_F_ALLOW_UNSAFE of *flags*
  * is set. A *NULL* pointer will raise an error.
@@ -402,6 +417,7 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
     void *pv;
     Tcl_Encoding encoding;
     Tcl_DString ds;
+    Tcl_WideInt off;
 
     if (flags & CFFI_F_ALLOW_UNSAFE)
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
@@ -413,12 +429,33 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
         return TCL_ERROR;
     }
 
-    if (objc < 4)
+    if (objc == 3) {
         encoding = NULL;
-    else
+        off      = 0;
+    }
+    else if (objc == 4) {
+        /* Could be offset or an encoding */
+        if (Tclh_ObjToRangedInt(NULL, objv[3], INT_MIN, INT_MAX, &off) == TCL_OK) {
+            encoding = NULL;
+        }
+        else {
+            /* Not numeric, check if an encoding */
+            CHECK(CffiGetEncodingFromObj(ip, objv[3], &encoding));
+            off = 0;
+        }
+    } else {
+        /* objc == 5 */
+        CHECK(Tclh_ObjToRangedInt(ip, objv[4], INT_MIN, INT_MAX, &off));
         CHECK(CffiGetEncodingFromObj(ip, objv[3], &encoding));
+    }
+    if (off < 0 && !(flags & CFFI_F_ALLOW_UNSAFE)) {
+        if (encoding)
+            Tcl_FreeEncoding(encoding);
+        return Tclh_ErrorInvalidValue(
+            ip, NULL, "Negative offsets are not allowed for safe pointers.");
+    }
 
-    Tcl_ExternalToUtfDString(encoding, pv, -1, &ds);
+    Tcl_ExternalToUtfDString(encoding, off + (char*)pv, -1, &ds);
     if (encoding)
         Tcl_FreeEncoding(encoding);
 
@@ -550,7 +587,7 @@ CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
  *
  * Parameters:
  * ip - interpreter
- * objc - count of elements in objv[]. Should be 5 including command
+ * objc - count of elements in objv[]. Should be 5 or 6 including command
  *        and subcommand.
  * objv - argument array.
  * flags - unused
@@ -568,13 +605,36 @@ CffiMemoryFillCmd(CffiInterpCtx *ipCtxP,
     Tcl_Interp *ip = ipCtxP->interp;
     void *pv;
     Tcl_WideInt len;
+    Tcl_WideInt off;
     unsigned char val;
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
+    if (flags & CFFI_F_ALLOW_UNSAFE) {
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+    }
+    else
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
+
+    if (pv == NULL) {
+        Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
     CHECK(Tclh_ObjToUChar(ip, objv[3], &val));
     CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &len));
 
-    memset(pv, val, (int) len);
+    if (objc < 6)
+        off = 0;
+    else {
+        CHECK(Tclh_ObjToRangedInt(ip, objv[5], INT_MIN, INT_MAX, &off));
+        if (off < 0 && !(flags & CFFI_F_ALLOW_UNSAFE)) {
+            return Tclh_ErrorInvalidValue(
+                ip,
+                objv[5],
+                "Negative offsets are not allowed for safe pointers.");
+        }
+    }
+
+    memset(off + (char *)pv, val, (int) len);
     return TCL_OK;
 }
 
@@ -596,11 +656,12 @@ CffiMemoryObjCmd(ClientData cdata,
         {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, CFFI_F_ALLOW_UNSAFE},
         {"get", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, 0},
         {"get!", 2, 3, "POINTER TYPE ?INDEX?", CffiMemoryGetCmd, CFFI_F_ALLOW_UNSAFE},
-        {"fill", 3, 3, "POINTER BYTEVALUE COUNT", CffiMemoryFillCmd, 0},
-        {"tobinary", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, 0},
-        {"tobinary!", 2, 2, "POINTER SIZE", CffiMemoryToBinaryCmd, CFFI_F_ALLOW_UNSAFE},
-        {"tostring", 1, 2, "POINTER ?ENCODING?", CffiMemoryToStringCmd, 0},
-        {"tostring!", 1, 2, "POINTER ?ENCODING?", CffiMemoryToStringCmd, CFFI_F_ALLOW_UNSAFE},
+        {"fill", 3, 4, "POINTER BYTEVALUE COUNT ?OFFSET?", CffiMemoryFillCmd, 0},
+        {"fill!", 3, 4, "POINTER BYTEVALUE COUNT ?OFFSET?", CffiMemoryFillCmd, CFFI_F_ALLOW_UNSAFE},
+        {"tobinary", 2, 3, "POINTER SIZE ?OFFSET?", CffiMemoryToBinaryCmd, 0},
+        {"tobinary!", 2, 3, "POINTER SIZE ?OFFSET?", CffiMemoryToBinaryCmd, CFFI_F_ALLOW_UNSAFE},
+        {"tostring", 1, 3, "POINTER ?ENCODING? ?OFFSET?", CffiMemoryToStringCmd, 0},
+        {"tostring!", 1, 3, "POINTER ?ENCODING? ?OFFSET?", CffiMemoryToStringCmd, CFFI_F_ALLOW_UNSAFE},
         {NULL}
     };
     int cmdIndex;

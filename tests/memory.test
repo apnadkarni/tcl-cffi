@@ -79,8 +79,8 @@ namespace eval cffi::test {
 
     ###
 
-    testnumargs memory-tobinary "cffi::memory tobinary" "POINTER SIZE"
-    testnumargs memory-tobinary! "cffi::memory tobinary!" "POINTER SIZE"
+    testnumargs memory-tobinary "cffi::memory tobinary" "POINTER SIZE" "?OFFSET?"
+    testnumargs memory-tobinary! "cffi::memory tobinary!" "POINTER SIZE"  "?OFFSET?"
     testnumargs memory-frombinary "cffi::memory frombinary" "BINARY" "?TAG?"
 
     test memory-binary-0 {To/From binary - safe} -setup {
@@ -96,9 +96,11 @@ namespace eval cffi::test {
     test memory-binary-1 {To/From tobinary! - unsafe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
     } -cleanup {
+        cffi::pointer safe $p
         cffi::memory free $p
     } -body {
         set p [cffi::memory frombinary $bin]
+        cffi::pointer dispose $p; # Make unsafe
         binary scan [cffi::memory tobinary! $p [string length $bin]] d3 bin2
         set bin2
     } -result {1.0 2.0 3.0}
@@ -118,17 +120,61 @@ namespace eval cffi::test {
         binary scan [cffi::memory tobinary! $p [string length $bin]] d3 bin2
         set bin2
     } -result {1.0 2.0 3.0}
+    test memory-binary-4 {To/From binary offset - safe} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        set len [string length $bin]
+        set off [expr {$len/3}]
+        incr len -$off
+        binary scan [cffi::memory tobinary $p $len $off] d2 bin2
+        set bin2
+    } -result {2.0 3.0}
+    test memory-binary-5 {To/From tobinary! offset - unsafe} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        set len [string length $bin]
+        set off [expr {$len/3}]
+        binary scan [cffi::memory tobinary! $p $len $off] d2 bin2
+        set bin2
+    } -result {2.0 3.0}
+    test memory-binary-6 {To/From tobinary! offset negative - unsafe} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        set len [string length $bin]
+        set off [expr {$len/3}]
+        binary scan [cffi::memory tobinary! [pointer_unsafe_add $p $off] $len -$off] d2 bin2
+        set bin2
+    } -result {1.0 2.0}
+
     test memory-tobinary-error-0 "tobinary null pointer" -body {
         cffi::memory tobinary 0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tobinary!-error-0 "tobinary! null pointer" -body {
         cffi::memory tobinary! 0^ 1
     } -result {Pointer is NULL.} -returnCodes error
+    test memory-tobinary-error-1 {To/From binary offset negative - safe} -setup {
+        set bin [binary format ddd 1.0 2.0 3.0]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        set p [cffi::memory frombinary $bin]
+        cffi::memory tobinary $p $len -1
+        set bin2
+    } -result {Invalid value "-1". Negative offsets are not allowed for safe pointers.} -returnCodes error
 
     ###
 
-    testnumargs memory-tostring "cffi::memory tostring" "POINTER" "?ENCODING?"
-    testnumargs memory-tostring! "cffi::memory tostring" "POINTER" "?ENCODING?"
+    testnumargs memory-tostring "cffi::memory tostring" "POINTER" "?ENCODING? ?OFFSET?"
+    testnumargs memory-tostring! "cffi::memory tostring" "POINTER" "?ENCODING? ?OFFSET?"
     testnumargs memory-fromstring "cffi::memory fromstring" "STRING" "?ENCODING?"
     set num -1
     test memory-string-[incr num] "To/from string - safe, no optional args" -body {
@@ -210,16 +256,52 @@ namespace eval cffi::test {
                     [cffi::memory free $p]
             } -result [list 0 [string repeat $val $repeat] {} {}]
     }
+    test memory-string-[incr num] "memory tostring offset" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::memory tostring $p 1
+    } -cleanup {
+        cffi::memory free $p
+    } -result bc
+    test memory-string-[incr num] "memory tostring encoding offset" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::memory tostring $p ascii 1
+    } -cleanup {
+        cffi::memory free $p
+    } -result bc
+    test memory-string-[incr num] "memory tostring! offset" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::memory tostring! [pointer_unsafe_add $p 1] 1
+    } -cleanup {
+        cffi::memory free $p
+    } -result c
+    test memory-string-[incr num] "memory tostring! encoding offset" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::memory tostring! [pointer_unsafe_add $p 1] ascii 1
+    } -cleanup {
+        cffi::memory free $p
+    } -result c
+    test memory-string-[incr num] "memory tostring! negative offset" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::memory tostring! [pointer_unsafe_add $p 1] -1
+    } -cleanup {
+        cffi::memory free $p
+    } -result abc
     test memory-tostring-error-0 "tostring null pointer" -body {
         cffi::memory tostring 0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
+    test memory-tostring-error-1 "memory tostring negative offset" -body {
+        set p [cffi::memory fromstring abc]
+        cffi::memory tostring $p -1
+    } -cleanup {
+        cffi::memory free $p
+    } -result {Invalid value. Negative offsets are not allowed for safe pointers.} -returnCodes error
     test memory-tostring!-error-0 "tostring! null pointer" -body {
         cffi::memory tostring! 0^ 1
     } -result {Pointer is NULL.} -returnCodes error
 
     ###
     # memory fill
-    testnumargs memory-fill "::cffi::memory fill" "POINTER BYTEVALUE COUNT" ""
+    testnumargs memory-fill "::cffi::memory fill" "POINTER BYTEVALUE COUNT" "?OFFSET?"
     test memory-fill-0 {memory fill} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
@@ -252,6 +334,15 @@ namespace eval cffi::test {
         cffi::memory fill $p 255 2
         cffi::memory tobinary $p 2
     } -result \xFF\xFF
+    test memory-fill-4 {memory fill at offset} -setup {
+        set p [cffi::memory frombinary \x01\x02\x03]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill $p 255 2 1
+        cffi::memory tobinary $p 3
+    } -result \x01\xff\xff
+
     test memory-fill-error-0 {memory fill negative bytes} -setup {
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
@@ -292,8 +383,132 @@ namespace eval cffi::test {
             $result \
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value 256 not in range. Must be within [0,255].} \x00\xFF]
-    test memory-fill-error-3 "memory fill - NULL pointer" -body {
+    test memory-fill-error-4 "memory fill - NULL pointer" -body {
         cffi::memory fill NULL 0 1
+    } -result "*Pointer is NULL*" -match glob -returnCodes error
+    test memory-fill-error-5 {memory fill at negative offset} -setup {
+        set p [cffi::memory frombinary \x01\x02\x03]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory fill $p 255 2 -1} emsg] \
+            $emsg \
+            [cffi::memory tobinary $p 3]
+    } -result [list 1 {Invalid value "-1". Negative offsets are not allowed for safe pointers.} \x01\x02\x03]
+
+    #
+    # memory fill!
+    testnumargs memory-fill! "::cffi::memory fill!" "POINTER BYTEVALUE COUNT" "?OFFSET?"
+    test memory-fill!-0 {memory fill!} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill! $p 1 2
+        cffi::memory tobinary! $p 2
+    } -result \x01\x01
+    test memory-fill!-1 {memory fill! 0 bytes} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill! $p 1 0
+        cffi::memory tobinary! $p 2
+    } -result \x00\xff
+    test memory-fill!-2 {memory fill! lowest value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill! $p 0 2
+        cffi::memory tobinary! $p 2
+    } -result \x00\x00
+    test memory-fill!-3 {memory fill! highest value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill! $p 255 2
+        cffi::memory tobinary! $p 2
+    } -result \xFF\xFF
+    test memory-fill!-4 {memory fill! at offset} -setup {
+        set p [cffi::memory frombinary \x01\x02\x03]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill! $p 255 2 1
+        cffi::memory tobinary! $p 3
+    } -result \x01\xff\xff
+    test memory-fill!-5 {memory fill! at negative offset} -setup {
+        set p [cffi::memory frombinary \x01\x02\x03]
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory fill! [pointer_unsafe_add $p 1] 255 2 -1
+        cffi::memory tobinary! $p 3
+    } -result \xff\xff\x03
+
+    test memory-fill!-error-0 {memory fill! negative bytes} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory fill! $p 1 -1} result] \
+            $result \
+            [cffi::memory tobinary! $p 2]
+    } -result [list 1 {Value -1 not in range. Must be within [0,2147483647].} \x00\xFF]
+    test memory-fill!-error-1 {memory fill! > int-max bytes} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory fill! $p 1 2147483648} result] \
+            $result \
+            [cffi::memory tobinary! $p 2]
+    } -result [list 1 {Value 2147483648 not in range. Must be within [0,2147483647].} \x00\xFF]
+    test memory-fill!-error-2 {memory fill! negative value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory fill! $p -1 1} result] \
+            $result \
+            [cffi::memory tobinary! $p 2]
+    } -result [list 1 {Value -1 not in range. Must be within [0,255].} \x00\xFF]
+    test memory-fill!-error-3 {memory fill! too high value} -setup {
+        set p [cffi::memory frombinary \x00\xFF]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        cffi::memory free $p
+    } -body {
+        list \
+            [catch {cffi::memory fill! $p 256 1} result] \
+            $result \
+            [cffi::memory tobinary! $p 2]
+    } -result [list 1 {Value 256 not in range. Must be within [0,255].} \x00\xFF]
+    test memory-fill!-error-4 "memory fill! - NULL pointer" -body {
+        cffi::memory fill! NULL 0 1
     } -result "*Pointer is NULL*" -match glob -returnCodes error
 
     #

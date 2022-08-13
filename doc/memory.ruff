@@ -50,8 +50,8 @@ namespace eval ${NS}::memory {
         #  pointer - base address of memory location. The pointer must be a
         #   safe pointer but the tag is immaterial.
         #  typespec - type specification to use for conversion
-        #  index - the index in memory at which the value is to be stored. Care must
-        #   be taken this is within bounds of the allocated space.
+        #  index - the index in memory from which value is to be retrieved.
+        #   Care must be taken this is within bounds of the allocated space.
         #
         # The command converts the data at a memory location into a Tcl script
         # object as per the type specification $typespec. The memory address of
@@ -73,6 +73,9 @@ namespace eval ${NS}::memory {
         # in native form
         #  pointer - base address of memory location. The pointer is not checked
         #   for validity.
+        #  typespec - type specification to use for conversion
+        #  index - the index in memory from which value is to be retrieved.
+        #   Care must be taken this is within bounds of the allocated space.
         #
         # This command is identical to the [memory get] command except that it does
         # not require $pointer to be a safe pointer. See the documentation of
@@ -137,48 +140,57 @@ namespace eval ${NS}::memory {
         # See also: "memory get" "memory set"
     }
 
-    proc tobinary {pointer size} {
+    proc tobinary {pointer size {offset 0}} {
         # Returns the content of a memory block as a Tcl binary string.
         #  pointer - safe pointer to memory
         #  size - number of bytes to copy from the memory block
-        #
+        #  offset - offset from $pointer of area to value. May be negative
+        #    for unsafe pointers.
         # See also: "memory tobinary!" "memory frombinary"
         #
     }
-    proc tobinary! {pointer size} {
+    proc tobinary! {pointer size {offset 0}} {
         # Returns the content of a memory block as a Tcl binary string.
         #  pointer - pointer to memory.
         #  size - number of bytes to copy from the memory block
+        #  offset - offset from $pointer of area to value. May be negative
+        #    for unsafe pointers.
         #
         # Unlike the [memory tobinary] method, this does not check the validity
         # of $pointer and should be used with care.
         #
         # See also: "memory tobinary" "memory frombinary"
     }
-    proc tostring {pointer {encoding {}}} {
+    proc tostring {pointer {encoding {}} {offset 0}} {
         # Returns the content of a memory block as a Tcl string.
         #  pointer - safe pointer to memory
         #  encoding - the encoding to use for conversion. If unspecified or
         #    the empty string, the system encoding is used.
+        #  offset - offset from $pointer of area to value. May be negative
+        #    for unsafe pointers.
         #
         # See also: "memory tostring!" "memory fromstring"
     }
-    proc tostring! {pointer {encoding {}}} {
+    proc tostring! {pointer {encoding {}} {offset 0}} {
         # Returns the content of a memory block as a Tcl string.
         #  pointer - pointer to memory
         #  encoding - the encoding to use for conversion. If unspecified or
         #    the empty string, the system encoding is used.
+        #  offset - offset from $pointer of area to value. May be negative
+        #    for unsafe pointers.
         #
         # Unlike the [memory tostring] method, this does not check the validity
         # of $pointer and should be used with care.
         #
         # See also: "memory tostring!" "memory fromstring"
     }
-    proc fill {pointer bytevalue count} {
-        # Fills memory locations to a specified value
+    proc fill {pointer bytevalue count {offset 0}} {
+        # Fills memory with a specified value
         #  pointer - safe pointer to memory
         #  bytevalue - a value in the range `0`-`255`
         #  count - number of bytes to be fill
+        #  offset - offset from $pointer of area to fill. May be negative
+        #    for unsafe pointers.
     }
     namespace export *
     namespace ensemble create
