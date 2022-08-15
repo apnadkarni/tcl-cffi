@@ -204,6 +204,14 @@ CffiCallbackCheckProto(CffiInterpCtx *ipCtxP,
 {
     int i;
 
+    /* Cannot be a varargs funciton */
+    if (protoP->flags & CFFI_F_PROTO_VARARGS) {
+        return Tclh_ErrorGeneric(
+            ipCtxP->interp,
+            NULL,
+            "Callbacks cannot have a variable number of parameters.");
+    }
+
     /* Check the parameters */
     for (i = 0; i < protoP->nParams; ++i) {
         const CffiParam *paramP = &protoP->params[i];
@@ -278,9 +286,9 @@ CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
 
 static CffiResult
 CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
-                    Tcl_Interp *ip,
-                    int objc,
-                    Tcl_Obj *const objv[])
+                   Tcl_Interp *ip,
+                   int objc,
+                   Tcl_Obj *const objv[])
 {
     CffiCallback *cbP = NULL;
     CffiProto *protoP;
@@ -322,7 +330,7 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
         goto error_handler;
 
     /* Translate Cffi definition to libffi definiiotn */
-    if (CffiLibffiInitProtoCif(ip, protoP) != TCL_OK)
+    if (CffiLibffiInitProtoCif(ipCtxP, protoP, 0, NULL, NULL) != TCL_OK)
         goto error_handler;
 
     cbP = CffiCallbackAllocAndInit(

@@ -402,7 +402,9 @@ typedef struct CffiParam {
  */
 typedef struct CffiProto {
     int nRefs;            /* Reference count */
-    int nParams;          /* Number of params, sizeof params array */
+    int nParams;          /* Number of fixed params, sizeof params array */
+    int flags;
+#define CFFI_F_PROTO_VARARGS 0x1
     CffiABIProtocol abi;  /* cdecl, stdcall etc. */
     CffiParam returnType; /* Name and return type of function */
 #ifdef CFFI_USE_LIBFFI
@@ -455,6 +457,9 @@ typedef struct CffiArgument {
 typedef struct CffiCall {
     CffiFunction *fnP;         /* Function being called */
 #ifdef CFFI_USE_LIBFFI
+    CffiTypeAndAttrs *varArgTypesP; /* Array of vararg types. These are not
+                                       not part of function definition as
+                                       they vary between calls. */
     void **argValuesPP; /* Array of pointers into the actual value fields within
                            argsP[] elements */
     void *retValueP;    /* Points to storage to use for return value */
@@ -787,7 +792,11 @@ STOREARGFN_(Double, double, dcArgDouble)
 CffiResult CffiLibffiInit(CffiInterpCtx *ipCtxP);
 void CffiLibffiFinit(CffiInterpCtx *ipCtxP);
 
-CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP);
+CffiResult CffiLibffiInitProtoCif(CffiInterpCtx *ipCtxP,
+                                  CffiProto *protoP,
+                                  int numVarArgs,
+                                  Tcl_Obj * const *varArgObjs,
+                                  CffiTypeAndAttrs *typeAttrsP);
 
 # ifdef CFFI_ENABLE_CALLBACKS
 void CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata);
@@ -797,11 +806,11 @@ CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
     return FFI_DEFAULT_ABI;
 }
 CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
-#if defined(_WIN32) && !defined(_WIN64)
+# if defined(_WIN32) && !defined(_WIN64)
     return FFI_STDCALL;
-#else
+# else
     return FFI_DEFAULT_ABI;
-#endif
+# endif
 }
 CFFI_INLINE void
 CffiReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)

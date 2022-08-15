@@ -1228,6 +1228,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     Tcl_Interp *ip;
     CffiInterpCtx *ipCtxP;
 
+
     protoP = callP->fnP->protoP;
     ipCtxP = callP->fnP->ipCtxP;
     ip     = ipCtxP->interp;
@@ -1246,7 +1247,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
      * freeing up any internal resources for each argument. The memlifo
      * memory is freed up when the entire frame is popped at the end.
      */
-    callP->nArgs = protoP->nParams;
+    callP->nArgs = nArgObjs;
     if (callP->nArgs == 0)
         return TCL_OK;
     argsP = (CffiArgument *)MemLifoAlloc(
@@ -1267,7 +1268,18 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
      */
     need_pass2 = 0;
     for (i = 0; i < callP->nArgs; ++i) {
-        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        CffiTypeAndAttrs *typeAttrsP;
+
+        if (i < protoP->nParams) {
+            /* Fixed param */
+            typeAttrsP = &protoP->params[i].typeAttrs;
+        }
+        else {
+            /* Vararg. */
+            CFFI_ASSERT(callP->varArgTypesP);
+            typeAttrsP = &callP->varArgTypesP[i - protoP->nParams];
+        }
+
         if (CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
             /* Dynamic array. */
             need_pass2 = 1;
@@ -1276,7 +1288,6 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
 
         /* Scalar or fixed size array. Type decl should have ensured size!=0 */
         argsP[i].arraySize = typeAttrsP->dataType.arraySize;
-        CFFI_ASSERT(argsP[i].arraySize != 0); /* Must be scalar or array of size > 0 */
         if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
             goto cleanup_and_error;
     }
@@ -1296,7 +1307,13 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         int dynamicCountIndex;
         long long actualCount;
         CffiValue *actualValueP;
-        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        CffiTypeAndAttrs *typeAttrsP;
+        if (i < protoP->nParams) {
+            typeAttrsP = &protoP->params[i].typeAttrs;
+        }
+        else {
+            typeAttrsP = &callP->varArgTypesP[i - protoP->nParams];
+        }
 
         if (! CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
             /* This arg already been parsed successfully. Just load it. */
@@ -1333,7 +1350,8 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         case CFFI_K_TYPE_LONGLONG: actualCount = actualValueP->u.slonglong; break;
         case CFFI_K_TYPE_ULONGLONG: actualCount = actualValueP->u.ulonglong; break;
         default:
-            (void) Tclh_ErrorWrongType(ip, NULL, "Wrong type for dynamic array count value.");
+            (void)Tclh_ErrorWrongType(
+                ip, NULL, "Wrong type for dynamic array count value.");
             goto cleanup_and_error;
         }
 
@@ -1373,9 +1391,12 @@ CffiFunctionCall(ClientData cdata,
     CffiFunction *fnP     = (CffiFunction *)cdata;
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->ipCtxP;
-    Tcl_Obj **argObjs = NULL;
     Tcl_Obj *resultObj = NULL;
+    Tcl_Obj **argObjs = NULL;
+    Tcl_Obj * const *varArgObjs = NULL;
+    CffiTypeAndAttrs *varArgTypesP = NULL;
     int nArgObjs;
+    int nVarArgs;
     int i;
     int argResultIndex; /* If >=0, index of output argument as function result */
     void *pointer;
@@ -1387,12 +1408,9 @@ CffiFunctionCall(ClientData cdata,
 
     CFFI_ASSERT(ip == ipCtxP->interp);
 
-#ifdef CFFI_USE_LIBFFI
-    /* protoP->cifP is lazy-initialized */
-    ret = CffiLibffiInitProtoCif(ip, protoP);
-    if (ret != TCL_OK)
-        return ret;
-#endif
+    /* nArgObjs is supplied arguments. Remaining have to come from defaults */
+    CFFI_ASSERT(objc >= objArgIndex);
+    nArgObjs = objc - objArgIndex;
 
     /* TBD - check memory executable permissions */
     if ((uintptr_t) fnP->fnAddr < 0xffff)
@@ -1402,34 +1420,85 @@ CffiFunctionCall(ClientData cdata,
 
     /* IMPORTANT - mark has to be popped even on errors before returning */
 
-    /* nArgObjs is supplied arguments. Remaining have to come from defaults */
-    CFFI_ASSERT(objc >= objArgIndex);
-    nArgObjs = objc - objArgIndex;
-    if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
-        /* One less arg as the param value will be returned as function result */
-        if (nArgObjs > (protoP->nParams - 1))
+    /* Check number of arguments passed */
+    if (protoP->flags & CFFI_F_PROTO_VARARGS) {
+        /*
+         * Varargs functions differ from fixed arg functions in that
+         * - they do not permit default values for parameters so at least
+         *   that many arguments must be present
+         * - number of arguments may be more than number in prototype
+         */
+        int minNumArgs = protoP->nParams;
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_RETVAL)
+            minNumArgs -= 1; /* One parameter is return val */
+        if (nArgObjs < minNumArgs)
             goto numargs_error; /* More args than params */
-    } else {
-        if (nArgObjs > protoP->nParams)
-            goto numargs_error; /* More args than params */
+        nVarArgs   = nArgObjs - minNumArgs;
+        varArgObjs = nVarArgs ? (minNumArgs + objArgIndex + objv) : NULL;
     }
+    else {
+        /*
+         * For normal functions, there may be fewer arguments as defaults
+         * may be present (if not, error is caught when setting up args)
+         * There should never me more args than formal parameters.
+         */
+        int maxNumArgs = protoP->nParams;
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_RETVAL)
+            maxNumArgs -= 1; /* One param is the return val */
+        if (nArgObjs > maxNumArgs)
+            goto numargs_error; /* More args than params */
+        nVarArgs   = 0;
+        varArgObjs = NULL;
+    }
+    if (nVarArgs) {
+        /* Need room for varargs type descriptors */
+        varArgTypesP = (CffiTypeAndAttrs *)MemLifoAlloc(
+            &ipCtxP->memlifo, nVarArgs * sizeof(CffiTypeAndAttrs));
+    }
+
+#ifdef CFFI_USE_LIBFFI
+    /* protoP->cifP is lazy-initialized */
+    ret = CffiLibffiInitProtoCif(
+        ipCtxP, protoP, nVarArgs, varArgObjs, varArgTypesP);
+    if (ret != TCL_OK)
+        goto pop_and_go;
+#endif
 
     callCtx.fnP = fnP;
     callCtx.nArgs = 0;
     callCtx.argsP = NULL;
 #ifdef CFFI_USE_LIBFFI
+    callCtx.varArgTypesP = varArgTypesP;
     callCtx.argValuesPP = NULL;
     callCtx.retValueP   = NULL;
 #endif
 
-    /* Set up arguments if any */
+    /*
+     * Set up arguments if any. Remember
+     * - for normal functions, there may be fewer arguments than params
+     *   because some params may have defaults
+     * - for varargs functions, there may be more arguments than params
+     *   but never fewer (since defaults not allowed even for fixed params)
+     * protoP->nParams is number of fixed params defined. Will be at least
+     * 1 for varargs functions.
+     * nArgObjs is number of arguments passed in to this function.
+     * nVarArgs is number of vararg arguments passed in to this function.
+     * For normal functions,
+     *   protoP->nParams >= 0, protoP->nParams >= nArgObjs, nVarArgs == 0
+     * For vararg functions,
+     *   protoP->nParams >=1, protoP->nParams <= nArgObjs, nVarArgs >= 0
+     */
     argResultIndex = -1;/* Presume function result returned as is */
     if (protoP->nParams) {
         int j;
 
-        /* Allocate space to hold argument values */
+        /*
+         * Allocate space to hold all arguments.  Number of fixed parameters
+         * plus vararg parameters. Note this is NOT same as nArgObjs due ti
+         * presence of defaults.
+         */
         argObjs = (Tcl_Obj **)MemLifoAlloc(
-            &ipCtxP->memlifo, protoP->nParams * sizeof(Tcl_Obj *));
+            &ipCtxP->memlifo, (protoP->nParams + nVarArgs) * sizeof(Tcl_Obj *));
 
         for (i = 0, j = objArgIndex; i < protoP->nParams; ++i, ++j) {
             if (protoP->params[i].typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
@@ -1454,9 +1523,34 @@ CffiFunctionCall(ClientData cdata,
                 }
             }
         }
+        /*
+         * Now parse varargs arguments. At this point j is start of varargs
+         * within objv[]. i is start of varargs within argObjs[].
+         */
+        if (nVarArgs) {
+            /* Note below assert only holds for varargs functions */
+            CFFI_ASSERT((i + nVarArgs) == nArgObjs);
+            for (; i < nArgObjs; ++i, ++j) {
+                CFFI_ASSERT(j < objc);
+                Tcl_Obj **typeAndValueObj;
+                int n;
+                if (Tcl_ListObjGetElements(NULL, objv[j], &n, &typeAndValueObj) != TCL_OK
+                || n != 2) {
+                    /* Should not really happen since already checked in
+                     * CffiLibInitProtoCif above */
+                    Tclh_ErrorInvalidValue(
+                        ip,
+                        varArgObjs[i],
+                        "A vararg must be a type and value pair.");
+                    goto pop_and_error;
+                }
+                argObjs[i] = typeAndValueObj[1];
+            }
+        }
 
         /* Set up stack. This also does CffiResetCall so we don't need to */
-        if (CffiFunctionSetupArgs(&callCtx, protoP->nParams, argObjs) != TCL_OK)
+        if (CffiFunctionSetupArgs(&callCtx, protoP->nParams + nVarArgs, argObjs)
+            != TCL_OK)
             goto pop_and_error;
         /* callCtx.argsP will have been set up by above call */
     }
@@ -1778,6 +1872,13 @@ CffiFunctionCall(ClientData cdata,
         CffiArgCleanup(&callCtx, i);
 
 pop_and_go:
+    /* Clean up the temporary type descriptors for variable args */
+    if (varArgTypesP) {
+        for (i = 0; i < nVarArgs; ++i) {
+            CffiTypeAndAttrsCleanup(&varArgTypesP[i]);
+        }
+    }
+
     MemLifoPopMark(mark);
     return ret;
 

@@ -136,22 +136,40 @@ invalid_type:
         ip, NULL, "Unknown type or invalid type for context.");
 }
 
-CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP)
+CffiResult
+CffiLibffiInitProtoCif(CffiInterpCtx *ipCtxP,
+                       CffiProto *protoP,
+                       int numVarArgs,
+                       Tcl_Obj * const *varArgObjs,
+                       CffiTypeAndAttrs *varArgTypesP)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     ffi_cif *cifP;
     ffi_type **ffiTypePP;
     CffiResult ret;
     int i;
+    int totalSlots;
 
-    if (protoP->cifP)
-        return TCL_OK; /* Already done */
+    CFFI_ASSERT((protoP->flags & CFFI_F_PROTO_VARARGS) || numVarArgs == 0);
+    CFFI_ASSERT(numVarArgs == 0 || varArgObjs);
+    CFFI_ASSERT(numVarArgs == 0 || varArgTypesP);
 
-    cifP = ckalloc(sizeof(*cifP)
-                   + protoP->nParams * sizeof(ffi_type *) /* Argument types */
-                   + sizeof(ffi_type *)                   /* Return type slot */
-    );
+    /*
+     * For varargs, arguments may keep changing so we have to regenerate the
+     * libffi argument descriptors on every call.
+     */
+    if (protoP->cifP) {
+        if (! (protoP->flags & CFFI_F_PROTO_VARARGS))
+            return TCL_OK; /* Not a varargs function, and already init'ed */
+        ckfree(protoP->cifP);
+        protoP->cifP = NULL;
+    }
 
-    /* Map argument CFFI types to libffi types */
+    /* Need space for cif itself, fixed params, varargs, return value */
+    totalSlots = protoP->nParams + numVarArgs + 1;
+    cifP       = ckalloc(sizeof(*cifP) + (sizeof(ffi_type *) * totalSlots));
+
+    /* Map fixed argument CFFI types to libffi types */
     ffiTypePP = (ffi_type **)(cifP + 1);
     for (i = 0; i < protoP->nParams; ++i) {
         ret = CffiTypeToLibffiType(ip,
@@ -162,29 +180,85 @@ CffiResult CffiLibffiInitProtoCif(Tcl_Interp *ip, CffiProto *protoP)
         if (ret != TCL_OK)
             goto error_handler;
     }
-    /* Ditto for the return type */
+    /* Map return type. Place at end of all arguments (fixed and varargs) */
     ret = CffiTypeToLibffiType(ip,
                                protoP->abi,
                                CFFI_F_TYPE_PARSE_RETURN,
                                &protoP->returnType.typeAttrs,
-                               &ffiTypePP[protoP->nParams]);
+                               &ffiTypePP[numVarArgs+protoP->nParams]);
     if (ret != TCL_OK)
         goto error_handler;
 
-    if (ffi_prep_cif(cifP,
-                     protoP->abi,
-                     protoP->nParams,
-                     ffiTypePP[protoP->nParams],
-                     ffiTypePP)
-        != FFI_OK) {
-        if (ip) {
-            Tcl_SetResult(ip, "Internal error: Could not intialize libffi cif.", TCL_STATIC);
+    /*
+     * Finally, gather up the vararg types. Unlike the fixed parameters,
+     * here the types are specified at call time so need to parse those
+     */
+    int numVarArgTypesInited;
+    for (numVarArgTypesInited = 0, i = 0; i < numVarArgs; ++i) {
+        /* The varargs arguments are pairs consisting of type and value. */
+        Tcl_Obj **argObjs;
+        int n;
+        if (Tcl_ListObjGetElements(NULL, varArgObjs[i], &n, &argObjs) != TCL_OK
+            || n != 2) {
+            Tclh_ErrorInvalidValue(
+                ip, varArgObjs[i], "A vararg must be a type and value pair.");
+            goto error_handler;
         }
-        goto error_handler;
+        ret = CffiTypeAndAttrsParse(
+            ipCtxP, argObjs[0], CFFI_F_TYPE_PARSE_PARAM, &varArgTypesP[i]);
+        if (ret != TCL_OK)
+            break;
+        ++numVarArgTypesInited;
+        /* Out of caution and paranoia, only permit input varargs */
+        if ((varArgTypesP[i].flags & CFFI_F_ATTR_PARAM_DIRECTION_MASK)
+            != CFFI_F_ATTR_IN) {
+            ret = Tclh_ErrorInvalidValue(
+                ip, argObjs[0], "Only input parameters permitted for varargs");
+            break;
+        }
+
+        ret = CffiTypeToLibffiType(ip,
+                                   protoP->abi,
+                                   CFFI_F_TYPE_PARSE_PARAM,
+                                   &varArgTypesP[i],
+                                   &ffiTypePP[protoP->nParams + i]);
+        if (ret != TCL_OK)
+            break;
+    }
+    if (ret == TCL_OK) {
+        ffi_status ffiStatus;
+        if (protoP->flags & CFFI_F_PROTO_VARARGS) {
+            ffiStatus = ffi_prep_cif_var(cifP,
+                                     protoP->abi,
+                                     protoP->nParams,
+                                     numVarArgs+protoP->nParams,
+                                     ffiTypePP[numVarArgs+protoP->nParams],
+                                     ffiTypePP);
+        }
+        else {
+            ffiStatus = ffi_prep_cif(cifP,
+                                     protoP->abi,
+                                     protoP->nParams,
+                                     ffiTypePP[protoP->nParams],
+                                     ffiTypePP);
+        }
+        if (ffiStatus == FFI_OK) {
+            protoP->cifP = cifP;
+            return TCL_OK;
+        }
+
+        /* Fall through for error handling */
+        if (ip) {
+            Tcl_SetResult(ip,
+                          "Internal error: Could not intialize libffi cif.",
+                          TCL_STATIC);
+        }
     }
 
-    protoP->cifP = cifP;
-    return TCL_OK;
+    /* Error in vararg type conversion or cif prep. Clean any varargs types */
+    for (i = 0; i < numVarArgTypesInited; ++i) {
+        CffiTypeAndAttrsCleanup(&varArgTypesP[i]);
+    }
 
 error_handler:
     ckfree(cifP);

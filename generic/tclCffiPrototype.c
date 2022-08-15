@@ -93,10 +93,37 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     int nobjs;
     int i, j;
     int need_pass2;
+    int isVarArgs;
 
     CHECK(Tcl_ListObjGetElements(ip, paramsObj, &nobjs, &objs));
-    if (nobjs & 1)
-        return Tclh_ErrorInvalidValue(ip, paramsObj, "Parameter type missing.");
+    if (nobjs & 1) {
+        /*
+         * Odd number of parameters. Only allowed if last param is varargs.
+         * And in that case, there has to be at least one fixed param
+         * (libffi restriction)
+         */
+        if (strcmp(Tcl_GetString(objs[nobjs-1]), "...")) {
+            return Tclh_ErrorInvalidValue(
+                ip, paramsObj, "Parameter type missing.");
+        }
+#ifdef CFFI_USE_DYNCALL
+        Tcl_SetResult(ip,
+                      "Varargs functions not supported by the dyncall backend.",
+                      TCL_STATIC);
+        return TCL_ERROR;
+#endif
+        nobjs -= 1; /* Ignore the ... */
+        if (nobjs == 0) {
+            /* The ... is the only parameter */
+            return Tclh_ErrorInvalidValue(
+                ip,
+                NULL,
+                "No fixed parameters present in varargs function definition.");
+        }
+        isVarArgs = 1;
+    }
+    else
+        isVarArgs = 0;
 
     /*
      * Parameter list is alternating name, type elements. Thus number of
@@ -113,6 +140,9 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     }
     Tcl_IncrRefCount(fnNameObj);
     protoP->returnType.nameObj = fnNameObj;
+    if (isVarArgs) {
+        protoP->flags |= CFFI_F_PROTO_VARARGS;
+    }
 
     protoP->nParams = 0; /* Update as we go along  */
     need_pass2      = 0;
@@ -126,8 +156,16 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
             CffiProtoUnref(protoP);
             return TCL_ERROR;
         }
+        if (isVarArgs && protoP->params[j].typeAttrs.parseModeSpecificObj) {
+            CffiProtoUnref(protoP);
+            return Tclh_ErrorGeneric(
+                ip,
+                NULL,
+                "Parameters in varargs functions cannot have default values.");
+        }
         if (protoP->params[j].typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
             if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
+                CffiProtoUnref(protoP);
                 return Tclh_ErrorGeneric(
                     ip,
                     NULL,
@@ -138,6 +176,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                     protoP->returnType.typeAttrs.dataType.baseType)
                 || !(protoP->returnType.typeAttrs.flags
                      & (CFFI_F_ATTR_REQUIREMENT_MASK))) {
+                CffiProtoUnref(protoP);
                 return Tclh_ErrorGeneric(
                     ip,
                     NULL,
@@ -165,6 +204,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                         protoP->params[i].typeAttrs.dataType.countHolderObj)
                     < 0) {
                     /* Dynamic count parameter not found or wrong type */
+                    CffiProtoUnref(protoP);
                     return TCL_ERROR;
                 }
             }

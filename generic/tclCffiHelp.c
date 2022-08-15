@@ -28,7 +28,7 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     resultObj = Tcl_NewStringObj("Syntax: ", 8);
     Tcl_AppendObjToObj(resultObj, objv[2]);
     for (i = 0; i < protoP->nParams; ++i) {
-	if (protoP->params[i].typeAttrs.parseModeSpecificObj)
+        if (protoP->params[i].typeAttrs.parseModeSpecificObj)
             Tcl_AppendStringsToObj(resultObj,
                                    " ?",
                                    Tcl_GetString(protoP->params[i].nameObj),
@@ -38,7 +38,8 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
             Tcl_AppendStringsToObj(
                 resultObj, " ", Tcl_GetString(protoP->params[i].nameObj), NULL);
     }
-
+    if (protoP->flags & CFFI_F_PROTO_VARARGS)
+        Tcl_AppendStringsToObj(resultObj, " ?...?", NULL);
     Tcl_SetObjResult(ipCtxP->interp, resultObj);
     return TCL_OK;
 }

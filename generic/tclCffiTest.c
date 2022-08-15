@@ -1000,3 +1000,14 @@ DLLEXPORT
 int callback_int2 (int i, int j, int(*fn)(int, int)) {
     return fn(i, j);
 }
+
+DLLEXPORT
+int formatVarargs(char *buf, int bufSize, const char *fmt,...)
+{
+    int n;
+    va_list args;
+    va_start(args, fmt);
+    n = vsnprintf(buf, bufSize, fmt, args);
+    va_end(args);
+    return n;
+}
