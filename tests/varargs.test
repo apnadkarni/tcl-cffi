@@ -1,0 +1,72 @@
+# (c) 2022 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains tests for cffi::Wrapper pertaining to definition and
+# invocation of functions.
+
+source [file join [file dirname [info script]] common.tcl]
+
+# Varargs function definition tests
+
+namespace eval ${NS}::test {
+    variable invalidVarargTypes {uchar schar short ushort float}
+    testDll function formatVarargs int {buf {chars[n] out} n int fmt string ...}
+
+    test varargs-error-0 {formatVarargs no fixed params} -body {
+        testDll function {formatVarargs xxx} int {...}
+    } -returnCodes error -result {Invalid value. No fixed parameters present in varargs function definition. Error defining function xxx.}
+
+    test varargs-error-1 {formatVarargs single element vararg} -body {
+        formatVarargs buf 100 %s singleelementarg
+    } -returnCodes error -result {Invalid value "singleelementarg". A vararg must be a type and value pair.}
+    test varargs-error-2 {formatVarargs three element vararg} -body {
+        formatVarargs buf 100 %d {int 42 x}
+    } -returnCodes error -result {Invalid value "int 42 x". A vararg must be a type and value pair.}
+    test varargs-error-3 {formatVarargs bad type} -body {
+        formatVarargs buf 100 %s {nosuchtype 42}
+    } -returnCodes error -result {Invalid value "nosuchtype". Invalid base type.}
+
+    foreach type $intTypes {
+        if {$type in $invalidVarargTypes} {
+            test varargs-$type-0 "formatVarargs invalid type $type" -body {
+                formatVarargs buf 100 %d [list $type 42]
+            } -returnCodes error -result {Invalid value. Bad libffi argument type.}
+        } else {
+            test vararg-$type-0 "formatVarargs type $type" -body {
+                formatVarargs buf 100 %d [list $type 42]
+                set buf
+            } -result 42
+            test vararg-$type-error-0 "formatVarargs type $type bad value" -body {
+                formatVarargs buf 100 %d [list $type x]
+                set buf
+            } -result {expected integer but got "x"} -returnCodes error
+        }
+    }
+    foreach type $realTypes {
+        if {$type in $invalidVarargTypes} {
+            test varargs-$type-0 "formatVarargs invalid type $type" -body {
+                formatVarargs buf 100 %g [list $type 42]
+            } -returnCodes error -result {Invalid value. Bad libffi argument type.}
+        } else {
+            test vararg-$type-0 "formatVarargs type $type" -body {
+                formatVarargs buf 100 %g [list $type 42.5]
+                set buf
+            } -result 42.5
+            test vararg-$type-error-0 "formatVarargs type $type bad value" -body {
+                formatVarargs buf 100 %g [list $type x]
+                set buf
+            } -result {expected floating-point number but got "x"} -returnCodes error
+        }
+    }
+
+    test vararg-string-0 "formatVarargs type string" -body {
+        formatVarargs buf 100 %s {string Hello}
+        set buf
+    } -result Hello
+}
+
+
+${NS}::test::testDll destroy
+
+::tcltest::cleanupTests
+namespace delete ${NS}::test

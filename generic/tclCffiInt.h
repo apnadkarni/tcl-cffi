@@ -439,6 +439,11 @@ typedef struct CffiArgument {
     CffiValue savedValue; /* Copy of above - needed after call in some cases
                              like disposable pointers. NOT used in all cases */
     Tcl_Obj *varNameObj;  /* Name of output variable or NULL */
+    CffiTypeAndAttrs *typeAttrsP; /* Type of the argument. For a fixed param
+                                     this will point to the type definition
+                                     in the CffiProto structure. For varargs
+                                     this will point to a volatile type def
+                                     generated for that call. */
 #ifdef CFFI_USE_LIBFFI
     void *valueP;         /* Always points to the value field. Used for libcffi
                              which needs an additional level of indirection for
@@ -457,9 +462,6 @@ typedef struct CffiArgument {
 typedef struct CffiCall {
     CffiFunction *fnP;         /* Function being called */
 #ifdef CFFI_USE_LIBFFI
-    CffiTypeAndAttrs *varArgTypesP; /* Array of vararg types. These are not
-                                       not part of function definition as
-                                       they vary between calls. */
     void **argValuesPP; /* Array of pointers into the actual value fields within
                            argsP[] elements */
     void *retValueP;    /* Points to storage to use for return value */
@@ -872,8 +874,6 @@ CFFI_INLINE double CffiCallDoubleFunc(CffiCall *callP) {
 
 #endif /* CFFI_USE_DYNCALL */
 
-CffiResult
-CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs);
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,
                             int objArgIndex, /* Where in objv[] args start */

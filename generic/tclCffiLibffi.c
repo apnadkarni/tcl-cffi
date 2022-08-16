@@ -12,6 +12,30 @@ static CffiResult CffiTypeToLibffiType(Tcl_Interp *ip,
                                        CffiTypeParseMode parseMode,
                                        CffiTypeAndAttrs *typeAttrsP,
                                        ffi_type **ffiTypePP);
+
+static CffiResult
+CffiMapLibffiError(Tcl_Interp *ip, ffi_status ffiStatus, Tcl_Obj *objP)
+{
+    const char *msgP;
+    switch (ffiStatus) {
+        case FFI_OK:
+            return TCL_OK;
+        case FFI_BAD_TYPEDEF:
+            msgP = "Bad libffi type definition.";
+            break;
+        case FFI_BAD_ABI:
+            msgP = "Unknown libffi function ABI.";
+            break;
+        case FFI_BAD_ARGTYPE:
+            msgP = "Bad libffi argument type.";
+            break;
+        default:
+            msgP = "Unknown libffi error.";
+            break;
+    }
+    return Tclh_ErrorInvalidValue(ip, objP, msgP);
+}
+
 static CffiResult
 CffiLibffiTranslateStruct(Tcl_Interp *ip,
                           CffiABIProtocol abi,
@@ -248,11 +272,7 @@ CffiLibffiInitProtoCif(CffiInterpCtx *ipCtxP,
         }
 
         /* Fall through for error handling */
-        if (ip) {
-            Tcl_SetResult(ip,
-                          "Internal error: Could not intialize libffi cif.",
-                          TCL_STATIC);
-        }
+        CffiMapLibffiError(ip, ffiStatus, NULL);
     }
 
     /* Error in vararg type conversion or cif prep. Clean any varargs types */

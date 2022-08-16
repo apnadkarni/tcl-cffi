@@ -15,9 +15,9 @@ static void CffiArgCleanup(CffiCall *callP, int arg_index);
 static CffiResult CffiReturnPrepare(CffiCall *callP);
 static CffiResult CffiReturnCleanup(CffiCall *callP);
 static void CffiPointerArgsDispose(Tcl_Interp *ip,
-                            CffiProto *protoP,
-                            CffiArgument *argsP,
-                            int callSucceeded);
+                                   int nArgs,
+                                   CffiArgument *argsP,
+                                   int callSucceeded);
 
 Tcl_WideInt
 CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
@@ -41,7 +41,7 @@ CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
  *
  * Parameters:
  * ip - interpreter
- * protoP - prototype structure with argument descriptors
+ * nArgs - size of argsP[]
  * argsP - array of argument values
  * callFailed - 0 if the function invocation had succeeded, else non-0
  *
@@ -54,13 +54,13 @@ CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
  */
 static void
 CffiPointerArgsDispose(Tcl_Interp *ip,
-                       CffiProto *protoP,
+                       int nArgs,
                        CffiArgument *argsP,
                        int callFailed)
 {
     int i;
-    for (i = 0; i < protoP->nParams; ++i) {
-        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+    for (i = 0; i < nArgs; ++i) {
+        CffiTypeAndAttrs *typeAttrsP = argsP[i].typeAttrsP;
         if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_POINTER
             && (typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))) {
             /*
@@ -119,8 +119,7 @@ CffiArgPrepareChars(CffiCall *callP,
 {
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
-    const CffiTypeAndAttrs *typeAttrsP =
-        &callP->fnP->protoP->params[arg_index].typeAttrs;
+    const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
     CFFI_ASSERT(argP->arraySize > 0);
@@ -174,8 +173,7 @@ CffiArgPrepareUniChars(CffiCall *callP,
 {
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
-    const CffiTypeAndAttrs *typeAttrsP =
-        &callP->fnP->protoP->params[arg_index].typeAttrs;
+    const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
 
     CFFI_ASSERT(argP->arraySize > 0);
 
@@ -236,6 +234,8 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
  *
  * callP->argsP[arg_index].valueP - (libffi) Set to point to the value field
  *
+ * callP->argsP[arg_index].typeAttrsP - the type descriptor for the argument
+ *
  * callP->argsP[arg_index].savedValue - copy of above for some types only
  *
  * callP->argsP[arg_index].varNameObj - will store the variable name
@@ -258,9 +258,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 {
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     Tcl_Interp *ip        = ipCtxP->interp;
-    const CffiTypeAndAttrs *typeAttrsP =
-        &callP->fnP->protoP->params[arg_index].typeAttrs;
     CffiArgument *argP    = &callP->argsP[arg_index];
+    const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
     CffiAttrFlags flags;
@@ -268,7 +267,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     char *p;
 
     /* Expected initialization to virgin state */
-    CFFI_ASSERT(callP->argsP[arg_index].flags == 0);
+    CFFI_ASSERT(argP->flags == 0);
 
     /*
      * IMPORTANT: the logic here must be consistent with CffiArgPostProcess
@@ -719,14 +718,13 @@ CffiResult
 CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
 {
     Tcl_Interp *ip = callP->fnP->ipCtxP->interp;
-    const CffiTypeAndAttrs *typeAttrsP =
-        &callP->fnP->protoP->params[arg_index].typeAttrs;
     CffiArgument *argP = &callP->argsP[arg_index];
+    const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
     CffiValue *valueP;
     Tcl_Obj *valueObj;
     int ret;
 
-    CFFI_ASSERT(callP->argsP[arg_index].flags & CFFI_F_ARG_INITIALIZED);
+    CFFI_ASSERT(argP->flags & CFFI_F_ARG_INITIALIZED);
 
     if (typeAttrsP->flags & CFFI_F_ATTR_IN)
         return TCL_OK;
@@ -1106,12 +1104,13 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     /*
      * Construct the dictionary of arguments that were input to the function.
      * Built as a list for efficiency as the handler may or may not access it.
+     * Note: only fixed params passed, not varargs as latter are not named
      */
     callInfoObj = Tcl_NewListObj(0, NULL);
     inputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
     outputArgsObj = Tcl_NewListObj(protoP->nParams, NULL);
     for (i = 0; i < protoP->nParams; ++i) {
-        CffiTypeAndAttrs *typeAttrsP = &protoP->params[i].typeAttrs;
+        CffiTypeAndAttrs *typeAttrsP = argsP[i].typeAttrsP;
         CffiAttrFlags flags          = typeAttrsP->flags;
         if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
             Tcl_ListObjAppendElement(
@@ -1181,6 +1180,7 @@ CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
 {
     int i;
     const char *name = Tcl_GetString(nameObj);
+    /* Note only searching fixed params as varargs are not named */
     for (i = 0; i < protoP->nParams; ++i) {
         CffiParam *paramP = &protoP->params[i];
         if (CffiTypeIsNotArray(&paramP->typeAttrs.dataType)
@@ -1208,7 +1208,8 @@ CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
  * argObjs - function arguments passed by the script. If a parameter has
  *   the RETVAL attribute set, the corresponding element in this array
  *   will be NULL.
- *
+ * varArgTypesP - array of type descriptors for the varargs arguments
+ *   May be NULL if no varargs.
  * The function resets the call context and sets up the arguments.
  *
  * As part of setting up the call stack, the function may allocate memory
@@ -1218,8 +1219,11 @@ CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
  * TCL_OK on success with the call stack set up, TCL_ERROR on error with an
  * error message in the interpreter.
  */
-CffiResult
-CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
+static CffiResult
+CffiFunctionSetupArgs(CffiCall *callP,
+                      int nArgObjs,
+                      Tcl_Obj *const *argObjs,
+                      CffiTypeAndAttrs *varArgTypesP)
 {
     int i;
     int need_pass2;
@@ -1227,7 +1231,6 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
     CffiProto *protoP;
     Tcl_Interp *ip;
     CffiInterpCtx *ipCtxP;
-
 
     protoP = callP->fnP->protoP;
     ipCtxP = callP->fnP->ipCtxP;
@@ -1276,8 +1279,8 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
         }
         else {
             /* Vararg. */
-            CFFI_ASSERT(callP->varArgTypesP);
-            typeAttrsP = &callP->varArgTypesP[i - protoP->nParams];
+            CFFI_ASSERT(varArgTypesP);
+            typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
         if (CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
@@ -1285,6 +1288,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             need_pass2 = 1;
             continue;
         }
+        argsP[i].typeAttrsP = typeAttrsP;
 
         /* Scalar or fixed size array. Type decl should have ensured size!=0 */
         argsP[i].arraySize = typeAttrsP->dataType.arraySize;
@@ -1312,7 +1316,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             typeAttrsP = &protoP->params[i].typeAttrs;
         }
         else {
-            typeAttrsP = &callP->varArgTypesP[i - protoP->nParams];
+            typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
         if (! CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
@@ -1360,6 +1364,7 @@ CffiFunctionSetupArgs(CffiCall *callP, int nArgObjs, Tcl_Obj *const *argObjs)
             goto cleanup_and_error;
         }
 
+        argsP[i].typeAttrsP = typeAttrsP;
         argsP[i].arraySize = (int) actualCount;
         if (CffiArgPrepare(callP, i, argObjs[i]) != TCL_OK)
             goto cleanup_and_error;
@@ -1397,6 +1402,8 @@ CffiFunctionCall(ClientData cdata,
     CffiTypeAndAttrs *varArgTypesP = NULL;
     int nArgObjs;
     int nVarArgs;
+    int nActualArgs;
+    int varArgsInited = 0;
     int i;
     int argResultIndex; /* If >=0, index of output argument as function result */
     void *pointer;
@@ -1468,7 +1475,6 @@ CffiFunctionCall(ClientData cdata,
     callCtx.nArgs = 0;
     callCtx.argsP = NULL;
 #ifdef CFFI_USE_LIBFFI
-    callCtx.varArgTypesP = varArgTypesP;
     callCtx.argValuesPP = NULL;
     callCtx.retValueP   = NULL;
 #endif
@@ -1487,7 +1493,10 @@ CffiFunctionCall(ClientData cdata,
      *   protoP->nParams >= 0, protoP->nParams >= nArgObjs, nVarArgs == 0
      * For vararg functions,
      *   protoP->nParams >=1, protoP->nParams <= nArgObjs, nVarArgs >= 0
+     * nActualArgs is calculated taking into account defaulted arguments
+     * and varargs.
      */
+    nActualArgs = nVarArgs + protoP->nParams;
     argResultIndex = -1;/* Presume function result returned as is */
     if (protoP->nParams) {
         int j;
@@ -1498,8 +1507,9 @@ CffiFunctionCall(ClientData cdata,
          * presence of defaults.
          */
         argObjs = (Tcl_Obj **)MemLifoAlloc(
-            &ipCtxP->memlifo, (protoP->nParams + nVarArgs) * sizeof(Tcl_Obj *));
+            &ipCtxP->memlifo, nActualArgs * sizeof(Tcl_Obj *));
 
+        /* First do the fixed arguments */
         for (i = 0, j = objArgIndex; i < protoP->nParams; ++i, ++j) {
             if (protoP->params[i].typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
                 /* This is a parameter to use as return value. No argument
@@ -1549,10 +1559,13 @@ CffiFunctionCall(ClientData cdata,
         }
 
         /* Set up stack. This also does CffiResetCall so we don't need to */
-        if (CffiFunctionSetupArgs(&callCtx, protoP->nParams + nVarArgs, argObjs)
+        if (CffiFunctionSetupArgs(
+                &callCtx, nActualArgs, argObjs, varArgTypesP)
             != TCL_OK)
             goto pop_and_error;
         /* callCtx.argsP will have been set up by above call */
+        varArgsInited = 1;
+        CFFI_ASSERT(callCtx.nArgs == nActualArgs);
     }
     else {
         /* Prepare for the call. */
@@ -1598,7 +1611,7 @@ CffiFunctionCall(ClientData cdata,
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &cretval, &sysError);       \
-        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
+        CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
         if (fnCheckRet == TCL_OK) {                                            \
             /* Wrap function return value unless an output argument is */      \
             /* to be returned as the function result */                        \
@@ -1619,7 +1632,7 @@ CffiFunctionCall(ClientData cdata,
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
         CffiCallVoidFunc(&callCtx);
-        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);
+        CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);
         resultObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR:
@@ -1675,7 +1688,7 @@ CffiFunctionCall(ClientData cdata,
         /* Do check IMMEDIATELY so as to not lose GetLastError */
         fnCheckRet = CffiCheckPointer(
             ip, &protoP->returnType.typeAttrs, pointer, &sysError);
-        CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);         \
+        CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
         switch (protoP->returnType.typeAttrs.dataType.baseType) {
             case CFFI_K_TYPE_POINTER:
                 ret = CffiPointerToObj(
@@ -1702,7 +1715,7 @@ CffiFunctionCall(ClientData cdata,
             pointer = CffiCallPointerFunc(&callCtx);
             fnCheckRet = CffiCheckPointer(
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
-            CffiPointerArgsDispose(ip, protoP, callCtx.argsP, fnCheckRet);
+            CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);
             if (pointer == NULL) {
                 CffiStruct *structP =
                     protoP->returnType.typeAttrs.dataType.u.structP;
@@ -1813,6 +1826,8 @@ CffiFunctionCall(ClientData cdata,
         /*
          * Store parameters based on function return conditions.
          * Errors storing parameters are ignored (what else to do?)
+         * Note only fixed params considered, not varargs. For now that's
+         * fine since varargs are currently never INOUT or OUT parameters.
          */
         for (i = 0; i < protoP->nParams; ++i) {
             /* Skip the index, if any, that is to be returned as function result */
@@ -1868,12 +1883,12 @@ CffiFunctionCall(ClientData cdata,
     Tclh_ObjClearPtr(&resultObj);
 
     CffiReturnCleanup(&callCtx);
-    for (i = 0; i < protoP->nParams; ++i)
+    for (i = 0; i < callCtx.nArgs; ++i)
         CffiArgCleanup(&callCtx, i);
 
 pop_and_go:
-    /* Clean up the temporary type descriptors for variable args */
-    if (varArgTypesP) {
+    /* Clean up the temporary type descriptors for varargs */
+    if (varArgsInited && varArgTypesP) {
         for (i = 0; i < nVarArgs; ++i) {
             CffiTypeAndAttrsCleanup(&varArgTypesP[i]);
         }
@@ -1893,6 +1908,9 @@ numargs_error:
         if (! (protoP->params[i].typeAttrs.flags & CFFI_F_ATTR_RETVAL))
             Tcl_ListObjAppendElement(
                 NULL, resultObj, protoP->params[i].nameObj);
+    }
+    if (protoP->flags & CFFI_F_PROTO_VARARGS) {
+        Tcl_ListObjAppendElement(NULL, resultObj, Tcl_NewStringObj("...", 3));
     }
     Tclh_ErrorGeneric(ip, "NUMARGS", Tcl_GetString(resultObj));
     /* Fall thru below */
