@@ -27,6 +27,7 @@ static CffiProto *CffiProtoAllocate(int nparams)
     sz = offsetof(CffiProto, params) + (nparams * sizeof(protoP->params[0]));
     protoP = ckalloc(sz);
     memset(protoP, 0, sz);
+    protoP->abi = CffiDefaultABI();
     return protoP;
 }
 
@@ -82,6 +83,7 @@ CffiProtoUnref(CffiProto *protoP)
  */
 CffiResult
 CffiPrototypeParse(CffiInterpCtx *ipCtxP,
+                   CffiABIProtocol abi,
                    Tcl_Obj *fnNameObj,
                    Tcl_Obj *returnTypeObj,
                    Tcl_Obj *paramsObj,
@@ -106,12 +108,11 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
             return Tclh_ErrorInvalidValue(
                 ip, paramsObj, "Parameter type missing.");
         }
-#ifdef CFFI_USE_DYNCALL
-        Tcl_SetResult(ip,
-                      "Varargs functions not supported by the dyncall backend.",
-                      TCL_STATIC);
-        return TCL_ERROR;
-#endif
+#ifdef CFFI_USE_LIBFFI
+        if (abi != CffiDefaultABI()) {
+            return Tclh_ErrorGeneric(
+                ip, NULL, "Varargs not supported for this calling convention.");
+        }
         nobjs -= 1; /* Ignore the ... */
         if (nobjs == 0) {
             /* The ... is the only parameter */
@@ -121,6 +122,12 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                 "No fixed parameters present in varargs function definition.");
         }
         isVarArgs = 1;
+#else
+        return Tclh_ErrorGeneric(
+            ip,
+            NULL,
+            "Varargs functions not supported by the dyncall backend.");
+#endif
     }
     else
         isVarArgs = 0;
@@ -130,6 +137,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
      * parameters is nobjs/2
      */
     protoP = CffiProtoAllocate(nobjs / 2);
+    protoP->abi = abi;
     if (CffiTypeAndAttrsParse(ipCtxP,
                               returnTypeObj,
                               CFFI_F_TYPE_PARSE_RETURN,
@@ -263,7 +271,7 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
                   Tcl_Interp *ip,
                   int objc,
                   Tcl_Obj *const objv[],
-                  CffiABIProtocol callMode)
+                  CffiABIProtocol abi)
 {
     CffiProto *protoP;
     Tcl_Obj *fqnObj;
@@ -272,8 +280,7 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
 
     CHECK(CffiNameSyntaxCheck(ipCtxP->interp, objv[2]));
 
-    CHECK(CffiPrototypeParse(ipCtxP, objv[2], objv[3], objv[4], &protoP));
-    protoP->abi = callMode;
+    CHECK(CffiPrototypeParse(ipCtxP, abi, objv[2], objv[3], objv[4], &protoP));
     CffiProtoRef(protoP);
     if (CffiNameObjAdd(ip,
                        &ipCtxP->scope.prototypes,

@@ -1959,9 +1959,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
  *    cmdNameObj - name to give to command
  *    returnTypeObj - function return type definition
  *    paramsObj - list of parameter type definitions
- *    callMode - a calling convention that overrides one specified
- *               in the return type definition if anything other
- *               than the default abi
+ *    callMode - a calling convention
  *
  * *paramsObj* is a list of alternating parameter name and
  * type definitions. The return and parameter type definitions are in the
@@ -1979,7 +1977,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
                       Tcl_Obj *cmdNameObj,
                       Tcl_Obj *returnTypeObj,
                       Tcl_Obj *paramsObj,
-                      CffiABIProtocol callMode)
+                      CffiABIProtocol abi)
 {
     Tcl_Obj *fqnObj;
     CffiProto *protoP = NULL;
@@ -1987,6 +1985,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     CffiResult ret;
 
     ret = CffiPrototypeParse(ipCtxP,
+                             abi,
                              cmdNameObj,
                              returnTypeObj,
                              paramsObj,
@@ -2000,8 +1999,6 @@ CffiDefineOneFunction(Tcl_Interp *ip,
         return TCL_ERROR;
     }
 
-    /* TBD - comment in func header says only override if default */
-    protoP->abi = callMode;
 #ifdef CFFI_USE_LIBFFI
     protoP->cifP = NULL;
 #endif

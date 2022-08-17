@@ -32,6 +32,12 @@ namespace eval cffi::test {
     } else {
         tcltest::testConstraint libffi 1
     }
+    if {$::tcl_platform(platform) eq "windows" &&
+        $::tcl_platform(pointerSize) == 4} {
+        tcltest::testConstraint win32 1
+    } else {
+        tcltest::testConstraint notwin32 1
+    }
     variable testStructSize
     set testStructSize [getTestStructSize]
 

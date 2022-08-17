@@ -317,7 +317,7 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
         }
     }
 
-    Tcl_SetObjResult(ip, Tcl_NewByteArrayObj(off + (char*) pv, len));
+    Tcl_SetObjResult(ip, Tcl_NewByteArrayObj(off + (unsigned char *)pv, len));
     return TCL_OK;
 }
 

@@ -639,6 +639,7 @@ void CffiAliasesCleanup(CffiInterpCtx *ipCtxP);
 int
 CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj);
 CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
+                              CffiABIProtocol abi,
                               Tcl_Obj *fnNameObj,
                               Tcl_Obj *returnTypeObj,
                               Tcl_Obj *paramsObj,

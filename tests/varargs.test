@@ -25,12 +25,24 @@ namespace eval ${NS}::test {
     test varargs-error-3 {formatVarargs bad type} -body {
         formatVarargs buf 100 %s {nosuchtype 42}
     } -returnCodes error -result {Invalid value "nosuchtype". Invalid base type.}
+    test varargs-error-4 {formatVarargs output var} -body {
+        formatVarargs buf 100 %s {{int out} 42}
+    } -returnCodes error -result {Invalid value "int out". Only input parameters permitted for varargs.}
+    test varargs-error-5 {formatVarargs inout var} -body {
+        formatVarargs buf 100 %s {{int inout} 42}
+    } -returnCodes error -result {Invalid value "int inout". Only input parameters permitted for varargs.}
+    test varargs-error-6 {formatVarargs retval var} -body {
+        formatVarargs buf 100 %s {{int retval} 42}
+    } -returnCodes error -result {Invalid value "int retval". Only input parameters permitted for varargs.}
+    test varargs-error-7.0 {varargs - stdcall} -body {
+        testDll stdcall {formatVarargs xxx} int {buf {chars[n] out} n int fmt string ...}
+    } -constraints win32 -returnCodes error -result {Varargs not supported for this calling convention. Error defining function xxx.}
 
     foreach type $intTypes {
         if {$type in $invalidVarargTypes} {
             test varargs-$type-0 "formatVarargs invalid type $type" -body {
                 formatVarargs buf 100 %d [list $type 42]
-            } -returnCodes error -result {Invalid value. Bad libffi argument type.}
+            } -returnCodes error -result "Invalid value \"$type\". Type not permitted for varargs."
         } else {
             test vararg-$type-0 "formatVarargs type $type" -body {
                 formatVarargs buf 100 %d [list $type 42]
@@ -46,7 +58,7 @@ namespace eval ${NS}::test {
         if {$type in $invalidVarargTypes} {
             test varargs-$type-0 "formatVarargs invalid type $type" -body {
                 formatVarargs buf 100 %g [list $type 42]
-            } -returnCodes error -result {Invalid value. Bad libffi argument type.}
+            } -returnCodes error -result "Invalid value \"$type\". Type not permitted for varargs."
         } else {
             test vararg-$type-0 "formatVarargs type $type" -body {
                 formatVarargs buf 100 %g [list $type 42.5]
@@ -63,8 +75,20 @@ namespace eval ${NS}::test {
         formatVarargs buf 100 %s {string Hello}
         set buf
     } -result Hello
-}
+    test vararg-chars-0 "formatVarargs type chars[]" -body {
+        formatVarargs buf 100 %s {chars[10] Hello}
+        set buf
+    } -result Hello
 
+    test vararg-stdcall-0 "formatVarargs type string" -body {
+        testDll function {formatVarargs stdcallVarargs} int {buf {chars[n] out} n int fmt string ...}
+        stdcallVarargs buf 100 %s {string Hello}
+        set buf
+    } -cleanup {
+        rename stdcallVarargs {}
+    } -constraints notwin32 -result Hello
+
+}
 
 ${NS}::test::testDll destroy
 

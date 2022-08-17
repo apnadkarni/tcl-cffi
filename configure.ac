@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([cffi],[1.0.7])
+AC_INIT([cffi],[1.1.0])
 PACKAGE_LIB_PREFIX=tcl
 
 #--------------------------------------------------------------------
