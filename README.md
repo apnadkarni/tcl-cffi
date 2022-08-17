@@ -32,9 +32,17 @@ Major features of the package are
 
 Limitations in the current version include
 
-- No support of functions taking variable number of arguments
-
 - No support for *asynchronous* callbacks
+
+## Changes in 1.1.0
+
+- Added support for varargs functions
+- Added offset argument to `memory fill`, `memory tobinary`
+and `memory tostring`
+- Added `memory fill!` command
+- Added support of explicit values in `enum sequence`
+- Miscellaneous bug fixes 
+See https://github.com/apnadkarni/tcl-cffi/milestone/11?closed=1
 
 ## Changes in 1.0.7
 

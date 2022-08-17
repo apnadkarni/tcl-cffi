@@ -764,16 +764,14 @@ HeapCreate HeapDestroy
 .RE
 .SS LIMITATIONS
 .PP
-The current version has the following limitations:
-.TP
-\(bu
-C functions with a variable number of arguments are not implemented\&.
-.PP
-In addition, the dyncall backend has the following additional limitations:
+The dyncall backend has the following limitations:
 .TP
 \(bu
 Structs can only be passed by reference, not value\&.
 .TP
 \(bu
 Callbacks into Tcl from C functions are not implemented\&.
+.TP
+\(bu
+Functions with variable number of arguments not implemented\&.
 

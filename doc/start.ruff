@@ -691,13 +691,10 @@ set start_page {
 
     ### Limitations
 
-    The current version has the following limitations:
-
-    - C functions with a variable number of arguments are not implemented.
-
-    In addition, the `dyncall` backend has the following additional limitations:
+    The `dyncall` backend has the following limitations:
 
     - Structs can only be passed by reference, not value.
     - Callbacks into Tcl from C functions are not implemented.
+    - Functions with variable number of arguments not implemented.
 }
 

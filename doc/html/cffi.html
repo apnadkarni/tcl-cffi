@@ -456,14 +456,11 @@ HeapCreate HeapDestroy
 
 </figure><h3 class='ruff'><a name='Limitations'></a>Limitations<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>The current version has the following limitations:</p>
-<ul class='ruff'>
-<li>C functions with a variable number of arguments are not implemented.</li>
-</ul>
-<p class='ruff'>In addition, the <code>dyncall</code> backend has the following additional limitations:</p>
+<p class='ruff'>The <code>dyncall</code> backend has the following limitations:</p>
 <ul class='ruff'>
 <li>Structs can only be passed by reference, not value.</li>
 <li>Callbacks into Tcl from C functions are not implemented.</li>
+<li>Functions with variable number of arguments not implemented.</li>
 </ul>
 </main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a class='ruff-highlight' style='padding-top:2px;' href='cffi.html'>Start page</a></li>
 <li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>
