@@ -3,7 +3,7 @@
 The `cffi` package is built using the standard methods for Tcl extensions
 but requires one of two back end libraries that implement FFI:
 
-- `libffi`
+- `libffi` (v3.4.2 or later strongly recommended)
 - `dyncall`
 
 When choosing a back end, consider that the `dyncall` library does not support
