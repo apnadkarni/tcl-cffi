@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 1\&.0\&.7 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 1\&.1\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 cffi - Commands in namespace cffi
 .SH SYNOPSIS
@@ -47,7 +47,7 @@ cffi - Commands in namespace cffi
 .br
 \fBenum name\fP \fIenumname membervalue ?default?\fP
 .br
-\fBenum sequence\fP \fIenumname membernames start 0\fP
+\fBenum sequence\fP \fIenumname membernames ?start?\fP
 .br
 \fBenum unmask\fP \fIenumname mask\fP
 .br
@@ -65,7 +65,7 @@ cffi - Commands in namespace cffi
 .br
 \fBmemory allocate\fP \fIsizespec ?tag?\fP
 .br
-\fBmemory fill\fP \fIpointer bytevalue count\fP
+\fBmemory fill\fP \fIpointer bytevalue count ?offset?\fP
 .br
 \fBmemory free\fP \fIpointer\fP
 .br
@@ -83,13 +83,13 @@ cffi - Commands in namespace cffi
 .br
 \fBmemory set!\fP \fIpointer typespec value ?index?\fP
 .br
-\fBmemory tobinary\fP \fIpointer size\fP
+\fBmemory tobinary\fP \fIpointer size ?offset?\fP
 .br
-\fBmemory tobinary!\fP \fIpointer size\fP
+\fBmemory tobinary!\fP \fIpointer size ?offset?\fP
 .br
-\fBmemory tostring\fP \fIpointer ?encoding?\fP
+\fBmemory tostring\fP \fIpointer ?encoding? ?offset?\fP
 .br
-\fBmemory tostring!\fP \fIpointer ?encoding?\fP
+\fBmemory tostring!\fP \fIpointer ?encoding? ?offset?\fP
 .br
 \fBpkgconfig\fP \fIsubcommand \&.\&.\&.\fP
 .br
@@ -853,7 +853,7 @@ Returns the symbolic name of a value in an enumeration\&.
 .RE
 .PP
 Defines an enumeration with consecutive member values
-.RS 4n\fBenum sequence\fP \fIenumname membernames start 0\fP
+.RS 4n\fBenum sequence\fP \fIenumname membernames ?start?\fP
 .br
 .RE
 .PP
@@ -866,12 +866,24 @@ Name of the enumeration\&.
 membernames
 List of names of the enumeration members\&.
 .TP
-start 0
-Not documented\&.
-.TP
 start
-Value of first enumeration member\&.
+Value of first enumeration member\&. Optional, default 0\&.
 .RE
+.PP
+\fBDescription\fR
+.PP
+Each element of \fI$membernames\fP should have one or two elements,
+the first being the name of the member and the second, if
+present, being its value\&.If the second element is not present,
+the member is assigned a value one greater than the previous
+value assigned\&. The first member is assigned value 0 if it
+has no explicit assigned value\&.
+.PP
+The \fI$start\fP parameter is present for backward compatibility
+and indicates the first value to be assigned to the sequence\&.
+For future compatibility, the two-element form for the first
+enum member should be used instead if a starting value
+other than the default zero is desired\&.
 .PP
 .RS -4n
 \fBenum unmask\fR (::cffi)
@@ -897,8 +909,8 @@ Integer bit mask value\&.
 \fBDescription\fR
 .PP
 The last element of the returned list is \fI$mask\fP itself\&.
-Generally, the enumeration should consist of values that do not have
-overlapping bits set (commonly a single bit is set in each
+Generally, the enumeration should consist of values that do not
+have overlapping bits set (commonly a single bit is set in each
 member value)\&. This is not enforced but results might not be
 as expected if this condition is not met\&.
 .PP
@@ -1081,7 +1093,7 @@ subcommands:
 Allocates memory of the specified size\&.
 .TP
 \fIfill\fP
-Fills memory locations to a specified value\&.
+Fills memory with a specified value\&.
 .TP
 \fIfree\fP
 Frees the memory referenced by the passed pointer\&.
@@ -1165,8 +1177,8 @@ Returns a safe pointer to the allocated memory\&.
 \fBmemory fill\fR (::cffi)
 .RE
 .PP
-Fills memory locations to a specified value
-.RS 4n\fBmemory fill\fP \fIpointer bytevalue count\fP
+Fills memory with a specified value
+.RS 4n\fBmemory fill\fP \fIpointer bytevalue count ?offset?\fP
 .br
 .RE
 .PP
@@ -1181,6 +1193,9 @@ A value in the range 0-255
 .TP
 count
 Number of bytes to be fill\&.
+.TP
+offset
+Offset from \fI$pointer\fP of area to fill\&. May be negative for unsafe pointers\&. Optional, default 0\&.
 .RE
 .PP
 .RS -4n
@@ -1290,7 +1305,7 @@ typespec
 Type specification to use for conversion\&.
 .TP
 index
-The index in memory at which the value is to be stored\&. Care must be taken this is within bounds of the allocated space\&. Optional, default 0\&.
+The index in memory from which value is to be retrieved\&. Care must be taken this is within bounds of the allocated space\&. Optional, default 0\&.
 .RE
 .PP
 \fBDescription\fR
@@ -1329,10 +1344,10 @@ pointer
 Base address of memory location\&. The pointer is not checked for validity\&.
 .TP
 typespec
-Not documented\&.
+Type specification to use for conversion\&.
 .TP
 index
-Not documented\&. Optional, default 0\&.
+The index in memory from which value is to be retrieved\&. Care must be taken this is within bounds of the allocated space\&. Optional, default 0\&.
 .RE
 .PP
 \fBDescription\fR
@@ -1468,7 +1483,7 @@ command for details\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl binary string\&.
-.RS 4n\fBmemory tobinary\fP \fIpointer size\fP
+.RS 4n\fBmemory tobinary\fP \fIpointer size ?offset?\fP
 .br
 .RE
 .PP
@@ -1480,6 +1495,9 @@ Safe pointer to memory\&.
 .TP
 size
 Number of bytes to copy from the memory block\&.
+.TP
+offset
+Offset from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
 .RE
 .PP
 \fBReturn value\fR
@@ -1495,7 +1513,7 @@ Returns the content of a memory block as a Tcl binary string\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl binary string\&.
-.RS 4n\fBmemory tobinary!\fP \fIpointer size\fP
+.RS 4n\fBmemory tobinary!\fP \fIpointer size ?offset?\fP
 .br
 .RE
 .PP
@@ -1507,6 +1525,9 @@ Pointer to memory\&.
 .TP
 size
 Number of bytes to copy from the memory block\&.
+.TP
+offset
+Offset from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
 .RE
 .PP
 \fBDescription\fR
@@ -1527,7 +1548,7 @@ Returns the content of a memory block as a Tcl binary string\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl string\&.
-.RS 4n\fBmemory tostring\fP \fIpointer ?encoding?\fP
+.RS 4n\fBmemory tostring\fP \fIpointer ?encoding? ?offset?\fP
 .br
 .RE
 .PP
@@ -1539,6 +1560,9 @@ Safe pointer to memory\&.
 .TP
 encoding
 The encoding to use for conversion\&. If unspecified or the empty string, the system encoding is used\&. Optional, default ""\&.
+.TP
+offset
+Offset from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
 .RE
 .PP
 \fBReturn value\fR
@@ -1554,7 +1578,7 @@ Returns the content of a memory block as a Tcl string\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl string\&.
-.RS 4n\fBmemory tostring!\fP \fIpointer ?encoding?\fP
+.RS 4n\fBmemory tostring!\fP \fIpointer ?encoding? ?offset?\fP
 .br
 .RE
 .PP
@@ -1566,6 +1590,9 @@ Pointer to memory\&.
 .TP
 encoding
 The encoding to use for conversion\&. If unspecified or the empty string, the system encoding is used\&. Optional, default ""\&.
+.TP
+offset
+Offset from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
 .RE
 .PP
 \fBDescription\fR

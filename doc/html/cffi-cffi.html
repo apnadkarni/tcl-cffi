@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.0.7)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.1.0)</a>
 
 
             <div id="ruffButtonBar">
@@ -253,13 +253,14 @@ enum flags E {A B C}
 <h3 class='ruffproc'><a name='::cffi::enum sequence'>enum sequence</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Defines an enumeration with consecutive member values</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>enum sequence</span> <span class='ruff_arg'>enumname membernames start 0</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>enum sequence</span> <span class='ruff_arg'>enumname membernames ?start?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>enumname</code></td><td>Name of the enumeration.</td></tr>
 <tr><td><code>membernames</code></td><td>List of names of the enumeration members.</td></tr>
-<tr><td><code>start 0</code></td><td>Not documented.</td></tr>
-<tr><td><code>start</code></td><td>Value of first enumeration member.</td></tr>
+<tr><td><code>start</code></td><td>Value of first enumeration member. Optional, default <code>0</code>.</td></tr>
 </table>
+<h5 class='ruff'>Description</h5><p class='ruff'>Each element of <code>$membernames</code> should have one or two elements, the first being the name of the member and the second, if present, being its value.If the second element is not present, the member is assigned a value one greater than the previous value assigned. The first member is assigned value 0 if it has no explicit assigned value.</p>
+<p class='ruff'>The <code>$start</code> parameter is present for backward compatibility and indicates the first value to be assigned to the sequence. For future compatibility, the two-element form for the first enum member should be used instead if a starting value other than the default zero is desired.</p>
 <h3 class='ruffproc'><a name='::cffi::enum unmask'>enum unmask</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns a list of enumeration member names corresponding to the bits set in <code>$mask</code>. enumeration members</p>
@@ -329,7 +330,7 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Description</h5><p class='ruff'>The ensemble supports the following subcommands:</p>
 <table class='ruff_deflist'>
 <tr><td><a href="cffi-cffi.html#::cffi::memory allocate" title="allocate" class='ruff_cmd'>allocate</a></td><td>Allocates memory of the specified size.</td></tr>
-<tr><td><a href="cffi-cffi.html#::cffi::memory fill" title="fill" class='ruff_cmd'>fill</a></td><td>Fills memory locations to a specified value.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory fill" title="fill" class='ruff_cmd'>fill</a></td><td>Fills memory with a specified value.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory free" title="free" class='ruff_cmd'>free</a></td><td>Frees the memory referenced by the passed pointer.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory frombinary" title="frombinary" class='ruff_cmd'>frombinary</a></td><td>Allocates memory and copied the passed Tcl binary string into it.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory fromstring" title="fromstring" class='ruff_cmd'>fromstring</a></td><td>Allocates memory and stores a Tcl string in it in the specified encoding.</td></tr>
@@ -357,12 +358,13 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory new" title="memory new" class='ruff_cmd'>memory new</a>, <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a></p>
 <h3 class='ruffproc'><a name='::cffi::memory fill'>memory fill</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>Fills memory locations to a specified value</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory fill</span> <span class='ruff_arg'>pointer bytevalue count</span></div>
+<p class='ruff'>Fills memory with a specified value</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory fill</span> <span class='ruff_arg'>pointer bytevalue count ?offset?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
 <tr><td><code>bytevalue</code></td><td>A value in the range <code>0</code>-<code>255</code></td></tr>
 <tr><td><code>count</code></td><td>Number of bytes to be fill.</td></tr>
+<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to fill. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
 </table>
 <h3 class='ruffproc'><a name='::cffi::memory free'>memory free</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
@@ -402,7 +404,7 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Base address of memory location. The pointer must be a safe pointer but the tag is immaterial.</td></tr>
 <tr><td><code>typespec</code></td><td>Type specification to use for conversion.</td></tr>
-<tr><td><code>index</code></td><td>The index in memory at which the value is to be stored. Care must be taken this is within bounds of the allocated space. Optional, default <code>0</code>.</td></tr>
+<tr><td><code>index</code></td><td>The index in memory from which value is to be retrieved. Care must be taken this is within bounds of the allocated space. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The command converts the data at a memory location into a Tcl script object as per the type specification <code>$typespec</code>. The memory address of the data is given by <code>$pointer</code> if <code>$index</code> is unspecified or <code>0</code>. Otherwise <code>$index</code> is treated as an index into an array based at <code>$pointer</code> whose elements are of the type defined by <code>$typespec</code> and memory address used is that of the slot given by <code>$index</code>. For example, if <code>$typespec</code> is <code>int</code> and <code>$index</code> is 2, the memory address from which the value is read is at byte offset 8 assuming ints occupy 4 bytes. If <code>$typespec</code> is <code>int[3]</code>, then the size of the type specification is 12, and an index of 2 will correspond to a byte offset of 24, not 8. Be aware of these semantics when reading arrays using non-0 indices.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory get!" title="memory get!" class='ruff_cmd'>memory get!</a>, <a href="cffi-cffi.html#::cffi::memory set" title="memory set" class='ruff_cmd'>memory set</a></p>
@@ -412,8 +414,8 @@ cffi::help functions ::libzip::*
 <div class='ruff_synopsis'><span class='ruff_cmd'>memory get!</span> <span class='ruff_arg'>pointer typespec ?index?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Base address of memory location. The pointer is not checked for validity.</td></tr>
-<tr><td><code>typespec</code></td><td>Not documented.</td></tr>
-<tr><td><code>index</code></td><td>Not documented. Optional, default <code>0</code>.</td></tr>
+<tr><td><code>typespec</code></td><td>Type specification to use for conversion.</td></tr>
+<tr><td><code>index</code></td><td>The index in memory from which value is to be retrieved. Care must be taken this is within bounds of the allocated space. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>This command is identical to the <a href="cffi-cffi.html#::cffi::memory get" title="memory get" class='ruff_cmd'>memory get</a> command except that it does not require <code>$pointer</code> to be a safe pointer. See the documentation of that command for details.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory get" title="memory get" class='ruff_cmd'>memory get</a>, <a href="cffi-cffi.html#::cffi::memory set" title="memory set" class='ruff_cmd'>memory set</a></p>
@@ -457,20 +459,22 @@ cffi::help functions ::libzip::*
 <h3 class='ruffproc'><a name='::cffi::memory tobinary'>memory tobinary</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory tobinary</span> <span class='ruff_arg'>pointer size</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tobinary</span> <span class='ruff_arg'>pointer size ?offset?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
 <tr><td><code>size</code></td><td>Number of bytes to copy from the memory block.</td></tr>
+<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tobinary!" title="memory tobinary!" class='ruff_cmd'>memory tobinary!</a>, <a href="cffi-cffi.html#::cffi::memory frombinary" title="memory frombinary" class='ruff_cmd'>memory frombinary</a></p>
 <h3 class='ruffproc'><a name='::cffi::memory tobinary!'>memory tobinary!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory tobinary!</span> <span class='ruff_arg'>pointer size</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tobinary!</span> <span class='ruff_arg'>pointer size ?offset?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Pointer to memory.</td></tr>
 <tr><td><code>size</code></td><td>Number of bytes to copy from the memory block.</td></tr>
+<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>Unlike the <a href="cffi-cffi.html#::cffi::memory tobinary" title="memory tobinary" class='ruff_cmd'>memory tobinary</a> method, this does not check the validity of <code>$pointer</code> and should be used with care.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl binary string.</p>
@@ -478,20 +482,22 @@ cffi::help functions ::libzip::*
 <h3 class='ruffproc'><a name='::cffi::memory tostring'>memory tostring</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring</span> <span class='ruff_arg'>pointer ?encoding?</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
 <tr><td><code>encoding</code></td><td>The encoding to use for conversion. If unspecified or the empty string, the system encoding is used. Optional, default <code>&quot;&quot;</code>.</td></tr>
+<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a>, <a href="cffi-cffi.html#::cffi::memory fromstring" title="memory fromstring" class='ruff_cmd'>memory fromstring</a></p>
 <h3 class='ruffproc'><a name='::cffi::memory tostring!'>memory tostring!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding?</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Pointer to memory.</td></tr>
 <tr><td><code>encoding</code></td><td>The encoding to use for conversion. If unspecified or the empty string, the system encoding is used. Optional, default <code>&quot;&quot;</code>.</td></tr>
+<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>Unlike the <a href="cffi-cffi.html#::cffi::memory tostring" title="memory tostring" class='ruff_cmd'>memory tostring</a> method, this does not check the validity of <code>$pointer</code> and should be used with care.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
@@ -1059,7 +1065,7 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum mask'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> mask</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum mask</span> <span class='ruff_arg'>enumname membernames</span></pre>Returns an integer mask formed by bitwise OR-ing the passed enumeration members
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum members'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> members</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum members</span> <span class='ruff_arg'>enumname</span></pre>Returns a dictionary containing the members in an enumeration.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum name'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> name</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum name</span> <span class='ruff_arg'>enumname membervalue ?default?</span></pre>Returns the symbolic name of a value in an enumeration.
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum sequence'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> sequence</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum sequence</span> <span class='ruff_arg'>enumname membernames start 0</span></pre>Defines an enumeration with consecutive member values
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum sequence'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> sequence</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum sequence</span> <span class='ruff_arg'>enumname membernames ?start?</span></pre>Defines an enumeration with consecutive member values
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum unmask'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> unmask</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum unmask</span> <span class='ruff_arg'>enumname mask</span></pre>Returns a list of enumeration member names corresponding to the bits set in <code>$mask</code>. enumeration members
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::enum value'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> value</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>enum value</span> <span class='ruff_arg'>enumname membername ?default?</span></pre>Returns the value of an enumeration member
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::help'>help</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>help</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
@@ -1068,7 +1074,7 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::limits'>limits</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>limits</span> <span class='ruff_arg'>type</span></pre>Get the lower and upper limits for an integral base type
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory'>memory</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory allocate'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> allocate</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory allocate</span> <span class='ruff_arg'>sizespec ?tag?</span></pre>Allocates memory of the specified size
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fill'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> fill</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory fill</span> <span class='ruff_arg'>pointer bytevalue count</span></pre>Fills memory locations to a specified value
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fill'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> fill</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory fill</span> <span class='ruff_arg'>pointer bytevalue count ?offset?</span></pre>Fills memory with a specified value
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory free'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> free</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory free</span> <span class='ruff_arg'>pointer</span></pre>Frees the memory referenced by the passed pointer
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory frombinary'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> frombinary</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory frombinary</span> <span class='ruff_arg'>bin_value ?tag?</span></pre>Allocates memory and copied the passed Tcl binary string into it.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fromstring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> fromstring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory fromstring</span> <span class='ruff_arg'>value ?encoding?</span></pre>Allocates memory and stores a Tcl string in it in the specified encoding.
@@ -1077,10 +1083,10 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory new'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> new</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory new</span> <span class='ruff_arg'>typespec initializer ?tag?</span></pre>Allocates memory for a type and initializes it.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory set'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> set</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory set</span> <span class='ruff_arg'>pointer typespec value ?index?</span></pre>Converts a value as per a type specification and stores it in memory in native form
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory set!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> set!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory set!</span> <span class='ruff_arg'>pointer typespec value ?index?</span></pre>Converts a value as per a type specification and stores it in memory in native form
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tobinary</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tobinary</span> <span class='ruff_arg'>pointer size</span></pre>Returns the content of a memory block as a Tcl binary string.
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tobinary!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tobinary!</span> <span class='ruff_arg'>pointer size</span></pre>Returns the content of a memory block as a Tcl binary string.
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tostring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tostring</span> <span class='ruff_arg'>pointer ?encoding?</span></pre>Returns the content of a memory block as a Tcl string.
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tostring!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding?</span></pre>Returns the content of a memory block as a Tcl string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tobinary</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tobinary</span> <span class='ruff_arg'>pointer size ?offset?</span></pre>Returns the content of a memory block as a Tcl binary string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tobinary!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tobinary!</span> <span class='ruff_arg'>pointer size ?offset?</span></pre>Returns the content of a memory block as a Tcl binary string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tostring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tostring</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></pre>Returns the content of a memory block as a Tcl string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tostring!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></pre>Returns the content of a memory block as a Tcl string.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig'>pkgconfig</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pkgconfig</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig get'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> get</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pkgconfig get</span> <span class='ruff_arg'>key</span></pre>Gets the value of a configuration key.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig list'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> list</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pkgconfig list</span> </pre>Returns the list of keys containing information about the package configuration.

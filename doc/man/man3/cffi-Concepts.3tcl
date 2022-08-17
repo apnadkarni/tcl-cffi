@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Concepts" 3tcl 1\&.0\&.7 "cffi" "Tcl CFFI package"
+.TH "Concepts" 3tcl 1\&.1\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 Concepts - Commands in namespace Concepts
 .SH CONCEPTS
@@ -1343,6 +1343,39 @@ if an error check fails\&.
 .PP
 Note that an error checking annotation must be present for any of these
 to have an effect\&.
+.SS "VARARGS FUNCTIONS"
+.PP
+Some C functions take a variable number of arguments\&. Wrappers for these
+are defined as for normal functions except that the last parameter
+definition should be the string \&.\&.\&.\&. In addition, when the wrapped
+command is invoked, the varargs arguments should be passed as a pair
+consisting of a type declaration and a value\&. This is illustrated in
+the example below wrapping the snprintf function\&.
+.PP
+.RS 4n
+.nf
+% cffi::Wrapper create libc libc\&.so\&.6
+::libc
+% libc function snprintf int {buf {chars[bufSize] out} bufSize int format string \&.\&.\&.}
+::snprintf
+% snprintf buf 100 "The %s is %d\&." {string answer} {int 42}
+17
+% set buf
+The answer is 42\&.
+.fi
+.RE
+.PP
+Note how the varargs arguments are passed as type, value pairs\&.
+Just as programming in C, extreme care has to be taken to pass the right
+argument types\&.
+.PP
+Varargs arguments have certain restrictions:
+.TP
+\(bu
+The can only be input arguments so type attributes out, inout and retval are not allowed\&.
+.TP
+\(bu
+Integer types must be of size at least that of int\&. Floating point types must be double\&. These come from C type promotion rules for varargs functions\&.
 .SS "PROTOTYPES AND FUNCTION POINTERS"
 .PP
 The function wrapping methods
@@ -1412,7 +1445,8 @@ Invoking the outer function
 \(bu
 Freeing the callback function pointer with \fI::cffi::callback free\fP when no longer needed\&. Note it may be used multiple times before freeing\&.
 .PP
-Currently callbacks are only supported with the libffi backend\&.
+Currently callbacks are only supported with the libffi backend\&. Moreover,
+callbacks cannot take a variable number of arguments\&.
 .PP
 \fBWarning:\fP CFFI callbacks can only be used when the called function
 invokes them before returning\&. They are not suitable in cases where
