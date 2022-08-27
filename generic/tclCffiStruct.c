@@ -661,6 +661,26 @@ CffiStructObjDefault(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+/* Function: CffiStructFromNativePointer
+ * Returns a Tcl dictionary value from a C struct in memory.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 3-4 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - safe pointer to struct context
+ * safe - if non-0, structCtxP must be a registered pointer
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - pointer to memory
+ * objv[3] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with the dictionary value as interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
 static CffiResult
 CffiStructFromNativePointer(Tcl_Interp *ip,
                         int objc,
@@ -740,7 +760,7 @@ CffiStructFromNativeUnsafeCmd(Tcl_Interp *ip,
  *        total of 3-4 arguments.
  * objv - argument array. This includes the command and subcommand provided
  *   at the script level.
- * scructCtxP - pointer to struct context
+ * scructCtxP - safe pointer to struct context
  *
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory
@@ -760,7 +780,7 @@ CffiStructFromNativeCmd(Tcl_Interp *ip,
 }
 
 
-/* Function: CffiStructToNativeCmd
+/* Function: CffiStructToNativePointer
  * Initializes memory as a C struct from a Tcl dictionary representation.
  *
  * Parameters:
@@ -769,7 +789,8 @@ CffiStructFromNativeCmd(Tcl_Interp *ip,
  *        total of 4-5 arguments.
  * objv - argument array. This includes the command and subcommand provided
  *   at the script level.
- * scructCtxP - pointer to struct context
+ * structCtxP - pointer to struct context
+ * safe - if non-0, objv[2] must be a registered pointer
  *
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory
@@ -781,16 +802,25 @@ CffiStructFromNativeCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructToNativeCmd(Tcl_Interp *ip,
-                      int objc,
-                      Tcl_Obj *const objv[],
-                      CffiStructCmdCtx *structCtxP)
+CffiStructToNativePointer(Tcl_Interp *ip,
+                          int objc,
+                          Tcl_Obj *const objv[],
+                          CffiStructCmdCtx *structCtxP,
+                          int safe)
 {
     CffiStruct *structP = structCtxP->structP;
     void *valueP;
     int index;
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
+    if (safe)
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
+    else {
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &valueP, structP->name));
+        if (valueP == NULL) {
+            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
 
     /* TBD - check alignment of valueP */
 
@@ -813,8 +843,8 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiStructGetCmd
- * Gets the value of a field in a native struct.
+/* Function: CffiStructToNativeCmd
+ * Initializes memory as a C struct from a Tcl dictionary representation.
  *
  * Parameters:
  * ip - Interpreter
@@ -823,6 +853,65 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
  * objv - argument array. This includes the command and subcommand provided
  *   at the script level.
  * scructCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - safe pointer to memory
+ * objv[3] - dictionary value to use as initializer
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructToNativeCmd(Tcl_Interp *ip,
+                      int objc,
+                      Tcl_Obj *const objv[],
+                      CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructToNativePointer(ip, objc, objv, structCtxP, 1);
+}
+
+/* Function: CffiStructToNativeCmd
+ * Initializes memory as a C struct from a Tcl dictionary representation.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * scructCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - unsafe pointer to memory
+ * objv[3] - dictionary value to use as initializer
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructToNativeUnsafeCmd(Tcl_Interp *ip,
+                            int objc,
+                            Tcl_Obj *const objv[],
+                            CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructToNativePointer(ip, objc, objv, structCtxP, 0);
+}
+
+/* Function: CffiStructGetNativePointer
+ * Gets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ * safe - if non-0, objv[2] must be a registered pointer
  *
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory holding the struct value
@@ -834,10 +923,11 @@ CffiStructToNativeCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructGetNativeCmd(Tcl_Interp *ip,
-                       int objc,
-                       Tcl_Obj *const objv[],
-                       CffiStructCmdCtx *structCtxP)
+CffiStructGetNativePointer(Tcl_Interp *ip,
+                           int objc,
+                           Tcl_Obj *const objv[],
+                           CffiStructCmdCtx *structCtxP,
+                           int safe)
 {
     CffiStruct *structP = structCtxP->structP;
     char *fieldAddr;
@@ -852,7 +942,16 @@ CffiStructGetNativeCmd(Tcl_Interp *ip,
     if (fieldIndex < 0)
         return TCL_ERROR;
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    if (safe)
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    else {
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, structP->name));
+        if (pv == NULL) {
+            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
+
     fieldAddr = pv;
 
     /* TBD - check alignment of fieldP for the struct */
@@ -875,8 +974,66 @@ CffiStructGetNativeCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiStructSetCmd
+/* Function: CffiStructGetNativeCmd
  * Gets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - safe pointer to memory holding the struct value
+ * objv[3] - field name
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructGetNativeCmd(Tcl_Interp *ip,
+                       int objc,
+                       Tcl_Obj *const objv[],
+                       CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructGetNativePointer(ip, objc, objv, structCtxP, 1);
+}
+
+/* Function: CffiStructGetNativeUnsafeCmd
+ * Gets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - unsafe pointer to memory holding the struct value
+ * objv[3] - field name
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructGetNativeUnsafeCmd(Tcl_Interp *ip,
+                             int objc,
+                             Tcl_Obj *const objv[],
+                             CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructGetNativePointer(ip, objc, objv, structCtxP, 0);
+}
+
+/* Function: CffiStructSetNativePointer
+ * Sets the value of a field in a native struct.
  *
  * Parameters:
  * ipCtxP - interpreter context
@@ -884,7 +1041,8 @@ CffiStructGetNativeCmd(Tcl_Interp *ip,
  *        total of 5-6 arguments.
  * objv - argument array. This includes the command and subcommand provided
  *   at the script level.
- * scructCtxP - pointer to struct context
+ * structCtxP - pointer to struct context
+ * safe - if non-0, structCtxP must be a registered pointer
  *
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory holding the struct value
@@ -897,10 +1055,11 @@ CffiStructGetNativeCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructSetNativeCmd(Tcl_Interp *ip,
-                       int objc,
-                       Tcl_Obj *const objv[],
-                       CffiStructCmdCtx *structCtxP)
+CffiStructSetNativePointer(Tcl_Interp *ip,
+                           int objc,
+                           Tcl_Obj *const objv[],
+                           CffiStructCmdCtx *structCtxP,
+                           int safe)
 {
     CffiStruct *structP = structCtxP->structP;
     char *fieldAddr;
@@ -914,7 +1073,16 @@ CffiStructSetNativeCmd(Tcl_Interp *ip,
     if (fieldIndex < 0)
         return TCL_ERROR;
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    if (safe)
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    else {
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, structP->name));
+        if (pv == NULL) {
+            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
+
     fieldAddr = pv;
 
     /* TBD - sanity check alignment of fieldP for the struct */
@@ -937,7 +1105,67 @@ CffiStructSetNativeCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-/* Function: CffiStructGetNativeFieldsCmd
+/* Function: CffiStructSetNativeCmd
+ * Sets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 5-6 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - safe pointer to memory holding the struct value
+ * objv[3] - field name
+ * objv[4] - value to store
+ * objv[5] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructSetNativeCmd(Tcl_Interp *ip,
+                       int objc,
+                       Tcl_Obj *const objv[],
+                       CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructSetNativePointer(ip, objc, objv, structCtxP, 1);
+}
+
+/* Function: CffiStructSetNativeUnsafeCmd
+ * Sets the value of a field in a native struct.
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 5-6 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - safe pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - unsafe pointer to memory holding the struct value
+ * objv[3] - field name
+ * objv[4] - value to store
+ * objv[5] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructSetNativeUnsafeCmd(Tcl_Interp *ip,
+                             int objc,
+                             Tcl_Obj *const objv[],
+                             CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructSetNativePointer(ip, objc, objv, structCtxP, 0);
+}
+
+/* Function: CffiStructGetNativeFieldsPointer
  * Gets the values of multiple fields from a native struct.
  *
  * Parameters:
@@ -947,6 +1175,7 @@ CffiStructSetNativeCmd(Tcl_Interp *ip,
  * objv - argument array. This includes the command and subcommand provided
  *   at the script level.
  * structCtxP - pointer to struct context
+ * safe - if non-0, objv[2] must be a registered pointer
  *
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory holding the struct value
@@ -958,10 +1187,11 @@ CffiStructSetNativeCmd(Tcl_Interp *ip,
  * *TCL_ERROR* on failure with an error message in the interpreter.
  */
 static CffiResult
-CffiStructGetNativeFieldsCmd(Tcl_Interp *ip,
-                             int objc,
-                             Tcl_Obj *const objv[],
-                             CffiStructCmdCtx *structCtxP)
+CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
+                                 int objc,
+                                 Tcl_Obj *const objv[],
+                                 CffiStructCmdCtx *structCtxP,
+                                 int safe)
 {
     CffiStruct *structP = structCtxP->structP;
     void *structAddr;
@@ -971,7 +1201,15 @@ CffiStructGetNativeFieldsCmd(Tcl_Interp *ip,
     /* S fieldpointer POINTER FIELDNAMES ?INDEX? */
     CFFI_ASSERT(objc >= 4);
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &structAddr, structP->name));
+    if (safe)
+        CHECK(Tclh_PointerObjVerify(ip, objv[2], &structAddr, structP->name));
+    else {
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &structAddr, structP->name));
+        if (structAddr == NULL) {
+            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
     if (objc > 4) {
         /* Index into array of structs */
         Tcl_WideInt wide;
@@ -1021,6 +1259,63 @@ CffiStructGetNativeFieldsCmd(Tcl_Interp *ip,
     return ret;
 }
 
+/* Function: CffiStructGetNativeFieldsCmd
+ * Gets the values of multiple fields from a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - safe pointer to memory holding the struct value
+ * objv[3] - list of field names
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructGetNativeFieldsCmd(Tcl_Interp *ip,
+                             int objc,
+                             Tcl_Obj *const objv[],
+                             CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructGetNativeFieldsPointer(ip, objc, objv, structCtxP, 1);
+}
+
+/* Function: CffiStructGetNativeFieldsUnsafeCmd
+ * Gets the values of multiple fields from a native struct.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * objc - number of arguments in objv[]. Caller should have checked for
+ *        total of 4-5 arguments.
+ * objv - argument array. This includes the command and subcommand provided
+ *   at the script level.
+ * structCtxP - pointer to struct context
+ *
+ * The **objv** contains the following arguments:
+ * objv[2] - unsafe pointer to memory holding the struct value
+ * objv[3] - list of field names
+ * objv[4] - optional, index into array of structs pointed to by objv[2]
+ *
+ * Returns:
+ * *TCL_OK* on success with an empty interp result;
+ * *TCL_ERROR* on failure with an error message in the interpreter.
+ */
+static CffiResult
+CffiStructGetNativeFieldsUnsafeCmd(Tcl_Interp *ip,
+                                   int objc,
+                                   Tcl_Obj *const objv[],
+                                   CffiStructCmdCtx *structCtxP)
+{
+    return CffiStructGetNativeFieldsPointer(ip, objc, objv, structCtxP, 0);
+}
 
 /* Function: CffiStructFieldPointerCmd
  * Returns a pointer to a field in a native struct.
@@ -1261,7 +1556,9 @@ CffiStructInstanceCmd(ClientData cdata,
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
         {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
         {"getnative", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetNativeCmd},
+        {"getnative!", 2, 3, "POINTER FIELD ?INDEX?", CffiStructGetNativeUnsafeCmd},
         {"getnativefields", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructGetNativeFieldsCmd},
+        {"getnativefields!", 2, 3, "POINTER FIELDNAMES ?INDEX?", CffiStructGetNativeFieldsUnsafeCmd},
         {"free", 1, 1, "POINTER", CffiStructFreeCmd},
         {"frombinary", 1, 1, "BINARY", CffiStructFromBinaryCmd},
         {"fromnative", 1, 2, "POINTER ?INDEX?", CffiStructFromNativeCmd},
@@ -1270,8 +1567,10 @@ CffiStructInstanceCmd(ClientData cdata,
         {"name", 0, 0, "", CffiStructNameCmd},
         {"new", 0, 1, "?INITIALIZER?", CffiStructNewCmd},
         {"setnative", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetNativeCmd},
+        {"setnative!", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetNativeUnsafeCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
         {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
+        {"tonative!", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeUnsafeCmd},
         {NULL}
     };
     int cmdIndex;
