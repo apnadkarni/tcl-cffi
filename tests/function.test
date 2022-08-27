@@ -360,6 +360,34 @@ namespace eval ${NS}::test {
                 unset -nocomplain out
                 list [$fn $val out] $out
             } -result [list [expr {2+$val}] [expr {1+$val}]]
+            test function-param-$type-onerror-1 "$type out params onerror in alias - Bug 135" -body {
+                set fn ${type}_out
+                testDll function $fn $type [list inparam [list ONERRORPARAM in] outparam [list ONERRORPARAM out]]
+                unset -nocomplain out
+                list [$fn $val out] $out
+            } -setup {
+                cffi::alias define ONERRORPARAM [list $type {onerror handler}]
+            } -cleanup {
+                cffi::alias delete ONERRORPARAM
+            } -result [list [expr {2+$val}] [expr {1+$val}]]
+            test function-param-$type-onerror-2 "$type in params onerror in alias - Bug 135" -body {
+                set fn ${type}_to_$type
+                testDll function $fn $type [list inparam [list ONERRORPARAM in]]
+                $fn $val
+            } -setup {
+                cffi::alias define ONERRORPARAM [list $type {onerror handler}]
+            } -cleanup {
+                cffi::alias delete ONERRORPARAM
+            } -result $val
+            test function-param-$type-onerror-3 "$type in params onerror in alias - not to be confused as default" -body {
+                set fn ${type}_to_$type
+                testDll function $fn $type [list inparam [list ONERRORPARAM in]]
+                $fn
+            } -setup {
+                cffi::alias define ONERRORPARAM [list $type {onerror handler}]
+            } -cleanup {
+                cffi::alias delete ONERRORPARAM
+            } -result "Syntax: ${type}_to_$type inparam" -returnCodes error
 
             test function-param-$type-lasterror-0 "$type in params lasterror" -constraints win -setup {
                 set fn ${type}_to_${type}

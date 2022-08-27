@@ -1524,10 +1524,16 @@ CffiFunctionCall(ClientData cdata,
                     argObjs[i] = objv[j];
                 }
                 else {
-                    /* No argument, must have a default */
-                    if (protoP->params[i].typeAttrs.parseModeSpecificObj
-                        == NULL)
+                    /*
+                     * No argument, must have a default - parseModeSpecificObj
+                     * is used for both defaults and onerror.
+                     */
+                    if ((protoP->params[i].typeAttrs.parseModeSpecificObj
+                         == NULL)
+                        || (protoP->params[i].typeAttrs.flags
+                            & CFFI_F_ATTR_ONERROR))
                         goto numargs_error;
+
                     argObjs[i] =
                         protoP->params[i].typeAttrs.parseModeSpecificObj;
                 }

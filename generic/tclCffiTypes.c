@@ -1018,7 +1018,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             goto invalid_format;
         }
         if (flags & (CFFI_F_ATTR_INOUT|CFFI_F_ATTR_OUT)) {
-            if (typeAttrP->parseModeSpecificObj) {
+            if (typeAttrP->parseModeSpecificObj
+                && !(flags & CFFI_F_ATTR_ONERROR)) {
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
             }

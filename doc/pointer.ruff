@@ -111,10 +111,11 @@ namespace eval ${NS}::pointer {
         # Synopsis: address ?tag?
     }
     proc safe {pointer} {
-        # Registers a pointer as a safe uncounted pointer
+        # Registers a pointer as a safe uncounted pointer.
         #  pointer - pointer to be registered
-        # An error is raised if the pointer is already registered
-        # or is a NULL pointer.
+        # It is not an error if the pointer is already registered. However,
+        # it is an error if the pointer is already registered with a different
+        # tag.
         #
         # See [Pointers][::Concepts::Pointers] for more on pointer
         # safety and registration.
