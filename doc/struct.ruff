@@ -57,7 +57,17 @@ oo::class create ${NS}::Struct {
     method getnativefields {pointer fieldnames {index 0}} {
         # Retrieve values of multiple fields from a native struct in memory.
         #  pointer - pointer to memory allocated for the C struct or array. Must be
-        #    a safe pointer tagged with the struct name.
+        #    tagged with the struct name.
+        #  fieldnames - list of field names
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
+        #
+        # Returns a list of field values in the same order as $fieldnames
+    }
+    method getnativefields! {pointer fieldnames {index 0}} {
+        # Retrieve values of multiple fields from a native struct in memory.
+        #  pointer - safe or unsafe pointer to memory allocated for the C struct.
+        #    Must be tagged with the struct name.
         #  fieldnames - list of field names
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
@@ -80,7 +90,7 @@ oo::class create ${NS}::Struct {
     }
     method fromnative! {pointer {index 0}} {
         # Decodes native C struct(s) in memory into a Tcl dictionary.
-        #  pointer - unsafe pointer to the C struct or array of structs in memory
+        #  pointer - safe or unsafe pointer to the C struct or array of structs in memory
         #  index - the index position at which the struct is to be written.
         #    Note this interpreted as an **index** into an array of structs, not as
         #    a byte offset into memory.
@@ -95,20 +105,44 @@ oo::class create ${NS}::Struct {
     method tonative {pointer initializer {index 0}} {
         # Writes the Tcl dictionary representation of a C struct value to memory
         # in native form.
-        #  pointer - pointer to memory allocated for the C struct or array. Must be
+        #  pointer - safe pointer to memory allocated for the C struct or array. Must be
         #    tagged with the struct name.
         #  initializer - the Tcl dictionary value
         #  index - the index position at which the struct is to be written.
         #    Note this interpreted as an **index** into an array of structs, not as
         #    a byte offset into memory.
         #
-        # See also: fromnative tobinary
+        # See also: tonative! fromnative tobinary
+        #
+    }
+    method tonative! {pointer initializer {index 0}} {
+        # Writes the Tcl dictionary representation of a C struct value to memory
+        # in native form.
+        #  pointer - safe or unsafe pointer to memory allocated for the C struct or array.
+        #    Must be tagged with the struct name.
+        #  initializer - the Tcl dictionary value
+        #  index - the index position at which the struct is to be written.
+        #    Note this interpreted as an **index** into an array of structs, not as
+        #    a byte offset into memory.
+        #
+        # See also: tonative fromnative tobinary
         #
     }
     method getnative {pointer fieldname {index 0}} {
         # Returns the value of a field in a native structure in memory
-        #  pointer - pointer to memory allocated for the C struct or array. Must be
-        #    a safe pointer tagged with the struct name.
+        #  pointer - safe pointer to memory allocated for the C struct or array. Must be
+        #    tagged with the struct name.
+        #  fieldname - name of the field
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
+        #
+        # In the case of fields of type pointer, the returned pointer is registered
+        # as a safe pointer unless the field was marked with the `unsafe` annotation.
+    }
+    method getnative! {pointer fieldname {index 0}} {
+        # Returns the value of a field in a native structure in memory
+        #  pointer - safe or unsafe pointer to memory allocated for the C
+        #    struct or array. Must be tagged with the struct name.
         #  fieldname - name of the field
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
@@ -118,8 +152,18 @@ oo::class create ${NS}::Struct {
     }
     method setnative {pointer fieldname value {index 0}} {
         # Sets the value of a field in a native structure in memory
-        #  pointer - pointer to memory allocated for the C struct or array. Must be
-        #    a safe pointer tagged with the struct name.
+        #  pointer - safe pointer to memory allocated for the C struct or array.
+        #    Must be tagged with the struct name.
+        #  fieldname - name of the field
+        #  value - value to store in the field
+        #  index - If present, $pointer is interpreted as pointing to an array of
+        #    structs and this is the index into that array.
+        #
+    }
+    method setnative! {pointer fieldname value {index 0}} {
+        # Sets the value of a field in a native structure in memory
+        #  pointer - safe or unsafe pointer to memory allocated for the C struct or array.
+        #    Must be tagged with the struct name.
         #  fieldname - name of the field
         #  value - value to store in the field
         #  index - If present, $pointer is interpreted as pointing to an array of

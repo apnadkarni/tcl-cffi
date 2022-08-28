@@ -411,6 +411,48 @@ namespace eval cffi::test {
         StructWithStrings tonative $p [makeStructWithStrings]
     } -result {Invalid value. string type not supported in this struct context. Error converting field ::StructWithStrings.s to a native value.} -returnCodes error
 
+    test struct-tonative-error-9 "struct tonative - unsafe pointer" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+        set p [::S allocate]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        S free $p
+        rename S ""
+    } -body {
+        S tonative $p {c 1 i 2 s 3}
+    } -result {^Pointer 0x[[:xdigit:]]+\^::S is not registered\.$} -match regexp -returnCodes error
+
+    test struct-tonative-error-10 "struct tonative - NULL pointer" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S tonative NULL {c 1 i 2 s 3}
+    } -result {*Pointer is NULL*} -match glob -returnCodes error
+
+    ###
+    # struct tonative!
+    testnumargs struct-tonative! "::TestStruct tonative!" "POINTER INITIALIZER" "?INDEX?"
+    test struct-tonative!-0 "struct tonative" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+        set p [::S allocate]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        S free $p
+        rename S ""
+    } -body {
+        list [S tonative! $p {c 1 i 2 s 3}] [S fromnative! $p]
+    } -result [list {} {c 1 i 2 s 3}]
+
+    test struct-tonative!-error-0 "struct tonative! - NULL pointer" -setup {
+        cffi::Struct create ::S {c uchar i longlong s short}
+    } -cleanup {
+        rename S ""
+    } -body {
+        S tonative! NULL {c 1 i 2 s 3}
+    } -result {*Pointer is NULL*} -match glob -returnCodes error
 
     ###
     # struct describe
@@ -976,6 +1018,33 @@ namespace eval cffi::test {
     }
 
     ###
+    # struct setnative!
+
+    testnumargs struct-setnative! "::TestStruct setnative!" "POINTER FIELD VALUE" "?INDEX?"
+    test struct-setnative!-0 "setnative! each field struct" -setup {
+        set p [::TestStruct allocate]
+        cffi::pointer dispose $p
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+        getTestStruct ts
+    } -cleanup {
+        cffi::pointer safe $p
+        ::TestStruct free $p
+    } -body {
+        dict for {key val} $ts {
+            ::TestStruct setnative! $p $key $val
+        }
+        checkTestStruct [::TestStruct fromnative! $p]
+    } -result ""
+
+    test struct-setnative!-error-1 "setnative! NULL pointer" -setup {
+        ::cffi::Struct create S {i int}
+    } -cleanup {
+        S destroy
+    } -body {
+        S setnative! NULL i 42
+    } -result {Pointer is NULL.} -returnCodes error
+
+    ###
     # struct getnativefields
     testnumargs struct-getnativefields "::TestStruct getnativefields" "POINTER FIELDNAMES" "?INDEX?"
     test struct-getnativefields-0 "Empty fieldlist" -setup {
@@ -1033,7 +1102,7 @@ namespace eval cffi::test {
     } -body {
         S getnativefields [makeptr 1 ::TestStruct] {d c}
     } -result "Value \"[makeptr 1 ::TestStruct]\" has the wrong type. Pointer type mismatch." -returnCodes error
-    test struct-getnativefields-error-2 "wrong type pointer" -setup {
+    test struct-getnativefields-error-2 "unknown field" -setup {
         ::cffi::Struct create S {c schar d double }
         set p [S allocate]
         S tonative $p [list c 1 d 4]
@@ -1043,7 +1112,33 @@ namespace eval cffi::test {
     } -body {
         S getnativefields $p nosuchfield
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
+    test struct-getnativefields-error-3 "unsafe pointer" -body {
+        ::TestStruct getnativefields 1^::TestStruct {}
+    } -result {Pointer 0x0000000000000001^::TestStruct is not registered.} -returnCodes error
 
+    ###
+    # struct getnativefields!
+    testnumargs struct-getnativefields! "::TestStruct getnativefields!" "POINTER FIELDNAMES" "?INDEX?"
+    test struct-getnativefields!-0 "getnativefields! full fieldlist" -setup {
+        ::cffi::Struct create S {c schar i int[2] d double }
+        set p [S allocate]
+        cffi::pointer dispose $p
+        S tonative! $p [list c 1 i {2 3} d 4]
+    } -cleanup {
+        cffi::pointer safe $p
+        S free $p
+        S destroy
+    } -body {
+        S getnativefields! $p {c i d}
+    } -result {1 {2 3} 4.0}
+
+    test struct-getnativefields!-error-0 "null pointer" -setup {
+        ::cffi::Struct create S {c schar d double }
+    } -cleanup {
+        S destroy
+    } -body {
+        S getnativefields! NULL {d c}
+    } -result {Pointer is NULL.} -returnCodes error
 
     ###
     # struct new
