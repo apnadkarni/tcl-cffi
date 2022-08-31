@@ -9,7 +9,7 @@ namespace eval ${NS}::test {
     # version
     test version-0 {Version check} -body {
         uplevel #0 package require cffi
-    } -result 1.1.0
+    } -result 1.2.0
 
     # pkgconfig
     test pkgconfig-list-0 {pkgconfig list} -body {

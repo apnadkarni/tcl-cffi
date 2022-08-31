@@ -64,7 +64,7 @@ namespace eval ${NS}::alias {
         # The possible values of $alias_set are `C`, `win32` (Windows only),
         # or `posix` (platform dependent).
         #
-        # The `C` predefined alias set includes
+        # The `C` predefined alias set includes `_Bool`, `bool`,
         # `int8_t` `uint8_t` `int16_t` `uint16_t` `int32_t`
         #   `uint32_t` `int64_t` `uint64_t` `size_t` `ssize_t`
         #

@@ -7,6 +7,7 @@
 
 #include "tclCffiInt.h"
 #include <sys/types.h>
+#include <stdbool.h>
 
 /* Function: CffiAliasGet
  * Checks for the existence of a type definition and returns its internal form.
@@ -366,6 +367,8 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
     s = Tcl_GetString(objP);
 
     if (!strcmp(s, "C")) {
+        ADDINTTYPE(_Bool);
+        CffiAliasAddStr(ipCtxP, "bool", "_Bool", NULL);
         ADDINTTYPE(size_t);
 #ifdef _WIN32
         ADDINTTYPE(SSIZE_T);
