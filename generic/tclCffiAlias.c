@@ -367,7 +367,11 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
     s = Tcl_GetString(objP);
 
     if (!strcmp(s, "C")) {
-        ADDINTTYPE(_Bool);
+        {
+            enum CffiBaseType typeIndex;
+            UNSIGNEDTYPEINDEX(_Bool);
+            ADDTYPEINDEX(_Bool, typeIndex);
+        }
         CffiAliasAddStr(ipCtxP, "bool", "_Bool", NULL);
         ADDINTTYPE(size_t);
 #ifdef _WIN32
