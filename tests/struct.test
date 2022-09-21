@@ -1114,7 +1114,7 @@ namespace eval cffi::test {
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
     test struct-getnativefields-error-3 "unsafe pointer" -body {
         ::TestStruct getnativefields 1^::TestStruct {}
-    } -result {Pointer 0x0000000000000001^::TestStruct is not registered.} -returnCodes error
+    } -result "Pointer [makeptr 1 ::TestStruct] is not registered." -returnCodes error
 
     ###
     # struct getnativefields!
