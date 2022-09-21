@@ -34,6 +34,13 @@ Limitations in the current version include
 
 - No support for *asynchronous* callbacks
 
+## Changes in 1.2.0
+
+- New `Struct` methods `tonative!`, `setnative!`, `getnative!`,
+`getnativefields` to access structures via unsafe pointers.
+- Type alias for C99 `bool`
+- Miscellaneous bug fixes. See https://github.com/apnadkarni/tcl-cffi/milestone/12?closed=1
+
 ## Changes in 1.1.0
 
 - Added support for varargs functions
@@ -41,7 +48,7 @@ Limitations in the current version include
 and `memory tostring`
 - Added `memory fill!` command
 - Added support of explicit values in `enum sequence`
-- Miscellaneous bug fixes 
+- Miscellaneous bug fixes
 See https://github.com/apnadkarni/tcl-cffi/milestone/11?closed=1
 
 ## Changes in 1.0.7

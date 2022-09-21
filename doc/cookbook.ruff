@@ -130,11 +130,17 @@ namespace eval Cookbook {
 
         CFFI
 
-        ```
-XXX        LIBC open
+        A basic definition assuming `LIBC` is the library wrapper object:
 
         ```
+        LIBC function open int {pathname string flags int}
+        ```
 
+        A more complete definition:
+
+        ```
+        LIBC function open {int nonnegative errno} {pathname string flags int}
+        ```
 
         #### Floating point returns
 
@@ -518,11 +524,6 @@ XXX        LIBC open
             flags {ulong retval {enum HANDLE_FLAGS} bitmask}
         }
         ```
-
-        # TODO
-        double output parameter
-        double modf (double x, double* intpart);
-
 
         #### Floating point parameters
 

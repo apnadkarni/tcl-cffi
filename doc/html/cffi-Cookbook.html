@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.1.0)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.2.0)</a>
 
 
             <div id="ruffButtonBar">
@@ -93,10 +93,16 @@ int open(const char *pathname, int flags);
 </pre>
 
 </figure><p class='ruff'>CFFI</p>
+<p class='ruff'>A basic definition assuming <code>LIBC</code> is the library wrapper object:</p>
 
 <figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
-XXX        LIBC open
+LIBC function open int {pathname string flags int}
+</pre>
 
+</figure><p class='ruff'>A more complete definition:</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+LIBC function open {int nonnegative errno} {pathname string flags int}
 </pre>
 
 </figure><h4 class='ruff'><a name='::Cookbook-Floating point returns'></a>Floating point returns<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
@@ -293,10 +299,7 @@ KERNEL32 stdcall GetHandleInformation {int nonzero lasterror} {
 }
 </pre>
 
-</figure><h1 class='ruff'><a name='::Cookbook-TODO'></a>TODO<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h1>
-<div style='clear:both;'></div>
-<p class='ruff'>double output parameter double modf (double x, double* intpart);</p>
-<h4 class='ruff'><a name='::Cookbook-Floating point parameters'></a>Floating point parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+</figure><h4 class='ruff'><a name='::Cookbook-Floating point parameters'></a>Floating point parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <h5 class='ruff'>Floating point input parameters</h5>
 <figure id='::Cookbook-Syntax for floating point input parameters' class='ruff-figure'>

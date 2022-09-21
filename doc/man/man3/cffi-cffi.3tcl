@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 1\&.1\&.0 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 cffi - Commands in namespace cffi
 .SH SYNOPSIS
@@ -163,7 +163,11 @@ cffi - Commands in namespace cffi
 .br
 \fBOBJECT getnative\fP \fIpointer fieldname ?index?\fP
 .br
+\fBOBJECT getnative!\fP \fIpointer fieldname ?index?\fP
+.br
 \fBOBJECT getnativefields\fP \fIpointer fieldnames ?index?\fP
+.br
+\fBOBJECT getnativefields!\fP \fIpointer fieldnames ?index?\fP
 .br
 \fBOBJECT info\fP
 .br
@@ -173,9 +177,13 @@ cffi - Commands in namespace cffi
 .br
 \fBOBJECT setnative\fP \fIpointer fieldname value ?index?\fP
 .br
+\fBOBJECT setnative!\fP \fIpointer fieldname value ?index?\fP
+.br
 \fBOBJECT tobinary\fP \fIdict_value\fP
 .br
 \fBOBJECT tonative\fP \fIpointer initializer ?index?\fP
+.br
+\fBOBJECT tonative!\fP \fIpointer initializer ?index?\fP
 .br
 \fBWrapper create OBJNAME\fP \fIpath\fP
 .br
@@ -413,7 +421,7 @@ The aliases are loaded into the calling scope\&.
 The possible values of \fI$alias_set\fP are C, win32 (Windows only),
 or posix (platform dependent)\&.
 .PP
-The C predefined alias set includes
+The C predefined alias set includes _Bool, bool,
 int8_t uint8_t int16_t uint16_t int32_t
 uint32_t int64_t uint64_t size_t ssize_t
 .PP
@@ -2045,7 +2053,7 @@ can use the \fIpointer safe\fP command to mark it as such if so desired\&.
 \fBpointer safe\fR (::cffi)
 .RE
 .PP
-Registers a pointer as a safe uncounted pointer
+Registers a pointer as a safe uncounted pointer\&.
 .RS 4n\fBpointer safe\fP \fIpointer\fP
 .br
 .RE
@@ -2059,8 +2067,9 @@ Pointer to be registered\&.
 .PP
 \fBDescription\fR
 .PP
-An error is raised if the pointer is already registered
-or is a NULL pointer\&.
+It is not an error if the pointer is already registered\&. However,
+it is an error if the pointer is already registered with a different
+tag\&.
 .PP
 See \fIPointers\fP for more on pointer
 safety and registration\&.
@@ -2437,7 +2446,13 @@ Decodes native C struct(s) in memory into a Tcl dictionary\&.
 getnative
 Returns the value of a field in a native structure in memory\&.
 .TP
+getnative!
+Returns the value of a field in a native structure in memory\&.
+.TP
 getnativefields
+Retrieve values of multiple fields from a native struct in memory\&.
+.TP
+getnativefields!
 Retrieve values of multiple fields from a native struct in memory\&.
 .TP
 info
@@ -2452,10 +2467,16 @@ Allocates and initializes a native struct in memory\&.
 setnative
 Sets the value of a field in a native structure in memory\&.
 .TP
+setnative!
+Sets the value of a field in a native structure in memory\&.
+.TP
 tobinary
 Encodes the Tcl representation of a C struct value into a Tcl binary string\&.
 .TP
 tonative
+Writes the Tcl dictionary representation of a C struct value to memory in native form\&.
+.TP
+tonative!
 Writes the Tcl dictionary representation of a C struct value to memory in native form\&.
 .RE
 .PP
@@ -2664,7 +2685,7 @@ Decodes native C struct(s) in memory into a Tcl dictionary\&.
 .RS 4n
 .TP
 pointer
-Unsafe pointer to the C struct or array of structs in memory\&.
+Safe or unsafe pointer to the C struct or array of structs in memory\&.
 .TP
 index
 The index position at which the struct is to be written\&. Note this interpreted as an \fBindex\fP into an array of structs, not as a byte offset into memory\&. Optional, default 0\&.
@@ -2696,7 +2717,38 @@ Returns the value of a field in a native structure in memory
 .RS 4n
 .TP
 pointer
-Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+Safe pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
+.TP
+fieldname
+Name of the field\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+In the case of fields of type pointer, the returned pointer is registered
+as a safe pointer unless the field was marked with the unsafe annotation\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the value of a field in a native structure in memory
+.PP
+.RS -4n
+\fBgetnative!\fR (::cffi::Struct)
+.RE
+.PP
+Returns the value of a field in a native structure in memory
+.RS 4n\fBOBJECT getnative!\fP \fIpointer fieldname ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe or unsafe pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
 .TP
 fieldname
 Name of the field\&.
@@ -2727,7 +2779,33 @@ Retrieve values of multiple fields from a native struct in memory\&.
 .RS 4n
 .TP
 pointer
-Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+Pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
+.TP
+fieldnames
+List of field names\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of field values in the same order as \fI$fieldnames\fP
+.PP
+.RS -4n
+\fBgetnativefields!\fR (::cffi::Struct)
+.RE
+.PP
+Retrieve values of multiple fields from a native struct in memory\&.
+.RS 4n\fBOBJECT getnativefields!\fP \fIpointer fieldnames ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe or unsafe pointer to memory allocated for the C struct\&. Must be tagged with the struct name\&.
 .TP
 fieldnames
 List of field names\&.
@@ -2829,7 +2907,32 @@ Sets the value of a field in a native structure in memory
 .RS 4n
 .TP
 pointer
-Pointer to memory allocated for the C struct or array\&. Must be a safe pointer tagged with the struct name\&.
+Safe pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
+.TP
+fieldname
+Name of the field\&.
+.TP
+value
+Value to store in the field\&.
+.TP
+index
+If present, \fI$pointer\fP is interpreted as pointing to an array of structs and this is the index into that array\&. Optional, default 0\&.
+.RE
+.PP
+.RS -4n
+\fBsetnative!\fR (::cffi::Struct)
+.RE
+.PP
+Sets the value of a field in a native structure in memory
+.RS 4n\fBOBJECT setnative!\fP \fIpointer fieldname value ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe or unsafe pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
 .TP
 fieldname
 Name of the field\&.
@@ -2876,7 +2979,7 @@ in native form\&.
 .RS 4n
 .TP
 pointer
-Pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
+Safe pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
 .TP
 initializer
 The Tcl dictionary value\&.
@@ -2887,7 +2990,34 @@ The index position at which the struct is to be written\&. Note this interpreted
 .PP
 \fBSee also\fR
 .PP
-\fIfromnative\fP, \fItobinary\fP
+\fItonative!\fP, \fIfromnative\fP, \fItobinary\fP
+.PP
+.RS -4n
+\fBtonative!\fR (::cffi::Struct)
+.RE
+.PP
+Writes the Tcl dictionary representation of a C struct value to memory
+in native form\&.
+.RS 4n\fBOBJECT tonative!\fP \fIpointer initializer ?index?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe or unsafe pointer to memory allocated for the C struct or array\&. Must be tagged with the struct name\&.
+.TP
+initializer
+The Tcl dictionary value\&.
+.TP
+index
+The index position at which the struct is to be written\&. Note this interpreted as an \fBindex\fP into an array of structs, not as a byte offset into memory\&. Optional, default 0\&.
+.RE
+.PP
+\fBSee also\fR
+.PP
+\fItonative\fP, \fIfromnative\fP, \fItobinary\fP
 .PP
 .RS -4n
 \fBWrapper\fR (::cffi)

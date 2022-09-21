@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Cookbook" 3tcl 1\&.1\&.0 "cffi" "Tcl CFFI package"
+.TH "Cookbook" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 Cookbook - Commands in namespace Cookbook
 .SH COOKBOOK
@@ -154,10 +154,19 @@ int open(const char *pathname, int flags);
 .PP
 CFFI
 .PP
+A basic definition assuming LIBC is the library wrapper object:
+.PP
 .RS 4n
 .nf
-XXX        LIBC open
-
+LIBC function open int {pathname string flags int}
+.fi
+.RE
+.PP
+A more complete definition:
+.PP
+.RS 4n
+.nf
+LIBC function open {int nonnegative errno} {pathname string flags int}
 .fi
 .RE
 .PP
@@ -546,10 +555,6 @@ KERNEL32 stdcall GetHandleInformation {int nonzero lasterror} {
 }
 .fi
 .RE
-.SH TODO
-.PP
-double output parameter
-double modf (double x, double* intpart);
 .PP
 \fBFloating point parameters\fR
 .PP

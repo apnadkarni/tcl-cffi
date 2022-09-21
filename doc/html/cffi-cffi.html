@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.1.0)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.2.0)</a>
 
 
             <div id="ruffButtonBar">
@@ -98,7 +98,7 @@ package require cffi
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The aliases are loaded into the calling scope.</p>
 <p class='ruff'>The possible values of <code>$alias_set</code> are <code>C</code>, <code>win32</code> (Windows only), or <code>posix</code> (platform dependent).</p>
-<p class='ruff'>The <code>C</code> predefined alias set includes <code>int8_t</code> <code>uint8_t</code> <code>int16_t</code> <code>uint16_t</code> <code>int32_t</code> <code>uint32_t</code> <code>int64_t</code> <code>uint64_t</code> <code>size_t</code> <code>ssize_t</code></p>
+<p class='ruff'>The <code>C</code> predefined alias set includes <code>_Bool</code>, <code>bool</code>, <code>int8_t</code> <code>uint8_t</code> <code>int16_t</code> <code>uint16_t</code> <code>int32_t</code> <code>uint32_t</code> <code>int64_t</code> <code>uint64_t</code> <code>size_t</code> <code>ssize_t</code></p>
 <p class='ruff'>The <code>win32</code> predefined alias set includes <code>BOOL</code> <code>BOOLEAN</code> <code>BYTE</code> <code>CHAR</code> <code>DWORD</code> <code>DWORDLONG</code> <code>DWORD_PTR</code> <code>HALF_PTR</code> <code>HANDLE</code> <code>INT</code> <code>INT_PTR</code> <code>LONG</code> <code>LONGLONG</code> <code>LONG_PTR</code> <code>LPARAM</code> <code>LPVOID</code> <code>LRESULT</code> <code>SHORT</code> <code>SIZE_T</code> <code>SSIZE_T</code> <code>UCHAR</code> <code>UINT</code> <code>UINT_PTR</code> <code>ULONG</code> <code>ULONGLONG</code> <code>ULONG_PTR</code> <code>USHORT</code> <code>WORD</code> <code>WPARAM</code></p>
 <p class='ruff'>The <code>posix</code> alias set is platform dependent. In POSIX compliant environments, it includes <code>blkcnt_t</code> <code>blksize_t</code> <code>clock_t</code> <code>dev_t</code> <code>fsblkcnt_t</code> <code>fsfilcnt_t</code> <code>gid_t</code> <code>id_t</code> <code>ino_t</code> <code>key_t</code> <code>mode_t</code> <code>nlink_t</code> <code>off_t</code> <code>pid_t</code> <code>size_t</code> <code>ssize_t</code> <code>suseconds_t</code> <code>time_t</code> <code>uid_t</code>. On Windows, it only includes <code>dev_t</code> <code>ino_t</code> <code>off_t</code> <code>time_t</code>.</p>
 <h3 class='ruffproc'><a name='::cffi::call'>call</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -660,12 +660,12 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned pointer is not registered as safe. The caller can use the <a href="cffi-cffi.html#::cffi::pointer safe" title="pointer safe" class='ruff_cmd'>pointer safe</a> command to mark it as such if so desired.</p>
 <h3 class='ruffproc'><a name='::cffi::pointer safe'>pointer safe</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>Registers a pointer as a safe uncounted pointer</p>
+<p class='ruff'>Registers a pointer as a safe uncounted pointer.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>pointer safe</span> <span class='ruff_arg'>pointer</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Pointer to be registered.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>An error is raised if the pointer is already registered or is a NULL pointer.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>It is not an error if the pointer is already registered. However, it is an error if the pointer is already registered with a different tag.</p>
 <p class='ruff'>See <a href="cffi-Concepts.html#::Concepts-Pointers" title="Pointers" >Pointers</a> for more on pointer safety and registration.</p>
 <h3 class='ruffproc'><a name='::cffi::pointer tag'>pointer tag</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
@@ -791,13 +791,17 @@ cffi::help functions ::libzip::*
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::fromnative" title="fromnative" class='ruff_cmd'>fromnative</a></td><td>Decodes native C struct(s) in memory into a Tcl dictionary.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::fromnative!" title="fromnative!" class='ruff_cmd'>fromnative!</a></td><td>Decodes native C struct(s) in memory into a Tcl dictionary.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::getnative" title="getnative" class='ruff_cmd'>getnative</a></td><td>Returns the value of a field in a native structure in memory.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::getnative!" title="getnative!" class='ruff_cmd'>getnative!</a></td><td>Returns the value of a field in a native structure in memory.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::getnativefields" title="getnativefields" class='ruff_cmd'>getnativefields</a></td><td>Retrieve values of multiple fields from a native struct in memory.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::getnativefields!" title="getnativefields!" class='ruff_cmd'>getnativefields!</a></td><td>Retrieve values of multiple fields from a native struct in memory.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::info" title="info" class='ruff_cmd'>info</a></td><td>Returns a dictionary containing information about the struct layout.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::name" title="name" class='ruff_cmd'>name</a></td><td>Returns the name of the struct.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::new" title="new" class='ruff_cmd'>new</a></td><td>Allocates and initializes a native struct in memory.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::setnative" title="setnative" class='ruff_cmd'>setnative</a></td><td>Sets the value of a field in a native structure in memory.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::setnative!" title="setnative!" class='ruff_cmd'>setnative!</a></td><td>Sets the value of a field in a native structure in memory.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::tobinary" title="tobinary" class='ruff_cmd'>tobinary</a></td><td>Encodes the Tcl representation of a C struct value into a Tcl binary string.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::Struct::tonative" title="tonative" class='ruff_cmd'>tonative</a></td><td>Writes the Tcl dictionary representation of a C struct value to memory in native form.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Struct::tonative!" title="tonative!" class='ruff_cmd'>tonative!</a></td><td>Writes the Tcl dictionary representation of a C struct value to memory in native form.</td></tr>
 </table>
 <h4 class='ruffmethod'><a name='::cffi::Struct::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -870,7 +874,7 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Decodes native C struct(s) in memory into a Tcl dictionary.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT fromnative!</span> <span class='ruff_arg'>pointer ?index?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Unsafe pointer to the C struct or array of structs in memory.</td></tr>
+<tr><td><code>pointer</code></td><td>Safe or unsafe pointer to the C struct or array of structs in memory.</td></tr>
 <tr><td><code>index</code></td><td>The index position at which the struct is to be written. Note this interpreted as an <strong>index</strong> into an array of structs, not as a byte offset into memory. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The decoded dictionary or dictionaries are keyed by the field names of the struct.</p>
@@ -881,7 +885,18 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Returns the value of a field in a native structure in memory</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT getnative</span> <span class='ruff_arg'>pointer fieldname ?index?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be a safe pointer tagged with the struct name.</td></tr>
+<tr><td><code>pointer</code></td><td>Safe pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
+<tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
+<tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>In the case of fields of type pointer, the returned pointer is registered as a safe pointer unless the field was marked with the <code>unsafe</code> annotation.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the value of a field in a native structure in memory</p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::getnative!'>getnative!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the value of a field in a native structure in memory</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT getnative!</span> <span class='ruff_arg'>pointer fieldname ?index?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe or unsafe pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
 <tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
 <tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
 </table>
@@ -892,7 +907,17 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Retrieve values of multiple fields from a native struct in memory.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT getnativefields</span> <span class='ruff_arg'>pointer fieldnames ?index?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be a safe pointer tagged with the struct name.</td></tr>
+<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
+<tr><td><code>fieldnames</code></td><td>List of field names.</td></tr>
+<tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of field values in the same order as <code>$fieldnames</code></p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::getnativefields!'>getnativefields!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Retrieve values of multiple fields from a native struct in memory.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT getnativefields!</span> <span class='ruff_arg'>pointer fieldnames ?index?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe or unsafe pointer to memory allocated for the C struct. Must be tagged with the struct name.</td></tr>
 <tr><td><code>fieldnames</code></td><td>List of field names.</td></tr>
 <tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
 </table>
@@ -929,7 +954,17 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Sets the value of a field in a native structure in memory</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT setnative</span> <span class='ruff_arg'>pointer fieldname value ?index?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be a safe pointer tagged with the struct name.</td></tr>
+<tr><td><code>pointer</code></td><td>Safe pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
+<tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
+<tr><td><code>value</code></td><td>Value to store in the field.</td></tr>
+<tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
+</table>
+<h4 class='ruffmethod'><a name='::cffi::Struct::setnative!'>setnative!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Sets the value of a field in a native structure in memory</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT setnative!</span> <span class='ruff_arg'>pointer fieldname value ?index?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe or unsafe pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
 <tr><td><code>fieldname</code></td><td>Name of the field.</td></tr>
 <tr><td><code>value</code></td><td>Value to store in the field.</td></tr>
 <tr><td><code>index</code></td><td>If present, <code>$pointer</code> is interpreted as pointing to an array of structs and this is the index into that array. Optional, default <code>0</code>.</td></tr>
@@ -947,11 +982,21 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Writes the Tcl dictionary representation of a C struct value to memory in native form.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT tonative</span> <span class='ruff_arg'>pointer initializer ?index?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
+<tr><td><code>pointer</code></td><td>Safe pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
 <tr><td><code>initializer</code></td><td>The Tcl dictionary value.</td></tr>
 <tr><td><code>index</code></td><td>The index position at which the struct is to be written. Note this interpreted as an <strong>index</strong> into an array of structs, not as a byte offset into memory. Optional, default <code>0</code>.</td></tr>
 </table>
-<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Struct::fromnative" title="fromnative" class='ruff_cmd'>fromnative</a>, <a href="cffi-cffi.html#::cffi::Struct::tobinary" title="tobinary" class='ruff_cmd'>tobinary</a></p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Struct::tonative!" title="tonative!" class='ruff_cmd'>tonative!</a>, <a href="cffi-cffi.html#::cffi::Struct::fromnative" title="fromnative" class='ruff_cmd'>fromnative</a>, <a href="cffi-cffi.html#::cffi::Struct::tobinary" title="tobinary" class='ruff_cmd'>tobinary</a></p>
+<h4 class='ruffmethod'><a name='::cffi::Struct::tonative!'>tonative!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Writes the Tcl dictionary representation of a C struct value to memory in native form.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT tonative!</span> <span class='ruff_arg'>pointer initializer ?index?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe or unsafe pointer to memory allocated for the C struct or array. Must be tagged with the struct name.</td></tr>
+<tr><td><code>initializer</code></td><td>The Tcl dictionary value.</td></tr>
+<tr><td><code>index</code></td><td>The index position at which the struct is to be written. Note this interpreted as an <strong>index</strong> into an array of structs, not as a byte offset into memory. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Struct::tonative" title="tonative" class='ruff_cmd'>tonative</a>, <a href="cffi-cffi.html#::cffi::Struct::fromnative" title="fromnative" class='ruff_cmd'>fromnative</a>, <a href="cffi-cffi.html#::cffi::Struct::tobinary" title="tobinary" class='ruff_cmd'>tobinary</a></p>
 <h3 class='ruffclass'><a name='::cffi::Wrapper'>Wrapper</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
@@ -1102,7 +1147,7 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pointer isvalid'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> isvalid</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pointer isvalid</span> <span class='ruff_arg'>pointer</span></pre>Validates a pointer.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pointer list'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> list</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pointer list</span> <span class='ruff_arg'>?args?</span></pre>Returns a list of registered pointers optionally filtered by a tag.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pointer make'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> make</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pointer make</span> <span class='ruff_arg'>address ?tag?</span></pre>Return a pointer for a memory address
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pointer safe'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> safe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pointer safe</span> <span class='ruff_arg'>pointer</span></pre>Registers a pointer as a safe uncounted pointer
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pointer safe'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> safe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pointer safe</span> <span class='ruff_arg'>pointer</span></pre>Registers a pointer as a safe uncounted pointer.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pointer tag'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tag</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pointer tag</span> <span class='ruff_arg'>pointer</span></pre>Returns the pointer tag
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::prototype'>prototype</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>prototype</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::prototype delete'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> delete</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>prototype delete</span> <span class='ruff_arg'>pattern</span></pre>Deletes prototypes matching a pattern.
@@ -1123,13 +1168,17 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fromnative'>fromnative</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT fromnative</span> <span class='ruff_arg'>pointer ?index?</span></pre>Decodes native C struct(s) in memory into a Tcl dictionary.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::fromnative!'>fromnative!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT fromnative!</span> <span class='ruff_arg'>pointer ?index?</span></pre>Decodes native C struct(s) in memory into a Tcl dictionary.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::getnative'>getnative</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT getnative</span> <span class='ruff_arg'>pointer fieldname ?index?</span></pre>Returns the value of a field in a native structure in memory
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::getnative!'>getnative!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT getnative!</span> <span class='ruff_arg'>pointer fieldname ?index?</span></pre>Returns the value of a field in a native structure in memory
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::getnativefields'>getnativefields</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT getnativefields</span> <span class='ruff_arg'>pointer fieldnames ?index?</span></pre>Retrieve values of multiple fields from a native struct in memory.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::getnativefields!'>getnativefields!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT getnativefields!</span> <span class='ruff_arg'>pointer fieldnames ?index?</span></pre>Retrieve values of multiple fields from a native struct in memory.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::info'>info</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT info</span> </pre>Returns a dictionary containing information about the struct layout
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::name'>name</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT name</span> </pre>Returns the name of the struct.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::new'>new</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT new</span> <span class='ruff_arg'>?initval?</span></pre>Allocates and initializes a native struct in memory.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::setnative'>setnative</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT setnative</span> <span class='ruff_arg'>pointer fieldname value ?index?</span></pre>Sets the value of a field in a native structure in memory
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::setnative!'>setnative!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT setnative!</span> <span class='ruff_arg'>pointer fieldname value ?index?</span></pre>Sets the value of a field in a native structure in memory
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tobinary'>tobinary</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT tobinary</span> <span class='ruff_arg'>dict_value</span></pre>Encodes the Tcl representation of a C struct value into a Tcl binary string.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tonative'>tonative</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT tonative</span> <span class='ruff_arg'>pointer initializer ?index?</span></pre>Writes the Tcl dictionary representation of a C struct value to memory in native form.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::tonative!'>tonative!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT tonative!</span> <span class='ruff_arg'>pointer initializer ?index?</span></pre>Writes the Tcl dictionary representation of a C struct value to memory in native form.
 </span></li><li class='ruff-toc3'><a href='cffi-cffi.html#::cffi::Wrapper'>Wrapper</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::constructor'>constructor</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>Wrapper create OBJNAME</span> <span class='ruff_arg'>path</span>
 <span class='ruff_cmd'>Wrapper new</span> <span class='ruff_arg'>path</span></pre>Wraps a shared library / DLL, loading it in the process.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::destructor'>destructor</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT destroy</span> </pre>Destroys the object and releases internal resources.

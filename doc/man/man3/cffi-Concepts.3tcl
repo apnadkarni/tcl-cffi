@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Concepts" 3tcl 1\&.1\&.0 "cffi" "Tcl CFFI package"
+.TH "Concepts" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 Concepts - Commands in namespace Concepts
 .SH CONCEPTS
