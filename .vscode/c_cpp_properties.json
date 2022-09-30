@@ -4,7 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "d:/tcl/debug/x64/include",
+                "d:/tcl/debug/x64/include"
             ],
             "defines": [
                 "_DEBUG",
