@@ -61,6 +61,41 @@ CffiProtoUnref(CffiProto *protoP)
         protoP->nRefs -= 1;
 }
 
+/* Function: CffiFindDynamicCountParam
+ * Returns the index of the parameter holding a dynamic count
+ *
+ * Parameters:
+ * ip - interpreter
+ * protoP - function prototype whose parameters are to be searched
+ * nameObj - name of the dynamic count parameter
+ *
+ * Returns:
+ * The index of the parameter or -1 if not found with error message
+ * in the interpreter
+ */
+static int
+CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
+{
+    int i;
+    const char *name = Tcl_GetString(nameObj);
+    /* Note only searching fixed params as varargs are not named */
+    for (i = 0; i < protoP->nParams; ++i) {
+        CffiParam *paramP = &protoP->params[i];
+        if (CffiTypeIsNotArray(&paramP->typeAttrs.dataType)
+            && CffiTypeIsInteger(paramP->typeAttrs.dataType.baseType)
+            && (paramP->typeAttrs.flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT))
+            && !strcmp(name, Tcl_GetString(paramP->nameObj))) {
+            return i;
+        }
+    }
+    (void)Tclh_ErrorNotFound(ip,
+                             "Parameter",
+                             nameObj,
+                             "Could not find referenced count for dynamic "
+                             "array, possibly wrong type or not scalar.");
+    return -1;
+}
+
 /* Function: CffiProtoParse
  * Parses a function prototype definition returning an internal representation.
  *
@@ -206,15 +241,16 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     if (need_pass2) {
         for (i = 0; i < protoP->nParams; ++i) {
             if (protoP->params[i].typeAttrs.dataType.arraySize == 0) {
-                if (CffiFindDynamicCountParam(
-                        ip,
-                        protoP,
-                        protoP->params[i].typeAttrs.dataType.countHolderObj)
-                    < 0) {
+                int dynamicParamIndex = CffiFindDynamicCountParam(
+                    ip,
+                    protoP,
+                    protoP->params[i].typeAttrs.dataType.countHolderObj);
+                if (dynamicParamIndex < 0) {
                     /* Dynamic count parameter not found or wrong type */
                     CffiProtoUnref(protoP);
                     return TCL_ERROR;
                 }
+                protoP->params[i].arraySizeParamIndex = dynamicParamIndex;
             }
         }
     }

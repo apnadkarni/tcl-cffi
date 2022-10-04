@@ -18,6 +18,10 @@ static void CffiPointerArgsDispose(Tcl_Interp *ip,
                                    int nArgs,
                                    CffiArgument *argsP,
                                    int callSucceeded);
+static CffiResult CffiGetCountFromValue(Tcl_Interp *ip,
+                                        CffiBaseType valueType,
+                                        const CffiValue *valueP,
+                                        int *countP);
 
 Tcl_WideInt
 CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
@@ -722,6 +726,8 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
     CffiValue *valueP;
     Tcl_Obj *valueObj;
+    CffiProto *protoP;
+    int arraySize;
     int ret;
 
     CFFI_ASSERT(argP->flags & CFFI_F_ARG_INITIALIZED);
@@ -731,7 +737,33 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
 
     CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
 
-    if (argP->arraySize == 0) {
+    protoP = callP->fnP->protoP;
+    if (arg_index < protoP->nParams
+        && protoP->params[arg_index].typeAttrs.dataType.arraySize == 0) {
+        /*
+         * This is a dynamically sized array. Pick up the array size from
+         * the parameter that contains the size. Note that argP->arraySize
+         * would have been set to that size at call time but the called
+         * function might have modified it to reflect actual length of
+         * data returned.
+         */
+        int sizeParamIndex = protoP->params[arg_index].arraySizeParamIndex;
+
+        ret = CffiGetCountFromValue(
+            ip,
+            protoP->params[sizeParamIndex].typeAttrs.dataType.baseType,
+            &callP->argsP[sizeParamIndex].value,
+            &arraySize);
+        if (ret != TCL_OK
+            || arraySize > argP->arraySize) {
+            /* Sanity check. Should not happen but ... */
+            arraySize = argP->arraySize;
+        }
+    }
+    else {
+        arraySize = argP->arraySize;
+    }
+    if (arraySize == 0) {
         /* Output array is zero-size */
         valueObj = Tcl_NewObj();
         ret = TCL_OK;
@@ -764,24 +796,24 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
-        if (argP->arraySize < 0)
+        if (arraySize < 0)
             ret = CffiNativeValueToObj(
                 ip, typeAttrsP, valueP, 0, argP->arraySize, &valueObj);
         else
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP->u.ptr, 0, argP->arraySize, &valueObj);
+                ip, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, 0, argP->arraySize, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_STRUCT:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, 0, argP->arraySize, &valueObj);
+            ip, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_BINARY:
@@ -1163,40 +1195,51 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
-/* Function: CffiFindDynamicCountParam
- * Returns the index of the parameter holding a dynamic count
+/* Function: CffiGetCountFromValue
+ * Extracts an count from a CffiValue.
+ *
+ * An error is returned if the value is negative or too large.
  *
  * Parameters:
- * ip - interpreter
- * protoP - function prototype whose parameters are to be searched
- * nameObj - name of the dynamic count parameter
+ * ip - interpreter for error messages. May be NULL.
+ * valueP - Value from which count is to be extracted
+ * countP - Location to store the count
  *
  * Returns:
- * The index of the parameter or -1 if not found with error message
- * in the interpreter
+ * TCL_OK on success, TCL_ERROR on failure with error message in interpreter.
  */
-int
-CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
+static CffiResult
+CffiGetCountFromValue(Tcl_Interp *ip,
+                      CffiBaseType valueType,
+                      const CffiValue *valueP,
+                      int *countP)
 {
-    int i;
-    const char *name = Tcl_GetString(nameObj);
-    /* Note only searching fixed params as varargs are not named */
-    for (i = 0; i < protoP->nParams; ++i) {
-        CffiParam *paramP = &protoP->params[i];
-        if (CffiTypeIsNotArray(&paramP->typeAttrs.dataType)
-            && CffiTypeIsInteger(paramP->typeAttrs.dataType.baseType)
-            && (paramP->typeAttrs.flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF))
-                   == CFFI_F_ATTR_IN
-            && !strcmp(name, Tcl_GetString(paramP->nameObj))) {
-            return i;
-        }
+    long long count;
+    switch (valueType) {
+    case CFFI_K_TYPE_SCHAR: count = valueP->u.schar; break;
+    case CFFI_K_TYPE_UCHAR: count = valueP->u.uchar; break;
+    case CFFI_K_TYPE_SHORT: count = valueP->u.sshort; break;
+    case CFFI_K_TYPE_USHORT: count = valueP->u.ushort; break;
+    case CFFI_K_TYPE_INT: count = valueP->u.sint; break;
+    case CFFI_K_TYPE_UINT: count = valueP->u.uint; break;
+    case CFFI_K_TYPE_LONG: count = valueP->u.slong; break;
+    case CFFI_K_TYPE_ULONG: count = valueP->u.ulong; break;
+    case CFFI_K_TYPE_LONGLONG: count = valueP->u.slonglong; break;
+    case CFFI_K_TYPE_ULONGLONG: count = valueP->u.ulonglong; break;
+    default:
+        return Tclh_ErrorWrongType(
+            ip, NULL, "Wrong type for dynamic array count value.");
     }
-    (void)Tclh_ErrorNotFound(ip,
-                             "Parameter",
-                             nameObj,
-                             "Could not find referenced count for dynamic "
-                             "array, possibly wrong type or not scalar.");
-    return -1;
+
+    if (count < 0 || count > INT_MAX) {
+        return Tclh_ErrorGeneric(
+            ip,
+            NULL,
+            "Array size must be a positive integer that fits into type int.");
+    }
+
+    *countP = (int)count;
+    return TCL_OK;
 }
 
 /* Function: CffiFunctionSetupArgs
@@ -1309,8 +1352,7 @@ CffiFunctionSetupArgs(CffiCall *callP,
 
     for (i = 0; i < callP->nArgs; ++i) {
         int dynamicCountIndex;
-        long long actualCount;
-        CffiValue *actualValueP;
+        int actualCount;
         CffiTypeAndAttrs *typeAttrsP;
         if (i < protoP->nParams) {
             typeAttrsP = &protoP->params[i].typeAttrs;
@@ -1327,42 +1369,28 @@ CffiFunctionSetupArgs(CffiCall *callP,
         }
         CFFI_ASSERT((argsP[i].flags & CFFI_F_ARG_INITIALIZED) == 0);
 
-        /* Need to find the parameter corresponding to this dynamic count */
-        CFFI_ASSERT(typeAttrsP->dataType.countHolderObj);
+        if (i >= protoP->nParams) {
+            Tclh_ErrorWrongType(ip,
+                                NULL,
+                                "Dynamically sized arrays not permitted for "
+                                "varargs arguments.");
+            goto cleanup_and_error;
+        }
 
         /* Locate the parameter holding the dynamic count */
-        /* TBD - this has already been computed at definition time. It would
-        be more efficient to cache that but then we need more memory per
-        param to cache the index. */
-        dynamicCountIndex =
-            CffiFindDynamicCountParam(ip, protoP, typeAttrsP->dataType.countHolderObj);
-        if (dynamicCountIndex < 0)
-            goto cleanup_and_error;
-
+        dynamicCountIndex = protoP->params[i].arraySizeParamIndex;
+        CFFI_ASSERT(dynamicCountIndex >= 0
+                    && dynamicCountIndex < protoP->nParams);
         CFFI_ASSERT(argsP[dynamicCountIndex].flags & CFFI_F_ARG_INITIALIZED);
 
-        actualValueP = &argsP[dynamicCountIndex].value;
-        switch (protoP->params[dynamicCountIndex].typeAttrs.dataType.baseType) {
-        case CFFI_K_TYPE_SCHAR: actualCount = actualValueP->u.schar; break;
-        case CFFI_K_TYPE_UCHAR: actualCount = actualValueP->u.uchar; break;
-        case CFFI_K_TYPE_SHORT: actualCount = actualValueP->u.sshort; break;
-        case CFFI_K_TYPE_USHORT: actualCount = actualValueP->u.ushort; break;
-        case CFFI_K_TYPE_INT: actualCount = actualValueP->u.sint; break;
-        case CFFI_K_TYPE_UINT: actualCount = actualValueP->u.uint; break;
-        case CFFI_K_TYPE_LONG: actualCount = actualValueP->u.slong; break;
-        case CFFI_K_TYPE_ULONG: actualCount = actualValueP->u.ulong; break;
-        case CFFI_K_TYPE_LONGLONG: actualCount = actualValueP->u.slonglong; break;
-        case CFFI_K_TYPE_ULONGLONG: actualCount = actualValueP->u.ulonglong; break;
-        default:
-            (void)Tclh_ErrorWrongType(
-                ip, NULL, "Wrong type for dynamic array count value.");
+        if (CffiGetCountFromValue(
+                ip,
+                protoP->params[dynamicCountIndex].typeAttrs.dataType.baseType,
+                &argsP[dynamicCountIndex].value,
+                &actualCount)
+            != TCL_OK)
             goto cleanup_and_error;
-        }
 
-        if (actualCount < 0 || actualCount > INT_MAX) {
-            (void) Tclh_ErrorRange(ip, argObjs[dynamicCountIndex], 1, INT_MAX);
-            goto cleanup_and_error;
-        }
 
         argsP[i].typeAttrsP = typeAttrsP;
         argsP[i].arraySize = (int) actualCount;

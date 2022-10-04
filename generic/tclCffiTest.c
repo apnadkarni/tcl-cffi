@@ -56,6 +56,18 @@
         return &static_val;                                      \
     }
 
+#define FNDYNAMICARRAY(token_, type_)                            \
+    EXTERN void token_##_array_dynamic_copy(                     \
+        type_ *n_out, type_ *arr_out, type_ n_in, type_ *arr_in) \
+    {                                                            \
+        type_ i;                                                 \
+        if (n_in < *n_out)                                       \
+            *n_out = n_in;                                       \
+        for (i = 0; i < *n_out; ++i) {                           \
+            arr_out[i] = arr_in[i];                              \
+        }                                                        \
+    }
+
 #define FNNUMERICARRAY(token_, type_)                             \
     EXTERN void token_##_array_count_copy(                        \
         const type_ *arr_in, int n_in, type_ *arr_out, int n_out) \
@@ -218,6 +230,8 @@ EXTERN signed char pointer_to_schar(void *a) { return (signed char)(uintptr_t)a;
 FNSTR2NUM(string_to_schar, hhd, signed char)
 FNINOUT(schar, signed char)
 FNNUMERICARRAY(schar, signed char)
+FNDYNAMICARRAY(schar, signed char)
+
 
 EXTERN unsigned char schar_to_uchar(signed char a) { return (unsigned char) a; }
 EXTERN unsigned char uchar_to_uchar(unsigned char a) { return a; }
@@ -235,6 +249,7 @@ EXTERN unsigned char pointer_to_uchar(void *a) { return (unsigned char)(uintptr_
 FNSTR2NUM(string_to_uchar, hhu, unsigned char)
 FNINOUT(uchar, unsigned char)
 FNNUMERICARRAY(uchar, unsigned char)
+FNDYNAMICARRAY(uchar, unsigned char)
 
 EXTERN signed short schar_to_short(signed char a) { return (signed short) a; }
 EXTERN signed short uchar_to_short(unsigned char a) { return (signed short) a; }
@@ -252,6 +267,7 @@ EXTERN signed short pointer_to_short(void *a) { return (signed short)(uintptr_t)
 FNSTR2NUM(string_to_short, hd, short)
 FNINOUT(short, short)
 FNNUMERICARRAY(short, short)
+FNDYNAMICARRAY(short, short)
 
 EXTERN unsigned short schar_to_ushort(signed char a) { return (unsigned short) a; }
 EXTERN unsigned short uchar_to_ushort(unsigned char a) { return (unsigned short) a; }
@@ -269,6 +285,7 @@ EXTERN unsigned short pointer_to_ushort(void *a) { return (unsigned short)(uintp
 FNSTR2NUM(string_to_ushort, hu, unsigned short)
 FNINOUT(ushort, unsigned short)
 FNNUMERICARRAY(ushort, unsigned short)
+FNDYNAMICARRAY(ushort, unsigned short)
 
 EXTERN signed int schar_to_int(signed char a) { return (signed int) a; }
 EXTERN signed int uchar_to_int(unsigned char a) { return (signed int) a; }
@@ -286,6 +303,7 @@ EXTERN signed int pointer_to_int(void *a) { return (signed int)(uintptr_t)a; }
 FNSTR2NUM(string_to_int, d, int)
 FNINOUT(int, int)
 FNNUMERICARRAY(int, int)
+FNDYNAMICARRAY(int, int)
 
 EXTERN unsigned int schar_to_uint(signed char a) { return (unsigned int) a; }
 EXTERN unsigned int uchar_to_uint(unsigned char a) { return (unsigned int) a; }
@@ -303,6 +321,7 @@ EXTERN unsigned int pointer_to_uint(void *a) { return (unsigned int)(uintptr_t)a
 FNSTR2NUM(string_to_uint, u, unsigned int)
 FNINOUT(uint, unsigned int)
 FNNUMERICARRAY(uint, unsigned int)
+FNDYNAMICARRAY(uint, unsigned int)
 
 EXTERN signed long schar_to_long(signed char a) { return (signed long) a; }
 EXTERN signed long uchar_to_long(unsigned char a) { return (signed long) a; }
@@ -320,6 +339,7 @@ EXTERN signed long pointer_to_long(void *a) { return (signed long)(uintptr_t)a; 
 FNSTR2NUM(string_to_long, ld, long)
 FNINOUT(long, long)
 FNNUMERICARRAY(long, long)
+FNDYNAMICARRAY(long, long)
 
 EXTERN unsigned long schar_to_ulong(signed char a) { return (unsigned long) a; }
 EXTERN unsigned long uchar_to_ulong(unsigned char a) { return (unsigned long) a; }
@@ -337,6 +357,7 @@ EXTERN unsigned long pointer_to_ulong(void *a) { return (unsigned long)(uintptr_
 FNSTR2NUM(string_to_ulong, lu, unsigned long)
 FNINOUT(ulong, unsigned long)
 FNNUMERICARRAY(ulong, unsigned long)
+FNDYNAMICARRAY(ulong, unsigned long)
 
 EXTERN signed long long schar_to_longlong(signed char a) { return (signed long long) a; }
 EXTERN signed long long uchar_to_longlong(unsigned char a) { return (signed long long) a; }
@@ -354,6 +375,7 @@ EXTERN signed long long pointer_to_longlong(void *a) { return (signed long long)
 FNSTR2NUM(string_to_longlong, lld, long long)
 FNINOUT(longlong, long long)
 FNNUMERICARRAY(longlong, long long)
+FNDYNAMICARRAY(longlong, long long)
 
 EXTERN unsigned long long schar_to_ulonglong(signed char a) { return (unsigned long long) a; }
 EXTERN unsigned long long uchar_to_ulonglong(unsigned char a) { return (unsigned long long) a; }
@@ -371,6 +393,7 @@ EXTERN unsigned long long pointer_to_ulonglong(void *a) { return (signed long lo
 FNSTR2NUM(string_to_ulonglong, llu, unsigned long long)
 FNINOUT(ulonglong, unsigned long long)
 FNNUMERICARRAY(ulonglong, unsigned long long)
+FNDYNAMICARRAY(ulonglong, unsigned long long)
 
 EXTERN float schar_to_float(signed char a) { return (float) a; }
 EXTERN float uchar_to_float(unsigned char a) { return (float) a; }

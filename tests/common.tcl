@@ -10,9 +10,9 @@ set NS cffi
 if {[catch {package require $NS}]} {
     if {$tcl_platform(platform) eq "windows"} {
         if {$tcl_platform(pointerSize) == 8} {
-            set BINDIR ../win/Release_AMD64_VC1916
+            set BINDIR ../win/Release_AMD64_VC1933
         } else {
-            set BINDIR ../win/Release_VC1916
+            set BINDIR ../win/Release_VC1933
         }
     } else {
         set BINDIR ../build

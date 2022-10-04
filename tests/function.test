@@ -2214,7 +2214,7 @@ namespace eval ${NS}::test {
         } -body {
             $fn {1 2 3} 3 outarr -1
             set outarr
-        } -result {Value -1 not in range. Must be within [1,2147483647].} -returnCodes error
+        } -result {Array size must be a positive integer that fits into type int.} -returnCodes error
         test function-array-count-$type-error-1 {Copy array when count param is AFTER array pointer} -setup {
             set fn ${type}_array_count_copy
             testDll function $fn void [list inparam $type\[n_in\] n_in int outparam [list $type\[n_out\] out] n_out int]
@@ -2228,7 +2228,7 @@ namespace eval ${NS}::test {
         } -body {
             $fn -1 outarr 2 {1 2}
             set outarr
-        } -result {Value -1 not in range. Must be within [1,2147483647].} -returnCodes error
+        } -result {Array size must be a positive integer that fits into type int.} -returnCodes error
         test function-count-array-$type-error-1 {Copy array when count param is BEFORE array pointer} -setup {
             set fn ${type}_count_array_copy
             testDll function $fn void [list n_out int outparam [list $type\[n_out\] out] n_in int inparam $type\[n_in\]]
@@ -2237,6 +2237,17 @@ namespace eval ${NS}::test {
             set outarr
         } -result {Passing a zero size array requires the nullok annotation.} -returnCodes error
 
+        if {0 && $type in $intTypes} {
+            # XXX
+            # Dynamic arrays with size type also the same integer type
+            test function-array-$type-in-error-6 "Array index is inout param" -body {
+                testDll function ${type}_array_in $type [list n {int inout} arr $type\[n\]]
+            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
+            test function-array-$type-in-error-7 "Array index is byref param" -body {
+                testDll function ${type}_array_in $type [list n {int byref} arr $type\[n\]]
+            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
+        }
+        
         # errors
         foreach direc {in out inout} {
             test function-array-$type-$direc-error-0 "Array negative index - $direc" -body {
@@ -2256,13 +2267,7 @@ namespace eval ${NS}::test {
             testDll function ${type}_array_in $type [list n int\[3\] arr $type\[n\]]
         } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
         test function-array-$type-in-error-5 "Array index is out param" -body {
-            testDll function ${type}_array_in $type [list {n out} int arr $type\[n\]]
-        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
-        test function-array-$type-in-error-6 "Array index is inout param" -body {
-            testDll function ${type}_array_in $type [list {n inout} int arr $type\[n\]]
-        } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
-        test function-array-$type-in-error-6 "Array index is byref param" -body {
-            testDll function ${type}_array_in $type [list {n byref} int arr $type\[n\]]
+            testDll function ${type}_array_in $type [list n {int out} arr $type\[n\]]
         } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
 
         # "in" not in this loop because function prototype is different

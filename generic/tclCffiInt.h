@@ -391,8 +391,11 @@ typedef struct CffiStructCmdCtx {
  * Descriptor for a function parameter
  */
 typedef struct CffiParam {
-    Tcl_Obj *nameObj;           /* Parameter name */
+    Tcl_Obj *nameObj;
     CffiTypeAndAttrs typeAttrs;
+    int arraySizeParamIndex; /* For dynamically sized arrays this holds
+                                the index of the parameter holding
+                                the array size. */
 } CffiParam;
 
 /* Struct: CffiProto
@@ -636,8 +639,6 @@ CffiResult CffiAliasAddStr(CffiInterpCtx *ipCtxP,
 int CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP);
 void CffiAliasesCleanup(CffiInterpCtx *ipCtxP);
 
-int
-CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj);
 CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                               CffiABIProtocol abi,
                               Tcl_Obj *fnNameObj,
