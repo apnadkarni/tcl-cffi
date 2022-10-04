@@ -101,6 +101,7 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
     int nobjs;
     int i;
     int ret;
+    Tcl_Obj *errorMessages = NULL;
 
     CFFI_ASSERT(objc == 3);
 
@@ -113,9 +114,18 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
     for (i = 0; i < nobjs; i += 3) {
         ret = CffiDefineOneFunctionFromLib(
             ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
-        /* TBD - if one fails, rest are not defined but prior ones are */
-        if (ret != TCL_OK)
-            return ret;
+        if (ret != TCL_OK) {
+            if (errorMessages == NULL) {
+                errorMessages = Tcl_NewStringObj("Errors:", -1);
+            }
+            Tcl_AppendStringsToObj(
+                errorMessages, "\n", Tcl_GetString(Tcl_GetObjResult(ip)), NULL);
+            Tcl_ResetResult(ip);
+        }
+    }
+    if (errorMessages) {
+        Tcl_SetObjResult(ip, errorMessages);
+        return TCL_ERROR;
     }
     return TCL_OK;
 }
