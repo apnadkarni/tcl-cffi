@@ -871,7 +871,6 @@ namespace eval ${NS}::test {
     } -result [list $len $val]
     test function-bytes-out-3 "bytes out dynamic count inout - nout < nin" -body {
         testDll function uchar_array_dynamic_copy void {nout {uchar inout} arrout {bytes[nout] out} nin uchar arrin bytes[nin]}
-        puts $len
         set nout 2
         uchar_array_dynamic_copy nout out $len $val
         list $nout $out
