@@ -224,6 +224,16 @@ namespace eval Concepts {
         is raised unless the type declaration includes a `nullok` annotation. In
         that case, the array pointer argument is passed as NULL to the function.
 
+        In the above function, the `dwLen` parameter was an `in` parameter
+        containing the size of the buffer and the function filled the entire
+        buffer. In many cases, a function is passed a pointer to the size
+        of the buffer. It then overwrites the location with the actual
+        count stored in the buffer. In such cases, the parameter should
+        be declared with the `inout` annotation. When the function is called
+        the size of the buffer passed is that specified by the corresponding
+        variable argument. On return, the number of elements returned is
+        that actually returned by the wrapped function.
+
         #### Arrays as strings
 
         C arrays are generally represented as a list at the script level. So in

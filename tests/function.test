@@ -863,6 +863,19 @@ namespace eval ${NS}::test {
         bytes_out $largelen $largeval out
         set out
     } -result $largeval
+    test function-bytes-out-2 "bytes out dynamic count inout - nout > nin" -body {
+        testDll function uchar_array_dynamic_copy void {nout {uchar inout} arrout {bytes[nout] out} nin uchar arrin bytes[nin]}
+        set nout 4
+        uchar_array_dynamic_copy nout out $len $val
+        list $nout $out
+    } -result [list $len $val]
+    test function-bytes-out-3 "bytes out dynamic count inout - nout < nin" -body {
+        testDll function uchar_array_dynamic_copy void {nout {uchar inout} arrout {bytes[nout] out} nin uchar arrin bytes[nin]}
+        puts $len
+        set nout 2
+        uchar_array_dynamic_copy nout out $len $val
+        list $nout $out
+    } -result [list 2 [string range $val 0 1]]
 
     test function-bytes-retval-0 "bytes retval" -setup {
         testDll function bytes_out {int nonzero} [list n int input bytes\[$len\] output [list bytes\[$len\] retval]]
@@ -2237,15 +2250,29 @@ namespace eval ${NS}::test {
             set outarr
         } -result {Passing a zero size array requires the nullok annotation.} -returnCodes error
 
-        if {0 && $type in $intTypes} {
+        if {$type in $intTypes} {
             # XXX
             # Dynamic arrays with size type also the same integer type
-            test function-array-$type-in-error-6 "Array index is inout param" -body {
-                testDll function ${type}_array_in $type [list n {int inout} arr $type\[n\]]
-            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
-            test function-array-$type-in-error-7 "Array index is byref param" -body {
-                testDll function ${type}_array_in $type [list n {int byref} arr $type\[n\]]
-            } -result {Parameter "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar. Error defining function *} -match glob -returnCodes error
+            test function-array-$type-count-inout-0 "Pass dynamic inout count in > out" -body {
+                set fn ${type}_array_dynamic_copy
+                testDll function $fn void [list nout "$type inout" arrout "$type\[nout\] out" nin $type arrin $type\[nin\]]
+                set nout 2
+                $fn nout outvar 4 {10 11 12 13}
+                list $nout $outvar
+            } -result [list 2 {10 11}]
+            test function-array-$type-count-inout-1 "Pass dynamic inout count - out > in " -body {
+                set fn ${type}_array_dynamic_copy
+                testDll function $fn void [list nout "$type inout" arrout "$type\[nout\] out" nin $type arrin $type\[nin\]]
+                set nout 4
+                $fn nout outvar 2 {10 11}
+                list $nout $outvar
+            } -result [list 2 {10 11}]
+            test function-array-$type-count-byref-0 "Pass dynamic byref count" -body {
+                set fn ${type}_array_dynamic_copy
+                testDll function $fn void [list nout "$type byref" arrout "$type\[nout\] out" nin $type arrin $type\[nin\]]
+                $fn 4 outvar 2 {10 11}
+                set outvar
+            } -result {10 11}
         }
         
         # errors
