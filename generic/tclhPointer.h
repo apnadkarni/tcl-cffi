@@ -614,8 +614,8 @@ static void
 UpdatePointerTypeString(Tcl_Obj *objP)
 {
     Tclh_PointerTypeTag tagObj;
-    int len;
-    int taglen;
+    Tclh_SSizeT len;
+    Tclh_SSizeT taglen;
     char *tagStr;
     char *bytes;
 
@@ -631,7 +631,7 @@ UpdatePointerTypeString(Tcl_Obj *objP)
         taglen = 0;
     }
     /* Assume 40 bytes enough for address */
-    bytes = ckalloc(40 + 1 + taglen + 1);
+    bytes = Tcl_Alloc(40 + 1 + taglen + 1);
     (void) TclhPrintAddress(PointerValueGet(objP), bytes, 40);
     len = Tclh_strlen(bytes);
     bytes[len] = '^';
@@ -744,7 +744,7 @@ TclhPointerRecordFree(TclhPointerRecord *ptrRecP)
     /* TBD - this assumes pointer tags are tagObj */
     if (ptrRecP->tagObj)
         Tcl_DecrRefCount(ptrRecP->tagObj);
-    ckfree(ptrRecP);
+    Tcl_Free((void *)ptrRecP);
 }
 
 static void
@@ -771,7 +771,7 @@ TclhCleanupPointerRegistry(ClientData clientData, Tcl_Interp *interp)
     }
     Tcl_DeleteHashTable(&registryP->castables);
 
-    ckfree(registryP);
+    Tcl_Free((void *)registryP);
 }
 
 static TclhPointerRegistry *
@@ -781,7 +781,7 @@ TclhInitPointerRegistry(Tcl_Interp *interp)
     static const char *const pointerTableKey = TCLH_EMBEDDER "PointerTable";
     registryP = Tcl_GetAssocData(interp, pointerTableKey, NULL);
     if (registryP == NULL) {
-        registryP = ckalloc(sizeof(*registryP));
+        registryP = (TclhPointerRegistry *) Tcl_Alloc(sizeof(*registryP));
         Tcl_InitHashTable(&registryP->pointers, TCL_ONE_WORD_KEYS);
         Tcl_InitHashTable(&registryP->castables, TCL_STRING_KEYS);
         Tcl_SetAssocData(
@@ -812,7 +812,7 @@ TclhPointerRegister(Tcl_Interp *interp,
 
     if (he) {
         if (newEntry) {
-            ptrRecP = ckalloc(sizeof(*ptrRecP));
+            ptrRecP = (TclhPointerRecord *)Tcl_Alloc(sizeof(*ptrRecP));
             if (tag) {
                 Tcl_IncrRefCount(tag);
                 ptrRecP->tagObj = tag;

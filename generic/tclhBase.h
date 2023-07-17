@@ -14,6 +14,12 @@
 
 /* TBD - constrain length of all arguments in error messages */
 
+#if (TCL_MAJOR_VERSION > 8) || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 7)
+#define TCLH_TCLAPI_VERSION 87
+#else
+#define TCLH_TCLAPI_VERSION 86
+#endif
+
 /* Common definitions included by all Tcl helper *implemenations* */
 
 #ifndef TCLH_INLINE
@@ -61,7 +67,10 @@ typedef int Tclh_SSizeT;
 typedef unsigned int Tclh_USizeT;
 #define Tclh_USizeT_MAX UINT_MAX
 #else
-#error Define Tclh_SSizeT et al for Tcl 9
+typedef Tcl_Size Tclh_SSizeT;
+#define Tclh_SSizeT_MAX TCL_SIZE_MAX
+typedef size_t Tclh_USizeT;
+#define Tclh_USizeT_MAX SIZE_MAX
 #endif
 
 TCLH_INLINE char *Tclh_memdup(void *from, int len) {
@@ -71,17 +80,17 @@ TCLH_INLINE char *Tclh_memdup(void *from, int len) {
 }
 
 TCLH_INLINE Tclh_SSizeT Tclh_strlen(const char *s) {
-    return (int) strlen(s);
+    return (Tclh_SSizeT) strlen(s);
 }
 
 TCLH_INLINE char *Tclh_strdup(const char *from) {
-    int len = Tclh_strlen(from) + 1;
+    Tclh_SSizeT len = Tclh_strlen(from) + 1;
     char *to = ckalloc(len);
     memcpy(to, from, len);
     return to;
 }
 
-TCLH_INLINE char *Tclh_strdupn(const char *from, int len) {
+TCLH_INLINE char *Tclh_strdupn(const char *from, Tclh_SSizeT len) {
     char *to = ckalloc(len+1);
     memcpy(to, from, len);
     to[len] = '\0';
@@ -400,7 +409,7 @@ int Tclh_ErrorRange(Tcl_Interp *interp,
 int Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
                                int encoding_status,
                                const char *utf8,
-                               int utf8Len);
+                               Tclh_SSizeT utf8Len);
 
 #ifdef _WIN32
 /* Function: Tclh_ErrorWindowsError
@@ -689,7 +698,7 @@ int
 Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
                            int encoding_status,
                            const char *utf8,
-                           int utf8Len)
+                           Tclh_SSizeT utf8Len)
 {
     const char *message;
     char limited[80];
@@ -730,19 +739,22 @@ Tcl_Obj *TclhMapWindowsError(
                                  * If NULL, assumed to be system message. */
     const char *msgPtr)         /* Message prefix. May be NULL. */
 {
-    int   length;
+    Tclh_SSizeT length;
     DWORD flags;
     WCHAR *winErrorMessagePtr = NULL;
     Tcl_Obj *objPtr;
+    Tcl_DString ds;
+
+    Tcl_DStringInit(&ds);
 
     if (msgPtr) {
-        int msgLen;
-        msgLen = Tclh_strlen(msgPtr);
-        objPtr = Tcl_NewStringObj(msgPtr, msgLen);
-        if (msgLen && msgPtr[msgLen-1] == ' ')
-            Tcl_AppendToObj(objPtr, " ", 1);
-    } else {
-        objPtr = Tcl_NewObj();
+        const char *p;
+        Tcl_DStringAppend(&ds, msgPtr, -1);
+        p      = Tcl_DStringValue(&ds);
+        length = Tcl_DStringLength(&ds);/* Does NOT include terminating nul */
+        if (length && p[length] == ' ') {
+            Tcl_DStringAppend(&ds, " ", 1);
+        }
     }
 
     flags = moduleHandle ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM;
@@ -763,9 +775,20 @@ Tcl_Obj *TclhMapWindowsError(
             if (winErrorMessagePtr[length-1] == L'\r')
                 --length;
         }
+#if TCLH_TCLAPI_VERSION < 87
+        objPtr =
+            Tcl_NewStringObj(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+        Tcl_DStringFree(&ds);
         Tcl_AppendUnicodeToObj(objPtr, winErrorMessagePtr, length);
+#else
+        Tcl_WCharToUtfDString(winErrorMessagePtr, length, &ds);
+        objPtr = Tcl_DStringToObj(&ds);
+#endif
         LocalFree(winErrorMessagePtr);
     } else {
+        objPtr =
+            Tcl_NewStringObj(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
+        Tcl_DStringFree(&ds);
         Tcl_AppendPrintfToObj(objPtr, "Windows error code %ld", winError);
     }
     return objPtr;

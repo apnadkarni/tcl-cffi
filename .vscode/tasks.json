@@ -6,7 +6,7 @@
         {
             "label": "debug",
             "type": "shell",
-            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 cdebug=\"-Zi -Od -DTCLH_ASSERT_LEVEL=1\" OPTS=pdbs",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\90\\x64-debug cdebug=\"-Zi -Od -DTCLH_ASSERT_LEVEL=1\" OPTS=pdbs",
             "problemMatcher": [
                 "$msCompile"
             ],
@@ -15,7 +15,7 @@
         {
             "label": "debug-dyncall",
             "type": "shell",
-            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 cdebug=\"-Zi -Od -DTCLH_ASSERT_LEVEL=1\" OPTS=pdbs,dyncall",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\90\\x64-debug cdebug=\"-Zi -Od -DTCLH_ASSERT_LEVEL=1\" OPTS=pdbs,dyncall",
             "problemMatcher": [
                 "$msCompile"
             ],
@@ -24,7 +24,7 @@
         {
             "label": "debug-install",
             "type": "shell",
-            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 cdebug=\"-Zi -Od\" OPTS=pdbs install",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\90\\x64-debug cdebug=\"-Zi -Od\" OPTS=pdbs install",
             "problemMatcher": [
                 "$msCompile"
             ],
@@ -51,7 +51,7 @@
         {
             "label": "clean",
             "type": "shell",
-            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\debug\\x64 clean",
+            "command": "win\\build.bat INSTALLDIR=D:\\tcl\\90\\x64-debug clean",
             "problemMatcher": [],
             "group": "build"
         }

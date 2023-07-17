@@ -540,9 +540,9 @@ CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
 CffiResult CffiCharsFromTclString(Tcl_Interp *ip,
                                   Tcl_Obj *encObj,
                                   const char *fromP,
-                                  int fromLen,
+                                  Tclh_SSizeT fromLen,
                                   char *toP,
-                                  int toSize);
+                                  Tclh_SSizeT toSize);
 CffiResult CffiCharsFromObj(
     Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, int toSize);
 CffiResult CffiCharsFromObjSafe(
@@ -601,7 +601,7 @@ CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
                                 Tcl_Obj **valueObjP);
 Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj);
 Tcl_Obj *
-CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, int tagLen);
+CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tclh_SSizeT tagLen);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);

@@ -1434,7 +1434,8 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
     CffiStruct *structP = structCtxP->structP;
 
     resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
-    valueP    = Tcl_GetByteArrayFromObj(resultObj, NULL);
+    valueP    = Tclh_ObjGetBytesByRef(ip, resultObj, NULL);
+    TCLH_ASSERT(valueP);
     ret       = CffiStructFromObj(
         structCtxP->ipCtxP, structP, objv[2], 0, valueP, NULL);
     if (ret == TCL_OK)

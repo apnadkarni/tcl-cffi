@@ -5,7 +5,11 @@
 #include <limits.h>
 #include <errno.h>
 #include <ctype.h>
+#if TCLH_TCLAPI_VERSION >= 87
+#include "tommath.h"
+#else
 #include "tclTomMath.h"
+#endif
 
 /* Section: Tcl_Obj convenience functions
  *
@@ -63,10 +67,10 @@ TCLH_INLINE void Tclh_ObjClearPtr(Tcl_Obj **objPP) {
  * passed Tcl_Obj contains a number in the specified range. Otherwise returns
  * TCL_ERROR with an error message in the interpreter.
  */
-int Tclh_ObjToRangedInt(Tcl_Interp * interp,
-                        Tcl_Obj *    obj,
-                        Tcl_WideInt  low,
-                        Tcl_WideInt  high,
+int Tclh_ObjToRangedInt(Tcl_Interp *interp,
+                        Tcl_Obj *obj,
+                        Tcl_WideInt low,
+                        Tcl_WideInt high,
                         Tcl_WideInt *ptr);
 
 /* Function: Tclh_ObjToChar
@@ -294,6 +298,29 @@ int Tclh_ObjToFloat(Tcl_Interp *interp, Tcl_Obj *obj, float *ptr);
  */
 int Tclh_ObjToDouble(Tcl_Interp *interp, Tcl_Obj *obj, double *ptr);
 
+/* Function: Tclh_ObjGetBytesByRef
+ * Retrieves a reference to the byte array in a Tcl_Obj.
+ *
+ * Parameters:
+ * interp - Interpreter for error messages. May be NULL.
+ * obj - Tcl_Obj containing the bytes
+ * lenPtr - location to store number of bytes in the array. May be NULL.
+ *
+ * Returns:
+ * On success, returns a pointer to internal byte array and stores the
+ * length of the array in lenPtr if not NULL. On error, returns
+ * a NULL pointer with an error message in the interpreter.
+ */
+TCLH_INLINE char *
+Tclh_ObjGetBytesByRef(Tcl_Interp *interp, Tcl_Obj *obj, Tclh_SSizeT *lenPtr)
+{
+#if TCLH_TCLAPI_VERSION < 87
+    return Tcl_GetByteArrayFromObj(obj, lenPtr);
+#else
+    return Tcl_GetBytesFromObj(interp, obj, lenPtr);
+#endif
+}
+
 /* Function: Tclh_ObjFromAddress
  * Wraps a memory address into a Tcl_Obj.
  *
@@ -371,6 +398,7 @@ TCLH_INLINE void Tclh_ObjArrayDecrRefs(int objc, Tcl_Obj * const *objv) {
 #define ObjArrayDecrRef Tclh_ObjArrayDecrRef
 #define ObjFromAddress Tclh_ObjFromAddress
 #define ObjToAddress Tclh_ObjToAddress
+#define ObjGetBytesByRef Tclh_ObjGetBytesByRef
 #endif
 
 /*
@@ -534,6 +562,9 @@ int Tclh_ObjToBoolean(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 
 int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *objP, Tcl_WideInt *wideP)
 {
+#if TCLH_TCLAPI_VERSION >= 87
+    return Tcl_GetWideUIntFromObj(interp, objP, wideP);
+#else
     int ret;
     Tcl_WideInt wide;
     ret = Tcl_GetWideIntFromObj(interp, objP, &wide);
@@ -576,6 +607,7 @@ int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *objP, Tcl_WideInt *wideP)
     if (ret == TCL_OK)
         *wideP = wide;
     return ret;
+#endif
 }
 
 int
@@ -584,6 +616,13 @@ Tclh_ObjToULongLong(Tcl_Interp *interp,
                     unsigned long long *ullP)
 {
     int ret;
+#if TCLH_TCLAPI_VERSION >= 87
+    Tcl_WideUInt uwide;
+    ret = Tcl_GetWideUIntFromObj(interp, objP, &uwide);
+    if (ret == TCL_OK)
+        *ullP = uwide;
+    return ret;
+#else
     Tcl_WideInt wide;
 
     TCLH_ASSERT(sizeof(unsigned long long) == sizeof(Tcl_WideInt));
@@ -643,6 +682,7 @@ negative_error:
         interp,
         "RANGE",
         Tcl_NewStringObj("Negative values are not in range for unsigned types.", -1));
+#endif
 }
 
 Tcl_Obj *Tclh_ObjFromULongLong(unsigned long long ull)

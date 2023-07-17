@@ -346,7 +346,7 @@ CffiEnumFlagsCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
             return TCL_ERROR;
         }
         Tcl_ListObjAppendElement(NULL, enumObj, names[i]);
-        Tcl_ListObjAppendElement(NULL, enumObj, Tcl_NewIntObj(1 << i));
+        Tcl_ListObjAppendElement(NULL, enumObj, Tcl_NewIntObj((Tcl_WideInt)1 << i));
     }
 
     Tcl_IncrRefCount(enumObj);

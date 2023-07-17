@@ -307,7 +307,7 @@ int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag ex
 }
 
 Tcl_Obj *
-CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, int tagLen)
+CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tclh_SSizeT tagLen)
 {
     Tcl_Namespace *nsP;
     Tcl_Obj *tagObj;
@@ -393,8 +393,8 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
 CffiResult
 CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
 {
-    int tokenLen;
-    int tagLen;
+    Tclh_SSizeT tokenLen;
+    Tclh_SSizeT tagLen;
     const char *message;
     const char *typeStr;
     const char *tagStr;/* Points to start of tag if any */
@@ -451,7 +451,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         }
         lbStr = strchr(tagStr, '[');
         if (lbStr)
-            tagLen  = (int)(lbStr - tagStr); /* TYPE.TAG[N] */
+            tagLen  = (Tclh_SSizeT)(lbStr - tagStr); /* TYPE.TAG[N] */
         else
             tagLen = Tclh_strlen(tagStr); /* TYPE.TAG */
     }
@@ -2087,7 +2087,7 @@ CffiUniStringToObj(Tcl_Interp *ip,
                        Tcl_Obj **resultObjP)
 {
     char *srcP;
-    int outbuf_size;
+    Tclh_SSizeT outbuf_size;
 
     srcP = Tcl_DStringValue(dsP);
     outbuf_size = Tcl_DStringLength(dsP); /* ORIGINAL size */
@@ -2123,9 +2123,9 @@ CffiResult
 CffiCharsFromTclString(Tcl_Interp *ip,
                        Tcl_Obj *encObj,
                        const char *fromP,
-                       int fromLen,
+                       Tclh_SSizeT fromLen,
                        char *toP,
-                       int toSize)
+                       Tclh_SSizeT toSize)
 {
     Tcl_Encoding encoding;
     CffiResult ret;
@@ -2183,6 +2183,7 @@ CffiCharsFromTclString(Tcl_Interp *ip,
         external[toSize] = 0xff;
         external[toSize+1] = 0xff;
 
+        /* TODO - fromLen must be < 2G. Change to loop */
         ret = Tcl_UtfToExternal(ip,
                                 encoding,
                                 fromP,
