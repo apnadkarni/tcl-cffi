@@ -1,5 +1,4 @@
-package require Tcl 8.6
-package require tcltest 2.2
+package require tcltest
 
 # Test configuration options that may be set are:
 # (currently none)

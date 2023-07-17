@@ -16,16 +16,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef __WIN32__
+#ifdef _WIN32
 #include <windows.h>
 #undef TCL_STORAGE_CLASS
 #define TCL_STORAGE_CLASS DLLEXPORT
-#undef EXTERN
-#define EXTERN __declspec(dllexport)
 #define CFFI_STDCALL __stdcall
 #else
 #define CFFI_STDCALL
-#define EXTERN
 #endif
 
 #define FNSTR2NUM(name_, fmt_, type_)           \
