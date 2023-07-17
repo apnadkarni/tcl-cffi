@@ -8,9 +8,9 @@
 #define TCLH_SHORTNAMES
 #include "tclCffiInt.h"
 
-static CffiStruct *CffiStructCkalloc(int nfields)
+static CffiStruct *CffiStructCkalloc(Tclh_SSizeT nfields)
 {
-    int         sz;
+    size_t         sz;
     CffiStruct *structP;
 
     sz = offsetof(CffiStruct, fields) + (nfields * sizeof(structP->fields[0]));
@@ -71,9 +71,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
                 CffiStruct **structPP)
 {
     Tcl_Obj **objs;
-    int          nobjs;
-    int          nfields;
-    int i, j;
+    Tclh_SSizeT i, j, nobjs, nfields;
     int offset;
     int struct_alignment;
     CffiStruct *structP;
@@ -1195,7 +1193,7 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
 {
     CffiStruct *structP = structCtxP->structP;
     void *structAddr;
-    int nNames;
+    Tclh_SSizeT nNames;
     int ret;
 
     /* S fieldpointer POINTER FIELDNAMES ?INDEX? */

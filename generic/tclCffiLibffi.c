@@ -255,7 +255,7 @@ CffiLibffiInitProtoCif(CffiInterpCtx *ipCtxP,
     for (numVarArgTypesInited = 0, i = 0; i < numVarArgs; ++i) {
         /* The varargs arguments are pairs consisting of type and value. */
         Tcl_Obj **argObjs;
-        int n;
+        Tclh_SSizeT n;
         if (Tcl_ListObjGetElements(NULL, varArgObjs[i], &n, &argObjs) != TCL_OK
             || n != 2) {
             Tclh_ErrorInvalidValue(
@@ -319,7 +319,7 @@ error_handler:
 static CffiResult
 CffiLibffiCallbackArgToObj(CffiCallback *cbP,
                            ffi_cif *cifP,
-                           int argIndex,
+                           Tclh_SSizeT argIndex,
                            void **args,
                            Tcl_Obj **argObjP)
 {
@@ -485,12 +485,10 @@ void
 CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
 {
     Tcl_Obj **evalObjs;
-    int nEvalObjs;
     Tcl_Obj **cmdObjs;
-    int nCmdObjs;
+    Tclh_SSizeT i, nEvalObjs, nCmdObjs;
     CffiResult ret;
     Tcl_Obj *resultObj;
-    int i;
     CffiCallback *cbP = (CffiCallback *)userdata;
     CffiInterpCtx *ipCtxP = cbP->ipCtxP;
     MemLifoMarkHandle mark = NULL;
@@ -510,6 +508,7 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
      * CffiFunctionCall context.
      */
     mark = MemLifoPushMark(&ipCtxP->memlifo);
+    /* TODO - overflow on multiply */
     evalObjs =
         MemLifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
 

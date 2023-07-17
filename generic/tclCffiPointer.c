@@ -117,7 +117,7 @@ CffiPointerObjCmd(ClientData cdata,
         CHECK(Tclh_ObjToAddress(ip, objv[2], &pv));
         objP = NULL;
         if (objc >= 4 && pv != NULL) {
-            int len;
+            Tclh_SSizeT len;
             /* Tcl_GetCharLength will shimmer so GetStringFromObj */
             (void) Tcl_GetStringFromObj(objv[3], &len);
             if (len != 0)

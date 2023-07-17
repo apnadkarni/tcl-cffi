@@ -493,7 +493,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             /* Single struct */
             void *structValueP;
             if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
-                int dict_size;
+                Tclh_SSizeT dict_size;
                 CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
                 CFFI_ASSERT(flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT));
                 CFFI_ASSERT(valueObj);
@@ -544,7 +544,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
                 /* IN or INOUT */
                 Tcl_Obj **valueObjList;
-                int i, nvalues;
+                Tclh_SSizeT i, nvalues;
                 CHECK(Tcl_ListObjGetElements(
                     ip, valueObj, &nvalues, &valueObjList));
                 if (nvalues > argP->arraySize)
@@ -592,7 +592,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 argP->value.u.ptr = valueArray;
             else {
                 Tcl_Obj **valueObjList;
-                int i, nvalues;
+                Tclh_SSizeT i, nvalues;
                 CHECK(Tcl_ListObjGetElements(
                     ip, valueObj, &nvalues, &valueObjList));
                 if (nvalues > argP->arraySize)
@@ -850,7 +850,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
         else {
             /* Array of integers */
             Tcl_Obj **elemObjs;
-            int nelems;
+            Tclh_SSizeT nelems;
             /* Note on error, keep the value */
             if (Tcl_ListObjGetElements(NULL, valueObj, &nelems, &elemObjs)
                 == TCL_OK) {
@@ -1120,8 +1120,8 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
     Tcl_Obj *outputArgsObj;
     Tcl_Obj *callInfoObj;
     CffiResult ret;
-    int nOnErrorObjs;
-    int nEvalObjs;
+    Tclh_SSizeT nOnErrorObjs;
+    Tclh_SSizeT nEvalObjs;
     int i;
 
     CFFI_ASSERT(protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_ONERROR);
@@ -1577,7 +1577,7 @@ CffiFunctionCall(ClientData cdata,
             for (; i < nArgObjs; ++i, ++j) {
                 CFFI_ASSERT(j < objc);
                 Tcl_Obj **typeAndValueObj;
-                int n;
+                Tclh_SSizeT n;
                 if (Tcl_ListObjGetElements(NULL, objv[j], &n, &typeAndValueObj) != TCL_OK
                 || n != 2) {
                     /* Should not really happen since already checked in
@@ -2090,7 +2090,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
     void *fn;
     Tcl_Obj *cmdNameObj;
     Tcl_Obj **nameObjs;    /* C name and optional Tcl name */
-    int nNames;         /* # elements in nameObjs */
+    Tclh_SSizeT nNames;         /* # elements in nameObjs */
 
     CHECK(Tcl_ListObjGetElements(ip, nameObj, &nNames, &nameObjs));
     if (nNames == 0 || nNames > 2)

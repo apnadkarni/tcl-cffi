@@ -10,6 +10,7 @@
 
 #include "tclhBase.h"
 #include "tclhHash.h"
+#include <stdarg.h>
 
 /* Typedef: Tclh_PointerTypeTag
  *

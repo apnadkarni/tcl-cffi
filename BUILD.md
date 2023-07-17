@@ -17,11 +17,13 @@ does not include `libffi` with its package manager.
 ### Building on Unix using `libffi` back end
 
 The first step is to install the `libffi` libraries. Most Unix systems will provide
-this through the package manager as either `libffi` or `libffi-dev`. For example,
-on Ubuntu, it may be installed as 
+this through the package manager as either `libffi` or `libffi-dev`. In addition,
+depending on how your Tcl installation was built, you may also need to install
+`libtommath`.  For example, on Ubuntu, these may be installed as 
 
 ```
 sudo apt install libffi-dev
+sudo apt install libtommath-dev
 ```
 
 If not available with the package manager, download sources from 
@@ -88,6 +90,9 @@ make install
 
 Note if the `--prefix` option is not supplied, the build will install in the
 system library directories.
+
+As described for the `libffi` build, you may also need to install
+the `libtommath-dev` package.
 
 To build the `cffi` package, the `--with-dyncall` option must be specified
 along with `CPPFLAGS` and `LDFLAGS` specifying the include and library

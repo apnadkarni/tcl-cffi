@@ -317,7 +317,7 @@ Tclh_ObjGetBytesByRef(Tcl_Interp *interp, Tcl_Obj *obj, Tclh_SSizeT *lenPtr)
 #if TCLH_TCLAPI_VERSION < 87
     return Tcl_GetByteArrayFromObj(obj, lenPtr);
 #else
-    return Tcl_GetBytesFromObj(interp, obj, lenPtr);
+    return (char *)Tcl_GetBytesFromObj(interp, obj, lenPtr);
 #endif
 }
 
@@ -418,11 +418,47 @@ static const Tcl_ObjType *gTclBignumType;
 
 int Tclh_ObjLibInit(Tcl_Interp *interp)
 {
+    Tcl_Obj *objP;
+
     gTclIntType = Tcl_GetObjType("int");
+    if (gTclIntType == NULL) {
+        objP        = Tcl_NewIntObj(0);
+        gTclIntType = objP->typePtr;
+        Tcl_DecrRefCount(objP);
+    }
+
     gTclWideIntType = Tcl_GetObjType("wideInt");
+    if (gTclWideIntType == NULL) {
+        objP            = Tcl_NewWideIntObj(0);
+        gTclWideIntType = objP->typePtr;
+        Tcl_DecrRefCount(objP);
+    }
     gTclBooleanType = Tcl_GetObjType("boolean");
+    if (gTclBooleanType == NULL) {
+        objP = Tcl_NewBooleanObj(1);
+        char b;
+        if (Tcl_GetBoolFromObj(NULL, objP, 0, &b) == TCL_OK) {
+            gTclBooleanType = objP->typePtr;
+        }
+        Tcl_DecrRefCount(objP);
+    }
     gTclDoubleType = Tcl_GetObjType("double");
+    if (gTclDoubleType == NULL) {
+        objP           = Tcl_NewDoubleObj(0.1);
+        gTclDoubleType = objP->typePtr;
+        Tcl_DecrRefCount(objP);
+    }
     gTclBignumType = Tcl_GetObjType("bignum"); /* Likely NULL as it is not registered */
+    if (gTclBignumType == NULL) {
+        mp_int temp;
+        objP           = Tcl_NewStringObj("0xffffffffffffffff", -1);
+        int ret = Tcl_GetBignumFromObj(interp, objP, &temp);
+        if (ret == TCL_OK) {
+            gTclBignumType = objP->typePtr;
+            mp_clear(&temp);
+        }
+        Tcl_DecrRefCount(objP);
+    }
 
     return TCL_OK;
 }
@@ -493,6 +529,7 @@ int Tclh_ObjToInt(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 #if 0
     /* BAD - returns 2147483648 as -2147483648 and
        -2147483649 as 2147483647 instead of error */
+       /* TODO - check if Tcl9 still does this */
     return Tcl_GetIntFromObj(interp, objP, valP);
 #else
     Tcl_WideInt wide = 0; /* Init to keep gcc happy */
@@ -554,7 +591,6 @@ Tcl_Obj *Tclh_ObjFromULong(unsigned long ul)
         return Tclh_ObjFromULongLong(ul);
 }
 
-
 int Tclh_ObjToBoolean(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 {
     return Tcl_GetBooleanFromObj(interp, objP, valP);
@@ -562,9 +598,7 @@ int Tclh_ObjToBoolean(Tcl_Interp *interp, Tcl_Obj *objP, int *valP)
 
 int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *objP, Tcl_WideInt *wideP)
 {
-#if TCLH_TCLAPI_VERSION >= 87
-    return Tcl_GetWideUIntFromObj(interp, objP, wideP);
-#else
+    /* TODO - can we just use Tcl_GetWideIntFromObj in Tcl9? Does it error if > WIDE_MAX? */
     int ret;
     Tcl_WideInt wide;
     ret = Tcl_GetWideIntFromObj(interp, objP, &wide);
@@ -607,7 +641,6 @@ int Tclh_ObjToWideInt(Tcl_Interp *interp, Tcl_Obj *objP, Tcl_WideInt *wideP)
     if (ret == TCL_OK)
         *wideP = wide;
     return ret;
-#endif
 }
 
 int
@@ -616,7 +649,9 @@ Tclh_ObjToULongLong(Tcl_Interp *interp,
                     unsigned long long *ullP)
 {
     int ret;
+
 #if TCLH_TCLAPI_VERSION >= 87
+    /* TODO - currently disabled so as to get same error for 8.6 and 9.0 builds */
     Tcl_WideUInt uwide;
     ret = Tcl_GetWideUIntFromObj(interp, objP, &uwide);
     if (ret == TCL_OK)

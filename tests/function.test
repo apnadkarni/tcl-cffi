@@ -47,7 +47,7 @@ namespace eval ${NS}::test {
     } -result [list  1 {Syntax: noargs-alias} {cffi ERROR {Syntax: noargs-alias}}]
 
     test function-alias-error-1 {Function alias - invalid alias} -body {
-        list [catch {testDll function {noargs noargs-alias extra} int {}} result] $result $errorCode
+        list [catch {testDll function {noargs noargs-alias extra} int {}} result] $result $::errorCode
     } -result [list 1 {Invalid value "noargs noargs-alias extra". Empty or invalid function name specification.} {cffi INVALID_VALUE {Invalid value "noargs noargs-alias extra". Empty or invalid function name specification.}}]
 
     test function-multiargs-0 {Multiple parameter function} -cleanup {
@@ -81,22 +81,22 @@ namespace eval ${NS}::test {
     test function-namespace-0 {Function in global namespace} -cleanup {
         rename ::noargs {}
     } -body {
-        uplevel #0 [list ${NS}::test::testDll function noargs int {}]
+        uplevel #0 [list ${::NS}::test::testDll function noargs int {}]
         list [info commands ::noargs] [::noargs]
     } -result [list ::noargs 42]
 
     test function-namespace-1 {Function in explicit namespace} -cleanup {
-        namespace delete ${NS}::test::temp
+        namespace delete ${::NS}::test::temp
     } -body {
-        namespace eval ${NS}::test::temp [list ${NS}::test::testDll function noargs int {}]
-        ${NS}::test::temp::noargs
+        namespace eval ${::NS}::test::temp [list ${::NS}::test::testDll function noargs int {}]
+        ${::NS}::test::temp::noargs
     } -result 42
 
     test function-namespace-2 {Function alias in explicit namespace} -cleanup {
-        namespace delete ${NS}::test::temp
+        namespace delete ${::NS}::test::temp
     } -body {
-        namespace eval ${NS}::test::temp [list ${NS}::test::testDll function {noargs noargs-alias} int {}]
-        ${NS}::test::temp::noargs-alias
+        namespace eval ${::NS}::test::temp [list ${::NS}::test::testDll function {noargs noargs-alias} int {}]
+        ${::NS}::test::temp::noargs-alias
     } -result 42
 
     test function-error-0 {Missing function} -body {
@@ -132,15 +132,15 @@ namespace eval ${NS}::test {
 
     test functions-1 {Multiple functions in namespace} -setup {
     } -cleanup {
-        namespace delete ${NS}::test::temp
+        namespace delete ${::NS}::test::temp
     } -body {
-        namespace eval ${NS}::test::temp {
-            ${NS}::test::testDll functions {
+        namespace eval ${::NS}::test::temp {
+            ${::NS}::test::testDll functions {
                 onearg int {a int}
                 {twoargs twoargs-alias} int {a int b int}
             }
         }
-        list [${NS}::test::temp::onearg 2] [${NS}::test::temp::twoargs-alias 1 2]
+        list [${::NS}::test::temp::onearg 2] [${::NS}::test::temp::twoargs-alias 1 2]
     } -result {-2 3}
 
     test functions-2 {Multiple functions - empty} -body {
@@ -460,13 +460,13 @@ namespace eval ${NS}::test {
         foreach bad $badnumbers {
             test function-$type-limit-number-error-[incr testnum] "$type = $bad error (number)" -body {
                 $fn $bad
-            } -result "not in range|too large" -returnCodes error -match regexp
+            } -result "not in range|too large|expected unsigned integer" -returnCodes error -match regexp
             test function-$type-limit-string-error-$testnum "$type = $bad error (string)" -body {
                 $fn [format %lld $bad]
-            } -result "not in range|too large" -returnCodes error -match regexp
+            } -result "not in range|too large|expected unsigned integer" -returnCodes error -match regexp
             test function-$type-limit-hexstring-error-$testnum "$type = $bad error (hex string)" -body {
                 $fn [if {$bad >= 0} {format 0x%llx $bad} else {format -0x%llx [expr {- $bad}]}]
-            } -result "not in range|too large" -returnCodes error -match regexp
+            } -result "not in range|too large|expected unsigned integer" -returnCodes error -match regexp
         }
 
         #

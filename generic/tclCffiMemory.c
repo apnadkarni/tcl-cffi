@@ -358,7 +358,8 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
     else
         CHECK(CffiGetEncodingFromObj(ip, objv[3], &encoding));
 
-    Tcl_UtfToExternalDString(encoding, Tcl_GetString(objv[2]), -1, &ds);
+    /* TODO - use new UtfDString API and check error */
+    (void) Tcl_UtfToExternalDString(encoding, Tcl_GetString(objv[2]), -1, &ds);
     if (encoding)
         Tcl_FreeEncoding(encoding);
     len = Tcl_DStringLength(&ds);
@@ -455,7 +456,8 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
             ip, NULL, "Negative offsets are not allowed for safe pointers.");
     }
 
-    Tcl_ExternalToUtfDString(encoding, off + (char*)pv, -1, &ds);
+    /* TODO - use new UtfDString API and check error */
+    (void) Tcl_ExternalToUtfDString(encoding, off + (char*)pv, -1, &ds);
     if (encoding)
         Tcl_FreeEncoding(encoding);
 

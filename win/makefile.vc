@@ -97,7 +97,7 @@ HEADERS = \
 
 PRJ_INCLUDES = -I $(EXTDIR)\include
 
-PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS
+PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS -DTCL_NO_DEPRECATED
 
 !if $(USE_DYNCALL)
 PRJ_DEFINES = $(PRJ_DEFINES) -DCFFI_USE_DYNCALL
@@ -106,6 +106,7 @@ PRJ_LIBS = $(EXTDIR)\lib\dyncall_s.lib $(EXTDIR)\lib\dynload_s.lib $(EXTDIR)\lib
 PRJ_DEFINES = $(PRJ_DEFINES) -DFFI_BUILDING -DCFFI_USE_LIBFFI
 PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
 !endif
+PRJ_LIBS = $(PRJ_LIBS) $(INSTALLDIR)\lib\tommath.lib
 
 # Define the standard targets
 # We do not use the standard predefined install targets because we want

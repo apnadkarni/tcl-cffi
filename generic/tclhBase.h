@@ -61,16 +61,18 @@
  * This typedef is used to store max lengths of Tcl strings.
  * Its use is primarily to avoid compiler warnings with downcasting from size_t.
  */
-#if TCL_MAJOR_VERSION <= 8
-typedef int Tclh_SSizeT;
-#define Tclh_SSizeT_MAX INT_MAX
-typedef unsigned int Tclh_USizeT;
-#define Tclh_USizeT_MAX UINT_MAX
+#if TCLH_TCLAPI_VERSION < 87
+    typedef int Tclh_SSizeT;
+    #define Tclh_SSizeT_MAX INT_MAX
+    typedef unsigned int Tclh_USizeT;
+    #define Tclh_USizeT_MAX UINT_MAX
+    #define TCLH_SIZE_MODIFIER ""
 #else
-typedef Tcl_Size Tclh_SSizeT;
-#define Tclh_SSizeT_MAX TCL_SIZE_MAX
-typedef size_t Tclh_USizeT;
-#define Tclh_USizeT_MAX SIZE_MAX
+    typedef Tcl_Size Tclh_SSizeT;
+    #define Tclh_SSizeT_MAX TCL_SIZE_MAX
+    typedef size_t Tclh_USizeT;
+    #define Tclh_USizeT_MAX SIZE_MAX
+    #define TCLH_SIZE_MODIFIER TCL_SIZE_MODIFIER
 #endif
 
 TCLH_INLINE char *Tclh_memdup(void *from, int len) {
