@@ -16,6 +16,7 @@ jobs:
       run: |
         brew update
         brew install tcl-tk libffi libffi-dev || true
+        find / -name '*ffi* -print
 
     - name: Install dyncall
       run: |
