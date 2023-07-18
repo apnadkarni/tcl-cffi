@@ -315,7 +315,7 @@ TCLH_INLINE char *
 Tclh_ObjGetBytesByRef(Tcl_Interp *interp, Tcl_Obj *obj, Tclh_SSizeT *lenPtr)
 {
 #if TCLH_TCLAPI_VERSION < 87
-    return Tcl_GetByteArrayFromObj(obj, lenPtr);
+    return (char *) Tcl_GetByteArrayFromObj(obj, lenPtr);
 #else
     return (char *)Tcl_GetBytesFromObj(interp, obj, lenPtr);
 #endif
