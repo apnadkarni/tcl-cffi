@@ -7,8 +7,8 @@
 source [file join [file dirname [info script]] common.tcl]
 
 # Wrapper tests
-namespace eval ${NS}::test {
-    set libraryClass ${NS}::Wrapper
+namespace eval ${::NS}::test {
+    set libraryClass ${::NS}::Wrapper
 
     testsubcmd $libraryClass
 

@@ -7,7 +7,6 @@ source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     variable typeInfo
-    variable unicharSize [expr {[package vsatisfies [info tclversion] 9] ? 4 : 2}]
     # Size and alignment
     array set typeInfo \
         [list \

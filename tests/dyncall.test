@@ -7,8 +7,8 @@
 source [file join [file dirname [info script]] common.tcl]
 
 # Symbols tests
-namespace eval ${NS}::test  {
-    set symbolsClass ${NS}::dyncall::Symbols
+namespace eval ${::NS}::test  {
+    set symbolsClass ${::NS}::dyncall::Symbols
 
     test dyncall-Symbols-new-0 {dyncall::Symbols new} -body {
         set dll [$symbolsClass new $testDllPath]

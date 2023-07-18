@@ -642,23 +642,51 @@ namespace eval cffi::test {
 
     foreach type {string unistring binary} {
         test memory-set-$type-0 "set $type" -setup {
-            set p [cffi::memory allocate 8]
+            set p [cffi::memory allocate 8]; # Enough to hold a pointer
         } -cleanup {
             cffi::memory free $p
         } -body {
             cffi::memory set $p $type $testValues($type)
         } -result "Invalid value*" -returnCodes error -match glob
-        test memory-get-$type-0 "get $type" -setup {
-            set s [cffi::memory fromstring $testValues($type) unicode]
-            set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
-            cffi::memory set $p pointer $s
-        } -cleanup {
-            cffi::memory free $s
-            cffi::memory free $p
-        } -body {
-            cffi::memory get $p unistring
-        } -result $testValues($type)
     }
+    test memory-get-string-0 "get string" -setup {
+        set s [cffi::memory fromstring $testValues(string)]
+        set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
+        cffi::memory set $p pointer $s
+    } -cleanup {
+        cffi::memory free $s
+        cffi::memory free $p
+    } -body {
+        cffi::memory get $p string
+    } -result $testValues(string)
+    test memory-get-string-1 "get string utf-8" -setup {
+        set s [cffi::memory fromstring $testValues(unistring) utf-8]
+        set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
+        cffi::memory set $p pointer $s
+    } -cleanup {
+        cffi::memory free $s
+        cffi::memory free $p
+    } -body {
+        cffi::memory get $p string.utf-8
+    } -result $testValues(unistring)
+    test memory-get-unistring-0 "get string utf-8" -setup {
+        set enc [expr {$unicharSize == 4 ? "utf-32" : "unicode"}]
+        set s [cffi::memory fromstring $testValues(unistring) $enc]
+        set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
+        cffi::memory set $p pointer $s
+    } -cleanup {
+        cffi::memory free $s
+        cffi::memory free $p
+    } -body {
+        cffi::memory get $p unistring
+    } -result $testValues(unistring)
+    test memory-get-binary-0 "set $type" -setup {
+        set p [cffi::memory allocate 8]; # Enough to hold a pointer
+    } -cleanup {
+        cffi::memory free $p
+    } -body {
+        cffi::memory get $p binary
+    } -result "Invalid value*" -returnCodes error -match glob
 
     test memory-set-badtype-0 "set bad type" -setup {
         set p [cffi::memory allocate 8]

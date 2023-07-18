@@ -678,7 +678,7 @@ namespace eval Concepts {
         advapi32 stdcall CryptGenRandom BOOL {
             hProv HANDLE
             dwLen DWORD
-            pbBuffer {uchar[dwLen] out}
+            pbBuffer {bytes[dwLen] out}
         }
         ````
 

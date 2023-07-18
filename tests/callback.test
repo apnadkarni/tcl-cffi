@@ -1,4 +1,4 @@
-# (c) 2021 Ashok P. Nadkarni
+# (c) 2021-2023 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
 # This file contains tests for cffi::Wrapper pertaining to definition and
@@ -283,7 +283,7 @@ namespace eval ${NS}::test {
         testDll function noargs_caller void {fnptr pointer.proto}
         unset -nocomplain X
     } -constraints libffi -body {
-        set fnptr [cffi::callback new [namespace current]::proto [list X success]]
+        set fnptr [cffi::callback new [namespace current]::proto [list set X success]]
         noargs_caller $fnptr
         set X
     } -result success

@@ -365,15 +365,16 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
     len = Tcl_DStringLength(&ds);
 
     /*
-     * The encoded string in ds may be terminated by one or two nulls
+     * The encoded string in ds may be terminated by 1-4 null bytes
      * depending on the encoding. We do not know which. Moreover,
      * Tcl_DStringLength does not tell us either. So we just tack on an
-     * extra two null bytes;
+     * extra 4 null bytes (utf-32)
      */
-    p   = ckalloc(len + 2);
+    p   = ckalloc(len + 4);
     memmove(p, Tcl_DStringValue(&ds), len);
-    p[len]     = 0;
-    p[len + 1] = 0;
+    for (int i = 0; i < 4; ++i) {
+        p[len + i] = 0;
+    }
     Tcl_DStringFree(&ds);
 
     ret = Tclh_PointerRegister(ip, p, NULL, &ptrObj);

@@ -1248,6 +1248,20 @@ CffiIntValueFromObj(Tcl_Interp *ip,
                                &enumValueObj) == TCL_OK)
             valueObj = enumValueObj;
     }
+    /* 8.6 differs in treatment of unsigned values > WIDE_MAX */
+#if TCLH_TCLAPI_VERSION >= 87
+    if (typeAttrsP
+        && ((typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONGLONG)
+            || (typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONG
+                && sizeof(unsigned long) == sizeof(Tcl_WideInt)))) {
+        Tcl_WideUInt uwide;
+        if (Tcl_GetWideUIntFromObj(ip, valueObj, &uwide) == TCL_OK) {
+            *valueP = (Tcl_WideInt) uwide;
+            return TCL_OK;
+        }
+        return TCL_ERROR;
+    }
+#endif
     if (Tcl_GetWideIntFromObj(ip, valueObj, &value) == TCL_OK) {
         *valueP = value;
         return TCL_OK;
