@@ -191,6 +191,8 @@ TEA_ENABLE_SHARED
 
 TEA_CONFIG_CFLAGS
 
+TEA_ADD_CFLAGS([-DTCL_NO_DEPRECATED])
+
 AC_CONFIG_COMMANDS_PRE(
     [# Must define -DFFI_BUILDING when linking statically, see commentary of FFI_API
      # in ffi.h for details.

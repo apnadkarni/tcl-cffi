@@ -7971,6 +7971,11 @@ $as_echo "no" >&6; }
 
 
 
+    PKG_CFLAGS="$PKG_CFLAGS -DTCL_NO_DEPRECATED"
+
+
+
+
 
 if test "x$with_libffi" = xyes; then :
 
