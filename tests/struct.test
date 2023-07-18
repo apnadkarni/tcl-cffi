@@ -31,14 +31,15 @@ namespace eval cffi::test {
 
     proc teststruct {type} {
         variable errorMessages
+        variable unicharSize
 
         # Skip scalar tests for these
         if {$type in {chars bytes}} {
             set Size 1
             set Alignment 1
         } elseif {$type eq "unichars"} {
-            set Size 2
-            set Alignment 2
+            set Size $unicharSize
+            set Alignment $unicharSize
         } else {
             set tinfo [cffi::type info $type]
             dict with tinfo {}

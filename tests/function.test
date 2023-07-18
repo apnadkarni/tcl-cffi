@@ -1387,7 +1387,9 @@ namespace eval ${NS}::test {
         incrTestStruct s
         # TBD - fix this result check for all platforms, including 32-bits
         set s
-    } -result [expr {$::tcl_platform(wordSize) == 4 ? {c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 57 ull 89 b abc f 101.0 s {c 105} d 121.0} : {c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 73 ull 105 b qrs f 117.0 s {c 121} d 137.0}}] 
+    } -result [expr {$::tcl_platform(wordSize) == 4 ?
+                     [list c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 57 ull [expr 57+13*$unicharSize+4] b yz\{ f [expr 57.0+13*$unicharSize+4+8+(3+1)] s [list c [expr 57+13*$unicharSize+4+8+(3+1)+4]] d [expr 57.0+13*$unicharSize+4+8+(3+1)+4+(15+1)]] :
+                     [list c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 73 ull [expr 73+13*$unicharSize+4] b \x89\x8A\x8B f [expr 73.0+13*$unicharSize+4+8+(3+1)] s [list c [expr 73+13*$unicharSize+4+8+(3+1)+4]] d [expr 73.0+13*$unicharSize+4+8+(3+1)+4+(15+1)]]}]
     test function-struct-inout-1 "Pass struct with pointer array inout" -setup {
         catch {struct_with_pointer_array destroy}
         cffi::Struct create struct_with_pointer_array {ptrs {pointer[3] counted}}
@@ -1395,8 +1397,8 @@ namespace eval ${NS}::test {
     } -cleanup {
         purge_pointers
     } -body {
-        set a [list ptrs [make_counted_pointers 1 2 3]] 
-        set b [list ptrs [make_counted_pointers 4 5 6]] 
+        set a [list ptrs [make_counted_pointers 1 2 3]]
+        set b [list ptrs [make_counted_pointers 4 5 6]]
         struct_pointer_array_exchange a b
         list $a $b
     } -result [list [list ptrs [make_unsafe_pointers 4 5 6]] [list ptrs [make_unsafe_pointers 1 2 3]]]

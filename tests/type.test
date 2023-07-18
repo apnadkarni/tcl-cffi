@@ -7,6 +7,7 @@ source [file join [file dirname [info script]] common.tcl]
 
 namespace eval cffi::test {
     variable typeInfo
+    variable unicharSize [expr {[package vsatisfies [info tclversion] 9] ? 4 : 2}]
     # Size and alignment
     array set typeInfo \
         [list \
@@ -28,7 +29,7 @@ namespace eval cffi::test {
              unistring [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              binary [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              chars {1 1} \
-             unichars {2 2} \
+             unichars [list $unicharSize $unicharSize] \
              bytes {1 1} \
             ]
 
@@ -722,14 +723,15 @@ namespace eval cffi::test {
     # chars
     proc testchars {typedecl count parse_mode expected_typeattrs} {
         variable typeInfo
+        variable unicharSize
         set typeattrs [lassign $typedecl type]
         set testlabel type-info-[join $typedecl -]-$count
 
 
-        set alignment [expr {$type eq "unichars" ? 2 : 1}]
+        set alignment [expr {$type eq "unichars" ? $unicharSize : 1}]
         if {[string is integer -strict $count]} {
             if {$type eq "unichars"} {
-                set size [expr {2*$count}]
+                set size [expr {$unicharSize*$count}]
             } else {
                 set size $count
             }
