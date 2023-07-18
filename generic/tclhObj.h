@@ -436,10 +436,12 @@ int Tclh_ObjLibInit(Tcl_Interp *interp)
     gTclBooleanType = Tcl_GetObjType("boolean");
     if (gTclBooleanType == NULL) {
         objP = Tcl_NewBooleanObj(1);
+#if TCLH_TCLAPI_VERSION >= 87
         char b;
         if (Tcl_GetBoolFromObj(NULL, objP, 0, &b) == TCL_OK) {
             gTclBooleanType = objP->typePtr;
         }
+#endif
         Tcl_DecrRefCount(objP);
     }
     gTclDoubleType = Tcl_GetObjType("double");

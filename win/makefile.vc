@@ -106,7 +106,10 @@ PRJ_LIBS = $(EXTDIR)\lib\dyncall_s.lib $(EXTDIR)\lib\dynload_s.lib $(EXTDIR)\lib
 PRJ_DEFINES = $(PRJ_DEFINES) -DFFI_BUILDING -DCFFI_USE_LIBFFI
 PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
 !endif
+
+!if (($(TCL_MAJOR_VERSION) > 8) || (($(TCL_MAJOR_VERSION) == 8) && ($(TCL_MINOR_VERSION) >= 7)))
 PRJ_LIBS = $(PRJ_LIBS) $(INSTALLDIR)\lib\tommath.lib
+!endif
 
 # Define the standard targets
 # We do not use the standard predefined install targets because we want
