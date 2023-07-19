@@ -6,7 +6,8 @@ but requires one of two back end libraries that implement FFI:
 - `libffi` (v3.4.2 or later strongly recommended)
 - `dyncall`
 
-When choosing a back end, consider that the `dyncall` library does not support
+When choosing a back end, consider that the `dyncall` library 
+at the time of writing does not support
 returning or passing C structs to functions by value. However, most C API's pass
 structs by reference (pointers) so this limitation may not matter. The `dyncall`
 library is easier to build so that is another thing to consider if your platform
