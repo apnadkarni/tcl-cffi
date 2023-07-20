@@ -97,6 +97,26 @@ be used after the function is called.
 MEMLIFO_EXTERN void MemLifoClose(MemLifo  *lifoP);
 
 /*f
+Allocate a minimum amount of memory from LIFO memory pool
+
+Allocates memory from a LIFO memory pool and returns a pointer to it.
+If actual_szP is not NULL, as much memory (at least sz) will be allocated
+as possible from the current chunk.
+
+If memory cannot be allocated, returns NULL unless MEMLIFO_F_PANIC_ON_FAIL
+is set for the pool, in which case it panics.
+
+Returns pointer to allocated memory on success, a null pointer on failure.
+*/
+MEMLIFO_EXTERN void* MemLifoAllocMin
+    (
+     MemLifo *lifoP,    /* LIFO pool to allocate from */
+     MemlifoUSizeT sz,         /* Number of bytes to allocate */
+     MemlifoUSizeT *actual_szP /* If non-NULL, allocates max possible in chunk
+                           and returns the actual allocated size here */
+    );
+
+/*f
 Allocate memory from LIFO memory pool
 
 Allocates memory from a LIFO memory pool and returns a pointer to it.
@@ -105,11 +125,9 @@ is set for the pool, in which case it panics.
 
 Returns pointer to allocated memory on success, a null pointer on failure.
 */
-MEMLIFO_EXTERN void* MemLifoAlloc
-    (
-     MemLifo *lifoP,    /* LIFO pool to allocate from */
-     MemlifoUSizeT sz   /* Number of bytes to allocate */
-    );
+TCLH_INLINE void* MemLifoAlloc(MemLifo *l, MemlifoUSizeT sz) {
+    return MemLifoAllocMin(l, sz, NULL);
+}
 
 /*f
 Allocate memory from LIFO memory pool and copies data to it
@@ -147,25 +165,53 @@ Allocates space in a LIFO memory pool being used as a software stack.
 This provides a means of maintaining a software stack for temporary structures
 that are too large to be allocated on the hardware stack.
 
-Both MemLifoMark and MemLifoPushFrame may be used on the same
-MemLifo_t. The latter function in effect creates a anonymous mark
-that is maintained internally and which may be released (along with
-the associated user memory) through the function MemLifoPopFrame
-which releases the last allocated mark, irrespective of whether it was
-allocated through MemLifoMark or MemLifoPushFrame.
-Alternatively, the mark and associated memory are also freed when a
-previosly allocated mark is released.
+Both MemLifoMark and MemLifoPushFrame may be used on the same MemLifo_t. The
+latter function in effect creates a anonymous mark that is maintained
+internally and which may be released (along with the associated user memory)
+through the function MemLifoPopFrame which releases the last allocated mark,
+irrespective of whether it was allocated through MemLifoMark or
+MemLifoPushFrame. Alternatively, the mark and associated memory are also
+freed when a previosly allocated mark is released.
+
+If actual_szP is not NULL, as much memory (at least sz) will be allocated
+as possible from the current chunk.
 
 If memory cannot be allocated, returns NULL unless MEMLIFO_F_PANIC_ON_FAIL
 is set for the pool, in which case it panics.
 
 Returns pointer to allocated memory on success, a null pointer on failure.
 */
-MEMLIFO_EXTERN void *MemLifoPushFrame
+MEMLIFO_EXTERN void *MemLifoPushFrameMin
 (
     MemLifo *lifoP,		/* LIFO pool to allocate from */
-    MemlifoUSizeT sz			/* Number of bytes to allocate */
+    MemlifoUSizeT sz,			/* Number of bytes to allocate */
+    MemlifoUSizeT *actual_szP          /* If non-NULL, allocates max possible in chunk
+                                   and returns the value here*/
     );
+
+/*f
+Allocate a software stack frame in a LIFO memory pool
+
+Allocates space in a LIFO memory pool being used as a software stack.
+This provides a means of maintaining a software stack for temporary structures
+that are too large to be allocated on the hardware stack.
+
+Both MemLifoMark and MemLifoPushFrame may be used on the same MemLifo_t. The
+latter function in effect creates a anonymous mark that is maintained
+internally and which may be released (along with the associated user memory)
+through the function MemLifoPopFrame which releases the last allocated mark,
+irrespective of whether it was allocated through MemLifoMark or
+MemLifoPushFrame. Alternatively, the mark and associated memory are also
+freed when a previosly allocated mark is released.
+
+If memory cannot be allocated, returns NULL unless MEMLIFO_F_PANIC_ON_FAIL
+is set for the pool, in which case it panics.
+
+Returns pointer to allocated memory on success, a null pointer on failure.
+*/
+TCLH_INLINE void *MemLifoPushFrame(MemLifo *lifoP, MemlifoUSizeT sz) {
+    return MemLifoPushFrameMin(lifoP, sz, NULL);
+}
 
 /*
 Release the topmost mark from a MemLifo_t
