@@ -468,7 +468,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         }
         if (lbStr) {
             /* Tag is not null terminated. We cannot modify that string */
-            char *structNameP = ckalloc(tagLen);
+            char *structNameP = ckalloc(tagLen+1);
             memmove(structNameP, tagStr, tagLen);
             structNameP[tagLen] = '\0';
             ret = CffiStructResolve(ip, structNameP, &typeP->u.structP);
