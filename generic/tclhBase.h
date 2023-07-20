@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdint.h>
 #include "tcl.h"
-#include "tclTomMath.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -18,6 +17,13 @@
 #define TCLH_TCLAPI_VERSION 87
 #else
 #define TCLH_TCLAPI_VERSION 86
+#endif
+
+#if TCLH_TCLAPI_VERSION >= 87
+#include "tommath.h"
+#else
+#define TCLH_USE_TCL_TOMMATH
+#include "tclTomMath.h"
 #endif
 
 /* Common definitions included by all Tcl helper *implemenations* */
@@ -458,7 +464,7 @@ Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *me
 
 int Tclh_BaseLibInit(Tcl_Interp *interp)
 {
-#ifdef USE_TCL_STUBS
+#if defined(USE_TCL_STUBS) && defined(TCLH_USE_TCL_TOMMATH)
     if (Tcl_TomMath_InitStubs(interp, 0) == NULL) {
         return TCL_ERROR;
     }

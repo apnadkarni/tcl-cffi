@@ -5,11 +5,6 @@
 #include <limits.h>
 #include <errno.h>
 #include <ctype.h>
-#if TCLH_TCLAPI_VERSION >= 87
-#include "tommath.h"
-#else
-#include "tclTomMath.h"
-#endif
 
 /* Section: Tcl_Obj convenience functions
  *
