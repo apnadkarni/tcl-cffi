@@ -27,7 +27,7 @@
 #define SUBPTR(p_, decr_, type_) ((type_)(((char *)(p_)) - (decr_)))
 #define ALIGNED(p_) (ROUNDED((intptr_t)(p_)))
 
-#define PTRDIFF(end_, start_) ((MemlifoUSizeT)((char*)(end_)-(char*)(start_)))
+#define PTRDIFF(end_, start_) ((MemLifoUSizeT)((char*)(end_)-(char*)(start_)))
 
 /*
 Each region is composed of a linked list of contiguous chunks of memory. Each
@@ -39,7 +39,7 @@ typedef struct MemLifoChunk {
     void *               lc_end;  /* One beyond end of chunk */
 } MemLifoChunk;
 #define MEMLIFO_CHUNK_HEADER_ROUNDED (ROUNDUP(sizeof(MemLifoChunk)))
-#define MEMLIFO_MAX_ALLOC (Tclh_SSizeT_MAX - MEMLIFO_CHUNK_HEADER_ROUNDED)
+#define MEMLIFO_MAX_ALLOC (TCL_SIZE_MAX - MEMLIFO_CHUNK_HEADER_ROUNDED)
 
 /*
 A mark keeps current state information about a MemLifo which can
@@ -80,35 +80,21 @@ typedef struct _MemLifoMark {
     void *        lm_freeptr;    /* Ptr to unused space */
 } MemLifoMark;
 
-void *
-MemLifoDefaultAlloc(MemlifoUSizeT sz)
-{
-    return malloc(sz);
-}
-
-void
-MemLifoDefaultFree(void *p)
-{
-    if (p)
-        free(p);
-}
-
 int
-MemLifoInit(MemLifo *            l,
+MemLifoInit(MemLifo *l,
             MemLifoChunkAllocFn *allocFunc,
-            MemLifoChunkFreeFn * freeFunc,
-            MemlifoUSizeT        chunk_sz,
-            int                  flags)
+            MemLifoChunkFreeFn *freeFunc,
+            MemLifoUSizeT chunk_sz,
+            int flags)
 {
     MemLifoChunk *    c;
     MemLifoMarkHandle m;
 
     if (allocFunc == 0) {
-        allocFunc = MemLifoDefaultAlloc;
-        freeFunc  = MemLifoDefaultFree;
+        allocFunc = malloc;
+        freeFunc  = free;
     } else {
-        MEMLIFO_ASSERT(freeFunc); /* If allocFunc was not 0, freeFunc
-					   should not be either */
+        return MEMLIFO_E_INVALID_PARAM;
     }
 
     if (chunk_sz < 8000)
@@ -169,17 +155,17 @@ MemLifoClose(MemLifo *l)
     memset(l, 0, sizeof(*l));
 }
 
-void* MemLifoAllocMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_szP)
+void* MemLifoAllocMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_szP)
 {
     MemLifoChunk *    c;
     MemLifoMarkHandle m;
-    MemlifoUSizeT     chunk_sz;
+    MemLifoUSizeT     chunk_sz;
     void *            p;
 
     sz = ROUNDUP(sz);
     if (sz == 0 || sz > MEMLIFO_MAX_ALLOC) {
         if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-            Tcl_Panic("Attempt to allocate %" TCLH_SIZE_MODIFIER "u bytes for memlifo", sz);
+            Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo", sz);
         return NULL;
     }
 
@@ -250,7 +236,7 @@ void* MemLifoAllocMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_szP)
         c = l->lifo_allocFn(chunk_sz);
         if (c == 0) {
             if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-                Tcl_Panic("Attempt to allocate %" TCLH_SIZE_MODIFIER
+                Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER
                           "u bytes for memlifo",
                           chunk_sz);
             return 0;
@@ -277,7 +263,7 @@ void* MemLifoAllocMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_szP)
         c = (MemLifoChunk *)l->lifo_allocFn(chunk_sz);
         if (c == 0) {
             if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-                Tcl_Panic("Attempt to allocate %" TCLH_SIZE_MODIFIER "u bytes for memlifo",
+                Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo",
                           chunk_sz);
             return NULL;
         }
@@ -298,31 +284,13 @@ void* MemLifoAllocMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_szP)
     return m->lm_last_alloc;
 }
 
-void *
-MemLifoCopy(MemLifo *l, const void *srcP, MemlifoUSizeT nbytes)
-{
-    void *dstP = MemLifoAlloc(l, nbytes);
-    if (dstP)
-        memcpy(dstP, srcP, nbytes);
-    return dstP;
-}
-
-void *
-MemLifoZeroes(MemLifo *l, MemlifoUSizeT nbytes)
-{
-    void *dstP = MemLifoAlloc(l, nbytes);
-    if (dstP)
-        memset(dstP, 0, nbytes);
-    return dstP;
-}
-
 MemLifoMarkHandle
 MemLifoPushMark(MemLifo *l)
 {
     MemLifoMarkHandle m; /* Previous (existing) mark */
     MemLifoMarkHandle n; /* New mark */
     MemLifoChunk *    c;
-    MemlifoUSizeT     mark_sz;
+    MemLifoUSizeT     mark_sz;
     void *            p;
 
     m = l->lifo_top_mark;
@@ -351,7 +319,7 @@ MemLifoPushMark(MemLifo *l)
         c = l->lifo_allocFn(l->lifo_chunk_size);
         if (c == 0) {
             if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-                Tcl_Panic("Attempt to allocate %" TCLH_SIZE_MODIFIER
+                Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER
                           "u bytes for memlifo",
                           l->lifo_chunk_size);
             return 0;
@@ -432,11 +400,11 @@ MemLifoPopMark(MemLifoMarkHandle m)
 }
 
 
-void *MemLifoPushFrameMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_szP)
+void *MemLifoPushFrameMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_szP)
 {
     void *            p;
     MemLifoMarkHandle m, n;
-    MemlifoUSizeT     total;
+    MemLifoUSizeT     total;
 
     MEMLIFO_ASSERT(l->lifo_magic == MEMLIFO_MAGIC);
 
@@ -444,7 +412,7 @@ void *MemLifoPushFrameMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_sz
 
     if (sz > MEMLIFO_MAX_ALLOC) {
         if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-            Tcl_Panic("Attempt to allocate %" TCLH_SIZE_MODIFIER "u bytes for memlifo", sz);
+            Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo", sz);
         return NULL;
     }
 
@@ -498,15 +466,15 @@ void *MemLifoPushFrameMin(MemLifo *l, MemlifoUSizeT sz, MemlifoUSizeT *actual_sz
         MemLifoPopMark(n);
     }
     if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-        Tcl_Panic("Attempt to allocate %" TCLH_SIZE_MODIFIER "u bytes for memlifo", sz);
+        Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo", sz);
     return NULL;
 }
 
 void *
-MemLifoExpandLast(MemLifo *l, MemlifoUSizeT incr, int fix)
+MemLifoExpandLast(MemLifo *l, MemLifoUSizeT incr, int fix)
 {
     MemLifoMarkHandle m;
-    MemlifoUSizeT     old_sz, sz, chunk_sz;
+    MemLifoUSizeT     old_sz, sz, chunk_sz;
     void *            p, *p2;
     char              is_big_block;
 
@@ -595,9 +563,9 @@ MemLifoExpandLast(MemLifo *l, MemlifoUSizeT incr, int fix)
 }
 
 void *
-MemLifoShrinkLast(MemLifo *l, MemlifoUSizeT decr, int fix)
+MemLifoShrinkLast(MemLifo *l, MemLifoUSizeT decr, int fix)
 {
-    MemlifoUSizeT     old_sz;
+    MemLifoUSizeT     old_sz;
     char              is_big_block;
     MemLifoMarkHandle m;
 
@@ -621,9 +589,9 @@ MemLifoShrinkLast(MemLifo *l, MemlifoUSizeT decr, int fix)
 }
 
 void *
-MemLifoResizeLast(MemLifo *l, MemlifoUSizeT new_sz, int fix)
+MemLifoResizeLast(MemLifo *l, MemLifoUSizeT new_sz, int fix)
 {
-    MemlifoUSizeT     old_sz;
+    MemLifoUSizeT     old_sz;
     char              is_big_block;
     MemLifoMarkHandle m;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Ashok P. Nadkarni
+ * Copyright (c) 2021-2023, Ashok P. Nadkarni
  * All rights reserved.
  *
  * See the file LICENSE for license
@@ -477,7 +477,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
  * Wraps a C structure into a Tcl_Obj.
  *
  * Parameters:
- * ip - Interpreter
+ * ipCtxP - interpreter context
  * structP - pointer to the struct definition internal descriptor
  * valueP - pointer to C structure to wrap
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
@@ -486,14 +486,16 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
  * Returns:
  *
  */
-CffiResult CffiStructToObj(Tcl_Interp        *ip,
-                             const CffiStruct *structP,
-                             void              *valueP,
-                             Tcl_Obj **valueObjP)
+CffiResult
+CffiStructToObj(CffiInterpCtx *ipCtxP,
+                const CffiStruct *structP,
+                void *valueP,
+                Tcl_Obj **valueObjP)
 {
     int i;
     Tcl_Obj *valueObj;
     int ret;
+    Tcl_Interp *ip    = ipCtxP->interp;
 
     valueObj = Tcl_NewListObj(structP->nFields, NULL);
     for (i = 0; i < structP->nFields; ++i) {
@@ -501,7 +503,7 @@ CffiResult CffiStructToObj(Tcl_Interp        *ip,
         Tcl_Obj          *fieldObj;
         /* fields within structs cannot be dynamic size */
         CFFI_ASSERT(! CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType));
-        ret = CffiNativeValueToObj(ip,
+        ret = CffiNativeValueToObj(ipCtxP,
                                    &fieldP->fieldType,
                                    fieldP->offset + (char *)valueP,
                                    0,
@@ -560,7 +562,12 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     }
     resultP = ckalloc(count * structP->size);
 
-    if (Tclh_PointerRegister(ip, resultP, structP->name, &resultObj) != TCL_OK) {
+    if (Tclh_PointerRegister(ip,
+                             structCtxP->ipCtxP->pointerRegistry,
+                             resultP,
+                             structP->name,
+                             &resultObj)
+        != TCL_OK) {
         ckfree(resultP);
         return TCL_ERROR;
     }
@@ -604,7 +611,11 @@ CffiStructNewCmd(Tcl_Interp *ip,
         ret = CffiStructObjDefault(structCtxP->ipCtxP, structP, resultP);
 
     if (ret == TCL_OK) {
-        ret = Tclh_PointerRegister(ip, resultP, structP->name, &resultObj);
+        ret = Tclh_PointerRegister(ip,
+                                   structCtxP->ipCtxP->pointerRegistry,
+                                   resultP,
+                                   structP->name,
+                                   &resultObj);
         if (ret == TCL_OK) {
             Tcl_SetObjResult(ip, resultObj);
             return TCL_OK;
@@ -693,9 +704,18 @@ CffiStructFromNativePointer(Tcl_Interp *ip,
     Tcl_Obj *resultObj;
 
     if (safe)
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
+        CHECK(Tclh_PointerObjVerify(ip,
+                                    structCtxP->ipCtxP->pointerRegistry,
+                                    objv[2],
+                                    &valueP,
+                                    structP->name));
     else {
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &valueP, structP->name));
+        /* TODO - check - is this correct. Won't below check for registration? */
+        CHECK(Tclh_PointerUnwrapTagged(ip,
+                                       structCtxP->ipCtxP->pointerRegistry,
+                                       objv[2],
+                                       &valueP,
+                                       structP->name));
         if (valueP == NULL) {
             Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
             return TCL_ERROR;
@@ -713,8 +733,10 @@ CffiStructFromNativePointer(Tcl_Interp *ip,
         index = 0;
 
     /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructToObj(
-        ip, structP, (index * structP->size) + (char *)valueP, &resultObj));
+    CHECK(CffiStructToObj(structCtxP->ipCtxP,
+                          structP,
+                          (index * structP->size) + (char *)valueP,
+                          &resultObj));
 
     Tcl_SetObjResult(ip, resultObj);
     return TCL_OK;
@@ -811,9 +833,18 @@ CffiStructToNativePointer(Tcl_Interp *ip,
     int index;
 
     if (safe)
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &valueP, structP->name));
+        CHECK(Tclh_PointerObjVerify(ip,
+                                    structCtxP->ipCtxP->pointerRegistry,
+                                    objv[2],
+                                    &valueP,
+                                    structP->name));
     else {
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &valueP, structP->name));
+        /* TODO - check - is this correct. Won't below check for registration? */
+        CHECK(Tclh_PointerUnwrapTagged(ip,
+                                       structCtxP->ipCtxP->pointerRegistry,
+                                       objv[2],
+                                       &valueP,
+                                       structP->name));
         if (valueP == NULL) {
             Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
             return TCL_ERROR;
@@ -941,9 +972,18 @@ CffiStructGetNativePointer(Tcl_Interp *ip,
         return TCL_ERROR;
 
     if (safe)
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+        CHECK(Tclh_PointerObjVerify(ip,
+                                    structCtxP->ipCtxP->pointerRegistry,
+                                    objv[2],
+                                    &pv,
+                                    structP->name));
     else {
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, structP->name));
+        /* TODO - check - is this correct. Won't below check for registration? */
+        CHECK(Tclh_PointerUnwrapTagged(ip,
+                                       structCtxP->ipCtxP->pointerRegistry,
+                                       objv[2],
+                                       &pv,
+                                       structP->name));
         if (pv == NULL) {
             Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
             return TCL_ERROR;
@@ -962,7 +1002,7 @@ CffiStructGetNativePointer(Tcl_Interp *ip,
     fieldAddr += structP->fields[fieldIndex].offset;
 
     CHECK(CffiNativeValueToObj(
-        ip,
+        structCtxP->ipCtxP,
         &structP->fields[fieldIndex].fieldType,
         fieldAddr,
         0,
@@ -1072,9 +1112,18 @@ CffiStructSetNativePointer(Tcl_Interp *ip,
         return TCL_ERROR;
 
     if (safe)
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+        CHECK(Tclh_PointerObjVerify(ip,
+                                    structCtxP->ipCtxP->pointerRegistry,
+                                    objv[2],
+                                    &pv,
+                                    structP->name));
     else {
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, structP->name));
+        /* TODO - check - is this correct. Won't below check for registration? */
+        CHECK(Tclh_PointerUnwrapTagged(ip,
+                                       structCtxP->ipCtxP->pointerRegistry,
+                                       objv[2],
+                                       &pv,
+                                       structP->name));
         if (pv == NULL) {
             Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
             return TCL_ERROR;
@@ -1200,9 +1249,18 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
     CFFI_ASSERT(objc >= 4);
 
     if (safe)
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &structAddr, structP->name));
+        CHECK(Tclh_PointerObjVerify(ip,
+                                    structCtxP->ipCtxP->pointerRegistry,
+                                    objv[2],
+                                    &structAddr,
+                                    structP->name));
     else {
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &structAddr, structP->name));
+        /* TODO - check - is this correct. Won't below check for registration? */
+        CHECK(Tclh_PointerUnwrapTagged(ip,
+                                 structCtxP->ipCtxP->pointerRegistry,
+                                 objv[2],
+                                 &structAddr,
+                                 structP->name));
         if (structAddr == NULL) {
             Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
             return TCL_ERROR;
@@ -1238,7 +1296,7 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
                 ret = TCL_ERROR;
             else {
                 ret = CffiNativeValueToObj(
-                    ip,
+                    structCtxP->ipCtxP,
                     &structP->fields[fieldIndex].fieldType,
                     structP->fields[fieldIndex].offset + (char *)structAddr,
                     0,
@@ -1324,7 +1382,7 @@ CffiStructGetNativeFieldsUnsafeCmd(Tcl_Interp *ip,
  *        total of 4-5 arguments.
  * objv - argument array. This includes the command and subcommand provided
  *   at the script level.
- * scructCtxP - pointer to struct context
+ * structCtxP - pointer to struct context
  *
  * The **objv** contains the following arguments:
  * objv[2] - pointer to memory
@@ -1354,7 +1412,8 @@ CffiStructFieldPointerCmd(Tcl_Interp *ip,
     if (fieldIndex < 0)
         return TCL_ERROR;
 
-    CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, structP->name));
+    CHECK(Tclh_PointerObjVerify(
+        ip, structCtxP->ipCtxP->pointerRegistry, objv[2], &pv, structP->name));
     fieldAddr = pv;
 
     /* TBD - check alignment of fieldP for the struct */
@@ -1397,8 +1456,11 @@ CffiStructFreeCmd(Tcl_Interp *ip,
     void *valueP;
     CffiResult ret;
 
-    ret = Tclh_PointerObjUnregister(
-        ip, objv[2], &valueP, structCtxP->structP->name);
+    ret = Tclh_PointerObjUnregister(ip,
+                                    structCtxP->ipCtxP->pointerRegistry,
+                                    objv[2],
+                                    &valueP,
+                                    structCtxP->structP->name);
     if (ret == TCL_OK && valueP)
         ckfree(valueP);
     return ret;
@@ -1484,7 +1546,8 @@ CffiStructFromBinaryCmd(Tcl_Interp *ip,
         return Tclh_ErrorInvalidValue(
             ip, NULL, "Truncated structure binary value.");
     }
-    ret = CffiStructToObj(ip, structP, offset + valueP, &resultObj);
+    ret = CffiStructToObj(
+        structCtxP->ipCtxP, structP, offset + valueP, &resultObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     return ret;

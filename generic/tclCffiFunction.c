@@ -14,7 +14,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP);
 static void CffiArgCleanup(CffiCall *callP, int arg_index);
 static CffiResult CffiReturnPrepare(CffiCall *callP);
 static CffiResult CffiReturnCleanup(CffiCall *callP);
-static void CffiPointerArgsDispose(Tcl_Interp *ip,
+static void CffiPointerArgsDispose(CffiInterpCtx *ipCtxP,
                                    int nArgs,
                                    CffiArgument *argsP,
                                    int callSucceeded);
@@ -57,11 +57,12 @@ CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
  * Nothing.
  */
 static void
-CffiPointerArgsDispose(Tcl_Interp *ip,
+CffiPointerArgsDispose(CffiInterpCtx *ipCtxP,
                        int nArgs,
                        CffiArgument *argsP,
                        int callFailed)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     int i;
     for (i = 0; i < nArgs; ++i) {
         CffiTypeAndAttrs *typeAttrsP = argsP[i].typeAttrsP;
@@ -80,8 +81,10 @@ CffiPointerArgsDispose(Tcl_Interp *ip,
                 if (nptrs < 0) {
                     /* Scalar */
                     if (argsP[i].savedValue.u.ptr != NULL)
-                        Tclh_PointerUnregister(
-                            ip, argsP[i].savedValue.u.ptr, NULL);
+                        Tclh_PointerUnregister(ip,
+                                               ipCtxP->pointerRegistry,
+                                               argsP[i].savedValue.u.ptr,
+                                               NULL);
                 }
                 else {
                     /* Array */
@@ -90,7 +93,8 @@ CffiPointerArgsDispose(Tcl_Interp *ip,
                     CFFI_ASSERT(ptrArray);
                     for (j = 0; j < nptrs; ++j) {
                         if (ptrArray[j] != NULL)
-                            Tclh_PointerUnregister(ip, ptrArray[j], NULL);
+                            Tclh_PointerUnregister(
+                                ip, ipCtxP->pointerRegistry, ptrArray[j], NULL);
                     }
                 }
             }
@@ -479,9 +483,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                              &ipCtxP->memlifo));
             }
             else {
-                valuesP = MemLifoZeroes(
-                    &ipCtxP->memlifo,
-                    argP->arraySize * typeAttrsP->dataType.baseTypeSize);
+                MemLifoUSizeT nCopy =
+                    argP->arraySize * typeAttrsP->dataType.baseTypeSize;
+                valuesP = MemLifoAlloc(&ipCtxP->memlifo, nCopy);
+                memset(valuesP, 0, nCopy);
             }
             argP->value.u.ptr = valuesP;
             /* BYREF but really a pointer to array so STOREARGBYVAL, not STOREARGBYREF */
@@ -572,7 +577,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 argP->value.u.ptr = NULL; /* Being paranoid */
             else {
                 CHECK(
-                    CffiPointerFromObj(ip, typeAttrsP, valueObj, &argP->value.u.ptr));
+                    CffiPointerFromObj(ipCtxP, typeAttrsP, valueObj, &argP->value.u.ptr));
                 if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS))
                     argP->savedValue.u.ptr = argP->value.u.ptr;
             }
@@ -599,7 +604,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     nvalues = argP->arraySize;
                 for (i = 0; i < nvalues; ++i) {
                     CHECK(CffiPointerFromObj(
-                        ip, typeAttrsP, valueObjList[i], &valueArray[i]));
+                        ipCtxP, typeAttrsP, valueObjList[i], &valueArray[i]));
                 }
                 CFFI_ASSERT(i == nvalues);
                 for ( ; i < argP->arraySize; ++i)
@@ -642,8 +647,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         /* Pure input but could still shimmer so copy to memlifo */
         p = (char *)Tcl_GetByteArrayFromObj(valueObj, &len);
         /* If zero length, always store null pointer regardless of nullifempty */
-        if (len)
-            argP->value.u.ptr = MemLifoCopy(&ipCtxP->memlifo, p, len);
+        if (len) {
+            argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo, len);
+            memmove(argP->value.u.ptr, p, len);
+        }
         else
             argP->value.u.ptr = NULL;
         if (flags & CFFI_F_ATTR_BYREF)
@@ -721,8 +728,9 @@ static
 CffiResult
 CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
 {
-    Tcl_Interp *ip = callP->fnP->ipCtxP->interp;
-    CffiArgument *argP = &callP->argsP[arg_index];
+    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
+    Tcl_Interp *ip        = ipCtxP->interp;
+    CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
     CffiValue *valueP;
     Tcl_Obj *valueObj;
@@ -798,22 +806,22 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
         if (arraySize < 0)
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP, 0, argP->arraySize, &valueObj);
+                ipCtxP, typeAttrsP, valueP, 0, argP->arraySize, &valueObj);
         else
             ret = CffiNativeValueToObj(
-                ip, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
+                ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
+            ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_STRUCT:
         ret = CffiNativeValueToObj(
-            ip, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
+            ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
         break;
 
     case CFFI_K_TYPE_BINARY:
@@ -1645,7 +1653,7 @@ CffiFunctionCall(ClientData cdata,
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &cretval, &sysError);       \
-        CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
+        CffiPointerArgsDispose(ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
         if (fnCheckRet == TCL_OK) {                                            \
             /* Wrap function return value unless an output argument is */      \
             /* to be returned as the function result */                        \
@@ -1666,7 +1674,8 @@ CffiFunctionCall(ClientData cdata,
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
         CffiCallVoidFunc(&callCtx);
-        CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);
+        CffiPointerArgsDispose(
+            ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);
         resultObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR:
@@ -1722,11 +1731,11 @@ CffiFunctionCall(ClientData cdata,
         /* Do check IMMEDIATELY so as to not lose GetLastError */
         fnCheckRet = CffiCheckPointer(
             ip, &protoP->returnType.typeAttrs, pointer, &sysError);
-        CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
+        CffiPointerArgsDispose(ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
         switch (protoP->returnType.typeAttrs.dataType.baseType) {
             case CFFI_K_TYPE_POINTER:
                 ret = CffiPointerToObj(
-                    ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
+                    ipCtxP, &protoP->returnType.typeAttrs, pointer, &resultObj);
                 break;
             case CFFI_K_TYPE_ASTRING:
                 ret = CffiCharsToObj(
@@ -1749,7 +1758,7 @@ CffiFunctionCall(ClientData cdata,
             pointer = CffiCallPointerFunc(&callCtx);
             fnCheckRet = CffiCheckPointer(
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
-            CffiPointerArgsDispose(ip, callCtx.nArgs, callCtx.argsP, fnCheckRet);
+            CffiPointerArgsDispose(ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);
             if (pointer == NULL) {
                 CffiStruct *structP =
                     protoP->returnType.typeAttrs.dataType.u.structP;
@@ -1781,7 +1790,7 @@ CffiFunctionCall(ClientData cdata,
             break;
 #endif
         }
-        ret = CffiStructToObj(ip,
+        ret = CffiStructToObj(ipCtxP,
                               protoP->returnType.typeAttrs.dataType.u.structP,
                               pointer,
                               &resultObj);

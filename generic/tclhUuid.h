@@ -44,7 +44,8 @@ Tcl_Obj *Tclh_UuidWrap (const Tclh_UUID *uuidP);
  * TCL_OK    - Success, UUID stored in *uuidP.
  * TCL_ERROR - Failure, error message stored in interp.
  */
-int Tclh_UuidUnwrap (Tcl_Interp *interp, Tcl_Obj *objP, Tclh_UUID *uuidP);
+Tclh_ReturnCode
+Tclh_UuidUnwrap(Tcl_Interp *interp, Tcl_Obj *objP, Tclh_UUID *uuidP);
 
 /* Function: Tclh_UuidIsObjIntrep
  * Checks if the passed Tcl_Obj currently holds an internal representation
@@ -65,7 +66,7 @@ int Tclh_UuidUnwrap (Tcl_Interp *interp, Tcl_Obj *objP, Tclh_UUID *uuidP);
  * 1 - Current internal representation holds a Uuid.
  * 0 - otherwise.
  */
-int Tclh_UuidIsObjIntrep (Tcl_Obj *objP);
+Tclh_Bool Tclh_UuidIsObjIntrep (Tcl_Obj *objP);
 
 #ifdef TCLH_IMPL
 # define TCLH_UUID_IMPL
@@ -105,7 +106,7 @@ TCLH_INLINE void IntrepSetUuid(Tcl_Obj *objP, Tclh_UUID *value) {
     objP->internalRep.twoPtrValue.ptr1 = (void *) value;
 }
 
-int Tclh_UuidIsObjIntrep (Tcl_Obj *objP) {
+Tclh_Bool Tclh_UuidIsObjIntrep (Tcl_Obj *objP) {
     return objP->typePtr == &gUuidVtbl;
 }
 
@@ -183,7 +184,8 @@ Tcl_Obj *Tclh_UuidWrap (const Tclh_UUID *from)
     return objP;
 }
 
-int Tclh_UuidUnwrap (Tcl_Interp *interp, Tcl_Obj *objP, Tclh_UUID *uuidP)
+Tclh_ReturnCode
+Tclh_UuidUnwrap(Tcl_Interp *interp, Tcl_Obj *objP, Tclh_UUID *uuidP)
 {
     if (SetUuidObjFromAny(objP) != TCL_OK) {
         return Tclh_ErrorInvalidValue(interp, objP, "Invalid UUID format.");

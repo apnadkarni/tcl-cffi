@@ -375,7 +375,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         }
         /* TBD - Why not call CffiStructToObj directly here? */
         return CffiNativeValueToObj(
-            cbP->ipCtxP->interp, typeAttrsP, valueP, 0, -1, argObjP);
+            cbP->ipCtxP, typeAttrsP, valueP, 0, -1, argObjP);
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -388,7 +388,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     }
 
     return CffiNativeScalarToObj(
-        cbP->ipCtxP->interp, typeAttrsP, valueP, 0, argObjP);
+        cbP->ipCtxP, typeAttrsP, valueP, 0, argObjP);
 
 #undef EXTRACT_
 #undef EXTRACT_INT_
@@ -450,8 +450,8 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
         CHECK(Tcl_GetDoubleFromObj(ipCtxP->interp, valueObj, (double *)retP));
         break;
     case CFFI_K_TYPE_POINTER:
-        CHECK(
-            Tclh_PointerUnwrap(ipCtxP->interp, valueObj, (void **)retP, NULL));
+        CHECK(Tclh_PointerUnwrap(
+            ipCtxP->interp, valueObj, (void **)retP));
         break;
 
     case CFFI_K_TYPE_ASTRING:

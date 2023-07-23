@@ -169,7 +169,7 @@ CffiCallObjCmd(ClientData cdata,
 
     CHECK_NARGS(ip, 2, INT_MAX, "FNPTR ?ARG ...?");
     CHECK(Tclh_PointerObjGetTag(ip, objv[1], &protoNameObj));
-    CHECK(Tclh_PointerUnwrap(ip, objv[1], &fnAddr, NULL));
+    CHECK(Tclh_PointerUnwrap(ip, objv[1], &fnAddr));
 
     protoNameObj = Tclh_NsQualifyNameObj(ip, protoNameObj, NULL);
     Tcl_IncrRefCount(protoNameObj);
@@ -402,6 +402,7 @@ DLLEXPORT int
 Cffi_Init(Tcl_Interp *ip)
 {
     CffiInterpCtx *ipCtxP = NULL;
+    Tclh_PointerRegistry ptrRegistry = NULL;
 
 #ifdef USE_TCL_STUBS
     if (Tcl_InitStubs(ip, "8.6", 0) == NULL) {
@@ -415,10 +416,11 @@ Cffi_Init(Tcl_Interp *ip)
 
     CHECK(Tclh_BaseLibInit(ip));
     CHECK(Tclh_ObjLibInit(ip));
-    CHECK(Tclh_PointerLibInit(ip));
+    CHECK(Tclh_PointerLibInit(ip, &ptrRegistry));
     CHECK(Tclh_NsLibInit(ip));
     CHECK(Tclh_HashLibInit(ip));
     CHECK(CffiInterpCtxAllocAndInit(ip, &ipCtxP));
+    ipCtxP->pointerRegistry = ptrRegistry;
 
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, ipCtxP, NULL);

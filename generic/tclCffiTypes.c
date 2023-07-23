@@ -1443,7 +1443,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             }
             break;
         case CFFI_K_TYPE_POINTER:
-            CHECK(CffiPointerFromObj(ip, typeAttrsP, valueObj, &value.u.ptr));
+            CHECK(CffiPointerFromObj(ipCtxP, typeAttrsP, valueObj, &value.u.ptr));
             *(indx + (void **)valueBaseP) = value.u.ptr;
             break;
         case CFFI_K_TYPE_CHAR_ARRAY:
@@ -1716,7 +1716,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
  * Wraps a scalar C binary value into a Tcl_Obj.
  *
  * Parameters:
- * ip - Interpreter
+ * ipCtxP - interpreter context
  * typeP - type descriptor for the binary value
  * valueBaseP - value to be wrapped in valueBaseP[valueIndex]
  * valueIndex - index as above
@@ -1733,7 +1733,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
  * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
-CffiNativeScalarToObj(Tcl_Interp *ip,
+CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
                       const CffiTypeAndAttrs *typeAttrsP,
                       void *valueBaseP,
                       int indx,
@@ -1742,6 +1742,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
     int ret;
     Tcl_Obj *valueObj;
     enum CffiBaseType  baseType;
+    Tcl_Interp *ip    = ipCtxP->interp;
 
     baseType = typeAttrsP->dataType.baseType;
 
@@ -1797,7 +1798,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
         break;
     case CFFI_K_TYPE_POINTER:
         ret = CffiPointerToObj(
-            ip, typeAttrsP, *(indx + (void **)valueBaseP), &valueObj);
+            ipCtxP, typeAttrsP, *(indx + (void **)valueBaseP), &valueObj);
         if (ret != TCL_OK)
             return ret;
         break;
@@ -1827,7 +1828,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
  * Wraps a C binary value into a Tcl_Obj.
  *
  * Parameters:
- * ip - Interpreter
+ * ipCtxP - interpreter context
  * typeP - type descriptor for the binary value. Should not be of type binary
  * valueBaseP - pointer to base of C binary value to wrap
  * startIndex - starting index into valueBaseP
@@ -1843,7 +1844,7 @@ CffiNativeScalarToObj(Tcl_Interp *ip,
  *
  */
 CffiResult
-CffiNativeValueToObj(Tcl_Interp *ip,
+CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
                      const CffiTypeAndAttrs *typeAttrsP,
                      void *valueBaseP,
                      int startIndex,
@@ -1855,6 +1856,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
     void *valueP;
     Tcl_Obj *valueObj;
     CffiBaseType baseType = typeAttrsP->dataType.baseType;
+    Tcl_Interp *ip    = ipCtxP->interp;
 
     CFFI_ASSERT(baseType != CFFI_K_TYPE_BINARY);
     if (count == 0) {
@@ -1881,7 +1883,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
     case CFFI_K_TYPE_STRUCT:
         if (count < 0) {
             return CffiStructToObj(
-                ip, typeAttrsP->dataType.u.structP, valueP, valueObjP);
+                ipCtxP, typeAttrsP->dataType.u.structP, valueP, valueObjP);
         }
         else {
             /* Array, possible even a single element, still represent as list */
@@ -1894,8 +1896,10 @@ CffiNativeValueToObj(Tcl_Interp *ip,
             /* TBD - may be allocate Tcl_Obj* array from memlifo for speed */
             listObj = Tcl_NewListObj(count, NULL);
             for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
-                ret = CffiStructToObj(
-                    ip, typeAttrsP->dataType.u.structP, offset + (char *)valueP, &valueObj);
+                ret = CffiStructToObj(ipCtxP,
+                                      typeAttrsP->dataType.u.structP,
+                                      offset + (char *)valueP,
+                                      &valueObj);
                 if (ret != TCL_OK) {
                     Tcl_DecrRefCount(listObj);
                     return ret;
@@ -1922,7 +1926,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
          * and unichars base types, it is treated as a string scalar value.
          */
         if (count < 0) {
-            return CffiNativeScalarToObj(ip, typeAttrsP, valueP, 0, valueObjP);
+            return CffiNativeScalarToObj(ipCtxP, typeAttrsP, valueP, 0, valueObjP);
         }
         else {
             /* Array, possible even a single element, still represent as list */
@@ -1936,7 +1940,7 @@ CffiNativeValueToObj(Tcl_Interp *ip,
             listObj = Tcl_NewListObj(count, NULL);
             for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
                 ret = CffiNativeScalarToObj(
-                    ip, typeAttrsP, offset + (char *)valueP, 0, &valueObj);
+                    ipCtxP, typeAttrsP, offset + (char *)valueP, 0, &valueObj);
                 if (ret != TCL_OK) {
                     Tcl_DecrRefCount(listObj);
                     return ret;
@@ -1985,7 +1989,7 @@ CffiCheckPointer(Tcl_Interp *ip,
  * indicate it should be wrapped a safe pointer.
  *
  * Parameters:
- * ip - interpreter
+ * ipCtxP - interpreter context
  * typeAttrsP - descriptor for type and attributes
  * pointer - pointer value to wrap
  * resultObjP - location to store pointer to Tcl_Obj wrapping the pointer
@@ -1995,13 +1999,14 @@ CffiCheckPointer(Tcl_Interp *ip,
  * on failure with error message in the interpreter.
  */
 CffiResult
-CffiPointerToObj(Tcl_Interp *ip,
+CffiPointerToObj(CffiInterpCtx *ipCtxP,
                   const CffiTypeAndAttrs *typeAttrsP,
                   void *pointer,
                   Tcl_Obj **resultObjP)
 {
     CffiResult ret;
     int         flags = typeAttrsP->flags;
+    Tcl_Interp *ip    = ipCtxP->interp;
 
     if (pointer == NULL) {
         /* NULL pointers are never registered */
@@ -2016,11 +2021,13 @@ CffiPointerToObj(Tcl_Interp *ip,
             if (flags & CFFI_F_ATTR_COUNTED)
                 ret = Tclh_PointerRegisterCounted(
                     ip,
+                    ipCtxP->pointerRegistry,
                     pointer,
                     typeAttrsP->dataType.u.tagObj,
                     resultObjP);
             else
                 ret = Tclh_PointerRegister(ip,
+                                           ipCtxP->pointerRegistry,
                                            pointer,
                                            typeAttrsP->dataType.u.tagObj,
                                            resultObjP);
@@ -2033,7 +2040,7 @@ CffiPointerToObj(Tcl_Interp *ip,
  * Unwraps a single pointer value from a *Tcl_Obj* based on type settings.
  *
  * Parameters:
- * ip - interpreter
+ * ipCtxP - interpreter context
  * typeAttrsP - descriptor for the type and attributes
  * pointerObj - *Tcl_Obj* wrapping the pointer
  * pointerP - location to store the unwrapped pointer
@@ -2047,15 +2054,17 @@ CffiPointerToObj(Tcl_Interp *ip,
  *
  */
 CffiResult
-CffiPointerFromObj(Tcl_Interp *ip,
-                    const CffiTypeAndAttrs *typeAttrsP,
-                    Tcl_Obj *pointerObj,
-                    void **pointerP)
+CffiPointerFromObj(CffiInterpCtx *ipCtxP,
+                   const CffiTypeAndAttrs *typeAttrsP,
+                   Tcl_Obj *pointerObj,
+                   void **pointerP)
 {
     Tcl_Obj *tagObj = typeAttrsP->dataType.u.tagObj;
+    Tcl_Interp *ip  = ipCtxP->interp;
     void *pv;
 
-    CHECK(Tclh_PointerUnwrap(ip, pointerObj, &pv, tagObj));
+    CHECK(Tclh_PointerUnwrapTagged(
+        ip, ipCtxP->pointerRegistry, pointerObj, &pv, tagObj));
 
     if (pv == NULL) {
         if ((typeAttrsP->flags & CFFI_F_ATTR_NULLOK) == 0) {
@@ -2068,7 +2077,7 @@ CffiPointerFromObj(Tcl_Interp *ip,
          * because that rejects NULL pointers.
          */
         if (!(typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
-            CHECK(Tclh_PointerVerify(ip, pv, tagObj));
+            CHECK(Tclh_PointerVerify(ip, ipCtxP->pointerRegistry, pv, tagObj));
         }
     }
 

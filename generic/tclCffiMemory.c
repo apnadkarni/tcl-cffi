@@ -11,9 +11,9 @@
  * Calculates the memory address for an object in memory
  *
  * Parameters:
- * ip - interpreter. Must not be NULL if verify is true.
+ * ip - interpreter. Must not be NULL if allowUnsafe is false
  * ptrObj - *Tcl_Obj* holding a pointer
- * verify - if true, the pointer is verified
+ * allowUnsafe - if true, the pointer is not verified
  * addressP - location where address is to be stored
  *
  * In addition to errors from passed Tcl_Obj values not being the right type
@@ -24,19 +24,20 @@
  * *TCL_OK* or *TCL_ERROR*.
  */
 static CffiResult
-CffiMemoryAddressFromObj(Tcl_Interp *ip,
+CffiMemoryAddressFromObj(CffiInterpCtx *ipCtxP,
                          Tcl_Obj *ptrObj,
-                         int verify,
+                         int allowUnsafe,
                          void **addressP)
 {
     void *pv;
-    if (verify)
-        CHECK(Tclh_PointerUnwrap(ip, ptrObj, &pv, NULL));
+    if (allowUnsafe)
+        CHECK(Tclh_PointerUnwrap(ipCtxP->interp, ptrObj, &pv));
     else
-        CHECK(Tclh_PointerObjVerify(ip, ptrObj, &pv, NULL));
+        CHECK(Tclh_PointerObjVerify(
+            ipCtxP->interp, ipCtxP->pointerRegistry, ptrObj, &pv, NULL));
 
     if (pv == NULL) {
-        Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+        Tcl_SetResult(ipCtxP->interp, "Pointer is NULL.", TCL_STATIC);
         return TCL_ERROR;
     }
     *addressP = pv;
@@ -47,7 +48,7 @@ CffiMemoryAddressFromObj(Tcl_Interp *ip,
  * Implements the *memory allocate* script level command.
  *
  * Parameters:
- * ip - interpreter
+ * ipCtxP - interpreter context
  * objc - count of elements in objv[]. Should be 3 or 4 including command
  *        and subcommand.
  * objv - argument array.
@@ -99,7 +100,7 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
     else
         tagObj = NULL;
 
-    ret = Tclh_PointerRegister(ip, p, tagObj, &ptrObj);
+    ret = Tclh_PointerRegister(ip, ipCtxP->pointerRegistry, p, tagObj, &ptrObj);
     if (tagObj)
         Tcl_DecrRefCount(tagObj);
     if (ret == TCL_OK)
@@ -160,7 +161,8 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
         }
         else
             tagObj = NULL;
-        ret = Tclh_PointerRegister(ip, pv, tagObj, &ptrObj);
+        ret = Tclh_PointerRegister(
+            ip, ipCtxP->pointerRegistry, pv, tagObj, &ptrObj);
         if (ret == TCL_OK)
             Tcl_SetObjResult(ip, ptrObj);
         if (tagObj)
@@ -202,10 +204,10 @@ CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP,
     void *pv;
     CffiResult ret;
 
-    CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+    CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     if (pv == NULL)
         return TCL_OK;
-    ret = Tclh_PointerUnregister(ip, pv, NULL);
+    ret = Tclh_PointerUnregister(ip, ipCtxP->pointerRegistry, pv, NULL);
     if (ret == TCL_OK)
         ckfree(pv);
     return ret;
@@ -252,7 +254,7 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP,
     }
     else
         tagObj = NULL;
-    ret = Tclh_PointerRegister(ip, p, tagObj, &ptrObj);
+    ret = Tclh_PointerRegister(ip, ipCtxP->pointerRegistry, p, tagObj, &ptrObj);
     if (tagObj)
         Tcl_DecrRefCount(tagObj);
     if (ret == TCL_OK)
@@ -294,9 +296,10 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
     Tcl_WideInt off;
 
     if (flags & CFFI_F_ALLOW_UNSAFE)
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     else
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
+        CHECK(Tclh_PointerObjVerify(
+            ip, ipCtxP->pointerRegistry, objv[2], &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
@@ -377,7 +380,7 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
     }
     Tcl_DStringFree(&ds);
 
-    ret = Tclh_PointerRegister(ip, p, NULL, &ptrObj);
+    ret = Tclh_PointerRegister(ip, ipCtxP->pointerRegistry, p, NULL, &ptrObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, ptrObj);
     else
@@ -422,9 +425,10 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
     Tcl_WideInt off;
 
     if (flags & CFFI_F_ALLOW_UNSAFE)
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     else
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
+        CHECK(Tclh_PointerObjVerify(
+            ip, ipCtxP->pointerRegistry, objv[2], &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
@@ -513,13 +517,13 @@ CffiMemoryGetCmd(CffiInterpCtx *ipCtxP,
     else
         indx = 0;
 
-    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & CFFI_F_ALLOW_UNSAFE, &pv));
+    CHECK(CffiMemoryAddressFromObj(ipCtxP, objv[2], flags & CFFI_F_ALLOW_UNSAFE, &pv));
 
     CHECK(CffiTypeAndAttrsParse(
         ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
     /* Note typeAttrs needs to be cleaned up beyond this point */
 
-    ret = CffiNativeValueToObj(ipCtxP->interp,
+    ret = CffiNativeValueToObj(ipCtxP,
                                &typeAttrs,
                                pv,
                                indx,
@@ -572,7 +576,8 @@ CffiMemorySetCmd(CffiInterpCtx *ipCtxP,
     else
         indx = 0;
 
-    CHECK(CffiMemoryAddressFromObj(ip, objv[2], flags & CFFI_F_ALLOW_UNSAFE, &pv));
+    CHECK(CffiMemoryAddressFromObj(
+        ipCtxP, objv[2], flags & CFFI_F_ALLOW_UNSAFE, &pv));
 
     CHECK(CffiTypeAndAttrsParse(
         ipCtxP, objv[3], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
@@ -612,10 +617,11 @@ CffiMemoryFillCmd(CffiInterpCtx *ipCtxP,
     unsigned char val;
 
     if (flags & CFFI_F_ALLOW_UNSAFE) {
-        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     }
     else
-        CHECK(Tclh_PointerObjVerify(ip, objv[2], &pv, NULL));
+        CHECK(Tclh_PointerObjVerify(
+            ip, ipCtxP->pointerRegistry, objv[2], &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);

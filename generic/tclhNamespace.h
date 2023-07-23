@@ -154,7 +154,7 @@ Tclh_NsQualifyNameObj(Tcl_Interp *ip, Tcl_Obj *nameObj, const char *defaultNsP)
     const char *nameP;
     Tcl_Namespace *nsP;
     Tcl_Obj *fqnObj;
-    Tclh_SSizeT nameLen;
+    Tcl_Size nameLen;
 
     nameP = Tcl_GetStringFromObj(nameObj, &nameLen);
     if (Tclh_NsIsFQN(nameP))

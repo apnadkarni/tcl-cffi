@@ -145,7 +145,7 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
         }
         if (isReturn) {
             void *pv;
-            CHECK(Tclh_PointerUnwrap(ipCtxP->interp, valueObj, &pv, NULL));
+            CHECK(Tclh_PointerUnwrap(ipCtxP->interp, valueObj, &pv));
         }
         return TCL_OK;
 
@@ -261,7 +261,7 @@ CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
 
     CFFI_ASSERT(objc == 3);
 
-    CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv, NULL));
+    CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     if (pv == NULL)
         return TCL_OK;
 
@@ -277,7 +277,7 @@ CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
     CHECK(Tclh_PointerObjGetTag(ip, objv[2], &tagObj));
     if (tagObj == NULL)
         return Tclh_ErrorInvalidValue(ip, objv[2], "Not a callback function pointer.");
-    ret = Tclh_PointerUnregister(ip, pv, tagObj);
+    ret = Tclh_PointerUnregister(ip, ipCtxP->pointerRegistry, pv, tagObj);
     if (ret == TCL_OK)
         CffiCallbackCleanupAndFree(cbP);
 
@@ -355,7 +355,11 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
              * Construct return function pointer value. This pointer is passed
              * as the callback function address.
              */
-            ret = Tclh_PointerRegister(ip, executableAddr, protoFqnObj, &cbObj);
+            ret = Tclh_PointerRegister(ip,
+                                       ipCtxP->pointerRegistry,
+                                       executableAddr,
+                                       protoFqnObj,
+                                       &cbObj);
             if (ret == TCL_OK) {
                 /* We need to map from the function pointer to callback context */
                 Tcl_HashEntry *heP;

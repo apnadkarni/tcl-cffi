@@ -16,6 +16,8 @@
 #include "tclhHash.h"
 #include "memlifo.h"
 
+typedef Tcl_Size Tclh_SSizeT;
+
 /*
  * Which back end system are we using? Currently only two supported. At most
  * one must be defined with libffi as default.
@@ -360,6 +362,7 @@ typedef struct CffiInterpCtx {
     DCCallVM *vmP; /* The dyncall call context to use */
 #endif
     MemLifo memlifo;        /* Software stack */
+    Tclh_PointerRegistry pointerRegistry;
 } CffiInterpCtx;
 
 /* Context for dll commands. */
@@ -566,7 +569,7 @@ CffiResult CffiStructFromObj(CffiInterpCtx *ipCtxP,
                              CffiFlags flags,
                              void *resultP,
                              MemLifo *memlifoP);
-CffiResult CffiStructToObj(Tcl_Interp *ip,
+CffiResult CffiStructToObj(CffiInterpCtx *ipCtxP,
                            const CffiStruct *structP,
                            void *valueP,
                            Tcl_Obj **valueObjP);
@@ -588,12 +591,12 @@ CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                   void *valueBaseP,
                                   int valueIndex,
                                   MemLifo *memlifoP);
-CffiResult CffiNativeScalarToObj(Tcl_Interp *ip,
+CffiResult CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
                                  const CffiTypeAndAttrs *typeAttrsP,
                                  void *valueP,
                                  int indx,
                                  Tcl_Obj **valueObjP);
-CffiResult CffiNativeValueToObj(Tcl_Interp *ip,
+CffiResult CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
                                 const CffiTypeAndAttrs *typeAttrsP,
                                 void *valueP,
                                 int startIndex,
@@ -605,11 +608,11 @@ CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tclh_SSizeT tagLen);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);
-CffiResult CffiPointerToObj(Tcl_Interp *ip,
+CffiResult CffiPointerToObj(CffiInterpCtx *ipCtxP,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer,
                             Tcl_Obj **resultObjP);
-CffiResult CffiPointerFromObj(Tcl_Interp *ip,
+CffiResult CffiPointerFromObj(CffiInterpCtx *ipCtxP,
                               const CffiTypeAndAttrs *typeAttrsP,
                               Tcl_Obj *pointerObj,
                               void **pointerP);

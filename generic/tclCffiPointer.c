@@ -8,13 +8,14 @@
 #include "tclCffiInt.h"
 
 static CffiResult
-CffiPointerCastableCmd(Tcl_Interp *ip,
-                         Tcl_Obj *subtypeObj,
-                         Tcl_Obj *supertypeObj)
+CffiPointerCastableCmd(CffiInterpCtx *ipCtxP,
+                       Tcl_Obj *subtypeObj,
+                       Tcl_Obj *supertypeObj)
 {
     Tcl_Obj *subFqnObj;
     Tcl_Obj *superFqnObj;
     CffiResult ret;
+    Tcl_Interp *ip = ipCtxP->interp;
 
     /* QUalify both tags if unqualified */
     subFqnObj = Tclh_NsQualifyNameObj(ip, subtypeObj, NULL);
@@ -22,7 +23,8 @@ CffiPointerCastableCmd(Tcl_Interp *ip,
     superFqnObj = Tclh_NsQualifyNameObj(ip, supertypeObj, NULL);
     Tcl_IncrRefCount(superFqnObj);
 
-    ret = Tclh_PointerSubtagDefine(ip, subFqnObj, superFqnObj);
+    ret = Tclh_PointerSubtagDefine(
+        ip, ipCtxP->pointerRegistry, subFqnObj, superFqnObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, subFqnObj);
     Tcl_DecrRefCount(subFqnObj);
@@ -31,28 +33,31 @@ CffiPointerCastableCmd(Tcl_Interp *ip,
 }
 
 static CffiResult
-CffiPointerUncastableCmd(Tcl_Interp *ip, Tcl_Obj *tagObj)
+CffiPointerUncastableCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *tagObj)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     CffiResult ret;
 
     tagObj = Tclh_NsQualifyNameObj(ip, tagObj, NULL);
     Tcl_IncrRefCount(tagObj);
 
-    ret = Tclh_PointerSubtagRemove(ip, tagObj);
+    ret = Tclh_PointerSubtagRemove(ip, ipCtxP->pointerRegistry, tagObj);
     Tcl_DecrRefCount(tagObj);
     return ret;
 }
 
 static CffiResult
-CffiPointerCastCmd(Tcl_Interp *ip, Tcl_Obj *ptrObj, Tcl_Obj *newTagObj)
+CffiPointerCastCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *ptrObj, Tcl_Obj *newTagObj)
 {
+    Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj *fqnObj;
     int ret;
     if (newTagObj) {
         newTagObj = Tclh_NsQualifyNameObj(ip, newTagObj, NULL);
         Tcl_IncrRefCount(newTagObj);
     }
-    ret = Tclh_PointerCast(ip, ptrObj, newTagObj, &fqnObj);
+    ret = Tclh_PointerCast(
+        ip, ipCtxP->pointerRegistry, ptrObj, newTagObj, &fqnObj);
     if (newTagObj)
         Tcl_DecrRefCount(newTagObj);
     if (ret == TCL_OK)
@@ -66,6 +71,7 @@ CffiPointerObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     void *pv;
     CffiResult ret;
@@ -111,7 +117,9 @@ CffiPointerObjCmd(ClientData cdata,
     switch (cmdIndex) {
     case LIST:
         Tcl_SetObjResult(ip,
-                         Tclh_PointerEnumerate(ip, objc == 3 ? objv[2] : NULL));
+                         Tclh_PointerEnumerate(ip,
+                                               ipCtxP->pointerRegistry,
+                                               objc == 3 ? objv[2] : NULL));
         return TCL_OK;
     case MAKE:
         CHECK(Tclh_ObjToAddress(ip, objv[2], &pv));
@@ -126,13 +134,13 @@ CffiPointerObjCmd(ClientData cdata,
         Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, objP));
         return TCL_OK;
     case CASTABLE:
-        return CffiPointerCastableCmd(ip, objv[2], objv[3]);
+        return CffiPointerCastableCmd(ipCtxP, objv[2], objv[3]);
     case CAST:
-        return CffiPointerCastCmd(ip, objv[2], objc > 3 ? objv[3] : NULL);
+        return CffiPointerCastCmd(ipCtxP, objv[2], objc > 3 ? objv[3] : NULL);
     case UNCASTABLE:
-        return CffiPointerUncastableCmd(ip, objv[2]);
+        return CffiPointerUncastableCmd(ipCtxP, objv[2]);
     case CASTABLES:
-        objP = Tclh_PointerSubtags(ip);
+        objP = Tclh_PointerSubtags(ip, ipCtxP->pointerRegistry);
         if (objP) {
             Tcl_SetObjResult(ip, objP);
             return TCL_OK;
@@ -142,7 +150,7 @@ CffiPointerObjCmd(ClientData cdata,
         break;
     }
 
-    ret = Tclh_PointerUnwrap(ip, objv[2], &pv, NULL);
+    ret = Tclh_PointerUnwrap(ip, objv[2], &pv);
     if (ret != TCL_OK)
         return ret;
 
@@ -176,18 +184,21 @@ CffiPointerObjCmd(ClientData cdata,
             Tcl_SetObjResult(ip, objP);
         return ret;
     case CHECK:
-        return Tclh_PointerVerify(ip, pv, objP);
+        return Tclh_PointerVerify(ip, ipCtxP->pointerRegistry, pv, objP);
     case ISVALID:
-        ret = Tclh_PointerVerify(ip, pv, objP);
+        ret = Tclh_PointerVerify(ip, ipCtxP->pointerRegistry, pv, objP);
         Tcl_SetObjResult(ip, Tcl_NewBooleanObj(ret == TCL_OK));
         return TCL_OK;
     case SAFE:
-        return Tclh_PointerRegister(ip, pv, objP, NULL);
+        return Tclh_PointerRegister(
+            ip, ipCtxP->pointerRegistry, pv, objP, NULL);
     case COUNTED:
-        return Tclh_PointerRegisterCounted(ip, pv, objP, NULL);
+        return Tclh_PointerRegisterCounted(
+            ip, ipCtxP->pointerRegistry, pv, objP, NULL);
     case DISPOSE:
         if (pv)
-            return Tclh_PointerUnregister(ip, pv, objP);
+            return Tclh_PointerUnregister(
+                ip, ipCtxP->pointerRegistry, pv, objP);
         return TCL_OK;
     default: /* Just to keep compiler happy */
         Tcl_SetResult(

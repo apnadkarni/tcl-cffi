@@ -1,6 +1,9 @@
 #ifndef TCLHBASE_H
 #define TCLHBASE_H
 
+#define TCLH_VERSION_MAJOR 1
+#define TCLH_VERSION_MINOR 0
+
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,12 +17,12 @@
 /* TBD - constrain length of all arguments in error messages */
 
 #if (TCL_MAJOR_VERSION > 8) || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 7)
-#define TCLH_TCLAPI_VERSION 87
+#define TCLH_TCLAPI_VERSION 0x0807
 #else
-#define TCLH_TCLAPI_VERSION 86
+#define TCLH_TCLAPI_VERSION 0x0806
 #endif
 
-#if TCLH_TCLAPI_VERSION >= 87
+#if TCLH_TCLAPI_VERSION >= 0x0807
 #include "tommath.h"
 #else
 #define TCLH_USE_TCL_TOMMATH
@@ -62,43 +65,48 @@
 #endif
 #endif
 
-/*
- * Typedef: Tclh_SSizeT
- * This typedef is used to store max lengths of Tcl strings.
- * Its use is primarily to avoid compiler warnings with downcasting from size_t.
+/* 
+ * Typedef: Tclh_ReturnCode
+ * Holds a Tcl return code defined in Tcl (e.g. TCL_OK, TCL_ERROR etc.)
  */
-#if TCLH_TCLAPI_VERSION < 87
-    typedef int Tclh_SSizeT;
-    #define Tclh_SSizeT_MAX INT_MAX
-    typedef unsigned int Tclh_USizeT;
-    #define Tclh_USizeT_MAX UINT_MAX
-    #define TCLH_SIZE_MODIFIER ""
-#else
-    typedef Tcl_Size Tclh_SSizeT;
-    #define Tclh_SSizeT_MAX TCL_SIZE_MAX
-    typedef size_t Tclh_USizeT;
-    #define Tclh_USizeT_MAX SIZE_MAX
-    #define TCLH_SIZE_MODIFIER TCL_SIZE_MODIFIER
+typedef int Tclh_ReturnCode;
+
+/*
+ * Typedef: Tcl_Size
+ * This typedef is defined for 8.6 for compatibility with 8.7 and up.
+ */
+#if TCLH_TCLAPI_VERSION < 0x0807
+typedef int Tcl_Size;
+#define TCL_SIZE_MAX      INT_MAX
+#define TCL_SIZE_MODIFIER ""
 #endif
 
-TCLH_INLINE char *Tclh_memdup(void *from, int len) {
+/*
+ * Typedef: Tclh_Bool
+ * Holds 0 or non-0 indicating false and true.
+ */
+typedef int Tclh_Bool;
+
+TCLH_INLINE char *
+Tclh_memdup(void *from, int len)
+{
     void *to = ckalloc(len);
     memcpy(to, from, len);
     return to;
 }
 
-TCLH_INLINE Tclh_SSizeT Tclh_strlen(const char *s) {
-    return (Tclh_SSizeT) strlen(s);
+TCLH_INLINE Tcl_Size Tclh_strlen(const char *s) {
+    return (Tcl_Size) strlen(s);
 }
 
 TCLH_INLINE char *Tclh_strdup(const char *from) {
-    Tclh_SSizeT len = Tclh_strlen(from) + 1;
+    Tcl_Size len = Tclh_strlen(from) + 1;
     char *to = ckalloc(len);
     memcpy(to, from, len);
     return to;
 }
 
-TCLH_INLINE char *Tclh_strdupn(const char *from, Tclh_SSizeT len) {
+TCLH_INLINE char *Tclh_strdupn(const char *from, Tcl_Size len) {
     char *to = ckalloc(len+1);
     memcpy(to, from, len);
     to[len] = '\0';
@@ -178,8 +186,10 @@ TCLH_INLINE char *Tclh_strdupn(const char *from, Tclh_SSizeT len) {
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorExists(Tcl_Interp *interp, const char *type,
-                     Tcl_Obj *searchObj, const char *message);
+Tclh_ReturnCode Tclh_ErrorExists(Tcl_Interp *interp,
+                                 const char *type,
+                                 Tcl_Obj *searchObj,
+                                 const char *message);
 
 /* Function: Tclh_ErrorGeneric
  * Reports a generic error.
@@ -202,7 +212,8 @@ int Tclh_ErrorExists(Tcl_Interp *interp, const char *type,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorGeneric(Tcl_Interp *interp, const char *code, const char *message);
+Tclh_ReturnCode
+Tclh_ErrorGeneric(Tcl_Interp *interp, const char *code, const char *message);
 
 /* Function: Tclh_ErrorNotFoundStr
  * Reports an error where an string is not found or is not accessible.
@@ -224,10 +235,10 @@ int Tclh_ErrorGeneric(Tcl_Interp *interp, const char *code, const char *message)
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
-                          const char *type,
-                          const char *search,
-                          const char *message);
+Tclh_ReturnCode Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
+                                      const char *type,
+                                      const char *search,
+                                      const char *message);
 
 /* Function: Tclh_ErrorNotFound
  * Reports an error where an object is not found or is not accessible.
@@ -249,8 +260,10 @@ int Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorNotFound(Tcl_Interp *interp, const char *type,
-                       Tcl_Obj *searchObj, const char *message);
+Tclh_ReturnCode Tclh_ErrorNotFound(Tcl_Interp *interp,
+                                   const char *type,
+                                   Tcl_Obj *searchObj,
+                                   const char *message);
 
 /* Function: Tclh_ErrorOperFailed
  * Reports the failure of an operation.
@@ -272,8 +285,10 @@ int Tclh_ErrorNotFound(Tcl_Interp *interp, const char *type,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *type,
-                         Tcl_Obj *searchObj, const char *message);
+Tclh_ReturnCode Tclh_ErrorOperFailed(Tcl_Interp *interp,
+                                     const char *type,
+                                     Tcl_Obj *searchObj,
+                                     const char *message);
 
 /* Function: Tclh_ErrorInvalidValueStr
  * Reports an invalid argument passed in to a command function.
@@ -292,9 +307,9 @@ int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *type,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
-                              const char *badValue,
-                              const char *message);
+Tclh_ReturnCode Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
+                                          const char *badValue,
+                                          const char *message);
 
 /* Function: Tclh_ErrorInvalidValue
  * Reports an invalid argument passed in to a command function.
@@ -313,9 +328,9 @@ int Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorInvalidValue(Tcl_Interp *interp, Tcl_Obj *badArgObj,
-                         const char *message);
-
+Tclh_ReturnCode Tclh_ErrorInvalidValue(Tcl_Interp *interp,
+                                       Tcl_Obj *badArgObj,
+                                       const char *message);
 
 /* Function: Tclh_ErrorNumArgs
  * Reports an invalid number of arguments passed into a command function.
@@ -338,10 +353,10 @@ int Tclh_ErrorInvalidValue(Tcl_Interp *interp, Tcl_Obj *badArgObj,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int
-Tclh_ErrorNumArgs(Tcl_Interp *interp,
-                  int objc, Tcl_Obj *const objv[],
-                  const char *message);
+Tclh_ReturnCode Tclh_ErrorNumArgs(Tcl_Interp *interp,
+                                  int objc,
+                                  Tcl_Obj *const objv[],
+                                  const char *message);
 
 /* Function: Tclh_ErrorWrongType
  * Reports an error where a value is of the wrong type.
@@ -361,8 +376,8 @@ Tclh_ErrorNumArgs(Tcl_Interp *interp,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorWrongType(Tcl_Interp *interp, Tcl_Obj *argObj,
-                        const char *message);
+Tclh_ReturnCode
+Tclh_ErrorWrongType(Tcl_Interp *interp, Tcl_Obj *argObj, const char *message);
 
 /* Function: Tclh_ErrorAllocation
  * Reports an error where an allocation failed.
@@ -381,7 +396,8 @@ int Tclh_ErrorWrongType(Tcl_Interp *interp, Tcl_Obj *argObj,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorAllocation(Tcl_Interp *interp, const char *type, const char *message);
+Tclh_ReturnCode
+Tclh_ErrorAllocation(Tcl_Interp *interp, const char *type, const char *message);
 
 /* Function: Tclh_ErrorRange
  * Reports an out-of-range error for integers.
@@ -396,10 +412,10 @@ int Tclh_ErrorAllocation(Tcl_Interp *interp, const char *type, const char *messa
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorRange(Tcl_Interp *interp,
-                    Tcl_Obj *objP,
-                    Tcl_WideInt low,
-                    Tcl_WideInt high);
+Tclh_ReturnCode Tclh_ErrorRange(Tcl_Interp *interp,
+                                Tcl_Obj *objP,
+                                Tcl_WideInt low,
+                                Tcl_WideInt high);
 
 /* Function: Tclh_ErrorEncodingFailed
  * Reports an encoding failure converting from utf8
@@ -414,10 +430,10 @@ int Tclh_ErrorRange(Tcl_Interp *interp,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
-                               int encoding_status,
-                               const char *utf8,
-                               Tclh_SSizeT utf8Len);
+Tclh_ReturnCode Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
+                                           int encoding_status,
+                                           const char *utf8,
+                                           Tcl_Size utf8Len);
 
 #ifdef _WIN32
 /* Function: Tclh_ErrorWindowsError
@@ -432,8 +448,9 @@ int Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
  * TCL_ERROR - Always returns this value so caller can just pass on the return
  *             value from this function.
  */
-int
-Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *message);
+Tclh_ReturnCode Tclh_ErrorWindowsError(Tcl_Interp *interp,
+                                       unsigned int winerror,
+                                       const char *message);
 #endif
 
 
@@ -462,7 +479,8 @@ Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *me
 
 #ifdef TCLH_IMPL
 
-int Tclh_BaseLibInit(Tcl_Interp *interp)
+Tclh_ReturnCode
+Tclh_BaseLibInit(Tcl_Interp *interp)
 {
 #if defined(USE_TCL_STUBS) && defined(TCLH_USE_TCL_TOMMATH)
     if (Tcl_TomMath_InitStubs(interp, 0) == NULL) {
@@ -491,7 +509,7 @@ TclhRecordErrorCode(Tcl_Interp *interp, const char *code, Tcl_Obj *msgObj)
 /*  NOTE: caller should hold a ref count to msgObj if it will be accessed
  *    when this function returns
  */
-static int
+static Tclh_ReturnCode
 TclhRecordError(Tcl_Interp *interp, const char *code, Tcl_Obj *msgObj)
 {
     TCLH_ASSERT(code);
@@ -512,7 +530,7 @@ TclhRecordError(Tcl_Interp *interp, const char *code, Tcl_Obj *msgObj)
     return TCL_ERROR;
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorGeneric(Tcl_Interp *interp, const char *code, const char *message)
 {
     Tcl_Obj *msgObj =
@@ -522,8 +540,7 @@ Tclh_ErrorGeneric(Tcl_Interp *interp, const char *code, const char *message)
     return TclhRecordError(interp, "ERROR", msgObj);
 }
 
-
-int
+Tclh_ReturnCode
 Tclh_ErrorWrongType(Tcl_Interp *interp, Tcl_Obj *argObj, const char *message)
 {
     Tcl_Obj *msgObj;
@@ -539,10 +556,10 @@ Tclh_ErrorWrongType(Tcl_Interp *interp, Tcl_Obj *argObj, const char *message)
     return TclhRecordError(interp, "WRONG_TYPE", msgObj);
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorExists(Tcl_Interp *interp,
                  const char *type,
-                 Tcl_Obj *   searchObj,
+                 Tcl_Obj *searchObj,
                  const char *message)
 {
     Tcl_Obj *msgObj;
@@ -562,17 +579,17 @@ Tclh_ErrorExists(Tcl_Interp *interp,
     return TclhRecordError(interp, "EXISTS", msgObj);
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorNotFound(Tcl_Interp *interp,
                    const char *type,
-                   Tcl_Obj *   searchObj,
+                   Tcl_Obj *searchObj,
                    const char *message)
 {
     return Tclh_ErrorNotFoundStr(
         interp, type, searchObj ? Tcl_GetString(searchObj) : NULL, message);
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
                       const char *type,
                       const char *searchStr,
@@ -595,9 +612,11 @@ Tclh_ErrorNotFoundStr(Tcl_Interp *interp,
     return TclhRecordError(interp, "NOT_FOUND", msgObj);
 }
 
-
-int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *oper,
-                         Tcl_Obj *operandObj, const char *message)
+Tclh_ReturnCode
+Tclh_ErrorOperFailed(Tcl_Interp *interp,
+                     const char *oper,
+                     Tcl_Obj *operandObj,
+                     const char *message)
 {
     Tcl_Obj *msgObj;
     const char *operand;
@@ -611,7 +630,7 @@ int Tclh_ErrorOperFailed(Tcl_Interp *interp, const char *oper,
     return TclhRecordError(interp, "OPER_FAILED", msgObj);
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
                           const char *badValue,
                           const char *message)
@@ -628,24 +647,26 @@ Tclh_ErrorInvalidValueStr(Tcl_Interp *interp,
     return TclhRecordError(interp, "INVALID_VALUE", msgObj);
 }
 
-int
-Tclh_ErrorInvalidValue(Tcl_Interp *interp, Tcl_Obj *badArgObj, const char *message)
+Tclh_ReturnCode
+Tclh_ErrorInvalidValue(Tcl_Interp *interp,
+                       Tcl_Obj *badArgObj,
+                       const char *message)
 {
     return Tclh_ErrorInvalidValueStr(
         interp, badArgObj ? Tcl_GetString(badArgObj) : NULL, message);
 }
 
-int
-Tclh_ErrorNumArgs(Tcl_Interp *   interp,
-                  int            objc,
+Tclh_ReturnCode
+Tclh_ErrorNumArgs(Tcl_Interp *interp,
+                  int objc,
                   Tcl_Obj *const objv[],
-                  const char *   message)
+                  const char *message)
 {
     Tcl_WrongNumArgs(interp, objc, objv, message);
     return TCL_ERROR;
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorAllocation(Tcl_Interp *interp, const char *type, const char *message)
 {
     Tcl_Obj *msgObj;
@@ -657,7 +678,7 @@ Tclh_ErrorAllocation(Tcl_Interp *interp, const char *type, const char *message)
     return TclhRecordError(interp, "ALLOCATION", msgObj);
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorRange(Tcl_Interp *interp,
                 Tcl_Obj *objP,
                 Tcl_WideInt low,
@@ -702,11 +723,11 @@ char *TclhPrintAddress(const void *address, char *buf, int buflen)
     return buf;
 }
 
-int
+Tclh_ReturnCode
 Tclh_ErrorEncodingFromUtf8(Tcl_Interp *ip,
                            int encoding_status,
                            const char *utf8,
-                           Tclh_SSizeT utf8Len)
+                           Tcl_Size utf8Len)
 {
     const char *message;
     char limited[80];
@@ -747,7 +768,7 @@ Tcl_Obj *TclhMapWindowsError(
                                  * If NULL, assumed to be system message. */
     const char *msgPtr)         /* Message prefix. May be NULL. */
 {
-    Tclh_SSizeT length;
+    Tcl_Size length;
     DWORD flags;
     WCHAR *winErrorMessagePtr = NULL;
     Tcl_Obj *objPtr;
@@ -783,7 +804,7 @@ Tcl_Obj *TclhMapWindowsError(
             if (winErrorMessagePtr[length-1] == L'\r')
                 --length;
         }
-#if TCLH_TCLAPI_VERSION < 87
+#if TCLH_TCLAPI_VERSION < 0x0807
         objPtr =
             Tcl_NewStringObj(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds));
         Tcl_DStringFree(&ds);
@@ -802,8 +823,10 @@ Tcl_Obj *TclhMapWindowsError(
     return objPtr;
 }
 
-int
-Tclh_ErrorWindowsError(Tcl_Interp *interp, unsigned int winerror, const char *message)
+Tclh_ReturnCode
+Tclh_ErrorWindowsError(Tcl_Interp *interp,
+                       unsigned int winerror,
+                       const char *message)
 {
     Tcl_Obj *msgObj = TclhMapWindowsError(winerror, NULL, message);
     return TclhRecordError(interp, "WINERROR", msgObj);

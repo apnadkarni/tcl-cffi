@@ -22,7 +22,7 @@
  * TCL_ERROR - Initialization failed. Library functions must not be called.
  *             An error message is left in the interpreter result.
  */
-int Tclh_HashLibInit(Tcl_Interp *interp);
+Tclh_ReturnCode Tclh_HashLibInit(Tcl_Interp *interp);
 
 /* Function: Tclh_HashAdd
  * Adds an entry to a table of names
@@ -38,10 +38,10 @@ int Tclh_HashLibInit(Tcl_Interp *interp);
  * Returns:
  * TCL_OK on success, TCL_ERROR on failure.
  */
-int Tclh_HashAdd(Tcl_Interp *ip,
-                 Tcl_HashTable *htP,
-                 const void *key,
-                 ClientData value);
+Tclh_ReturnCode Tclh_HashAdd(Tcl_Interp *ip,
+                             Tcl_HashTable *htP,
+                             const void *key,
+                             ClientData value);
 
 /* Function: Tclh_HashAddOrReplace
  * Adds or replaces an entry to a table of names
@@ -59,10 +59,10 @@ int Tclh_HashAdd(Tcl_Interp *ip,
  * Returns:
  * 0 if the name already existed, and non-0 if a new entry was added.
  */
-int Tclh_HashAddOrReplace(Tcl_HashTable *htP,
-                          const void *key,
-                          ClientData value,
-                          ClientData *oldValueP);
+Tclh_Bool Tclh_HashAddOrReplace(Tcl_HashTable *htP,
+                                const void *key,
+                                ClientData value,
+                                ClientData *oldValueP);
 
 /* Function: Tclh_HashIterate
  * Invokes a specified function on all entries in a hash table
@@ -82,9 +82,10 @@ int Tclh_HashAddOrReplace(Tcl_HashTable *htP,
  * Returns *1* if the iteration terminated normally with all entries processed,
  * and *0* if it was terminated by the callback returning *0*.
  */
-int Tclh_HashIterate(Tcl_HashTable *htP,
-                     int (*fnP)(Tcl_HashTable *, Tcl_HashEntry *, ClientData),
-                     ClientData fnData);
+Tclh_Bool
+Tclh_HashIterate(Tcl_HashTable *htP,
+                 int (*fnP)(Tcl_HashTable *, Tcl_HashEntry *, ClientData),
+                 ClientData fnData);
 
 /* Function: Tclh_HashLookup
  * Retrieves the value associated with a key in a hash table.
@@ -98,7 +99,8 @@ int Tclh_HashIterate(Tcl_HashTable *htP,
  * Returns:
  * *TCL_OK* if found, *TCL_ERROR* on failure.
  */
-int Tclh_HashLookup(Tcl_HashTable *htP, const void *key, ClientData *valueP);
+Tclh_ReturnCode
+Tclh_HashLookup(Tcl_HashTable *htP, const void *key, ClientData *valueP);
 
 #ifdef TCLH_SHORTNAMES
 
@@ -119,11 +121,13 @@ int Tclh_HashLookup(Tcl_HashTable *htP, const void *key, ClientData *valueP);
  *
  * Contains utilities dealing with Tcl hash tables.
  */
-int Tclh_HashLibInit(Tcl_Interp *ip) {
+Tclh_ReturnCode
+Tclh_HashLibInit(Tcl_Interp *ip)
+{
     return Tclh_BaseLibInit(ip);
 }
 
-int
+Tclh_ReturnCode
 Tclh_HashAdd(Tcl_Interp *ip,
              Tcl_HashTable *htP,
              const void *key,
@@ -139,7 +143,7 @@ Tclh_HashAdd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
-int
+Tclh_Bool
 Tclh_HashAddOrReplace(Tcl_HashTable *htP,
                       const void *key,
                       ClientData value,
@@ -155,7 +159,7 @@ Tclh_HashAddOrReplace(Tcl_HashTable *htP,
     return isNew;
 }
 
-int
+Tclh_ReturnCode
 Tclh_HashLookup(Tcl_HashTable *htP, const void *key, ClientData *valueP)
 {
     Tcl_HashEntry *heP;
@@ -169,7 +173,7 @@ Tclh_HashLookup(Tcl_HashTable *htP, const void *key, ClientData *valueP)
         return TCL_ERROR;
 }
 
-int
+Tclh_Bool
 Tclh_HashIterate(Tcl_HashTable *htP,
                  int (*fnP)(Tcl_HashTable *, Tcl_HashEntry *, ClientData),
                  ClientData fnData)
