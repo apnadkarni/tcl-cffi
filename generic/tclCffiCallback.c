@@ -294,7 +294,7 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
     CffiProto *protoP;
     Tcl_Obj *protoFqnObj = NULL;
     Tcl_Obj **cmdObjs;
-    Tclh_SSizeT nCmdObjs;
+    Tcl_Size nCmdObjs;
     Tcl_Obj *cbObj;
     CffiResult ret;
     void *closureP;

@@ -52,10 +52,10 @@ CffiHelpFunctionsCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *evalObjs[3];
     int nEvalObjs;
     Tcl_Obj **commandObjs;
-    Tclh_SSizeT nCommands;
+    Tcl_Size nCommands;
     Tcl_Interp *ip = ipCtxP->interp;
     CffiResult ret;
-    Tclh_SSizeT i;
+    Tcl_Size i;
 
     CFFI_ASSERT(objc == 2 || objc == 3);
 

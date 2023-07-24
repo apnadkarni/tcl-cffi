@@ -19,7 +19,7 @@ static void CffiParamCleanup(CffiParam *paramP)
     Tclh_ObjClearPtr(&paramP->nameObj);
 }
 
-static CffiProto *CffiProtoAllocate(Tclh_SSizeT nparams)
+static CffiProto *CffiProtoAllocate(Tcl_Size nparams)
 {
     size_t         sz;
     CffiProto *protoP;
@@ -127,7 +127,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     Tcl_Interp *ip = ipCtxP->interp;
     CffiProto *protoP;
     Tcl_Obj **objs;
-    Tclh_SSizeT i, j, nobjs;
+    Tcl_Size i, j, nobjs;
     int need_pass2;
     int isVarArgs;
 

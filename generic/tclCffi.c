@@ -142,7 +142,7 @@ Tclh_SubCommandLookup(Tcl_Interp *ip,
 CffiResult
 CffiGetEncodingFromObj(Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Encoding *encP)
 {
-    Tclh_SSizeT len;
+    Tcl_Size len;
     /*
      * Use Tcl_GetStringFromObj because Tcl_GetCharLength will shimmer
      */

@@ -133,8 +133,8 @@ CffiEnumMemberBitmask(Tcl_Interp *ip,
 {
     Tcl_Obj **objs;
     Tcl_WideInt mask;
-    Tclh_SSizeT nobjs;
-    Tclh_SSizeT i;
+    Tcl_Size nobjs;
+    Tcl_Size i;
     CffiResult ret = TCL_OK;
 
     /* TBD - handles ulonglong correctly? */
@@ -325,8 +325,8 @@ CffiEnumFlagsCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *enumObj;
     Tcl_Obj *fqnObj;
     Tcl_Obj **names;
-    Tclh_SSizeT nNames;
-    Tclh_SSizeT i;
+    Tcl_Size nNames;
+    Tcl_Size i;
     int ret;
 
     CFFI_ASSERT(objc == 4);
@@ -367,8 +367,8 @@ CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *enumObj;
     Tcl_Obj *fqnObj;
     Tcl_Obj **names;
-    Tclh_SSizeT nNames;
-    Tclh_SSizeT i;
+    Tcl_Size nNames;
+    Tcl_Size i;
     Tcl_WideInt start;
     Tcl_WideInt value;
     int ret;
@@ -388,7 +388,7 @@ CffiEnumSequenceCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     enumObj = Tcl_NewListObj(2 * nNames, NULL);
     for (value = start, i = 0; i < nNames; ++value, ++i) {
         Tcl_Obj **objs;
-        Tclh_SSizeT nobjs;
+        Tcl_Size nobjs;
         if (Tcl_ListObjGetElements(NULL, names[i], &nobjs, &objs) != TCL_OK
             || nobjs == 0 || nobjs > 2
             || CffiNameSyntaxCheck(ip, objs[0]) != TCL_OK

@@ -188,7 +188,7 @@ CffiAliasDefineCmd(CffiInterpCtx *ipCtxP,
         /* Dup to protect list from shimmering away */
         Tcl_Obj *defsObj = Tcl_DuplicateObj(objv[2]);
         Tcl_Obj **objs;
-        Tclh_SSizeT nobjs;
+        Tcl_Size nobjs;
         Tcl_IncrRefCount(defsObj);
         ret = Tcl_ListObjGetElements(ip, defsObj, &nobjs, &objs);
         if (ret == TCL_OK) {

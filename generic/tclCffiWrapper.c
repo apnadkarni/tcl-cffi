@@ -98,7 +98,7 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
                     CffiABIProtocol callMode)
 {
     Tcl_Obj **objs;
-    Tclh_SSizeT i, nobjs;
+    Tcl_Size i, nobjs;
     int ret;
     Tcl_Obj *errorMessages = NULL;
 

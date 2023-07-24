@@ -307,7 +307,7 @@ int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag ex
 }
 
 Tcl_Obj *
-CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tclh_SSizeT tagLen)
+CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tcl_Size tagLen)
 {
     Tcl_Namespace *nsP;
     Tcl_Obj *tagObj;
@@ -329,7 +329,7 @@ CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tclh_SSizeT tagLen)
 
 Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj)
 {
-    Tclh_SSizeT len;
+    Tcl_Size len;
     const char *tag = Tcl_GetStringFromObj(tagObj, &len);
     return CffiMakePointerTag(ip, tag, len);
 }
@@ -393,8 +393,8 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
 CffiResult
 CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
 {
-    Tclh_SSizeT tokenLen;
-    Tclh_SSizeT tagLen;
+    Tcl_Size tokenLen;
+    Tcl_Size tagLen;
     const char *message;
     const char *typeStr;
     const char *tagStr;/* Points to start of tag if any */
@@ -451,7 +451,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
         }
         lbStr = strchr(tagStr, '[');
         if (lbStr)
-            tagLen  = (Tclh_SSizeT)(lbStr - tagStr); /* TYPE.TAG[N] */
+            tagLen  = (Tcl_Size)(lbStr - tagStr); /* TYPE.TAG[N] */
         else
             tagLen = Tclh_strlen(tagStr); /* TYPE.TAG */
     }
@@ -743,7 +743,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 {
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj **objs;
-    Tclh_SSizeT i, nobjs;
+    Tcl_Size i, nobjs;
     int temp;
     CffiAttrFlags flags;
     CffiAttrFlags validAttrs;
@@ -783,7 +783,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     for (i = 1; i < nobjs; ++i) {
         Tcl_Obj **fieldObjs;
         int attrIndex;
-        Tclh_SSizeT nFields;
+        Tcl_Size nFields;
 
         if (Tcl_ListObjGetElements(ip, objs[i], &nFields, &fieldObjs) != TCL_OK
             || nFields == 0) {
@@ -929,7 +929,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             if (typeAttrP->dataType.u.tagObj)
                 goto invalid_format; /* Something already using the slot? */
             /* May be a dictionary or a named enum */
-            Tclh_SSizeT dictSize;
+            Tcl_Size dictSize;
             if (Tcl_DictObjSize(NULL, fieldObjs[1], &dictSize) == TCL_OK) {
                  /* TBD - check if numeric */
                 typeAttrP->dataType.u.tagObj = fieldObjs[1];
@@ -1343,7 +1343,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                         Tcl_Obj *valueObj,
                         CffiFlags flags,
                         void *valueBaseP,
-                        Tclh_SSizeT indx,
+                        Tcl_Size indx,
                         MemLifo *memlifoP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
@@ -1351,7 +1351,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
     CffiResult ret;
     Tcl_DString ds;
     char *tempP;
-    Tclh_SSizeT len;
+    Tcl_Size len;
 
     /*
      * Note if CFFI_F_PRESERVE_ON_ERROR is set, output must be preserved on error
@@ -1512,7 +1512,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                 return ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
             }
             else {
-                Tclh_SSizeT space;
+                Tcl_Size space;
                 Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(valueObj, &space);
                 Tcl_UniChar *toP;
                 Tcl_UniChar **uniPP = indx + (Tcl_UniChar **)valueBaseP;
@@ -1605,7 +1605,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
     }
     else {
         Tcl_Obj **valueObjList;
-        Tclh_SSizeT indx, nvalues, count;
+        Tcl_Size indx, nvalues, count;
         int baseSize;
 
         baseSize = typeAttrsP->dataType.baseTypeSize;
@@ -1671,7 +1671,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                 /* Need temporary space so output not modified on error */
                 Tcl_DString ds;
                 CffiResult ret;
-                Tclh_SSizeT totalSize = nvalues * baseSize;
+                Tcl_Size totalSize = nvalues * baseSize;
                 void *tempP;
                 Tcl_DStringInit(&ds);
                 Tcl_DStringSetLength(&ds, totalSize);
@@ -2108,7 +2108,7 @@ CffiUniStringToObj(Tcl_Interp *ip,
                        Tcl_Obj **resultObjP)
 {
     char *srcP;
-    Tclh_SSizeT outbuf_size;
+    Tcl_Size outbuf_size;
 
     srcP = Tcl_DStringValue(dsP);
     outbuf_size = Tcl_DStringLength(dsP); /* ORIGINAL size */
@@ -2144,9 +2144,9 @@ CffiResult
 CffiCharsFromTclString(Tcl_Interp *ip,
                        Tcl_Obj *encObj,
                        const char *fromP,
-                       Tclh_SSizeT fromLen,
+                       Tcl_Size fromLen,
                        char *toP,
-                       Tclh_SSizeT toSize)
+                       Tcl_Size toSize)
 {
     Tcl_Encoding encoding;
     CffiResult ret;
@@ -2259,9 +2259,9 @@ CffiCharsFromTclString(Tcl_Interp *ip,
  */
 CffiResult
 CffiCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tclh_SSizeT toSize)
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize)
 {
-    Tclh_SSizeT fromLen;
+    Tcl_Size fromLen;
     const char *fromP;
 
     fromP = Tcl_GetStringFromObj(fromObj, &fromLen);
@@ -2291,7 +2291,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
                           char **outPP)
 {
     const char *fromP;
-    Tclh_SSizeT fromLen, dstLen, srcLen, dstSpace;
+    Tcl_Size fromLen, dstLen, srcLen, dstSpace;
     int srcLatestRead, dstLatestWritten;
     const char *srcP;
     char *dstP;
@@ -2375,7 +2375,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
  */
 CffiResult
 CffiCharsFromObjSafe(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tclh_SSizeT toSize)
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize)
 {
     Tcl_DString ds;
     char *dsBuf;
@@ -2468,9 +2468,9 @@ CffiCharsToObj(Tcl_Interp *ip,
  */
 CffiResult
 CffiUniCharsFromObjSafe(
-    Tcl_Interp *ip, Tcl_Obj *fromObj, Tcl_UniChar *toP, Tclh_SSizeT toSize)
+    Tcl_Interp *ip, Tcl_Obj *fromObj, Tcl_UniChar *toP, Tcl_Size toSize)
 {
-    Tclh_SSizeT fromLen;
+    Tcl_Size fromLen;
     Tcl_UniChar *fromP = Tcl_GetUnicodeFromObj(fromObj, &fromLen);
     ++fromLen; /* For terminating null */
 
@@ -2501,9 +2501,9 @@ CffiUniCharsFromObjSafe(
  * in the interpreter.
  */
 CffiResult
-CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tclh_SSizeT toSize)
+CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_Size toSize)
 {
-    Tclh_SSizeT fromLen;
+    Tcl_Size fromLen;
     unsigned char *fromP;
 
     fromP = Tcl_GetByteArrayFromObj(fromObj, &fromLen);

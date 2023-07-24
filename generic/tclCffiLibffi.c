@@ -255,7 +255,7 @@ CffiLibffiInitProtoCif(CffiInterpCtx *ipCtxP,
     for (numVarArgTypesInited = 0, i = 0; i < numVarArgs; ++i) {
         /* The varargs arguments are pairs consisting of type and value. */
         Tcl_Obj **argObjs;
-        Tclh_SSizeT n;
+        Tcl_Size n;
         if (Tcl_ListObjGetElements(NULL, varArgObjs[i], &n, &argObjs) != TCL_OK
             || n != 2) {
             Tclh_ErrorInvalidValue(
@@ -319,7 +319,7 @@ error_handler:
 static CffiResult
 CffiLibffiCallbackArgToObj(CffiCallback *cbP,
                            ffi_cif *cifP,
-                           Tclh_SSizeT argIndex,
+                           Tcl_Size argIndex,
                            void **args,
                            Tcl_Obj **argObjP)
 {
@@ -486,7 +486,7 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
 {
     Tcl_Obj **evalObjs;
     Tcl_Obj **cmdObjs;
-    Tclh_SSizeT i, nEvalObjs, nCmdObjs;
+    Tcl_Size i, nEvalObjs, nCmdObjs;
     CffiResult ret;
     Tcl_Obj *resultObj;
     CffiCallback *cbP = (CffiCallback *)userdata;

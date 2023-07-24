@@ -16,8 +16,6 @@
 #include "tclhHash.h"
 #include "memlifo.h"
 
-typedef Tcl_Size Tclh_SSizeT;
-
 /*
  * Which back end system are we using? Currently only two supported. At most
  * one must be defined with libffi as default.
@@ -535,21 +533,21 @@ void CffiStructUnref(CffiStruct *structP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult
-CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tclh_SSizeT toSize);
+CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_Size toSize);
 CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
                                Tcl_Obj *fromObj,
                                Tcl_UniChar *toP,
-                               Tclh_SSizeT toSize);
+                               Tcl_Size toSize);
 CffiResult CffiCharsFromTclString(Tcl_Interp *ip,
                                   Tcl_Obj *encObj,
                                   const char *fromP,
-                                  Tclh_SSizeT fromLen,
+                                  Tcl_Size fromLen,
                                   char *toP,
-                                  Tclh_SSizeT toSize);
+                                  Tcl_Size toSize);
 CffiResult CffiCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tclh_SSizeT toSize);
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize);
 CffiResult CffiCharsFromObjSafe(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tclh_SSizeT toSize);
+    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize);
 CffiResult CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
                                      Tcl_Obj *encObj,
                                      Tcl_Obj *fromObj,
@@ -581,7 +579,7 @@ CffiResult CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                    Tcl_Obj *valueObj,
                                    CffiFlags flags,
                                    void *resultP,
-                                   Tclh_SSizeT indx,
+                                   Tcl_Size indx,
                                    MemLifo *memlifoP);
 CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                   const CffiTypeAndAttrs *typeAttrsP,
@@ -604,7 +602,7 @@ CffiResult CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
                                 Tcl_Obj **valueObjP);
 Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj);
 Tcl_Obj *
-CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tclh_SSizeT tagLen);
+CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tcl_Size tagLen);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);

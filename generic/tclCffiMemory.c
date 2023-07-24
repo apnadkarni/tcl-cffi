@@ -354,7 +354,7 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
     CffiResult ret;
     Tcl_Obj *ptrObj;
     char *p;
-    Tclh_SSizeT len;
+    Tcl_Size len;
 
     if (objc < 4)
         encoding = NULL;
