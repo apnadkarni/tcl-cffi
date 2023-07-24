@@ -1,0 +1,4 @@
+[submodule "tclh"]
+	path = tclh
+	url = git@github.com:apnadkarni/tclh.git
+	branch = v1-stable
