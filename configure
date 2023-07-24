@@ -4962,7 +4962,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 
 
-    vars="-I${srcdir}/generic"
+    vars="-I${srcdir}/generic -I${srcdir}/tclh/include"
     for i in $vars; do
 	PKG_INCLUDES="$PKG_INCLUDES $i"
     done

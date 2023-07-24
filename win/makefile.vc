@@ -85,17 +85,19 @@ PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiDyncall.obj
 PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiLibffi.obj
 !endif
 
+TCLHDIR = $(ROOT)\tclh\include
+
 PRJ_TEST_OBJS = $(TMP_DIR)\tclCffiTest.obj
 PRJ_TEST_DLL = $(OUT_DIR)\cffitest.dll
 
 HEADERS = \
 	$(GENERICDIR)\tclCffiInt.h \
-	$(GENERICDIR)\tclhBase.h \
-	$(GENERICDIR)\tclhPointer.h \
 	$(GENERICDIR)\memlifo.h \
-	$(GENERICDIR)\tclhObj.h
+	$(TCLHDIR)\tclhBase.h \
+	$(TCLHDIR)\tclhPointer.h \
+	$(TCLHDIR)\tclhObj.h
 
-PRJ_INCLUDES = -I $(EXTDIR)\include
+PRJ_INCLUDES = -I $(TCLHDIR) -I $(EXTDIR)\include
 
 PRJ_DEFINES = -D_CRT_SECURE_NO_WARNINGS -DTCL_NO_DEPRECATED
 
