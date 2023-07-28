@@ -34,7 +34,7 @@ CffiMemoryAddressFromObj(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerUnwrap(ipCtxP->interp, ptrObj, &pv));
     else
         CHECK(Tclh_PointerObjVerify(
-            ipCtxP->interp, ipCtxP->pointerRegistry, ptrObj, &pv, NULL));
+            ipCtxP->interp, ipCtxP->tclhCtxP, ptrObj, &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ipCtxP->interp, "Pointer is NULL.", TCL_STATIC);
@@ -100,7 +100,7 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
     else
         tagObj = NULL;
 
-    ret = Tclh_PointerRegister(ip, ipCtxP->pointerRegistry, p, tagObj, &ptrObj);
+    ret = Tclh_PointerRegister(ip, ipCtxP->tclhCtxP, p, tagObj, &ptrObj);
     if (tagObj)
         Tcl_DecrRefCount(tagObj);
     if (ret == TCL_OK)
@@ -162,7 +162,7 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
         else
             tagObj = NULL;
         ret = Tclh_PointerRegister(
-            ip, ipCtxP->pointerRegistry, pv, tagObj, &ptrObj);
+            ip, ipCtxP->tclhCtxP, pv, tagObj, &ptrObj);
         if (ret == TCL_OK)
             Tcl_SetObjResult(ip, ptrObj);
         if (tagObj)
@@ -207,7 +207,7 @@ CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP,
     CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     if (pv == NULL)
         return TCL_OK;
-    ret = Tclh_PointerUnregister(ip, ipCtxP->pointerRegistry, pv, NULL);
+    ret = Tclh_PointerUnregister(ip, ipCtxP->tclhCtxP, pv, NULL);
     if (ret == TCL_OK)
         ckfree(pv);
     return ret;
@@ -254,7 +254,7 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP,
     }
     else
         tagObj = NULL;
-    ret = Tclh_PointerRegister(ip, ipCtxP->pointerRegistry, p, tagObj, &ptrObj);
+    ret = Tclh_PointerRegister(ip, ipCtxP->tclhCtxP, p, tagObj, &ptrObj);
     if (tagObj)
         Tcl_DecrRefCount(tagObj);
     if (ret == TCL_OK)
@@ -299,7 +299,7 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     else
         CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->pointerRegistry, objv[2], &pv, NULL));
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
@@ -380,7 +380,7 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
     }
     Tcl_DStringFree(&ds);
 
-    ret = Tclh_PointerRegister(ip, ipCtxP->pointerRegistry, p, NULL, &ptrObj);
+    ret = Tclh_PointerRegister(ip, ipCtxP->tclhCtxP, p, NULL, &ptrObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, ptrObj);
     else
@@ -428,7 +428,7 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     else
         CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->pointerRegistry, objv[2], &pv, NULL));
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
@@ -621,7 +621,7 @@ CffiMemoryFillCmd(CffiInterpCtx *ipCtxP,
     }
     else
         CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->pointerRegistry, objv[2], &pv, NULL));
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
 
     if (pv == NULL) {
         Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);

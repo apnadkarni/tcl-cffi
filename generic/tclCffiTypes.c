@@ -2021,13 +2021,13 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
             if (flags & CFFI_F_ATTR_COUNTED)
                 ret = Tclh_PointerRegisterCounted(
                     ip,
-                    ipCtxP->pointerRegistry,
+                    ipCtxP->tclhCtxP,
                     pointer,
                     typeAttrsP->dataType.u.tagObj,
                     resultObjP);
             else
                 ret = Tclh_PointerRegister(ip,
-                                           ipCtxP->pointerRegistry,
+                                           ipCtxP->tclhCtxP,
                                            pointer,
                                            typeAttrsP->dataType.u.tagObj,
                                            resultObjP);
@@ -2064,7 +2064,7 @@ CffiPointerFromObj(CffiInterpCtx *ipCtxP,
     void *pv;
 
     CHECK(Tclh_PointerUnwrapTagged(
-        ip, ipCtxP->pointerRegistry, pointerObj, &pv, tagObj));
+        ip, ipCtxP->tclhCtxP, pointerObj, &pv, tagObj));
 
     if (pv == NULL) {
         if ((typeAttrsP->flags & CFFI_F_ATTR_NULLOK) == 0) {
@@ -2077,7 +2077,7 @@ CffiPointerFromObj(CffiInterpCtx *ipCtxP,
          * because that rejects NULL pointers.
          */
         if (!(typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
-            CHECK(Tclh_PointerVerify(ip, ipCtxP->pointerRegistry, pv, tagObj));
+            CHECK(Tclh_PointerVerify(ip, ipCtxP->tclhCtxP, pv, tagObj));
         }
     }
 

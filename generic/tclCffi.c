@@ -402,7 +402,7 @@ DLLEXPORT int
 Cffi_Init(Tcl_Interp *ip)
 {
     CffiInterpCtx *ipCtxP = NULL;
-    Tclh_PointerRegistry ptrRegistry = NULL;
+    Tclh_LibContext *tclhCtxP = NULL;
 
 #ifdef USE_TCL_STUBS
     if (Tcl_InitStubs(ip, "8.6", 0) == NULL) {
@@ -414,13 +414,13 @@ Cffi_Init(Tcl_Interp *ip)
     }
 #endif
 
-    CHECK(Tclh_BaseLibInit(ip));
-    CHECK(Tclh_ObjLibInit(ip));
-    CHECK(Tclh_PointerLibInit(ip, &ptrRegistry));
-    CHECK(Tclh_NsLibInit(ip));
-    CHECK(Tclh_HashLibInit(ip));
+    CHECK(Tclh_LibInit(ip, &tclhCtxP));
+    CHECK(Tclh_ObjLibInit(ip, tclhCtxP));
+    CHECK(Tclh_PointerLibInit(ip, tclhCtxP));
+    CHECK(Tclh_NsLibInit(ip, tclhCtxP));
+    CHECK(Tclh_HashLibInit(ip, tclhCtxP));
     CHECK(CffiInterpCtxAllocAndInit(ip, &ipCtxP));
-    ipCtxP->pointerRegistry = ptrRegistry;
+    ipCtxP->tclhCtxP = tclhCtxP;
 
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Wrapper", CffiWrapperObjCmd, ipCtxP, NULL);

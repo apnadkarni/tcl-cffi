@@ -82,7 +82,7 @@ CffiPointerArgsDispose(CffiInterpCtx *ipCtxP,
                     /* Scalar */
                     if (argsP[i].savedValue.u.ptr != NULL)
                         Tclh_PointerUnregister(ip,
-                                               ipCtxP->pointerRegistry,
+                                               ipCtxP->tclhCtxP,
                                                argsP[i].savedValue.u.ptr,
                                                NULL);
                 }
@@ -94,7 +94,7 @@ CffiPointerArgsDispose(CffiInterpCtx *ipCtxP,
                     for (j = 0; j < nptrs; ++j) {
                         if (ptrArray[j] != NULL)
                             Tclh_PointerUnregister(
-                                ip, ipCtxP->pointerRegistry, ptrArray[j], NULL);
+                                ip, ipCtxP->tclhCtxP, ptrArray[j], NULL);
                     }
                 }
             }

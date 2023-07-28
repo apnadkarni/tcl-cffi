@@ -360,7 +360,7 @@ typedef struct CffiInterpCtx {
     DCCallVM *vmP; /* The dyncall call context to use */
 #endif
     MemLifo memlifo;        /* Software stack */
-    Tclh_PointerRegistry pointerRegistry;
+    Tclh_LibContext *tclhCtxP;
 } CffiInterpCtx;
 
 /* Context for dll commands. */
