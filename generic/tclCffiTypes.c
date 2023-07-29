@@ -1249,7 +1249,7 @@ CffiIntValueFromObj(Tcl_Interp *ip,
             valueObj = enumValueObj;
     }
     /* 8.6 differs in treatment of unsigned values > WIDE_MAX */
-#if TCLH_TCLAPI_VERSION >= 87
+#if TCLH_TCLAPI_VERSION >= 0x0807
     if (typeAttrsP
         && ((typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONGLONG)
             || (typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONG

@@ -165,7 +165,7 @@ void* MemLifoAllocMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_szP)
     sz = ROUNDUP(sz);
     if (sz == 0 || sz > MEMLIFO_MAX_ALLOC) {
         if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-            Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo", sz);
+            Tcl_Panic("Attempt to allocate %" MEMLIFO_SIZE_MODIFIER "u bytes for memlifo", sz);
         return NULL;
     }
 
@@ -236,7 +236,7 @@ void* MemLifoAllocMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_szP)
         c = l->lifo_allocFn(chunk_sz);
         if (c == 0) {
             if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-                Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER
+                Tcl_Panic("Attempt to allocate %" MEMLIFO_SIZE_MODIFIER
                           "u bytes for memlifo",
                           chunk_sz);
             return 0;
@@ -263,7 +263,7 @@ void* MemLifoAllocMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_szP)
         c = (MemLifoChunk *)l->lifo_allocFn(chunk_sz);
         if (c == 0) {
             if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-                Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo",
+                Tcl_Panic("Attempt to allocate %" MEMLIFO_SIZE_MODIFIER "u bytes for memlifo",
                           chunk_sz);
             return NULL;
         }
@@ -319,7 +319,7 @@ MemLifoPushMark(MemLifo *l)
         c = l->lifo_allocFn(l->lifo_chunk_size);
         if (c == 0) {
             if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-                Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER
+                Tcl_Panic("Attempt to allocate %" MEMLIFO_SIZE_MODIFIER
                           "u bytes for memlifo",
                           l->lifo_chunk_size);
             return 0;
@@ -412,7 +412,7 @@ void *MemLifoPushFrameMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_sz
 
     if (sz > MEMLIFO_MAX_ALLOC) {
         if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-            Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo", sz);
+            Tcl_Panic("Attempt to allocate %" MEMLIFO_SIZE_MODIFIER "u bytes for memlifo", sz);
         return NULL;
     }
 
@@ -466,7 +466,7 @@ void *MemLifoPushFrameMin(MemLifo *l, MemLifoUSizeT sz, MemLifoUSizeT *actual_sz
         MemLifoPopMark(n);
     }
     if (l->lifo_flags & MEMLIFO_F_PANIC_ON_FAIL)
-        Tcl_Panic("Attempt to allocate %" TCL_SIZE_MODIFIER "u bytes for memlifo", sz);
+        Tcl_Panic("Attempt to allocate %" MEMLIFO_SIZE_MODIFIER "u bytes for memlifo", sz);
     return NULL;
 }
 

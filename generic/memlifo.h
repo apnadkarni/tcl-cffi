@@ -26,6 +26,7 @@
 #endif
 
 typedef size_t MemLifoUSizeT;
+#define MEMLIFO_SIZE_MODIFIER "z"
 
 typedef struct _MemLifo MemLifo;
 typedef struct _MemLifoMark MemLifoMark;
