@@ -709,7 +709,7 @@ Twapi_MemLifoDump(Tcl_Interp *interp, MemLifo *l)
     objs[13] = ObjFromDWORD_PTR(l->lifo_bot_mark);
 
     objs[14] = STRING_LITERAL_OBJ("marks");
-    objs[15] = ObjNewList(0, NULL);
+    objs[15] = Tcl_NewListObj(0, NULL);
 
     m = l->lifo_top_mark;
     do {
@@ -730,14 +730,15 @@ Twapi_MemLifoDump(Tcl_Interp *interp, MemLifo *l)
         mobjs[13] = ObjFromLPVOID(m->lm_chunks);
         mobjs[14] = STRING_LITERAL_OBJ("lm_freeptr");
         mobjs[15] = ObjFromDWORD_PTR(m->lm_freeptr);
-        ObjAppendElement(interp, objs[15], ObjNewList(ARRAYSIZE(mobjs), mobjs));
+        Tcl_ListObjAppendElement(interp, objs[15], Tcl_NewListObj(ARRAYSIZE(mobjs), mobjs));
 
         if (m == m->lm_prev)
             break;
         m = m->lm_prev;
     } while (1);
 
-    return ObjSetResult(interp, ObjNewList(ARRAYSIZE(objs), objs));
+    Tcl_SetObjResult(interp, Tcl_NewListObj(ARRAYSIZE(objs), objs));
+    return TCL_OK;
 }
 #endif
 
