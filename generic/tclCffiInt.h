@@ -14,6 +14,7 @@
 #include "tclhPointer.h"
 #include "tclhNamespace.h"
 #include "tclhHash.h"
+#include "tclhAtom.h"
 #include "memlifo.h"
 
 /*
@@ -509,7 +510,7 @@ CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
 
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
                                             Tcl_Obj *baseTypeObj);
-CffiResult CffiTypeParse(Tcl_Interp *ip,
+CffiResult CffiTypeParse(CffiInterpCtx *ipCtxP,
                          Tcl_Obj *typeObj,
                          CffiType *typeP);
 void CffiTypeCleanup(CffiType *);
@@ -600,9 +601,9 @@ CffiResult CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
                                 int startIndex,
                                 int count,
                                 Tcl_Obj **valueObjP);
-Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj);
+Tcl_Obj *CffiMakePointerTagFromObj(CffiInterpCtx *ipCtxP, Tcl_Obj *tagObj);
 Tcl_Obj *
-CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tcl_Size tagLen);
+CffiMakePointerTag(CffiInterpCtx *, const char *tagP, Tcl_Size tagLen);
 CffiResult CffiCheckPointer(Tcl_Interp *ip,
                             const CffiTypeAndAttrs *typeAttrsP,
                             void *pointer, Tcl_WideInt *sysErrorP);

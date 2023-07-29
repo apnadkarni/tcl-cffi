@@ -89,7 +89,7 @@ CffiNameLookup(Tcl_Interp *ip,
     /* If interpreter provided, try with current namespace, else global */
     if (ip) {
         nsP  = Tcl_GetCurrentNamespace(ip);
-        fqnP = Tclh_NsQualifyName(NULL, nameP, &ds, nsP->fullName);
+        fqnP = Tclh_NsQualifyName(NULL, nameP, -1, &ds, nsP->fullName);
         ret  = Tclh_HashLookup(htP, fqnP, valueP);
         if (ret == TCL_OK && fqnObjP)
             *fqnObjP = Tcl_NewStringObj(fqnP, -1); /* BEFORE freeing ds! */
@@ -102,7 +102,7 @@ CffiNameLookup(Tcl_Interp *ip,
     }
 
     /* Final resort - global namespace */
-    fqnP = Tclh_NsQualifyName(NULL, nameP, &ds, "::");
+    fqnP = Tclh_NsQualifyName(NULL, nameP, -1, &ds, "::");
     ret  = Tclh_HashLookup(htP, fqnP, valueP);
     if (ret == TCL_OK && fqnObjP)
         *fqnObjP = Tcl_NewStringObj(fqnP, -1); /* BEFORE freeing ds! */
@@ -157,7 +157,7 @@ CffiNameAdd(Tcl_Interp *ip,
                 "interpreter is not specified");
             goto vamoose;
         }
-        nameP = Tclh_NsQualifyName(ip, nameP, &ds, NULL);
+        nameP = Tclh_NsQualifyName(ip, nameP, -1, &ds, NULL);
     }
     ret = Tclh_HashAdd(ip, htP, nameP, value);
     if (ret == TCL_OK)  {
@@ -267,7 +267,7 @@ CffiNameListNames(Tcl_Interp *ip,
 
     state.resultObj = Tcl_NewListObj(0, NULL);
     if (pattern) {
-        state.pattern = Tclh_NsQualifyName(ip, pattern, &ds, NULL);
+        state.pattern = Tclh_NsQualifyName(ip, pattern, -1, &ds, NULL);
         state.pattern_tail_pos = Tclh_NsTailPos(state.pattern);
     }
     else {
@@ -334,7 +334,7 @@ CffiNameDeleteNames(Tcl_Interp *ip,
     struct CffiNameDeleteNamesState state;
     Tcl_DString ds;
     if (pattern) {
-        state.pattern = Tclh_NsQualifyName(ip, pattern, &ds, NULL);
+        state.pattern = Tclh_NsQualifyName(ip, pattern, -1, &ds, NULL);
         state.pattern_tail_pos = Tclh_NsTailPos(state.pattern);
     }
     else {

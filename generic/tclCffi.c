@@ -419,6 +419,7 @@ Cffi_Init(Tcl_Interp *ip)
     CHECK(Tclh_PointerLibInit(ip, tclhCtxP));
     CHECK(Tclh_NsLibInit(ip, tclhCtxP));
     CHECK(Tclh_HashLibInit(ip, tclhCtxP));
+    CHECK(Tclh_AtomLibInit(ip, tclhCtxP));
     CHECK(CffiInterpCtxAllocAndInit(ip, &ipCtxP));
     ipCtxP->tclhCtxP = tclhCtxP;
 

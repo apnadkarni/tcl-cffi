@@ -291,47 +291,43 @@ CffiBaseTypeInfoGet(Tcl_Interp *ip, Tcl_Obj *baseTypeObj)
         return NULL;
 }
 
-int Tclh_PointerTagMatch(Tclh_PointerTypeTag pointer_tag, Tclh_PointerTypeTag expected_tag)
-{
-    /*
-     * Note Tclh_Pointer library already checks whether pointer_tag == expected_tag so
-     * no need for that optimization here.
-     */
-    if (expected_tag == NULL)
-        return 1;               /* Anything can be a void pointer */
-
-    if (pointer_tag == NULL)
-        return 0;               /* But not the other way */
-
-    return !strcmp(Tcl_GetString(pointer_tag), Tcl_GetString(expected_tag));
-}
-
 Tcl_Obj *
-CffiMakePointerTag(Tcl_Interp *ip, const char *tagP, Tcl_Size tagLen)
+CffiMakePointerTag(CffiInterpCtx *ipCtxP, const char *tagP, Tcl_Size tagLen)
 {
-    Tcl_Namespace *nsP;
     Tcl_Obj *tagObj;
+    Tcl_DString ds;
+    const char *fqnP;
+    Tcl_Interp *ip = ipCtxP->interp;
 
-    /* Tclh_NsQualify* unusable here because tagP defined by tagLen, not nul */
+    fqnP = Tclh_NsQualifyName(ip, tagP, tagLen, &ds, NULL);
 
-    if (Tclh_NsIsFQN(tagP))
-        return Tcl_NewStringObj(tagP, tagLen);
+    /* Atomifying will save memory AND make type checks faster */
+    tagObj = Tclh_AtomGet(ip, ipCtxP->tclhCtxP, fqnP);
+    if (tagObj) {
+        Tcl_DStringFree(&ds); /* Always needed even if fqnP == tagP */
+        return tagObj;
+    }
 
-    /* tag is relative so qualify it */
-    nsP = Tcl_GetCurrentNamespace(ip);
-    tagObj = Tcl_NewStringObj(nsP->fullName, -1);
-    /* Put separator only if not global namespace */
-    if (! Tclh_NsIsGlobalNs(nsP->fullName))
-        Tcl_AppendToObj(tagObj, "::", 2);
-    Tcl_AppendToObj(tagObj, tagP, tagLen);
+    /* Atomizing failed for whatever reason. Fall back to a new object */
+
+#ifdef TCLH_TCL87API
+    if (fqnP != tagP) {
+        /* fqnP is in the dstring. */
+        tagObj = Tcl_DStringToObj(&ds);
+        /* No need to Tcl_DStringFree */
+        return tagObj;
+    }
+#endif
+    tagObj = Tcl_NewStringObj(fqnP, -1);
+    Tcl_DStringFree(&ds); /* Always needed even if fqnP == tagP */
     return tagObj;
 }
 
-Tcl_Obj *CffiMakePointerTagFromObj(Tcl_Interp *ip, Tcl_Obj *tagObj)
+Tcl_Obj *CffiMakePointerTagFromObj(CffiInterpCtx *ipCtxP, Tcl_Obj *tagObj)
 {
     Tcl_Size len;
     const char *tag = Tcl_GetStringFromObj(tagObj, &len);
-    return CffiMakePointerTag(ip, tag, len);
+    return CffiMakePointerTag(ipCtxP, tag, len);
 }
 
 /* Function: CffiTypeInit
@@ -391,7 +387,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
  *  TCL_OK on success else TCL_ERROR with message in interpreter.
  */
 CffiResult
-CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
+CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
 {
     Tcl_Size tokenLen;
     Tcl_Size tagLen;
@@ -471,11 +467,12 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             char *structNameP = ckalloc(tagLen+1);
             memmove(structNameP, tagStr, tagLen);
             structNameP[tagLen] = '\0';
-            ret = CffiStructResolve(ip, structNameP, &typeP->u.structP);
+            ret = CffiStructResolve(
+                ipCtxP->interp, structNameP, &typeP->u.structP);
             ckfree(structNameP);
         }
         else {
-            ret = CffiStructResolve(ip, tagStr, &typeP->u.structP);
+            ret = CffiStructResolve(ipCtxP->interp, tagStr, &typeP->u.structP);
         }
         if (ret != TCL_OK)
             goto error_return;
@@ -486,7 +483,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
 
     case CFFI_K_TYPE_POINTER:
         if (tagStr != NULL) {
-            typeP->u.tagObj = CffiMakePointerTag(ip, tagStr, tagLen);
+            typeP->u.tagObj = CffiMakePointerTag(ipCtxP, tagStr, tagLen);
                 Tcl_IncrRefCount(typeP->u.tagObj);
         }
         typeP->baseType = CFFI_K_TYPE_POINTER;
@@ -502,7 +499,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
             /* Verify the encoding exists */
             typeP->u.tagObj = Tcl_NewStringObj(tagStr, tagLen);
             Tcl_IncrRefCount(typeP->u.tagObj);
-            ret = Tcl_GetEncodingFromObj(ip, typeP->u.tagObj, &encoding);
+            ret = Tcl_GetEncodingFromObj(ipCtxP->interp, typeP->u.tagObj, &encoding);
             if (ret != TCL_OK)
                 goto error_return;
             Tcl_FreeEncoding(encoding);
@@ -579,7 +576,7 @@ CffiTypeParse(Tcl_Interp *ip, Tcl_Obj *typeObj, CffiType *typeP)
     return TCL_OK;
 
 invalid_type:
-    (void) Tclh_ErrorInvalidValue(ip, typeObj, message);
+    (void) Tclh_ErrorInvalidValue(ipCtxP->interp, typeObj, message);
 
 error_return:
     CffiTypeCleanup(typeP);
@@ -768,7 +765,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         baseType = typeAttrP->dataType.baseType; /* Found alias */
     else {
         CffiTypeAndAttrsInit(typeAttrP, NULL);
-        CHECK(CffiTypeParse(ip, objs[0], &typeAttrP->dataType));
+        CHECK(CffiTypeParse(ipCtxP, objs[0], &typeAttrP->dataType));
         baseType = typeAttrP->dataType.baseType;
         typeAttrP->parseModeSpecificObj = NULL;
         typeAttrP->flags      = 0;
@@ -1249,7 +1246,7 @@ CffiIntValueFromObj(Tcl_Interp *ip,
             valueObj = enumValueObj;
     }
     /* 8.6 differs in treatment of unsigned values > WIDE_MAX */
-#if TCLH_TCLAPI_VERSION >= 0x0807
+#ifdef TCLH_TCL87API
     if (typeAttrsP
         && ((typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONGLONG)
             || (typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONG
