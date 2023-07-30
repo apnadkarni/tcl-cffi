@@ -1322,7 +1322,7 @@ namespace eval ${NS}::test {
         dyncall
     } -body {
         testDll function getTestStruct int {s struct.TestStruct}
-    } -result "Invalid value \"struct.TestStruct\". $errorMessages(structbyref)" -returnCodes error
+    } -result "Invalid value \"struct.TestStruct\". $errorMessages(structbyref) Error defining function getTestStruct." -returnCodes error
 
 
     test function-struct-in-byref-0 "Param struct in byref" -setup {
@@ -1983,7 +1983,7 @@ namespace eval ${NS}::test {
     } -body {
         # Prototype does not match C. Does not have to!
         testDll function getTestStruct struct.TestStruct {}
-    } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode)" -returnCodes error
+    } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode) Error defining function getTestStruct." -returnCodes error
 
 
     test function-struct-return-error-1 "Return struct containing array" -constraints {
