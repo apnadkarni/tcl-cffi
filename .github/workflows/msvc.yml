@@ -57,7 +57,7 @@ jobs:
       run: |
         echo ${{ env.TCLSUBDIR }}
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }}
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} install
 
     - name: Install libffi
       shell: cmd
