@@ -18,7 +18,9 @@ jobs:
         arch:
           - x64
           - x86
-
+        tclbranch:
+          - core-8-6-13
+          - main
     steps:
     # Note msvc defaults to 64-bit
     - name: Init MSVC
@@ -35,24 +37,24 @@ jobs:
       id: tcl-msvc-cache
       uses: actions/cache@v2
       with:
-        path: C:/tcl/msvc/${{ matrix.arch }}
-        key: ${{ runner.os }}-tcl-msvc-${{ matrix.arch }}
+        path: C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}}
+        key: ${{ runner.os }}-tcl-msvc-${{ matrix.arch }}-${{ matrix.tclbranch }}
 
     - name: Checkout Tcl
       if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v3
       with:
         repository: tcltk/tcl
-        ref: core-8-6-11
-        path: tcl
+        ref: ${{ matrix.tclbranch }}
+        path: tcl-${{ matrix.tclbranch }}
 
     - name: Build Tcl
       if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
       working-directory: tcl/win
       shell: cmd
       run: |
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} install
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} install
 
     - name: Install libffi
       shell: cmd
@@ -84,26 +86,26 @@ jobs:
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md realclean
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md realclean
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
 
     - name: Test with libffi
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
 
     - name: Make with dyncall
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
-        nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
+        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
+        nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
     - name: Test with dyncall 
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
+        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
 
 
