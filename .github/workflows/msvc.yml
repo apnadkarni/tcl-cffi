@@ -20,6 +20,7 @@ jobs:
           - x86
         tclbranch:
           - core-8-6-13
+          - main
     steps:
     # Note msvc defaults to 64-bit
     - name: Init MSVC
@@ -49,10 +50,9 @@ jobs:
 
     - name: Build Tcl
       if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
-      working-directory: tcl-${{ matrix.tclbranch }}\win
+      working-directory: tcl-${{ matrix.tclbranch }}/win
       shell: cmd
       run: |
-        dir
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }}
         nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ matrix.arch }}-${{ matrix.tclbranch }} install
 
