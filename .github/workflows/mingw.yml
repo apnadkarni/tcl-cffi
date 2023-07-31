@@ -10,6 +10,7 @@ jobs:
       matrix:
         tclbranch:
           - core-8-6-13
+          - main
         include:
           - { sys: mingw64, arch: x86_64 }
           - { sys: mingw32, arch: i686 }
@@ -33,7 +34,7 @@ jobs:
         path-type: minimal
         release: true
         update: false
-        install: mingw-w64-${{matrix.arch}}-gcc make
+        install: mingw-w64-${{matrix.arch}}-gcc make mingw-w64-${{matrix.arch}}-libtommath 
 
     - name: Verify toolchain
       run: |
