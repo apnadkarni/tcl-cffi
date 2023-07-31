@@ -8,19 +8,14 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        tclbranch:
-          - core-8-6-13
-          - main
         include:
           - { sys: mingw64, arch: x86_64 }
           - { sys: mingw32, arch: i686 }
-    env:
-      TCLSUBDIR: ${{ matrix.sys }}-${{ matrix.tclbranch }}
-      TCLDIR: C:/tcl/${{ matrix.sys }}-${{ matrix.tclbranch }}
-      MSYSTCLDIR: /c/tcl/${{ matrix.sys }}-${{ matrix.tclbranch }}
+
     defaults:
       run:
         shell: msys2 {0}
+
     steps:
     - name: Checkout tcl-cffi
       uses: actions/checkout@v3
@@ -45,24 +40,24 @@ jobs:
       id: tcl-cache
       uses: actions/cache@v3
       with:
-        path: ${{ env.TCLDIR }}
-        key: ${{ runner.os }}-tcl-${{ env.TCLSUBDIR }}
+        path: C:/tcl
+        key: ${{ runner.os }}-tcl-${{ matrix.sys }}
 
     - name: Checkout Tcl
       if: steps.tcl-cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v3
       with:
         repository: tcltk/tcl
-        ref: ${{ matrix.tclbranch }}
-        path: tcl-${{ matrix.tclbranch }}
+        ref: core-8-6-11
+        path: tcl
 
     - name: Build Tcl
       if: steps.tcl-cache.outputs.cache-hit != 'true'
-      working-directory: tcl-${{ matrix.tclbranch }}/win
       run: |
+        cd tcl/win
         mkdir build
         cd build
-        ../configure --prefix=${{ env.MSYSTCLDIR }} || (cat config.log && exit 1)
+        ../configure --prefix=C:/tcl || (cat config.log && exit 1)
         make
         make install
 
@@ -93,7 +88,7 @@ jobs:
       run: |
         mkdir build-dyncall
         cd build-dyncall
-        ../configure --with-tcl=${{ env.MSYSTCLDIR }}/lib LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include --with-dyncall
+        ../configure --with-tcl=/c/tcl/lib LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include --with-dyncall
 
     - name: Make with dyncall
       run: |
@@ -109,7 +104,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=${{ env.MSYSTCLDIR }}/lib
+        ../configure --with-tcl=/c/tcl/lib
 
     - name: Make with libffi
       run: |

@@ -17,7 +17,6 @@ jobs:
           - main
     env:
       TCLSUBDIR: ${{ matrix.arch }}-${{ matrix.tclbranch }}
-      TCLDIR: C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}
     steps:
     # Note msvc defaults to 64-bit
     - name: Init MSVC
@@ -34,7 +33,7 @@ jobs:
       id: tcl-msvc-cache
       uses: actions/cache@v3
       with:
-        path: ${{ env.TCLDIR }}
+        path: C:/tcl/msvc/${{ env.TCLSUBDIR }}
         key: ${{ runner.os }}-tcl-msvc-${{ env.TCLSUBDIR }}
 
     - name: Checkout Tcl
@@ -50,8 +49,9 @@ jobs:
       working-directory: tcl-${{ matrix.tclbranch }}/win
       shell: cmd
       run: |
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }}
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} install
+        echo ${{ env.TCLSUBDIR }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }}
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} install
 
     - name: Install libffi
       shell: cmd
@@ -83,26 +83,26 @@ jobs:
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md realclean
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md realclean
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
 
     - name: Test with libffi
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
+        nmake /f makefile.vc INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
 
     - name: Make with dyncall
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
-        nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
+        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
+        nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
     - name: Test with dyncall 
       shell: cmd
       run: |
         cd win
-        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
+        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=C:\tcl\msvc\${{ env.TCLSUBDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
 
 
