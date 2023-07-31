@@ -2,7 +2,7 @@ name: Visual C++
 
 # NOTE: Caching does not work on Windows due to a bug in the cache action.
 # That has been fixed in 2.1.4 but that introduced other bugs because of
-# which cache@v2 continues to point to 2.1.3. For now caching no workee
+# which cache@ continues to point to 2.1.3. For now caching no workee
 # but will automatically work once cache fixes their code.
 # See https://github.com/actions/toolkit/issues/632 and https://github.com/actions/cache/issues/527
 
@@ -35,7 +35,7 @@ jobs:
 
     - name: Cache Tcl build
       id: tcl-msvc-cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}}
         key: ${{ runner.os }}-tcl-msvc-${{ matrix.arch }}-${{ matrix.tclbranch }}
@@ -63,7 +63,7 @@ jobs:
 
     - name: Cache dyncall
       id: dyncall-msvc-cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: C:/dyncall/msvc/${{ matrix.arch }}
         key: ${{ runner.os }}-dyncall-msvc-${{ matrix.arch }}
