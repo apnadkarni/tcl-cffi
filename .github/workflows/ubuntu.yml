@@ -5,8 +5,15 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        tclbranch:
+          - core-8-6-13
+          - main
+    env:
+      TCLSUBDIR: ${{ matrix.tclbranch }}
+      TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
 
     steps:
     - name: Checkout tcl-cffi  
@@ -14,9 +21,30 @@ jobs:
       with:
         submodules: true
 
-    - name: Install Tcl
+    - name: Cache Tcl build
+      id: tcl-cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.TCLDIR }}
+        key: ${{ runner.os }}-tcl-${{ env.TCLSUBDIR }}
+
+    - name: Checkout Tcl
+      if: steps.tcl-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v3
+      with:
+        repository: tcltk/tcl
+        ref: ${{ matrix.tclbranch }}
+        path: tcl-${{ matrix.tclbranch }}
+
+    - name: Build Tcl
+      if: steps.tcl-cache.outputs.cache-hit != 'true'
+      working-directory: tcl-${{ matrix.tclbranch }}/unix
       run: |
-        sudo apt-get install -y tcl8.6-dev
+        mkdir build
+        cd build
+        ../configure --prefix=${{ env.TCLDIR }} || (cat config.log && exit 1)
+        make
+        make install
 
     - name: Install dyncall
       run: |
@@ -33,7 +61,7 @@ jobs:
       run: |
         mkdir build-dyncall
         cd build-dyncall
-        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall
+        ../configure --with-tcl=${{ env.TCLDIR }} --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall
 
     - name: Make with dyncall
       run: |
@@ -49,7 +77,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=/usr/lib/tcl8.6 --enable-64bit
+        ../configure --with-tcl=${{ env.TCLDIR }} --enable-64bit
 
     - name: Make with libffi
       run: |
