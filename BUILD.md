@@ -11,9 +11,15 @@ at the time of writing does not support
 returning or passing C structs to functions by value. However, most C API's pass
 structs by reference (pointers) so this limitation may not matter. The `dyncall`
 library is easier to build so that is another thing to consider if your platform
-does not include `libffi` with its package manager.
+does not include `libffi** with its package manager.
 
 ## Building on Unix-like systems
+
+**NOTE**
+
+If not building against the system-installed Tcl, you may need to add
+the option `--with-tclinclude=/path/to/private/tcl/install/include`.
+This is particularly important if the private and system Tcl versions differ.
 
 ### Building on Unix using `libffi` back end
 
@@ -217,7 +223,7 @@ From a MinGW-w64 (not msys2) 64-bit shell, run the following commands at the top
 
 ```
 mkdir build-mingw-x64
-../configure --with-tcl=/d/tcl/mingw-8610/x64/lib  --enable-64bit
+../configure --with-tcl=/d/tcl/mingw-8610/x64/lib --with-tclinclude=/d/tcl/mingw-8610/x64/include --enable-64bit
 make
 make test
 ```
@@ -252,7 +258,7 @@ Then build the `cffi` package. From the `cffi` top level directory,
 ```
 $ mkdir build-mingw-x64
 $ cd build-mingw-x64
-$ ../configure --with-tcl=/d/tcl/mingw-8610/x64/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include --enable-64bit --with-dyncall
+$ ../configure --with-tcl=/d/tcl/mingw-8610/x64/lib --with-tclinclude=/d/tcl/mingw-8610/x64/include LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x64/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x64/include --enable-64bit --with-dyncall
 $ make
 $ make install
 ```

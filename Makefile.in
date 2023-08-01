@@ -119,6 +119,8 @@ TCL_SRC_DIR	= @TCL_SRC_DIR@
 #TK_BIN_DIR	= @TK_BIN_DIR@
 #TK_SRC_DIR	= @TK_SRC_DIR@
 
+TCL_TOMMATH_LIB = @TCL_TOMMATH_LIB@
+
 # Not used, but retained for reference of what libs Tcl required
 #TCL_LIBS	= @TCL_LIBS@
 
@@ -167,7 +169,7 @@ CONFIG_CLEAN_FILES = Makefile pkgIndex.tcl
 CLEANFILES	= @CLEANFILES@
 
 CPPFLAGS	= @CPPFLAGS@
-LIBS		= @PKG_LIBS@ @LIBS@
+LIBS		= @PKG_LIBS@ @LIBS@ $(TCL_TOMMATH_LIB)
 AR		= @AR@
 CFLAGS		= @CFLAGS@
 LDFLAGS		= @LDFLAGS@
