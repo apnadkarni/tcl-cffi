@@ -34,6 +34,10 @@ Limitations in the current version include
 
 - No support for *asynchronous* callbacks
 
+## Changes in 1.3.0
+
+- Support for Tcl 9.0
+
 ## Changes in 1.2.0
 
 - New `Struct` methods `tonative!`, `setnative!`, `getnative!`,
