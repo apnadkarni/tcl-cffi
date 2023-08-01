@@ -16,6 +16,12 @@ jobs:
       TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
 
     steps:
+    - name: Install libtommath
+      id: tommath
+      run: |
+       sudo apt-get update
+       sudo apt-get install libtommath-dev
+
     - name: Checkout tcl-cffi  
       uses: actions/checkout@v3
       with:
