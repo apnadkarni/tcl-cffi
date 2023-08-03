@@ -27,7 +27,7 @@ architecture-specific subdirectory). This builds the *libffi* version.
 cd build-mingw-x64
 export CFFIVERNODOT=${CFFIVER//./}
 rm *
-../configure --with-tcl=/d/tcl/mingw-8610/x64/lib --prefix=/d/tcl --exec-prefix=/d/tcl --enable-64bit
+../configure --with-tcl=/d/tcl/mingw-8610/x64/lib --with-tclinclude=/d/tcl/mingw-8610/x64/include --prefix=/d/tcl --exec-prefix=/d/tcl --enable-64bit
 make
 make test
 make install
@@ -44,7 +44,7 @@ From MINGW32 shell
 cd build-mingw-x86
 export CFFIVERNODOT=${CFFIVER//./}
 rm *
-../configure --with-tcl=/d/tcl/mingw-8610/x86/lib LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x86/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x86/include  --prefix=/d/tcl --exec-prefix=/d/tcl
+../configure --with-tcl=/d/tcl/mingw-8610/x86/lib --with-tclinclude=/d/tcl/mingw-8610/x86/include LDFLAGS=-L/d/src/tcl-cffi/external-libs/mingw/x86/lib CPPFLAGS=-I/d/src/tcl-cffi/external-libs/mingw/x86/include  --prefix=/d/tcl --exec-prefix=/d/tcl
 make
 make test
 make install

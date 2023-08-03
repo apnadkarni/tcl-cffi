@@ -15,6 +15,7 @@
 #include "tclhNamespace.h"
 #include "tclhHash.h"
 #include "tclhAtom.h"
+#include "tclhCmd.h"
 #include "memlifo.h"
 
 /*
@@ -911,28 +912,5 @@ Tcl_ObjCmdProc CffiTypeObjCmd;
 Tcl_ObjCmdProc CffiCallbackObjCmd;
 #endif
 
-/* TBD - move these to Tclh headers */
-typedef struct Tclh_SubCommand {
-    const char *cmdName;
-    int minargs;
-    int maxargs;
-    const char *message;
-    int (*cmdFn)();
-    int flags; /* Command specific usage */
-} Tclh_SubCommand;
-
-CffiResult Tclh_SubCommandNameToIndex(Tcl_Interp *ip,
-                                      Tcl_Obj *nameObj,
-                                      Tclh_SubCommand *cmdTableP,
-                                      int *indexP);
-CffiResult Tclh_SubCommandLookup(Tcl_Interp *ip,
-                                 const Tclh_SubCommand *cmdTableP,
-                                 int objc,
-                                 Tcl_Obj *const objv[],
-                                 int *indexP);
-Tcl_Obj *Tclh_ObjHashEnumerateEntries(Tcl_HashTable *htP, Tcl_Obj *patObj);
-void Tclh_ObjHashDeleteEntries(Tcl_HashTable *htP,
-                               Tcl_Obj *patObj,
-                               void (*deleteFn)(Tcl_HashEntry *));
 
 #endif /* CFFIINT_H */

@@ -264,6 +264,15 @@ TEA_PROG_TCLSH
 AC_SUBST(SHLIB_SUFFIX)
 
 #--------------------------------------------------------------------
+# Needed for linking against tommath on Windows. TCL_TOMMATH_LIB_NAME
+# will be set in tclConfig.sh when required (Windows, Tcl 9)
+#--------------------------------------------------------------------
+if test "X${TCL_TOMMATH_LIB_NAME}" != "X" ; then
+    TCL_TOMMATH_LIB=\${libdir}/${TCL_TOMMATH_LIB_NAME}
+    AC_SUBST(TCL_TOMMATH_LIB)
+fi
+
+#--------------------------------------------------------------------
 # Specify files to substitute AC variables in. You may alternatively
 # have a special pkgIndex.tcl.in or other files which require
 # substituting the AC variables in. Include these here.

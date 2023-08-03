@@ -31,99 +31,6 @@ static Tcl_Config cffiConfig[] = {
 };
 
 
-/* Function: Tclh_SubCommandNameToIndex
- * Looks up a subcommand table and returns index of a matching entry.
- *
- * The function looks up the subcommand table to find the entry with
- * name given by *nameObj*. Each entry in the table is a <Tclh_SubCommand>
- * structure and the name is matched against the *cmdName* field of that
- * structure. Unique prefixes of subcommands are accepted as a match.
- * The end of the table is indicated by an entry whose *cmdName* field is NULL.
- *
- * This function only matches against the name and does not concern itself
- * with any of the other fields in an entry.
- *
- * The function is a wrapper around the Tcl *Tcl_GetIndexFromObjStruct*
- * and subject to its constraints. In particular, *cmdTableP* must point
- * to static storage as a pointer to it is retained.
- *
- * Parameters:
- * ip - Interpreter
- * nameObj - name of method to lookup
- * cmdTableP - pointer to command table
- * indexP - location to store index of matched entry
- *
- * Returns:
- * *TCL_OK* on success with index of match stored in *indexP*; otherwise,
- * *TCL_ERROR* with error message in *ip*.
- */
-CffiResult
-Tclh_SubCommandNameToIndex(Tcl_Interp *ip,
-                           Tcl_Obj *nameObj,
-                           Tclh_SubCommand *cmdTableP,
-                           int *indexP)
-{
-    return Tcl_GetIndexFromObjStruct(
-        ip, nameObj, cmdTableP, sizeof(*cmdTableP), "subcommand", 0, indexP);
-}
-
-/* Function: Tclh_SubCommandLookup
- * Looks up a subcommand table and returns index of a matching entry after
- * verifying number of arguments.
- *
- * The function looks up the subcommand table to find the entry with
- * name given by *objv[1]*. Each entry in the table is a <Tclh_SubCommand>
- * structure and the name is matched against the *cmdName* field of that
- * structure. Unique prefixes of subcommands are accepted as a match.
- * The end of the table is indicated by an entry whose *cmdName* field is NULL.
- *
- * This function only matches against the name and does not concern itself
- * with any of the other fields in an entry.
- *
- * The function is a wrapper around the Tcl *Tcl_GetIndexFromObjStruct*
- * and subject to its constraints. In particular, *cmdTableP* must point
- * to static storage as a pointer to it is retained.
- *
- * On finding a match, the function verifies that the number of arguments
- * satisfy the number of arguments expected by the subcommand based on
- * the *minargs* and *maxargs* fields of the matching <Tclh_SubCommand>
- * entry. These fields should hold the argument count range for the
- * subcommand (meaning not counting subcommand itself)
- *
- * Parameters:
- * ip - Interpreter
- * cmdTableP - pointer to command table
- * objc - Number of elements in *objv*. Must be at least *1*.
- * objv - Array of *Tcl_Obj* pointers as passed to Tcl commands. *objv[0]*
- *        is expected to be the main command and *objv[1]* the subcommand.
- * indexP - location to store index of matched entry
- *
- * Returns:
- * *TCL_OK* on success with index of match stored in *indexP*; otherwise,
- * *TCL_ERROR* with error message in *ip*.
- */
-CffiResult
-Tclh_SubCommandLookup(Tcl_Interp *ip,
-                      const Tclh_SubCommand *cmdTableP,
-                      int objc,
-                      Tcl_Obj *const objv[],
-                      int *indexP)
-{
-    if (objc < 2) {
-        return Tclh_ErrorNumArgs(ip, 1, objv, "subcommand ?arg ...?");
-    }
-    CHECK(Tcl_GetIndexFromObjStruct(
-        ip, objv[1], cmdTableP, sizeof(*cmdTableP), "subcommand", 0, indexP));
-    cmdTableP += *indexP;
-    /*
-     * Can't use CHECK_NARGS here because of slightly different semantics.
-     */
-    if ((objc-2) < cmdTableP->minargs || (objc-2) > cmdTableP->maxargs) {
-        return Tclh_ErrorNumArgs(ip, 2, objv, cmdTableP->message);
-    }
-    return TCL_OK;
-}
-
 /* Function: CffiGetEncodingFromObj
  * Gets the Tcl_Encoding named by the passed object
  *
@@ -420,6 +327,7 @@ Cffi_Init(Tcl_Interp *ip)
     CHECK(Tclh_NsLibInit(ip, tclhCtxP));
     CHECK(Tclh_HashLibInit(ip, tclhCtxP));
     CHECK(Tclh_AtomLibInit(ip, tclhCtxP));
+    CHECK(Tclh_CmdLibInit(ip, tclhCtxP));
     CHECK(CffiInterpCtxAllocAndInit(ip, &ipCtxP));
     ipCtxP->tclhCtxP = tclhCtxP;
 
