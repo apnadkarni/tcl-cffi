@@ -349,7 +349,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                   Tcl_Obj *structValueObj,
                   CffiFlags flags,
                   void *structResultP,
-                  MemLifo *memlifoP)
+                  Tclh_Lifo *memlifoP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     int i;

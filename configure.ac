@@ -84,9 +84,9 @@ TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiPointer.c \
                      generic/tclCffiPrototype.c \
                      generic/tclCffiStruct.c \
+                     generic/tclCffiTclh.c \
                      generic/tclCffiTypes.c \
-                     generic/tclCffiWrapper.c \
-                     generic/memlifo.c])
+                     generic/tclCffiWrapper.c])
 TEA_ADD_HEADERS([])
 TEA_ADD_INCLUDES([-I${srcdir}/generic -I${srcdir}/tclh/include])
 TEA_ADD_STUB_SOURCES([])

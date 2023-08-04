@@ -5,8 +5,6 @@
  * See the file LICENSE for license
  */
 
-#define TCLH_IMPL
-#define TCLH_EMBEDDER PACKAGE_NAME
 #include "tclCffiInt.h"
 
 static Tcl_Config cffiConfig[] = {
@@ -245,7 +243,7 @@ CffiInterpCtxCleanupAndFree(CffiInterpCtx *ipCtxP)
         CffiEnumsCleanup(ipCtxP);
         CffiPrototypesCleanup(ipCtxP);
 
-        MemLifoClose(&ipCtxP->memlifo);
+        Tclh_LifoClose(&ipCtxP->memlifo);
         ckfree(ipCtxP);
 }
 
@@ -262,9 +260,9 @@ CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
 
     /* Set up memlifo before anything else */
     /* TBD - size 16000 too much? */
-    if (MemLifoInit(
-            &ipCtxP->memlifo, NULL, NULL, 16000, MEMLIFO_F_PANIC_ON_FAIL) !=
-        MEMLIFO_E_SUCCESS) {
+    if (Tclh_LifoInit(
+            &ipCtxP->memlifo, NULL, NULL, 16000, TCLH_LIFO_PANIC_ON_FAIL)
+        != 0) {
         /* Don't call CleanupAndFree since that assumes memlifo init'ed */
         ckfree(ipCtxP);
         return Tclh_ErrorAllocation(ip, "Memlifo", NULL);

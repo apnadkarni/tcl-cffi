@@ -16,7 +16,7 @@
 #include "tclhHash.h"
 #include "tclhAtom.h"
 #include "tclhCmd.h"
-#include "memlifo.h"
+#include "tclhLifo.h"
 
 /*
  * Which back end system are we using? Currently only two supported. At most
@@ -361,7 +361,7 @@ typedef struct CffiInterpCtx {
 #ifdef CFFI_USE_DYNCALL
     DCCallVM *vmP; /* The dyncall call context to use */
 #endif
-    MemLifo memlifo;        /* Software stack */
+    Tclh_Lifo memlifo;        /* Software stack */
     Tclh_LibContext *tclhCtxP;
 } CffiInterpCtx;
 
@@ -553,7 +553,7 @@ CffiResult CffiCharsFromObjSafe(
 CffiResult CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
                                      Tcl_Obj *encObj,
                                      Tcl_Obj *fromObj,
-                                     MemLifo *memlifoP,
+                                     Tclh_Lifo *memlifoP,
                                      char **outPP);
 CffiResult CffiCharsToObj(Tcl_Interp *ip,
                           const CffiTypeAndAttrs *typeAttrsP,
@@ -568,7 +568,7 @@ CffiResult CffiStructFromObj(CffiInterpCtx *ipCtxP,
                              Tcl_Obj *structValueObj,
                              CffiFlags flags,
                              void *resultP,
-                             MemLifo *memlifoP);
+                             Tclh_Lifo *memlifoP);
 CffiResult CffiStructToObj(CffiInterpCtx *ipCtxP,
                            const CffiStruct *structP,
                            void *valueP,
@@ -582,7 +582,7 @@ CffiResult CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                    CffiFlags flags,
                                    void *resultP,
                                    Tcl_Size indx,
-                                   MemLifo *memlifoP);
+                                   Tclh_Lifo *memlifoP);
 CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                   const CffiTypeAndAttrs *typeAttrsP,
                                   int realArraySize,
@@ -590,7 +590,7 @@ CffiResult CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                   CffiFlags flags,
                                   void *valueBaseP,
                                   int valueIndex,
-                                  MemLifo *memlifoP);
+                                  Tclh_Lifo *memlifoP);
 CffiResult CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
                                  const CffiTypeAndAttrs *typeAttrsP,
                                  void *valueP,

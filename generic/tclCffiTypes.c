@@ -1341,7 +1341,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                         CffiFlags flags,
                         void *valueBaseP,
                         Tcl_Size indx,
-                        MemLifo *memlifoP)
+                        Tclh_Lifo *memlifoP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     CffiValue value;
@@ -1519,7 +1519,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                 }
                 else {
                     space = sizeof(Tcl_UniChar) * (space + 1);
-                    toP   = MemLifoAlloc(memlifoP, space);
+                    toP   = Tclh_LifoAlloc(memlifoP, space);
                     memcpy(toP, fromP, space);
                     *uniPP = toP;
                 }
@@ -1570,7 +1570,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                        CffiFlags flags,
                        void *valueBaseP,
                        int valueIndex,
-                       MemLifo *memlifoP)
+                       Tclh_Lifo *memlifoP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     void *valueP; /* Where value should be stored */
@@ -2266,15 +2266,15 @@ CffiCharsFromObj(
 }
 
 /* Function: CffiCharsInMemlifoFromObj
- * Encodes a Tcl_Obj to a character array in a *MemLifo* based on a type
+ * Encodes a Tcl_Obj to a character array in a *Tclh_Lifo* based on a type
  * encoding.
  *
  * Parameters:
  * ip - interpreter
  * encObj - *Tcl_Obj* holding encoding or *NULL*
  * fromObj - *Tcl_Obj* containing value to be stored
- * memlifoP - *MemLifo* to allocate memory from
- * outPP - location to store pointer to encoded string in MemLifo
+ * memlifoP - *Tclh_Lifo* to allocate memory from
+ * outPP - location to store pointer to encoded string in Tclh_Lifo
  *
  * Returns:
  * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
@@ -2284,7 +2284,7 @@ CffiResult
 CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
                           Tcl_Obj *encObj,
                           Tcl_Obj *fromObj,
-                          MemLifo *memlifoP,
+                          Tclh_Lifo *memlifoP,
                           char **outPP)
 {
     const char *fromP;
@@ -2312,7 +2312,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
     flags = TCL_ENCODING_START | TCL_ENCODING_END;
 
     dstSpace = srcLen + 2; /* Possibly two nuls */
-    dstP = MemLifoAlloc(memlifoP, dstSpace);
+    dstP = Tclh_LifoAlloc(memlifoP, dstSpace);
     dstLen = 0;
     while (1) {
         /* dstP is buffer. dstLen is what's written so far */
@@ -2328,7 +2328,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
                 break;
             /* Tack on two nuls because we don't know how many nuls encoding uses */
             if ((dstSpace-dstLen) < 2)
-                dstP = MemLifoResizeLast(memlifoP, dstSpace+(dstSpace-dstLen), 0);
+                dstP = Tclh_LifoResizeLast(memlifoP, dstSpace+(dstSpace-dstLen), 0);
             dstP[dstLen] = 0;
             dstP[dstLen+1] = 0;
             *outPP = dstP;
@@ -2345,7 +2345,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
             dstSpace = INT_MAX;
         else
             dstSpace = 2 * dstSpace;
-        dstP = MemLifoResizeLast(memlifoP, dstSpace, 0);
+        dstP = Tclh_LifoResizeLast(memlifoP, dstSpace, 0);
     }
     if (encoding)
         Tcl_FreeEncoding(encoding);

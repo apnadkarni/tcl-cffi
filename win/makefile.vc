@@ -75,9 +75,9 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffiPointer.obj \
 	$(TMP_DIR)\tclCffiPrototype.obj \
 	$(TMP_DIR)\tclCffiStruct.obj \
+	$(TMP_DIR)\tclCffiTclh.obj \
 	$(TMP_DIR)\tclCffiTypes.obj \
-	$(TMP_DIR)\tclCffiWrapper.obj \
-	$(TMP_DIR)\memlifo.obj
+	$(TMP_DIR)\tclCffiWrapper.obj
 
 !if $(USE_DYNCALL)
 PRJ_OBJS = $(PRJ_OBJS) $(TMP_DIR)\tclCffiDyncall.obj
@@ -92,7 +92,6 @@ PRJ_TEST_DLL = $(OUT_DIR)\cffitest.dll
 
 HEADERS = \
 	$(GENERICDIR)\tclCffiInt.h \
-	$(GENERICDIR)\memlifo.h \
 	$(TCLHDIR)\tclhBase.h \
 	$(TCLHDIR)\tclhPointer.h \
 	$(TCLHDIR)\tclhObj.h

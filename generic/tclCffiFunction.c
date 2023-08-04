@@ -133,7 +133,7 @@ CffiArgPrepareChars(CffiCall *callP,
     CFFI_ASSERT(argP->arraySize > 0);
 
     valueP->u.ptr =
-        MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
+        Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize);
 
     /* If input, we need to encode appropriately */
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
@@ -186,7 +186,7 @@ CffiArgPrepareUniChars(CffiCall *callP,
     CFFI_ASSERT(argP->arraySize > 0);
 
     valueP->u.ptr =
-        MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(Tcl_UniChar));
+        Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(Tcl_UniChar));
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNICHAR_ARRAY);
 
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
@@ -470,7 +470,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             void *valuesP;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
-                valuesP = MemLifoAlloc(&ipCtxP->memlifo,
+                valuesP = Tclh_LifoAlloc(&ipCtxP->memlifo,
                                        argP->arraySize
                                            * typeAttrsP->dataType.baseTypeSize);
                 CHECK(CffiNativeValueFromObj(ipCtxP,
@@ -483,9 +483,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                              &ipCtxP->memlifo));
             }
             else {
-                MemLifoUSizeT nCopy =
+                Tclh_LifoUSizeT nCopy =
                     argP->arraySize * typeAttrsP->dataType.baseTypeSize;
-                valuesP = MemLifoAlloc(&ipCtxP->memlifo, nCopy);
+                valuesP = Tclh_LifoAlloc(&ipCtxP->memlifo, nCopy);
                 memset(valuesP, 0, nCopy);
             }
             argP->value.u.ptr = valuesP;
@@ -514,7 +514,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 /* NULLIFEMPTY but dictionary has elements */
             }
             /* TBD - check out struct size matches Libffi's */
-            structValueP = MemLifoAlloc(&ipCtxP->memlifo,
+            structValueP = Tclh_LifoAlloc(&ipCtxP->memlifo,
                                         typeAttrsP->dataType.u.structP->size);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 CHECK(CffiStructFromObj(ipCtxP,
@@ -545,7 +545,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             if (argP->arraySize == 0)
                 goto pass_null_array;
             valueArray =
-                MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize * struct_size);
+                Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * struct_size);
             if (flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
                 /* IN or INOUT */
                 Tcl_Obj **valueObjList;
@@ -591,7 +591,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             if (argP->arraySize == 0)
                 goto pass_null_array;
-            valueArray = MemLifoAlloc(&ipCtxP->memlifo,
+            valueArray = Tclh_LifoAlloc(&ipCtxP->memlifo,
                                       argP->arraySize * sizeof(void *));
             if (flags & CFFI_F_ATTR_OUT)
                 argP->value.u.ptr = valueArray;
@@ -613,7 +613,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 if (flags & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS)) {
                     /* Save pointers to dispose after call completion */
                     void **savedValueArray;
-                    savedValueArray = MemLifoAlloc(
+                    savedValueArray = Tclh_LifoAlloc(
                         &ipCtxP->memlifo, argP->arraySize * sizeof(void *));
                     for (i = 0; i < argP->arraySize; ++i)
                         savedValueArray[i] = valueArray[i];
@@ -648,7 +648,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         p = (char *)Tcl_GetByteArrayFromObj(valueObj, &len);
         /* If zero length, always store null pointer regardless of nullifempty */
         if (len) {
-            argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo, len);
+            argP->value.u.ptr = Tclh_LifoAlloc(&ipCtxP->memlifo, len);
             memmove(argP->value.u.ptr, p, len);
         }
         else
@@ -663,7 +663,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         if (argP->arraySize <= 0)
             goto pass_null_array;
-        argP->value.u.ptr = MemLifoAlloc(&ipCtxP->memlifo, argP->arraySize);
+        argP->value.u.ptr = Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize);
         if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
             /* NOTE: because of shimmering possibility, we need to copy */
             CHECK(CffiBytesFromObjSafe(
@@ -991,7 +991,7 @@ CffiReturnPrepare(CffiCall *callP)
     case CFFI_K_TYPE_UNISTRING: /* Fallthru - treat as pointer */
     case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
     case CFFI_K_TYPE_STRUCT:
-        callP->retValueP = MemLifoAlloc(
+        callP->retValueP = Tclh_LifoAlloc(
             &callP->fnP->libCtxP->ipCtxP->memlifo,
             retTypeAttrsP->dataType.u.structP->size);
         break;
@@ -1139,7 +1139,7 @@ CffiCustomErrorHandler(CffiInterpCtx *ipCtxP,
 
     nEvalObjs = nOnErrorObjs + 1; /* We will tack on the call dictionary */
     evalObjs =
-        MemLifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
+        Tclh_LifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
 
     /*
      * Construct the dictionary of arguments that were input to the function.
@@ -1304,13 +1304,13 @@ CffiFunctionSetupArgs(CffiCall *callP,
     callP->nArgs = nArgObjs;
     if (callP->nArgs == 0)
         return TCL_OK;
-    argsP = (CffiArgument *)MemLifoAlloc(
+    argsP = (CffiArgument *)Tclh_LifoAlloc(
         &ipCtxP->memlifo, callP->nArgs * sizeof(CffiArgument));
     callP->argsP = argsP;
     for (i = 0; i < callP->nArgs; ++i)
         argsP[i].flags = 0; /* Mark as uninitialized */
 #ifdef CFFI_USE_LIBFFI
-    callP->argValuesPP = (void **)MemLifoAlloc(
+    callP->argValuesPP = (void **)Tclh_LifoAlloc(
         &ipCtxP->memlifo, callP->nArgs * sizeof(void *));
 #endif
 
@@ -1444,7 +1444,7 @@ CffiFunctionCall(ClientData cdata,
     int argResultIndex; /* If >=0, index of output argument as function result */
     void *pointer;
     CffiCall callCtx;
-    MemLifoMarkHandle mark;
+    Tclh_LifoMark mark;
     CffiResult ret = TCL_OK;
     CffiResult fnCheckRet = TCL_OK; /* Whether function return check passed */
     Tcl_WideInt sysError;  /* Error retrieved from system */
@@ -1459,7 +1459,7 @@ CffiFunctionCall(ClientData cdata,
     if ((uintptr_t) fnP->fnAddr < 0xffff)
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
 
-    mark = MemLifoPushMark(&ipCtxP->memlifo);
+    mark = Tclh_LifoPushMark(&ipCtxP->memlifo);
 
     /* IMPORTANT - mark has to be popped even on errors before returning */
 
@@ -1495,7 +1495,7 @@ CffiFunctionCall(ClientData cdata,
     }
     if (nVarArgs) {
         /* Need room for varargs type descriptors */
-        varArgTypesP = (CffiTypeAndAttrs *)MemLifoAlloc(
+        varArgTypesP = (CffiTypeAndAttrs *)Tclh_LifoAlloc(
             &ipCtxP->memlifo, nVarArgs * sizeof(CffiTypeAndAttrs));
     }
 
@@ -1542,7 +1542,7 @@ CffiFunctionCall(ClientData cdata,
          * plus vararg parameters. Note this is NOT same as nArgObjs due ti
          * presence of defaults.
          */
-        argObjs = (Tcl_Obj **)MemLifoAlloc(
+        argObjs = (Tcl_Obj **)Tclh_LifoAlloc(
             &ipCtxP->memlifo, nActualArgs * sizeof(Tcl_Obj *));
 
         /* First do the fixed arguments */
@@ -1764,7 +1764,7 @@ CffiFunctionCall(ClientData cdata,
                     protoP->returnType.typeAttrs.dataType.u.structP;
                 if (fnCheckRet == TCL_OK) {
                     /* Null pointer but allowed. Construct a default value. */
-                    pointer = MemLifoAlloc(&ipCtxP->memlifo, structP->size);
+                    pointer = Tclh_LifoAlloc(&ipCtxP->memlifo, structP->size);
                     ret     = CffiStructObjDefault(ipCtxP, structP, pointer);
                 }
                 else {
@@ -1937,7 +1937,7 @@ pop_and_go:
         }
     }
 
-    MemLifoPopMark(mark);
+    Tclh_LifoPopMark(mark);
     return ret;
 
 numargs_error:

@@ -370,7 +370,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
                     "Pointer passed to callback is NULL.");
             }
             structP = typeAttrsP->dataType.u.structP;
-            valueP = MemLifoAlloc(&cbP->ipCtxP->memlifo, structP->size);
+            valueP = Tclh_LifoAlloc(&cbP->ipCtxP->memlifo, structP->size);
             CHECK(CffiStructObjDefault(cbP->ipCtxP, structP, valueP));
         }
         /* TBD - Why not call CffiStructToObj directly here? */
@@ -491,7 +491,7 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
     Tcl_Obj *resultObj;
     CffiCallback *cbP = (CffiCallback *)userdata;
     CffiInterpCtx *ipCtxP = cbP->ipCtxP;
-    MemLifoMarkHandle mark = NULL;
+    Tclh_LifoMark mark = NULL;
 
     CFFI_ASSERT(cifP->nargs == cbP->protoP->nParams);
     CFFI_ASSERT(cifP == cbP->protoP->cifP);
@@ -507,10 +507,10 @@ CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata)
      * we do so anyways since in the future callbacks may be outside of
      * CffiFunctionCall context.
      */
-    mark = MemLifoPushMark(&ipCtxP->memlifo);
+    mark = Tclh_LifoPushMark(&ipCtxP->memlifo);
     /* TODO - overflow on multiply */
     evalObjs =
-        MemLifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
+        Tclh_LifoAlloc(&ipCtxP->memlifo, nEvalObjs * sizeof(Tcl_Obj *));
 
     /* Do NOT return beyond this point without popping memlifo */
 
@@ -583,7 +583,7 @@ vamoose:
         }
     }
     if (mark)
-        MemLifoPopMark(mark);
+        Tclh_LifoPopMark(mark);
 }
 
 static int
