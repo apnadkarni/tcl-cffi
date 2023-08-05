@@ -819,12 +819,13 @@ namespace eval Concepts {
         * Type aliases are scoped. If the alias name in a definition is not
         fully qualified, it is qualified with the name of the current Tcl
         namespace. If an alias name is not fully qualified on use, it is looked
-        up using the current Tcl namespace as the scope and the global scope
-        if not found there.
+        up using the current Tcl namespace as the scope, the global scope and
+        the `::cffi` scope in that order.
 
         For convenience, the package provides the [::cffi::alias load] command
         which defines some standard C type aliases like `size_t` as well as some
-        platform-specific type aliases such as `HANDLE` on Windows.
+        platform-specific type aliases such as `HANDLE` on Windows. These are
+        all loaded in the `::cffi` scope.
 
         Currently defined type aliases can be listed with the
         [::cffi::alias list] command and removed with

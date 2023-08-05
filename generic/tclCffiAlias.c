@@ -313,6 +313,9 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
 {
     const char *s;
 
+    /*
+     * Various macros to detect size and signedness at compile and runtime
+     */
 #define SIGNEDTYPEINDEX(type_)                              \
     do {                                                    \
         if (sizeof(type_) == sizeof(signed char))           \
@@ -345,15 +348,15 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             CFFI_ASSERT(0);                                   \
     } while (0)
 
-#define ADDTYPEINDEX(newtype_, existingIndex_)                                \
+#define ADDTYPEINDEX(alias_, existingIndex_)                                \
     do {                                                                      \
         if (CffiAliasAddStr(                                                  \
-                ipCtxP, #newtype_, cffiBaseTypes[existingIndex_].token, NULL) \
+                ipCtxP, alias_, cffiBaseTypes[existingIndex_].token, NULL) \
             != TCL_OK)                                                        \
             return TCL_ERROR;                                                 \
     } while (0)
 
-#define ADDINTTYPE(type_)               \
+#define ADDINTTYPE(type_, alias_)          \
     do {                                \
         enum CffiBaseType typeIndex;    \
         type_ val = (type_)-1;          \
@@ -361,7 +364,7 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             SIGNEDTYPEINDEX(type_);     \
         else                            \
             UNSIGNEDTYPEINDEX(type_);   \
-        ADDTYPEINDEX(type_, typeIndex); \
+        ADDTYPEINDEX(alias_, typeIndex); \
     } while (0)
 
     s = Tcl_GetString(objP);
@@ -370,94 +373,92 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         {
             enum CffiBaseType typeIndex;
             UNSIGNEDTYPEINDEX(_Bool);
-            ADDTYPEINDEX(_Bool, typeIndex);
+            ADDTYPEINDEX("::cffi::_Bool", typeIndex);
         }
-        CffiAliasAddStr(ipCtxP, "bool", "_Bool", NULL);
-        ADDINTTYPE(size_t);
+        CffiAliasAddStr(ipCtxP, "::cffi::bool", "_Bool", NULL);
+        ADDINTTYPE(size_t, "::cffi::size_t");
 #ifdef _WIN32
-        ADDINTTYPE(SSIZE_T);
-        CffiAliasAddStr(ipCtxP, "ssize_t", "SSIZE_T", NULL);
+        if (sizeof(SSIZE_T) == sizeof(int)) {
+            CffiAliasAddStr(ipCtxP, "::cffi::ssize_t", "int", NULL);
+        } else if (sizeof(SSIZE_T) == sizeof(long)) {
+            CffiAliasAddStr(ipCtxP, "::cffi::ssize_t", "long", NULL);
+        } else if (sizeof(SSIZE_T) == sizeof(long long)) {
+            CffiAliasAddStr(ipCtxP, "::cffi::ssize_t", "longlong", NULL);
+        }
 #else
-        ADDINTTYPE(ssize_t);
-        CffiAliasAddStr(ipCtxP, "SSIZE_T", "ssize_t", NULL);
+        ADDINTTYPE(ssize_t, "::cffi::ssize_t");
 #endif
-        ADDINTTYPE(int8_t);
-        ADDINTTYPE(uint8_t);
-        ADDINTTYPE(int16_t);
-        ADDINTTYPE(uint16_t);
-        ADDINTTYPE(int32_t);
-        ADDINTTYPE(uint32_t);
-        ADDINTTYPE(int64_t);
-        ADDINTTYPE(uint64_t);
+        ADDINTTYPE(int8_t, "::cffi::int8_t");
+        ADDINTTYPE(uint8_t, "::cffi::uint8_t");
+        ADDINTTYPE(int16_t, "::cffi::int16_t");
+        ADDINTTYPE(uint16_t, "::cffi::uint16_t");
+        ADDINTTYPE(int32_t, "::cffi::int32_t");
+        ADDINTTYPE(uint32_t, "::cffi::uint32_t");
+        ADDINTTYPE(int64_t, "::cffi::int64_t");
+        ADDINTTYPE(uint64_t, "::cffi::uint64_t");
     }
 #ifdef _WIN32
     else if (!strcmp(s, "win32")) {
-        ADDINTTYPE(BOOL);
-        ADDINTTYPE(BOOLEAN);
-        ADDINTTYPE(CHAR);
-        ADDINTTYPE(BYTE);
-        ADDINTTYPE(WORD);
-        ADDINTTYPE(DWORD);
-        ADDINTTYPE(DWORD_PTR);
-        ADDINTTYPE(DWORDLONG);
-        ADDINTTYPE(HALF_PTR);
-        ADDINTTYPE(INT);
-        ADDINTTYPE(INT_PTR);
-        ADDINTTYPE(LONG);
-        ADDINTTYPE(LONGLONG);
-        ADDINTTYPE(LONG_PTR);
-        ADDINTTYPE(LPARAM);
-        ADDINTTYPE(LRESULT);
-        ADDINTTYPE(SHORT);
-        ADDINTTYPE(SIZE_T);
-        ADDINTTYPE(SSIZE_T);
-        ADDINTTYPE(UCHAR);
-        ADDINTTYPE(UINT);
-        ADDINTTYPE(UINT_PTR);
-        ADDINTTYPE(ULONG);
-        ADDINTTYPE(ULONGLONG);
-        ADDINTTYPE(ULONG_PTR);
-        ADDINTTYPE(USHORT);
-        ADDINTTYPE(WPARAM);
+        ADDINTTYPE(BOOL, "::cffi::BOOL");
+        ADDINTTYPE(BOOLEAN, "::cffi::BOOLEAN");
+        ADDINTTYPE(CHAR, "::cffi::CHAR");
+        ADDINTTYPE(BYTE, "::cffi::BYTE");
+        ADDINTTYPE(WORD, "::cffi::WORD");
+        ADDINTTYPE(DWORD, "::cffi::DWORD");
+        ADDINTTYPE(DWORD_PTR, "::cffi::DWORD_PTR");
+        ADDINTTYPE(DWORDLONG, "::cffi::DWORDLONG");
+        ADDINTTYPE(HALF_PTR, "::cffi::HALF_PTR");
+        ADDINTTYPE(INT, "::cffi::INT");
+        ADDINTTYPE(INT_PTR, "::cffi::INT_PTR");
+        ADDINTTYPE(LONG, "::cffi::LONG");
+        ADDINTTYPE(LONGLONG, "::cffi::LONGLONG");
+        ADDINTTYPE(LONG_PTR, "::cffi::LONG_PTR");
+        ADDINTTYPE(LPARAM, "::cffi::LPARAM");
+        ADDINTTYPE(LRESULT, "::cffi::LRESULT");
+        ADDINTTYPE(SHORT, "::cffi::SHORT");
+        ADDINTTYPE(SIZE_T, "::cffi::SIZE_T");
+        ADDINTTYPE(SSIZE_T, "::cffi::SSIZE_T");
+        ADDINTTYPE(UCHAR, "::cffi::UCHAR");
+        ADDINTTYPE(UINT, "::cffi::UINT");
+        ADDINTTYPE(UINT_PTR, "::cffi::UINT_PTR");
+        ADDINTTYPE(ULONG, "::cffi::ULONG");
+        ADDINTTYPE(ULONGLONG, "::cffi::ULONGLONG");
+        ADDINTTYPE(ULONG_PTR, "::cffi::ULONG_PTR");
+        ADDINTTYPE(USHORT, "::cffi::USHORT");
+        ADDINTTYPE(WPARAM, "::cffi::WPARAM");
 
-        if (CffiAliasAddStr(ipCtxP, "LPVOID", "pointer", NULL) != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, "::cffi::LPVOID", "pointer", NULL) != TCL_OK)
             return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, "HANDLE", "pointer.HANDLE", NULL) != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, "::cffi::HANDLE", "pointer.HANDLE", NULL) != TCL_OK)
             return TCL_ERROR;
     }
 #endif
     else if (!strcmp(s, "posix")) {
         /* sys/types.h */
-#ifdef _WIN32
-        /* POSIX defines on Windows */
-        ADDINTTYPE(time_t);
-        ADDINTTYPE(ino_t);
-        ADDINTTYPE(off_t);
-        ADDINTTYPE(dev_t);
-#else
-        ADDINTTYPE(blkcnt_t);
-        ADDINTTYPE(blksize_t);
-        ADDINTTYPE(clock_t);
+        ADDINTTYPE(dev_t, "::cffi::dev_t");
+        ADDINTTYPE(ino_t, "::cffi::ino_t");
+        ADDINTTYPE(time_t, "::cffi::time_t");
+        ADDINTTYPE(off_t, "::cffi::off_t");
+#ifndef _WIN32
+        ADDINTTYPE(blkcnt_t, "::cffi::blkcnt_t");
+        ADDINTTYPE(blksize_t, "::cffi::blksize_t");
+        ADDINTTYPE(clock_t, "::cffi::clock_t");
 #ifdef NOTYET
         /* MacOS Catalina does not define this. Should we keep it in? */
-        ADDINTTYPE(clockid_t);
+        ADDINTTYPE(clockid_t, "::cffi::clockid_t");
 #endif
-        ADDINTTYPE(dev_t);
-        ADDINTTYPE(fsblkcnt_t);
-        ADDINTTYPE(fsfilcnt_t);
-        ADDINTTYPE(gid_t);
-        ADDINTTYPE(id_t);
-        ADDINTTYPE(ino_t);
-        ADDINTTYPE(key_t);
-        ADDINTTYPE(mode_t);
-        ADDINTTYPE(nlink_t);
-        ADDINTTYPE(off_t);
-        ADDINTTYPE(pid_t);
-        ADDINTTYPE(size_t);
-        ADDINTTYPE(ssize_t);
-        ADDINTTYPE(suseconds_t);
-        ADDINTTYPE(time_t);
-        ADDINTTYPE(uid_t);
+        ADDINTTYPE(fsblkcnt_t, "::cffi::fsblkcnt_t");
+        ADDINTTYPE(fsfilcnt_t, "::cffi::fsfilcnt_t");
+        ADDINTTYPE(gid_t, "::cffi::gid_t");
+        ADDINTTYPE(id_t, "::cffi::id_t");
+        ADDINTTYPE(key_t, "::cffi::key_t");
+        ADDINTTYPE(mode_t, "::cffi::mode_t");
+        ADDINTTYPE(nlink_t, "::cffi::nlink_t");
+        ADDINTTYPE(pid_t, "::cffi::pid_t");
+        ADDINTTYPE(size_t, "::cffi::size_t");
+        ADDINTTYPE(ssize_t, "::cffi::ssize_t");
+        ADDINTTYPE(suseconds_t, "::cffi::suseconds_t");
+        ADDINTTYPE(uid_t, "::cffi::uid_t");
 #endif
     }
     else {

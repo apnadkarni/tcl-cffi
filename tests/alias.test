@@ -229,55 +229,34 @@ namespace eval cffi::test {
     # alias load
     #
     testnumargs alias-load "cffi::alias load" "ALIASSET"
-    test alias-load-C-0 "alias load" -setup {
+    test alias-load-C-0 "alias load C" -setup {
         reset_aliases
     } -body {
         cffi::alias load C
-        lsort [cffi::alias list]
-    } -result [lprefixns SSIZE_T _Bool bool int16_t int32_t int64_t int8_t size_t ssize_t uint16_t uint32_t uint64_t uint8_t]
-    test alias-load-C-1 "alias load" -setup {
-        reset_aliases
-    } -body {
-        uplevel #0 cffi::alias load C
-        # Should be empty as C loaded into global scope
-        cffi::alias list
-    } -result ""
+        list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::*]]
+    } -result [list [list] [list ] [lprefixcffi _Bool bool int16_t int32_t int64_t int8_t size_t ssize_t uint16_t uint32_t uint64_t uint8_t]]
 
-    test alias-load-win-0 "alias load" -setup {
+    test alias-load-win-0 "alias load win32" -setup {
         reset_aliases
     } -constraints win -body {
         cffi::alias load win32
-        lsort [cffi::alias list]
-    } -result [lprefixns BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPVOID LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM]
+        list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::*]]
+    } -result [list [list] [list ] [lprefixcffi BOOL BOOLEAN BYTE CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT INT_PTR LONG LONGLONG LONG_PTR LPARAM LPVOID LRESULT SHORT SIZE_T SSIZE_T UCHAR UINT UINT_PTR ULONG ULONGLONG ULONG_PTR USHORT WORD WPARAM]]
 
-    test alias-load-win-1 "alias load" -setup {
+    test alias-load-posix-0.a "alias load posix" -setup {
         reset_aliases
     } -constraints win -body {
-        uplevel #0 cffi::alias load posix
-        lsort [uplevel #0 cffi::alias list]
-    } -result [list ::dev_t ::ino_t ::off_t ::time_t]
+        cffi::alias load posix
+        list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::*]]
+    } -result [list [list ] [list ] [lprefixcffi dev_t ino_t off_t time_t]]
 
-    test alias-load-win-2 "alias load" -setup {
-        reset_aliases
-    } -constraints win -body {
-        namespace eval :: {cffi::alias load posix}
-        lsort [cffi::alias list]
-    } -result {}
-
-    test alias-load-posix-0 "alias load" -setup {
+    test alias-load-posix-0.b "alias load" -setup {
         reset_aliases
         uplevel #0 cffi::alias delete *
     } -constraints !win -body {
         cffi::alias load posix
-        lsort [cffi::alias list]
-    } -result [lprefixns blkcnt_t blksize_t clock_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t]
-
-    test alias-load-posix-1 "alias load" -setup {
-        reset_aliases
-    } -constraints !win -body {
-        cffi::alias load posix
-        lsort [uplevel #0 cffi::alias list]
-    } -result {}
+        list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::*]]
+    } -result [list [list] [list ] [lprefixcffi blkcnt_t blksize_t clock_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t]]
 
     test alias-load-error-0 "alias load - unknown set" -body {
         cffi::alias load xx

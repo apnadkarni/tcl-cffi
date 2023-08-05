@@ -86,6 +86,7 @@ CffiNameLookup(Tcl_Interp *ip,
         return TCL_OK;
     }
 
+    int pathIndex = 0;
     /* If interpreter provided, try with current namespace, else global */
     if (ip) {
         nsP  = Tcl_GetCurrentNamespace(ip);
@@ -96,20 +97,26 @@ CffiNameLookup(Tcl_Interp *ip,
         Tcl_DStringFree(&ds);
         if (ret == TCL_OK)
             return TCL_OK;
-        /* If current namespace was global, no point trying with global below */
-        if (Tclh_NsIsGlobalNs(nsP->fullName))
-            goto notfound;
+        if (Tclh_NsIsGlobalNs(nsP->fullName)) {
+            /* If already global namespace, no point repeating search there. */
+            pathIndex = 1;
+        }
     }
-
-    /* Final resort - global namespace */
-    fqnP = Tclh_NsQualifyName(NULL, nameP, -1, &ds, "::");
-    ret  = Tclh_HashLookup(htP, fqnP, valueP);
-    if (ret == TCL_OK && fqnObjP)
-        *fqnObjP = Tcl_NewStringObj(fqnP, -1); /* BEFORE freeing ds! */
-    Tcl_DStringFree(&ds);
-
-    if (ret == TCL_OK)
-        return TCL_OK;
+    const char *searchPaths[] = {
+        "::",
+        "::cffi",
+    };
+    while (pathIndex < sizeof(searchPaths)/sizeof(searchPaths[0])) {
+        /* Look up the platform specific namespace */
+        fqnP = Tclh_NsQualifyName(NULL, nameP, -1, &ds, searchPaths[pathIndex]);
+        ret  = Tclh_HashLookup(htP, fqnP, valueP);
+        if (ret == TCL_OK && fqnObjP)
+            *fqnObjP = Tcl_NewStringObj(fqnP, -1); /* BEFORE freeing ds! */
+        Tcl_DStringFree(&ds); /* Required even if ret was not TCL_OK */
+        if (ret == TCL_OK)
+            return TCL_OK;
+        ++pathIndex;
+    }
 
 notfound:
     if (ip && (flags & CFFI_F_SKIP_ERROR_MESSAGES) == 0)
