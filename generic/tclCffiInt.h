@@ -17,6 +17,7 @@
 #include "tclhAtom.h"
 #include "tclhCmd.h"
 #include "tclhLifo.h"
+#include "tclhEncoding.h"
 
 /*
  * Which back end system are we using? Currently only two supported. At most

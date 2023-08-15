@@ -2147,6 +2147,7 @@ CffiCharsFromTclString(Tcl_Interp *ip,
 {
     Tcl_Encoding encoding;
     CffiResult ret;
+    int flags;
 
     if (fromLen < 0)
         fromLen = Tclh_strlen(fromP);
@@ -2163,16 +2164,18 @@ CffiCharsFromTclString(Tcl_Interp *ip,
     else
         encoding = NULL;
 
-    /*
-     * TBD - Should we including TCL_ENCODING_STOPONERROR ? Currently
-     * we do not because the fallback method using DStrings does not
-     * support that behaviour.
-     */
-    ret = Tcl_UtfToExternal(ip,
+#ifdef TCLH_TCL87API
+    flags =
+        TCL_ENCODING_START | TCL_ENCODING_END | TCL_ENCODING_PROFILE_REPLACE;
+#else
+    flags = TCL_ENCODING_START | TCL_ENCODING_END;
+#endif
+
+    ret = Tclh_UtfToExternal(ip,
                             encoding,
                             fromP,
                             fromLen,
-                            TCL_ENCODING_START | TCL_ENCODING_END,
+                            flags,
                             NULL,
                             toP,
                             toSize,
@@ -2191,18 +2194,18 @@ CffiCharsFromTclString(Tcl_Interp *ip,
      */
     if (ret == TCL_CONVERT_NOSPACE) {
         Tcl_DString ds;
+        int i;
         char *external;
-        int externalLen = toSize + 6; /* Max needed depending on TCL_UTF_MAX setting */
+        Tcl_Size externalLen = toSize + 6;
         Tcl_DStringInit(&ds);
         /* Preset the length leaving extra space */
         Tcl_DStringSetLength(&ds, externalLen);
         external    = Tcl_DStringValue(&ds);
-        /* Set two bytes to ff so we know whether one null or two for encoding */
-        external[toSize] = 0xff;
-        external[toSize+1] = 0xff;
+        /* Set 4 bytes to ff so we know size of nul terminator */
+        for (i = 0; i< 4; ++i)
+            external[toSize+i] = 0xff;
 
-        /* TODO - fromLen must be < 2G. Change to loop */
-        ret = Tcl_UtfToExternal(ip,
+        ret = Tclh_UtfToExternal(ip,
                                 encoding,
                                 fromP,
                                 fromLen,
@@ -2215,12 +2218,14 @@ CffiCharsFromTclString(Tcl_Interp *ip,
                                 NULL);
         /* externalLen contains number of encoded bytes */
         if (ret == TCL_OK) {
+            int i;
             CFFI_ASSERT(external[externalLen] == '\0');
-            ++externalLen; /* Terminating null */
-            /* See if double terminator */
-            if (external[externalLen] == '\0') {
-                ++externalLen;
+            /* Check for how many terminator bytes. TBD - use new Tcl87 API */
+            for (i = 1; i < 4; ++i) {
+                if (external[externalLen+i] != 0)
+                    break;
             }
+            externalLen += i;
             if (externalLen <= toSize)
                 memmove(toP, external, externalLen);
             else {
@@ -2283,18 +2288,14 @@ CffiCharsFromObj(
 CffiResult
 CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
                           Tcl_Obj *encObj,
-                          Tcl_Obj *fromObj,
+                          Tcl_Obj *srcObj,
                           Tclh_Lifo *memlifoP,
                           char **outPP)
 {
-    const char *fromP;
-    Tcl_Size fromLen, dstLen, srcLen, dstSpace;
-    int srcLatestRead, dstLatestWritten;
     const char *srcP;
-    char *dstP;
+    Tcl_Size srcLen;
     int flags;
     int status;
-    Tcl_EncodingState state;
     Tcl_Encoding encoding;
 
     if (encObj) {
@@ -2305,51 +2306,20 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
     else
         encoding = NULL;
 
-    fromP = Tcl_GetStringFromObj(fromObj, &fromLen);
-    srcP = fromP;               /* Keep fromP unchanged for error messages */
-    srcLen = fromLen;
+    srcP = Tcl_GetStringFromObj(srcObj, &srcLen);
+#ifdef TCLH_TCL87API
+    flags = TCL_ENCODING_PROFILE_REPLACE;
+#else
+    flags = 0;
+#endif
 
-    flags = TCL_ENCODING_START | TCL_ENCODING_END;
-
-    dstSpace = srcLen + 2; /* Possibly two nuls */
-    dstP = Tclh_LifoAlloc(memlifoP, dstSpace);
-    dstLen = 0;
-    while (1) {
-        /* dstP is buffer. dstLen is what's written so far */
-        status = Tcl_UtfToExternal(ip, encoding, srcP, srcLen, flags, &state,
-                                   dstP+dstLen,
-                                dstSpace-dstLen, &srcLatestRead,
-                                &dstLatestWritten, NULL);
-        CFFI_ASSERT(dstSpace >= dstLatestWritten);
-        dstLen += dstLatestWritten;
-        /* Terminate loop on any  */
-        if (status != TCL_CONVERT_NOSPACE) {
-            if (status != TCL_OK)
-                break;
-            /* Tack on two nuls because we don't know how many nuls encoding uses */
-            if ((dstSpace-dstLen) < 2)
-                dstP = Tclh_LifoResizeLast(memlifoP, dstSpace+(dstSpace-dstLen), 0);
-            dstP[dstLen] = 0;
-            dstP[dstLen+1] = 0;
-            *outPP = dstP;
-            if (encoding)
-                Tcl_FreeEncoding(encoding);
-            return TCL_OK;
-        }
-        flags &= ~ TCL_ENCODING_START;
-
-        CFFI_ASSERT(srcLatestRead <= srcLen);
-        srcP += srcLatestRead;
-        srcLen -= srcLatestRead;
-        if ((INT_MAX-dstSpace) < dstSpace)
-            dstSpace = INT_MAX;
-        else
-            dstSpace = 2 * dstSpace;
-        dstP = Tclh_LifoResizeLast(memlifoP, dstSpace, 0);
-    }
+    status = Tclh_UtfToExternalLifo(
+        ip, encoding, srcP, srcLen, flags, memlifoP, outPP, NULL, NULL);
     if (encoding)
         Tcl_FreeEncoding(encoding);
-    return Tclh_ErrorEncodingFromUtf8(ip, status, fromP, fromLen);
+    if (status == TCL_OK)
+        return TCL_OK;
+    return Tclh_ErrorEncodingFromUtf8(ip, status, srcP, srcLen);
 }
 
 /* Function: CffiCharsFromObjSafe
