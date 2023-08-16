@@ -154,10 +154,10 @@ extern const CffiBaseTypeInfo cffiBaseTypes[];
 
 typedef struct CffiType {
     enum CffiBaseType baseType;
-    int               arraySize;    /* -1 ->scalar
-                                       0 -> array of unknown size specified
-                                       through countHolderObj
-                                       >0 -> array of count base type elements */
+    int arraySize;           /* -1 -> scalar. TODO - make Tcl_Size
+                                 0 -> array of unknown size specified
+                                 through countHolderObj
+                                 >0 -> array of count base type elements */
     union {
         Tcl_Obj *tagNameObj; /* POINTER tag, Enum name */
         Tcl_Encoding encoding; /* ASTRING, CHAR_ARRAY */
@@ -505,7 +505,10 @@ typedef enum CffiFlags {
  * Prototypes
  */
 CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
+CffiResult
+CffiTagSyntaxCheck(Tcl_Interp *interp, const char *tagStr, Tcl_Size tagLen);
 
+CffiResult CffiTypeParseArraySize(const char *lbStr, CffiType *typeP);
 const CffiBaseTypeInfo *CffiBaseTypeInfoGet(Tcl_Interp *ip,
                                             Tcl_Obj *baseTypeObj);
 CffiResult CffiTypeParse(CffiInterpCtx *ipCtxP,

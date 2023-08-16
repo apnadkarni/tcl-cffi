@@ -8,12 +8,14 @@
 #include "tclCffiInt.h"
 
 /* Function: CffiNameSyntaxCheck
- * Verifies that a name matches permitted syntax.`
+ * Verifies that a name matches permitted syntax.
  *
  * Parameters:
  * ip - interpreter
  * nameObj - name to be checked
  *
+ * Differs from CffiTagSyntaxCheck in that first letter must be alphabetic.
+ * 
  * Returns:
  * *TCL_OK* if syntax is permitted, other *TCL_ERROR* with error message
  * in interpreter.

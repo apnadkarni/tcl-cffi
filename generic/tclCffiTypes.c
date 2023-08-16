@@ -377,6 +377,94 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
     }
 }
 
+/* Function: CffiTagSyntaxCheck
+ * Checks if the passed string is syntactically valid for tags
+ *
+ * Parameters:
+ * interp - interpreter for error messages. May be NULL.
+ * tagStr - the string to check
+ * tagLen - length of string. If negative, must be nul terminated.
+ *
+ * Differs from CffiNameSyntaxCheck in that first letter need not be alphabetic.
+ *
+ * Returns:
+ * TCL_OK if valid, else TCL_ERROR.
+ */
+CffiResult
+CffiTagSyntaxCheck(Tcl_Interp *interp, const char *tagStr, Tcl_Size tagLen)
+{
+    const char *startTag = tagStr;
+    if (tagLen < 0)
+        tagLen = Tclh_strlen(tagStr);
+    if (tagLen > 0 && !isdigit(*(unsigned char *)tagStr)) {
+        const char *end = tagStr + tagLen;
+        while (tagStr < end) {
+            unsigned char ch = *(unsigned char *)tagStr++;
+            if (!isalnum(ch) && ch != ':' && ch != '_' && ch != '-') {
+                goto invalid_syntax;
+            }
+        }
+        return TCL_OK;
+    }
+
+    Tcl_Obj *tagObj;
+invalid_syntax:
+    /* Can't use ErrorInvalidValueStr because tag may not be nul terminated */
+    tagObj = Tcl_NewStringObj(startTag, tagLen);
+    (void) Tclh_ErrorInvalidValue(interp, tagObj, "Invalid tag syntax.");
+    Tcl_DecrRefCount(tagObj);
+    return TCL_ERROR;
+}
+
+/* Function: CffiTypeParseArraySize
+ * Parses the array size component of a type declaration.
+ *
+ * Parameters:
+ * lbStr - pointer to the "[" starting the array
+ * typeP - pointer to output type descriptor to fill with array size
+ *
+ * The array size may be specified either as a positive integer value or
+ * as an identifier indicating size is given by some other parameter in
+ * a function description.
+ *
+ * Returns:
+ * TCL_OK or TCL_ERROR.
+ */
+CffiResult
+CffiTypeParseArraySize(const char *lbStr, CffiType *typeP)
+{
+    char ch;
+    char rightbracket;
+    int count;
+    int nfields;
+
+    if (lbStr[0] != '[')
+        return TCL_ERROR;
+
+    ++lbStr;
+    nfields = sscanf(lbStr, "%d%c%c", &count, &rightbracket, &ch);
+    if (nfields == 2) {
+        /* Count specified as an integer */
+        if (count <= 0 || count >= TCL_SIZE_MAX || rightbracket != ']')
+            return TCL_ERROR;
+        typeP->arraySize = count; /* TODO - make arraySize Tcl_Size */
+    }
+    else {
+        /* Count specified as the name of some other thing */
+        const char *p;
+        if (!isalpha(*(unsigned char *)lbStr))
+            return TCL_ERROR;
+        p = strchr(lbStr, ']');
+        if (p == NULL || p[1] != '\0' || p == lbStr
+            || (p - lbStr >= INT_MAX))
+            return TCL_ERROR;
+        typeP->arraySize      = 0; /* Variable size array */
+        typeP->countHolderObj = Tcl_NewStringObj(lbStr, (Tcl_Size)(p - lbStr));
+        Tcl_IncrRefCount(typeP->countHolderObj);
+    }
+    return TCL_OK;
+}
+
 /* Function: CffiTypeParse
  * Parses a type definition into an internal form.
  *
@@ -454,16 +542,19 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
     else if (typeStr[tokenLen] == '.') {
         /* TYPE.TAG */
         tagStr = typeStr + tokenLen + 1;
-        /* Note the isascii also takes care of not permitting '[' */
-        if (*tagStr == '\0' || !isascii((unsigned char)*tagStr)) {
-            message = "Missing or invalid encoding or tag.";
-            goto invalid_type;
-        }
-        lbStr = strchr(tagStr, '[');
-        if (lbStr)
+        lbStr  = strchr(tagStr, '[');
+        if (lbStr) {
             tagLen  = (Tcl_Size)(lbStr - tagStr); /* TYPE.TAG[N] */
+            if (tagLen == 0) {
+                /* "[" immediately followed the ".". */
+                message = "Missing or invalid encoding or tag.";
+                goto invalid_type;
+            }
+        }
         else
             tagLen = Tclh_strlen(tagStr); /* TYPE.TAG */
+        if (CffiTagSyntaxCheck(ipCtxP->interp, tagStr,tagLen) != TCL_OK)
+            goto error_return;
     }
     else {
         message = "Invalid base type";
@@ -536,33 +627,8 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
 
     CFFI_ASSERT(typeP->arraySize < 0);/* Should already be default init-ed */
     if (lbStr) {
-        /* An array element count is specified, either as int or a symbol */
-        char ch;
-        char rightbracket;
-        int count;
-        int nfields;
-        const char *countStr = lbStr + 1;
-        nfields = sscanf(countStr, "%d%c%c", &count, &rightbracket, &ch);
-        if (nfields == 2) {
-            /* Count specified as an integer */
-            if (count <= 0 || rightbracket != ']')
-                goto invalid_array_size;
-            typeP->arraySize = count;
-        }
-        else {
-            /* Count specified as the name of some other thing */
-            const char *p;
-            if (!isascii(*(unsigned char *)countStr)
-                || !isalpha(*(unsigned char *)countStr))
-                goto invalid_array_size;
-            p = strchr(countStr, ']');
-            if (p == NULL || p[1] != '\0' || p == countStr)
-                goto invalid_array_size;
-            typeP->arraySize = 0;/* Variable size array */
-            typeP->countHolderObj =
-                Tcl_NewStringObj(countStr, (int) (p - countStr));
-            Tcl_IncrRefCount(typeP->countHolderObj);
-        }
+        if (CffiTypeParseArraySize(lbStr, typeP) != TCL_OK)
+            goto invalid_array_size;
     }
 
     /*
