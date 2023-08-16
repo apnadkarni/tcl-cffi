@@ -220,16 +220,35 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
         enum CffiBaseType baseType = fieldP->fieldType.dataType.baseType;
         switch (baseType) {
         case CFFI_K_TYPE_POINTER:
-        case CFFI_K_TYPE_ASTRING:
-        case CFFI_K_TYPE_UNISTRING:
-        case CFFI_K_TYPE_CHAR_ARRAY:
-        case CFFI_K_TYPE_UNICHAR_ARRAY:
             Tcl_AppendPrintfToObj(objP, "\n  %s", cffiBaseTypes[baseType].token);
-            if (fieldP->fieldType.dataType.u.tagObj)
+            if (fieldP->fieldType.dataType.u.tagNameObj)
                 Tcl_AppendPrintfToObj(
                     objP,
                     ".%s",
-                    Tcl_GetString(fieldP->fieldType.dataType.u.tagObj));
+                    Tcl_GetString(fieldP->fieldType.dataType.u.tagNameObj));
+            Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
+            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
+                Tcl_AppendPrintfToObj(
+                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+            break;
+        case CFFI_K_TYPE_ASTRING:
+        case CFFI_K_TYPE_CHAR_ARRAY:
+            Tcl_AppendPrintfToObj(objP, "\n  %s", cffiBaseTypes[baseType].token);
+            if (fieldP->fieldType.dataType.u.encoding) {
+                const char *encName =
+                    Tcl_GetEncodingName(fieldP->fieldType.dataType.u.encoding);
+                if (encName) {
+                    Tcl_AppendPrintfToObj(objP, ".%s", encName);
+                }
+            }
+            Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
+            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
+                Tcl_AppendPrintfToObj(
+                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+            break;
+        case CFFI_K_TYPE_UNISTRING:
+        case CFFI_K_TYPE_UNICHAR_ARRAY:
+            Tcl_AppendPrintfToObj(objP, "\n  %s", cffiBaseTypes[baseType].token);
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
             if (CffiTypeIsArray(&fieldP->fieldType.dataType))
                 Tcl_AppendPrintfToObj(
@@ -248,6 +267,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
             break;
 
         default:
+            /* TODO - include enum name for integers */
             Tcl_AppendPrintfToObj(objP,
                                   "\n  %s %s",
                                   cffiBaseTypes[baseType].token,

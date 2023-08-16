@@ -159,13 +159,9 @@ typedef struct CffiType {
                                        through countHolderObj
                                        >0 -> array of count base type elements */
     union {
-        /* tagObj -
-         * POINTER - pointer tag (may be NULL)
-         * ASTRING, CHAR_ARRAY - encoding (may be NULL)
-         * Numerical types - Enum name (may be NULL)
-         */
-        Tcl_Obj *tagObj;
-        CffiStruct *structP; /* TCL_F_TYPE_STRUCT */
+        Tcl_Obj *tagNameObj; /* POINTER tag, Enum name */
+        Tcl_Encoding encoding; /* ASTRING, CHAR_ARRAY */
+        CffiStruct *structP;   /* STRUCT */
     } u;
     Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
                                 that contains the actual count at call time */
@@ -542,17 +538,17 @@ CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
                                Tcl_UniChar *toP,
                                Tcl_Size toSize);
 CffiResult CffiCharsFromTclString(Tcl_Interp *ip,
-                                  Tcl_Obj *encObj,
+                                  Tcl_Encoding enc,
                                   const char *fromP,
                                   Tcl_Size fromLen,
                                   char *toP,
                                   Tcl_Size toSize);
 CffiResult CffiCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize);
+    Tcl_Interp *ip, Tcl_Encoding enc, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize);
 CffiResult CffiCharsFromObjSafe(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize);
+    Tcl_Interp *ip, Tcl_Encoding enc, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize);
 CffiResult CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
-                                     Tcl_Obj *encObj,
+                                     Tcl_Encoding enc,
                                      Tcl_Obj *fromObj,
                                      Tclh_Lifo *memlifoP,
                                      char **outPP);

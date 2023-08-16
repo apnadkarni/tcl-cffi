@@ -345,15 +345,28 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
         toP->countHolderObj = fromP->countHolderObj;
         if (toP->countHolderObj)
             Tcl_IncrRefCount(toP->countHolderObj);
-        if (fromP->baseType == CFFI_K_TYPE_STRUCT) {
+        switch (fromP->baseType) {
+        case CFFI_K_TYPE_STRUCT:
             if (fromP->u.structP)
                 CffiStructRef(fromP->u.structP);
             toP->u.structP = fromP->u.structP;
-        }
-        else {
-            if (fromP->u.tagObj)
-                Tcl_IncrRefCount(fromP->u.tagObj);
-            toP->u.tagObj = fromP->u.tagObj;
+            break;
+        case CFFI_K_TYPE_ASTRING:
+        case CFFI_K_TYPE_CHAR_ARRAY:
+            if (fromP->u.encoding) {
+                /* Essentially reference counting for encoding handles */
+                toP->u.encoding = Tcl_GetEncoding(
+                    NULL, Tcl_GetEncodingName(fromP->u.encoding));
+            }
+            else {
+                toP->u.encoding = NULL;
+            }
+            break;
+        default:
+            if (fromP->u.tagNameObj)
+                Tcl_IncrRefCount(fromP->u.tagNameObj);
+            toP->u.tagNameObj = fromP->u.tagNameObj;
+            break;
         }
         toP->baseTypeSize = fromP->baseTypeSize;
     }
@@ -404,7 +417,8 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
     CffiTypeInit(typeP, NULL);
     CFFI_ASSERT(typeP->arraySize < 0); /* Code below assumes these values on init */
     CFFI_ASSERT(typeP->countHolderObj == NULL);
-    CFFI_ASSERT(typeP->u.tagObj == NULL);
+    CFFI_ASSERT(typeP->u.tagNameObj == NULL);
+    CFFI_ASSERT(typeP->u.encoding == NULL);
     CFFI_ASSERT(typeP->u.structP == NULL);
 
     typeStr = Tcl_GetString(typeObj);
@@ -483,8 +497,8 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
 
     case CFFI_K_TYPE_POINTER:
         if (tagStr != NULL) {
-            typeP->u.tagObj = CffiMakePointerTag(ipCtxP, tagStr, tagLen);
-                Tcl_IncrRefCount(typeP->u.tagObj);
+            typeP->u.tagNameObj = CffiMakePointerTag(ipCtxP, tagStr, tagLen);
+                Tcl_IncrRefCount(typeP->u.tagNameObj);
         }
         typeP->baseType = CFFI_K_TYPE_POINTER;
         typeP->baseTypeSize = baseTypeInfoP->size;
@@ -495,14 +509,16 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
         typeP->baseType = baseType; /* So type->u.tagObj freed on error */
         typeP->baseTypeSize = baseTypeInfoP->size; /* pointer or sizeof(char) */
         if (tagLen) {
-            Tcl_Encoding encoding;
-            /* Verify the encoding exists */
-            typeP->u.tagObj = Tcl_NewStringObj(tagStr, tagLen);
-            Tcl_IncrRefCount(typeP->u.tagObj);
-            ret = Tcl_GetEncodingFromObj(ipCtxP->interp, typeP->u.tagObj, &encoding);
-            if (ret != TCL_OK)
+            char encName[100];
+            if (tagLen > sizeof(encName)-1) {
+                message = "Encoding name too long.";
+                goto invalid_type;
+            }
+            memmove(encName, tagStr, tagLen);
+            encName[tagLen] = 0;
+            typeP->u.encoding = Tcl_GetEncoding(ipCtxP->interp, encName);
+            if (typeP->u.encoding == NULL)
                 goto error_return;
-            Tcl_FreeEncoding(encoding);
         }
         break;
 
@@ -602,14 +618,23 @@ void CffiTypeCleanup (CffiType *typeP)
 {
     Tclh_ObjClearPtr(&typeP->countHolderObj);
 
-    if (typeP->baseType == CFFI_K_TYPE_STRUCT) {
+    switch (typeP->baseType) {
+    case CFFI_K_TYPE_STRUCT:
         if (typeP->u.structP) {
             CffiStructUnref(typeP->u.structP);
             typeP->u.structP = NULL;
         }
-    }
-    else {
-        Tclh_ObjClearPtr(&typeP->u.tagObj);
+        break;
+    case CFFI_K_TYPE_ASTRING:
+    case CFFI_K_TYPE_CHAR_ARRAY:
+        if (typeP->u.encoding) {
+            Tcl_FreeEncoding(typeP->u.encoding);
+            typeP->u.encoding = NULL;
+        }
+        break;
+    default:
+        Tclh_ObjClearPtr(&typeP->u.tagNameObj);
+        break;
     }
     typeP->baseType = CFFI_K_TYPE_VOID;
 }
@@ -923,21 +948,21 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_STOREALWAYS;
             break;
         case ENUM:
-            if (typeAttrP->dataType.u.tagObj)
+            if (typeAttrP->dataType.u.tagNameObj)
                 goto invalid_format; /* Something already using the slot? */
             /* May be a dictionary or a named enum */
             Tcl_Size dictSize;
             if (Tcl_DictObjSize(NULL, fieldObjs[1], &dictSize) == TCL_OK) {
                  /* TBD - check if numeric */
-                typeAttrP->dataType.u.tagObj = fieldObjs[1];
+                typeAttrP->dataType.u.tagNameObj = fieldObjs[1];
             }
             else if (CffiEnumGetMap(
-                         ipCtxP, fieldObjs[1], 0, &typeAttrP->dataType.u.tagObj)
+                         ipCtxP, fieldObjs[1], 0, &typeAttrP->dataType.u.tagNameObj)
                      != TCL_OK) {
                 goto error_exit; /* Named Enum does not exist */
             }
             flags |= CFFI_F_ATTR_ENUM;
-            Tcl_IncrRefCount(typeAttrP->dataType.u.tagObj);
+            Tcl_IncrRefCount(typeAttrP->dataType.u.tagNameObj);
             break;
         case BITMASK:
             flags |= CFFI_F_ATTR_BITMASK;
@@ -1232,7 +1257,7 @@ CffiIntValueFromObj(Tcl_Interp *ip,
     if (flags & CFFI_F_ATTR_BITMASK) {
         /* TBD - Does not handle size truncation */
         return CffiEnumMemberBitmask(ip,
-                                     lookup_enum ? typeAttrsP->dataType.u.tagObj
+                                     lookup_enum ? typeAttrsP->dataType.u.tagNameObj
                                                  : NULL,
                                      valueObj,
                                      valueP);
@@ -1240,7 +1265,7 @@ CffiIntValueFromObj(Tcl_Interp *ip,
     if (lookup_enum) {
         Tcl_Obj *enumValueObj;
         if (CffiEnumMemberFind(NULL,
-                               typeAttrsP->dataType.u.tagObj,
+                               typeAttrsP->dataType.u.tagNameObj,
                                valueObj,
                                &enumValueObj) == TCL_OK)
             valueObj = enumValueObj;
@@ -1291,14 +1316,14 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
     Tcl_Obj *valueObj;
     /* TBD - Handles ulonglong correctly? */
     if (typeAttrsP != NULL && ((typeAttrsP->flags & CFFI_F_ATTR_ENUM) != 0)
-        && typeAttrsP->dataType.u.tagObj != NULL) {
+        && typeAttrsP->dataType.u.tagNameObj != NULL) {
         CffiResult ret;
         if (typeAttrsP->flags & CFFI_F_ATTR_BITMASK)
             ret = CffiEnumMemberBitUnmask(
-                NULL, typeAttrsP->dataType.u.tagObj, value, &valueObj);
+                NULL, typeAttrsP->dataType.u.tagNameObj, value, &valueObj);
         else
             ret = CffiEnumMemberFindReverse(
-                NULL, typeAttrsP->dataType.u.tagObj, value, &valueObj);
+                NULL, typeAttrsP->dataType.u.tagNameObj, value, &valueObj);
         return ret == TCL_OK ? valueObj : NULL;
     }
     return NULL;
@@ -1448,7 +1473,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                 CHECK(
                     CffiCharsFromObjSafe(ip,
-                                         typeAttrsP->dataType.u.tagObj,
+                                         typeAttrsP->dataType.u.encoding,
                                          valueObj,
                                          (indx * typeAttrsP->dataType.arraySize)
                                              + (char *)valueBaseP,
@@ -1457,7 +1482,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             else {
                 /* This is more efficient if no promise to preserve on error */
                 CHECK(CffiCharsFromObj(ip,
-                                       typeAttrsP->dataType.u.tagObj,
+                                       typeAttrsP->dataType.u.encoding,
                                        valueObj,
                                        (indx * typeAttrsP->dataType.arraySize)
                                            + (char *)valueBaseP,
@@ -1492,7 +1517,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                 char **charPP = indx + (char **)valueBaseP;
                 char *charP; /* Do not modify *charPP in case of errors */
                 CHECK(CffiCharsInMemlifoFromObj(ip,
-                                                typeAttrsP->dataType.u.tagObj,
+                                                typeAttrsP->dataType.u.encoding,
                                                 valueObj,
                                                 memlifoP,
                                                 &charP));
@@ -1620,7 +1645,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_CHAR_ARRAY:
             if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                 CHECK(CffiCharsFromObjSafe(ip,
-                                           typeAttrsP->dataType.u.tagObj,
+                                           typeAttrsP->dataType.u.encoding,
                                            valueObj,
                                            (char *)valueP,
                                            count));
@@ -1628,7 +1653,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
             else {
                 /* More efficient if no preservation on error */
                 CHECK(CffiCharsFromObj(ip,
-                                       typeAttrsP->dataType.u.tagObj,
+                                       typeAttrsP->dataType.u.encoding,
                                        valueObj,
                                        (char *)valueP,
                                        count));
@@ -2007,12 +2032,12 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
 
     if (pointer == NULL) {
         /* NULL pointers are never registered */
-        *resultObjP = Tclh_PointerWrap(NULL, typeAttrsP->dataType.u.tagObj);
+        *resultObjP = Tclh_PointerWrap(NULL, typeAttrsP->dataType.u.tagNameObj);
         ret         = TCL_OK;
     } else {
         if (flags & CFFI_F_ATTR_UNSAFE) {
             *resultObjP = Tclh_PointerWrap(
-                pointer, typeAttrsP->dataType.u.tagObj);
+                pointer, typeAttrsP->dataType.u.tagNameObj);
             ret         = TCL_OK;
         } else {
             if (flags & CFFI_F_ATTR_COUNTED)
@@ -2020,13 +2045,13 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
                     ip,
                     ipCtxP->tclhCtxP,
                     pointer,
-                    typeAttrsP->dataType.u.tagObj,
+                    typeAttrsP->dataType.u.tagNameObj,
                     resultObjP);
             else
                 ret = Tclh_PointerRegister(ip,
                                            ipCtxP->tclhCtxP,
                                            pointer,
-                                           typeAttrsP->dataType.u.tagObj,
+                                           typeAttrsP->dataType.u.tagNameObj,
                                            resultObjP);
         }
     }
@@ -2056,7 +2081,7 @@ CffiPointerFromObj(CffiInterpCtx *ipCtxP,
                    Tcl_Obj *pointerObj,
                    void **pointerP)
 {
-    Tcl_Obj *tagObj = typeAttrsP->dataType.u.tagObj;
+    Tcl_Obj *tagObj = typeAttrsP->dataType.u.tagNameObj;
     Tcl_Interp *ip  = ipCtxP->interp;
     void *pv;
 
@@ -2125,7 +2150,7 @@ CffiUniStringToObj(Tcl_Interp *ip,
  *
  * Parameters:
  * ip - interpreter
- * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * enc - encoding or *NULL*
  * fromP - Tcl utf8 string to be converted
  * fromLen - length of the Tcl string. If < 0, null terminated
  * toP - buffer to store the encoded string
@@ -2139,30 +2164,18 @@ CffiUniStringToObj(Tcl_Interp *ip,
  */
 CffiResult
 CffiCharsFromTclString(Tcl_Interp *ip,
-                       Tcl_Obj *encObj,
+                       Tcl_Encoding enc,
                        const char *fromP,
                        Tcl_Size fromLen,
                        char *toP,
                        Tcl_Size toSize)
 {
-    Tcl_Encoding encoding;
     CffiResult ret;
     int flags;
 
     if (fromLen < 0)
         fromLen = Tclh_strlen(fromP);
 
-    /*
-     * Note this encoding step is required even for UTF8 since Tcl's
-     * internal UTF8 is not exactly UTF8
-     */
-    if (encObj) {
-        /* Should not really fail since check should have happened at
-         * prototype parsing time */
-        CHECK(CffiGetEncodingFromObj(ip, encObj, &encoding));
-    }
-    else
-        encoding = NULL;
 
 #ifdef TCLH_TCL87API
     flags =
@@ -2171,17 +2184,8 @@ CffiCharsFromTclString(Tcl_Interp *ip,
     flags = TCL_ENCODING_START | TCL_ENCODING_END;
 #endif
 
-    ret = Tclh_UtfToExternal(ip,
-                            encoding,
-                            fromP,
-                            fromLen,
-                            flags,
-                            NULL,
-                            toP,
-                            toSize,
-                            NULL,
-                            NULL,
-                            NULL);
+    ret = Tclh_UtfToExternal(
+        ip, enc, fromP, fromLen, flags, NULL, toP, toSize, NULL, NULL, NULL);
 
     /*
      * The Tcl encoding routines need extra space while encoding to convert
@@ -2206,7 +2210,7 @@ CffiCharsFromTclString(Tcl_Interp *ip,
             external[toSize+i] = 0xff;
 
         ret = Tclh_UtfToExternal(ip,
-                                encoding,
+                                enc,
                                 fromP,
                                 fromLen,
                                 TCL_ENCODING_START | TCL_ENCODING_END,
@@ -2235,8 +2239,6 @@ CffiCharsFromTclString(Tcl_Interp *ip,
         }
         Tcl_DStringFree(&ds);
     }
-    if (encoding)
-        Tcl_FreeEncoding(encoding);
     if (ret == TCL_OK)
         return TCL_OK;
     return Tclh_ErrorEncodingFromUtf8(ip, ret, fromP, fromLen);
@@ -2247,7 +2249,7 @@ CffiCharsFromTclString(Tcl_Interp *ip,
  *
  * Parameters:
  * ip - interpreter
- * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * enc - encoding or *NULL*
  * fromObj - *Tcl_Obj* containing value to be stored
  * toP - buffer to store the encoded string
  * toSize - size of buffer
@@ -2261,13 +2263,13 @@ CffiCharsFromTclString(Tcl_Interp *ip,
  */
 CffiResult
 CffiCharsFromObj(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize)
+    Tcl_Interp *ip, Tcl_Encoding enc, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize)
 {
     Tcl_Size fromLen;
     const char *fromP;
 
     fromP = Tcl_GetStringFromObj(fromObj, &fromLen);
-    return CffiCharsFromTclString(ip, encObj, fromP, fromLen, toP, toSize);
+    return CffiCharsFromTclString(ip, enc, fromP, fromLen, toP, toSize);
 }
 
 /* Function: CffiCharsInMemlifoFromObj
@@ -2276,7 +2278,7 @@ CffiCharsFromObj(
  *
  * Parameters:
  * ip - interpreter
- * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * enc - encoding or *NULL*
  * fromObj - *Tcl_Obj* containing value to be stored
  * memlifoP - *Tclh_Lifo* to allocate memory from
  * outPP - location to store pointer to encoded string in Tclh_Lifo
@@ -2287,7 +2289,7 @@ CffiCharsFromObj(
  */
 CffiResult
 CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
-                          Tcl_Obj *encObj,
+                          Tcl_Encoding enc,
                           Tcl_Obj *srcObj,
                           Tclh_Lifo *memlifoP,
                           char **outPP)
@@ -2296,15 +2298,6 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
     Tcl_Size srcLen;
     int flags;
     int status;
-    Tcl_Encoding encoding;
-
-    if (encObj) {
-        /* Should not really fail since check should have happened at
-         * prototype parsing time */
-        CHECK(CffiGetEncodingFromObj(ip, encObj, &encoding));
-    }
-    else
-        encoding = NULL;
 
     srcP = Tcl_GetStringFromObj(srcObj, &srcLen);
 #ifdef TCLH_TCL87API
@@ -2314,9 +2307,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
 #endif
 
     status = Tclh_UtfToExternalLifo(
-        ip, encoding, srcP, srcLen, flags, memlifoP, outPP, NULL, NULL);
-    if (encoding)
-        Tcl_FreeEncoding(encoding);
+        ip, enc, srcP, srcLen, flags, memlifoP, outPP, NULL, NULL);
     if (status == TCL_OK)
         return TCL_OK;
     return Tclh_ErrorEncodingFromUtf8(ip, status, srcP, srcLen);
@@ -2327,7 +2318,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
  *
  * Parameters:
  * ip - interpreter
- * encObj - *Tcl_Obj* holding encoding or *NULL*
+ * enc - encoding or *NULL*
  * fromObj - *Tcl_Obj* containing value to be stored
  * toP - buffer to store the encoded string
  * toSize - size of buffer
@@ -2342,7 +2333,7 @@ CffiCharsInMemlifoFromObj(Tcl_Interp *ip,
  */
 CffiResult
 CffiCharsFromObjSafe(
-    Tcl_Interp *ip, Tcl_Obj *encObj, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize)
+    Tcl_Interp *ip, Tcl_Encoding enc, Tcl_Obj *fromObj, char *toP, Tcl_Size toSize)
 {
     Tcl_DString ds;
     char *dsBuf;
@@ -2357,7 +2348,7 @@ CffiCharsFromObjSafe(
      * of the usual string termination reasons - see comments in
      * CffiCharsFromTclString
      */
-    ret = CffiCharsFromObj(ip, encObj, fromObj, dsBuf, toSize);
+    ret = CffiCharsFromObj(ip, enc, fromObj, dsBuf, toSize);
     if (ret == TCL_OK)
         memcpy(toP, dsBuf, toSize);
     Tcl_DStringFree(&ds);
@@ -2388,7 +2379,6 @@ CffiCharsToObj(Tcl_Interp *ip,
                Tcl_Obj **resultObjP)
 {
     Tcl_DString dsDecoded;
-    Tcl_Encoding encoding;
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY
                 || typeAttrsP->dataType.baseType == CFFI_K_TYPE_ASTRING);
@@ -2400,17 +2390,8 @@ CffiCharsToObj(Tcl_Interp *ip,
 
     Tcl_DStringInit(&dsDecoded);
 
-    if (typeAttrsP->dataType.u.tagObj) {
-        CHECK(Tcl_GetEncodingFromObj(
-            ip, typeAttrsP->dataType.u.tagObj, &encoding));
-    }
-    else
-        encoding = NULL;
-
     /* TODO - use new UtfDString API and check error */
-    (void) Tcl_ExternalToUtfDString(encoding, srcP, -1, &dsDecoded);
-    if (encoding)
-        Tcl_FreeEncoding(encoding);
+    (void) Tcl_ExternalToUtfDString(typeAttrsP->dataType.u.encoding, srcP, -1, &dsDecoded);
 
     /* Should optimize this by direct transfer of ds storage - See TclDStringToObj */
     *resultObjP = Tcl_NewStringObj(Tcl_DStringValue(&dsDecoded),
@@ -2584,7 +2565,7 @@ Tcl_Obj *
 CffiTypeUnparse(const CffiType *typeP)
 {
     Tcl_Obj *typeObj;
-    Tcl_Obj *suffix = NULL;
+    const char *suffix = NULL;
     int count = typeP->arraySize;
 
 
@@ -2593,19 +2574,25 @@ CffiTypeUnparse(const CffiType *typeP)
     /* Note no need for IncrRefCount when adding to list */
     switch (typeP->baseType) {
     case CFFI_K_TYPE_POINTER:
+        if (typeP->u.tagNameObj)
+            suffix = Tcl_GetString(typeP->u.tagNameObj);
+        break;
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_CHAR_ARRAY:
-        suffix = typeP->u.tagObj;
+        if (typeP->u.encoding) {
+            suffix = Tcl_GetEncodingName(typeP->u.encoding);
+        }
         break;
     case CFFI_K_TYPE_STRUCT:
-        suffix = typeP->u.structP->name;
+        if (typeP->u.structP->name)
+            suffix = Tcl_GetString(typeP->u.structP->name);
         break;
     default:
         break; /* Keep gcc happy about unlisted enum values */
     }
 
     if (suffix)
-        Tcl_AppendStringsToObj(typeObj, ".", Tcl_GetString(suffix), NULL);
+        Tcl_AppendStringsToObj(typeObj, ".", suffix, NULL);
 
     if (count > 0 || (count == 0 && typeP->countHolderObj == NULL))
         Tcl_AppendPrintfToObj(typeObj, "[%d]", count);
@@ -2647,7 +2634,7 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
                 if (attrsP->attrFlag == CFFI_F_ATTR_ENUM) {
                     Tcl_Obj *objs[2];
                     objs[0] = Tcl_NewStringObj(attrsP->attrName, -1);
-                    objs[1] = typeAttrsP->dataType.u.tagObj;
+                    objs[1] = typeAttrsP->dataType.u.tagNameObj;
                     Tcl_ListObjAppendElement(
                         NULL, resultObj, Tcl_NewListObj(2, objs));
                 }

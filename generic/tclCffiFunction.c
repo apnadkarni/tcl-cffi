@@ -138,7 +138,7 @@ CffiArgPrepareChars(CffiCall *callP,
     /* If input, we need to encode appropriately */
     if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
         return CffiCharsFromObj(ipCtxP->interp,
-                                typeAttrsP->dataType.u.tagObj,
+                                typeAttrsP->dataType.u.encoding,
                                 valueObj,
                                 valueP->u.ptr,
                                 argP->arraySize);
@@ -844,7 +844,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
      * TBD - is this still true? Does typeAttrsP not contain enum values?
      */
     if ((typeAttrsP->flags & (CFFI_F_ATTR_ENUM|CFFI_F_ATTR_BITMASK))
-        && typeAttrsP->dataType.u.tagObj) {
+        && typeAttrsP->dataType.u.tagNameObj) {
         Tcl_Obj *enumValueObj;
         Tcl_WideInt wide;
         if (CffiTypeIsNotArray(&typeAttrsP->dataType)) {
