@@ -13,14 +13,16 @@ namespace eval cffi::test {
     testnumargs memory-allocate "cffi::memory allocate" "SIZE" "?TAG?"
 
     test memory-allocate-0 {Allocate 1 byte untagged} -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
+        unset -nocomplain p
         set p [cffi::memory allocate 1]
     } -result {^0x[[:xdigit:]]{8,16}\^$} -match regexp
 
     test memory-allocate-1 {Allocate 1 byte tagged} -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
+        unset -nocomplain p
         set p [cffi::memory allocate 1 TAG]
     } -result {^0x[[:xdigit:]]{8,16}\^::cffi::test::TAG$} -match regexp
 
@@ -28,9 +30,10 @@ namespace eval cffi::test {
     foreach {type val} [array get testValues] {
         if {$type ni {string unistring binary}} {
             test memory-allocate-$type-0 "allocate $type" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
                 cffi::memory set $p $type $val
                 cffi::memory get $p $type
@@ -39,9 +42,10 @@ namespace eval cffi::test {
                 # In array tests, use [lindex $type 0] since testValues contains
                 # "pointer unsafe" and we only want pointer
                 test memory-allocate-$type-array-0 "allocate $type array" -setup {
+                    unset -nocomplain p
                     set p [cffi::memory allocate $type\[2\]]
                 } -cleanup {
-                    cffi::memory free $p
+                    if {[info exists p]} {cffi::memory free $p}
                 } -body {
                     cffi::memory set $p $type\[2\] [list $val $val]
                     cffi::memory get $p $type\[2\]
@@ -71,6 +75,7 @@ namespace eval cffi::test {
     } -result ""
 
     test memory_free-error-0 {Double free} -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate 1]
         cffi::memory free $p
     } -body {
@@ -85,8 +90,9 @@ namespace eval cffi::test {
 
     test memory-binary-0 {To/From binary - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         set p [cffi::memory frombinary $bin]
         binary scan [cffi::memory tobinary $p [string length $bin]] d3 bin2
@@ -95,9 +101,12 @@ namespace eval cffi::test {
 
     test memory-binary-1 {To/From tobinary! - unsafe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         set p [cffi::memory frombinary $bin]
         cffi::pointer dispose $p; # Make unsafe
@@ -111,9 +120,12 @@ namespace eval cffi::test {
 
     test memory-binary-3 {To/From tobinary! - unsafe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         set p [cffi::memory frombinary $bin]
         cffi::pointer dispose $p
@@ -122,8 +134,9 @@ namespace eval cffi::test {
     } -result {1.0 2.0 3.0}
     test memory-binary-4 {To/From binary offset - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         set p [cffi::memory frombinary $bin]
         set len [string length $bin]
@@ -134,8 +147,9 @@ namespace eval cffi::test {
     } -result {2.0 3.0}
     test memory-binary-5 {To/From tobinary! offset - unsafe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         set p [cffi::memory frombinary $bin]
         set len [string length $bin]
@@ -145,8 +159,9 @@ namespace eval cffi::test {
     } -result {2.0 3.0}
     test memory-binary-6 {To/From tobinary! offset negative - unsafe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         set p [cffi::memory frombinary $bin]
         set len [string length $bin]
@@ -163,8 +178,9 @@ namespace eval cffi::test {
     } -result {Pointer is NULL.} -returnCodes error
     test memory-tobinary-error-1 {To/From binary offset negative - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
+        unset -nocomplain p
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         set p [cffi::memory frombinary $bin]
         cffi::memory tobinary $p $len -1
@@ -178,6 +194,7 @@ namespace eval cffi::test {
     testnumargs memory-fromstring "cffi::memory fromstring" "STRING" "?ENCODING?"
     set num -1
     test memory-string-[incr num] "To/from string - safe, no optional args" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         list \
             [cffi::pointer isvalid $p] \
@@ -185,6 +202,7 @@ namespace eval cffi::test {
             [cffi::memory free $p]
     } -result [list 1 abc {}]
     test memory-string!-$num "To/from string! - safe, no optional args" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         list \
             [cffi::pointer isvalid $p] \
@@ -192,6 +210,7 @@ namespace eval cffi::test {
             [cffi::memory free $p]
     } -result [list 1 abc {}]
     test memory-string-[incr num] "To/from string - unsafe, no optional args" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::pointer dispose $p
         list \
@@ -202,6 +221,7 @@ namespace eval cffi::test {
             [cffi::memory free $p]
     } -result [list 0 1 1 {} {}]
     test memory-string!-$num "To/from string! - unsafe, no optional args" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::pointer dispose $p
         list \
@@ -224,6 +244,7 @@ namespace eval cffi::test {
             ] \
         {
             test memory-string-[incr num] "To/from string - safe $encoding" -body {
+                unset -nocomplain p
                 set p [cffi::memory fromstring $val $encoding]
                 list \
                     [cffi::pointer isvalid $p] \
@@ -231,6 +252,7 @@ namespace eval cffi::test {
                     [cffi::memory free $p]
             } -result [list 1 $val {}]
             test memory-string!-$num "To/from string! - unsafe $encoding" -body {
+                unset -nocomplain p
                 set p [cffi::memory fromstring $val $encoding]
                 cffi::pointer dispose $p
                 list \
@@ -240,6 +262,7 @@ namespace eval cffi::test {
                     [cffi::memory free $p]
             } -result [list 0 $val {} {}]
             test memory-string-[incr num] "To/from long string - safe $encoding" -body {
+                unset -nocomplain p
                 set p [cffi::memory fromstring [string repeat $val $repeat] $encoding]
                 list \
                     [cffi::pointer isvalid $p] \
@@ -247,6 +270,7 @@ namespace eval cffi::test {
                     [cffi::memory free $p]
             } -result [list 1 [string repeat $val $repeat] {}]
             test memory-string!-$num "To/from long string! - unsafe $encoding" -body {
+                unset -nocomplain p
                 set p [cffi::memory fromstring [string repeat $val $repeat] $encoding]
                 cffi::pointer dispose $p
                 list \
@@ -257,43 +281,49 @@ namespace eval cffi::test {
             } -result [list 0 [string repeat $val $repeat] {} {}]
     }
     test memory-string-[incr num] "memory tostring offset" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::memory tostring $p 1
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -result bc
     test memory-string-[incr num] "memory tostring encoding offset" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::memory tostring $p ascii 1
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -result bc
     test memory-string-[incr num] "memory tostring! offset" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::memory tostring! [pointer_unsafe_add $p 1] 1
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -result c
     test memory-string-[incr num] "memory tostring! encoding offset" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::memory tostring! [pointer_unsafe_add $p 1] ascii 1
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -result c
     test memory-string-[incr num] "memory tostring! negative offset" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::memory tostring! [pointer_unsafe_add $p 1] -1
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -result abc
     test memory-tostring-error-0 "tostring null pointer" -body {
         cffi::memory tostring 0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tostring-error-1 "memory tostring negative offset" -body {
+        unset -nocomplain p
         set p [cffi::memory fromstring abc]
         cffi::memory tostring $p -1
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -result {Invalid value. Negative offsets are not allowed for safe pointers.} -returnCodes error
     test memory-tostring!-error-0 "tostring! null pointer" -body {
         cffi::memory tostring! 0^ 1
@@ -303,50 +333,56 @@ namespace eval cffi::test {
     # memory fill
     testnumargs memory-fill "::cffi::memory fill" "POINTER BYTEVALUE COUNT" "?OFFSET?"
     test memory-fill-0 {memory fill} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory fill $p 1 2
         cffi::memory tobinary $p 2
     } -result \x01\x01
     test memory-fill-1 {memory fill 0 bytes} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory fill $p 1 0
         cffi::memory tobinary $p 2
     } -result \x00\xff
     test memory-fill-2 {memory fill lowest value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory fill $p 0 2
         cffi::memory tobinary $p 2
     } -result \x00\x00
     test memory-fill-3 {memory fill highest value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory fill $p 255 2
         cffi::memory tobinary $p 2
     } -result \xFF\xFF
     test memory-fill-4 {memory fill at offset} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x01\x02\x03]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory fill $p 255 2 1
         cffi::memory tobinary $p 3
     } -result \x01\xff\xff
 
     test memory-fill-error-0 {memory fill negative bytes} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         list \
             [catch {cffi::memory fill $p 1 -1} result] \
@@ -354,9 +390,10 @@ namespace eval cffi::test {
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value -1 not in range. Must be within [0,2147483647].} \x00\xFF]
     test memory-fill-error-1 {memory fill > int-max bytes} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         list \
             [catch {cffi::memory fill $p 1 2147483648} result] \
@@ -364,9 +401,10 @@ namespace eval cffi::test {
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value 2147483648 not in range. Must be within [0,2147483647].} \x00\xFF]
     test memory-fill-error-2 {memory fill negative value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         list \
             [catch {cffi::memory fill $p -1 1} result] \
@@ -374,9 +412,10 @@ namespace eval cffi::test {
             [cffi::memory tobinary $p 2]
     } -result [list 1 {Value -1 not in range. Must be within [0,255].} \x00\xFF]
     test memory-fill-error-3 {memory fill too high value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         list \
             [catch {cffi::memory fill $p 256 1} result] \
@@ -387,9 +426,10 @@ namespace eval cffi::test {
         cffi::memory fill NULL 0 1
     } -result "*Pointer is NULL*" -match glob -returnCodes error
     test memory-fill-error-5 {memory fill at negative offset} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x01\x02\x03]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         list \
             [catch {cffi::memory fill $p 255 2 -1} emsg] \
@@ -401,70 +441,89 @@ namespace eval cffi::test {
     # memory fill!
     testnumargs memory-fill! "::cffi::memory fill!" "POINTER BYTEVALUE COUNT" "?OFFSET?"
     test memory-fill!-0 {memory fill!} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         cffi::memory fill! $p 1 2
         cffi::memory tobinary! $p 2
     } -result \x01\x01
     test memory-fill!-1 {memory fill! 0 bytes} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         cffi::memory fill! $p 1 0
         cffi::memory tobinary! $p 2
     } -result \x00\xff
     test memory-fill!-2 {memory fill! lowest value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         cffi::memory fill! $p 0 2
         cffi::memory tobinary! $p 2
     } -result \x00\x00
     test memory-fill!-3 {memory fill! highest value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         cffi::memory fill! $p 255 2
         cffi::memory tobinary! $p 2
     } -result \xFF\xFF
     test memory-fill!-4 {memory fill! at offset} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x01\x02\x03]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         cffi::memory fill! $p 255 2 1
         cffi::memory tobinary! $p 3
     } -result \x01\xff\xff
     test memory-fill!-5 {memory fill! at negative offset} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x01\x02\x03]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory fill! [pointer_unsafe_add $p 1] 255 2 -1
         cffi::memory tobinary! $p 3
     } -result \xff\xff\x03
 
     test memory-fill!-error-0 {memory fill! negative bytes} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         list \
             [catch {cffi::memory fill! $p 1 -1} result] \
@@ -472,11 +531,14 @@ namespace eval cffi::test {
             [cffi::memory tobinary! $p 2]
     } -result [list 1 {Value -1 not in range. Must be within [0,2147483647].} \x00\xFF]
     test memory-fill!-error-1 {memory fill! > int-max bytes} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         list \
             [catch {cffi::memory fill! $p 1 2147483648} result] \
@@ -484,11 +546,14 @@ namespace eval cffi::test {
             [cffi::memory tobinary! $p 2]
     } -result [list 1 {Value 2147483648 not in range. Must be within [0,2147483647].} \x00\xFF]
     test memory-fill!-error-2 {memory fill! negative value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         list \
             [catch {cffi::memory fill! $p -1 1} result] \
@@ -496,11 +561,14 @@ namespace eval cffi::test {
             [cffi::memory tobinary! $p 2]
     } -result [list 1 {Value -1 not in range. Must be within [0,255].} \x00\xFF]
     test memory-fill!-error-3 {memory fill! too high value} -setup {
+        unset -nocomplain p
         set p [cffi::memory frombinary \x00\xFF]
         cffi::pointer dispose $p
     } -cleanup {
-        cffi::pointer safe $p
-        cffi::memory free $p
+        if {[info exists p]} {
+            cffi::pointer safe $p
+            cffi::memory free $p
+        }
     } -body {
         list \
             [catch {cffi::memory fill! $p 256 1} result] \
@@ -539,9 +607,10 @@ namespace eval cffi::test {
     foreach {type val} [array get testValues] {
         if {$type ni {string unistring binary}} {
             test memory-set-get-$type-0 "set/get $type" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
                 cffi::memory set $p $type $val
                 cffi::memory get $p $type
@@ -550,9 +619,10 @@ namespace eval cffi::test {
             test memory-set-get-$type-alias-0 "set/get $type - aliased" -setup {
                 cffi::alias clear
                 cffi::alias define ALIAS $type
+                unset -nocomplain p
                 set p [cffi::memory allocate ALIAS]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
                 cffi::alias clear
             } -body {
                 cffi::memory set $p ALIAS $val
@@ -560,18 +630,20 @@ namespace eval cffi::test {
             } -result $val
 
             test memory-set-$type-badindex-0 "set $type badindex" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
                 cffi::memory set $p $type $val notanint
             } -result {expected integer but got "notanint"} -returnCodes error
 
             if {[info exists badValues($type)]} {
                 test memory-set-$type-badvalue-0 "set $type bad value" -setup {
+                    unset -nocomplain p
                     set p [cffi::memory allocate $type]
                 } -cleanup {
-                    cffi::memory free $p
+                    if {[info exists p]} {cffi::memory free $p}
                 } -body {
                     cffi::memory set $p $type $val
                     list [cffi::memory get $p $type] \
@@ -583,19 +655,23 @@ namespace eval cffi::test {
             }
 
             test memory-get-$type-badindex-0 "get $type - bad index" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
                 cffi::memory get $p $type notanint
             } -result {expected integer but got "notanint"} -returnCodes error
 
             test memory-set!-get!-$type-0 "set!/get! $type" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type]
                 cffi::pointer dispose $p;#Make unsafe
             } -cleanup {
-                cffi::pointer safe $p
-                cffi::memory free $p
+                if {[info exists p]} {
+                    cffi::pointer safe $p
+                    cffi::memory free $p
+                }
             } -body {
                 cffi::memory set! $p $type $val
                 cffi::memory get! $p $type
@@ -603,18 +679,20 @@ namespace eval cffi::test {
         }
         if {$type in $numericTypes} {
             test memory-set-get-$type-1 "set/get $type index" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type\[2\]]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
                 cffi::memory set $p $type\[2\] [list 1 $val]
                 cffi::memory get $p $type 1
             } -result $val
 
             test memory-set-get-$type-array-0 "set/get $type array" -setup {
+                unset -nocomplain p
                 set p [cffi::memory allocate $type\[2\]]
             } -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
                 cffi::memory set $p $type\[2\] [list 1 $val]
                 cffi::memory get $p $type\[2\]
@@ -624,17 +702,19 @@ namespace eval cffi::test {
     set type struct.::StructValue
     set val $testValues($type)
     test memory-set-get-$type-array-0 "set/get $type array" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate $type\[2\]]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory set $p $type\[2\] [list {} $val]
         cffi::memory get $p $type\[2\]
     } -result [list {c 0 i 0} $val]
     test memory-set-get-$type-array-0 "set/get $type index" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate $type\[2\]]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory set $p $type\[2\] [list {} $val]
         cffi::memory get $p $type 1
@@ -642,78 +722,87 @@ namespace eval cffi::test {
 
     foreach type {string unistring binary} {
         test memory-set-$type-0 "set $type" -setup {
+            unset -nocomplain p
             set p [cffi::memory allocate 8]; # Enough to hold a pointer
         } -cleanup {
-            cffi::memory free $p
+            if {[info exists p]} {cffi::memory free $p}
         } -body {
             cffi::memory set $p $type $testValues($type)
         } -result "Invalid value*" -returnCodes error -match glob
     }
     test memory-get-string-0 "get string" -setup {
         set s [cffi::memory fromstring $testValues(string)]
+        unset -nocomplain p
         set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
         cffi::memory set $p pointer $s
     } -cleanup {
-        cffi::memory free $s
-        cffi::memory free $p
+        if {[info exists s]} {cffi::memory free $s}
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory get $p string
     } -result $testValues(string)
     test memory-get-string-1 "get string utf-8" -setup {
         set s [cffi::memory fromstring $testValues(unistring) utf-8]
+        unset -nocomplain p
         set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
         cffi::memory set $p pointer $s
     } -cleanup {
-        cffi::memory free $s
-        cffi::memory free $p
+        if {[info exists s]} {cffi::memory free $s}
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory get $p string.utf-8
     } -result $testValues(unistring)
     test memory-get-unistring-0 "get string utf-8" -setup {
         set enc [expr {$unicharSize == 4 ? "utf-32" : "unicode"}]
         set s [cffi::memory fromstring $testValues(unistring) $enc]
+        unset -nocomplain p
         set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
         cffi::memory set $p pointer $s
     } -cleanup {
-        cffi::memory free $s
-        cffi::memory free $p
+        if {[info exists s]} {cffi::memory free $s}
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory get $p unistring
     } -result $testValues(unistring)
     test memory-get-binary-0 "set $type" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate 8]; # Enough to hold a pointer
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory get $p binary
     } -result "Invalid value*" -returnCodes error -match glob
 
     test memory-set-badtype-0 "set bad type" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate 8]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory set $p badtype 0
     } -result {Invalid value "badtype". Invalid base type.} -returnCodes error
     test memory-set-badtype-1 "set bad type - void" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate 8]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory set $p void 0
     } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
 
     test memory-get-badtype-0 "get bad type" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate 8]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory get $p badtype
     } -result {Invalid value "badtype". Invalid base type.} -returnCodes error
     test memory-get-badtype-1 "get bad type - void" -setup {
+        unset -nocomplain p
         set p [cffi::memory allocate 8]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         cffi::memory get $p void 0
     } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
@@ -728,9 +817,10 @@ namespace eval cffi::test {
             set anotherval {2 3}
         }
         test memory-set-$type-bug128-0 "set $type bad value in array" -setup {
+            unset -nocomplain p
             set p [cffi::memory new $arrtype [list $val $val $val]]
         } -cleanup {
-            cffi::memory free $p
+            if {[info exists p]} {cffi::memory free $p}
         } -body {
             list [cffi::memory get $p $arrtype] \
                 [catch {cffi::memory set $p $arrtype [list $anotherval $badValues($type) $val]} errorMsg] \
@@ -739,9 +829,10 @@ namespace eval cffi::test {
         } -result [list [list $val $val $val] 1 1 [list $val $val $val]]
     }
     test memory-set-struct-bug128-1 "set $type bad value in struct" -setup {
+        unset -nocomplain p
         set p [cffi::memory new struct.::StructValue {c 0 i 1}]
     } -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
         list [cffi::memory get $p struct.::StructValue] \
             [catch {cffi::memory set $p struct.::StructValue {c 99 i x}} errorMsg] \
@@ -758,20 +849,23 @@ namespace eval cffi::test {
     foreach {type val} [array get testValues] {
         if {$type ni {string unistring binary}} {
             test memory-new-$type-0 "new $type" -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
+                unset -nocomplain p
                 set p [cffi::memory new $type $val]
                 list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
             } -result [list $val 1 {}]
             test memory-new-$type-1 "new $type with tag" -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
+                unset -nocomplain p
                 set p [cffi::memory new $type $val TAG]
                 list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
             } -result [list $val 1 [namespace current]::TAG]
             test memory-new-$type-2 "new $type with qualified tag" -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
+                unset -nocomplain p
                 set p [cffi::memory new $type $val ::ns::TAG]
                 list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
             } -result [list $val 1 ::ns::TAG]
@@ -780,22 +874,25 @@ namespace eval cffi::test {
                 cffi::alias define ALIAS $type
             } -cleanup {
                 cffi::alias clear
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
+                unset -nocomplain p
                 set p [cffi::memory new ALIAS $val]
                 list [cffi::memory get $p $type] [cffi::pointer isvalid $p] [cffi::pointer tag $p]
             } -result [list $val 1 {}]
         }
         if {$type in $numericTypes} {
             test memory-new-$type-array-0 "new $type array" -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
+                unset -nocomplain p
                 set p [cffi::memory new $type\[2\] [list 1 $val]]
                 cffi::memory get $p $type\[2\]
             } -result [list [expr {$type in $realTypes ? 1.0 : 1}] $val]
             test memory-new-$type-array-1 "new $type array fill extra elements with zeroes" -cleanup {
-                cffi::memory free $p
+                if {[info exists p]} {cffi::memory free $p}
             } -body {
+                unset -nocomplain p
                 set p [cffi::memory new $type\[4\] [list 1 $val]]
                 cffi::memory get $p $type\[4\]
             } -result [expr {$type in $realTypes? [list 1.0 $val 0.0 0.0] : [list 1 $val 0 0]}]
@@ -809,8 +906,9 @@ namespace eval cffi::test {
     set type struct.::StructValue
     set val $testValues($type)
     test memory-new-$type-array-0 "new $type array" -cleanup {
-        cffi::memory free $p
+        if {[info exists p]} {cffi::memory free $p}
     } -body {
+        unset -nocomplain p
         set p [cffi::memory new $type\[2\] [list {} $val]]
         cffi::memory get $p $type\[2\]
     } -result [list {c 0 i 0} $val]
