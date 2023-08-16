@@ -816,6 +816,9 @@ namespace eval Concepts {
         may be specified. These are merged with those included in the
         type alias definition.
 
+        * Aliases in a declaration may also have an array size specified. This
+        will override the array size (if any) specified in the alias itself.
+
         * Type aliases are scoped. If the alias name in a definition is not
         fully qualified, it is qualified with the name of the current Tcl
         namespace. If an alias name is not fully qualified on use, it is looked

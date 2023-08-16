@@ -377,51 +377,14 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
     }
 }
 
-/* Function: CffiTagSyntaxCheck
- * Checks if the passed string is syntactically valid for tags
- *
- * Parameters:
- * interp - interpreter for error messages. May be NULL.
- * tagStr - the string to check
- * tagLen - length of string. If negative, must be nul terminated.
- *
- * Differs from CffiNameSyntaxCheck in that first letter need not be alphabetic.
- *
- * Returns:
- * TCL_OK if valid, else TCL_ERROR.
- */
-CffiResult
-CffiTagSyntaxCheck(Tcl_Interp *interp, const char *tagStr, Tcl_Size tagLen)
-{
-    const char *startTag = tagStr;
-    if (tagLen < 0)
-        tagLen = Tclh_strlen(tagStr);
-    if (tagLen > 0 && !isdigit(*(unsigned char *)tagStr)) {
-        const char *end = tagStr + tagLen;
-        while (tagStr < end) {
-            unsigned char ch = *(unsigned char *)tagStr++;
-            if (!isalnum(ch) && ch != ':' && ch != '_' && ch != '-') {
-                goto invalid_syntax;
-            }
-        }
-        return TCL_OK;
-    }
-
-    Tcl_Obj *tagObj;
-invalid_syntax:
-    /* Can't use ErrorInvalidValueStr because tag may not be nul terminated */
-    tagObj = Tcl_NewStringObj(startTag, tagLen);
-    (void) Tclh_ErrorInvalidValue(interp, tagObj, "Invalid tag syntax.");
-    Tcl_DecrRefCount(tagObj);
-    return TCL_ERROR;
-}
-
 /* Function: CffiTypeParseArraySize
  * Parses the array size component of a type declaration.
  *
  * Parameters:
  * lbStr - pointer to the "[" starting the array
- * typeP - pointer to output type descriptor to fill with array size
+ * typeP - pointer to output type descriptor to fill with array size.
+ *    This must be in a valid state for all fields, *countHolderObj* in
+ *    particular may be released if not NULL.
  *
  * The array size may be specified either as a positive integer value or
  * as an identifier indicating size is given by some other parameter in
@@ -448,6 +411,10 @@ CffiTypeParseArraySize(const char *lbStr, CffiType *typeP)
         if (count <= 0 || count >= TCL_SIZE_MAX || rightbracket != ']')
             return TCL_ERROR;
         typeP->arraySize = count; /* TODO - make arraySize Tcl_Size */
+        if (typeP->countHolderObj) {
+            Tcl_DecrRefCount(typeP->countHolderObj);
+            typeP->countHolderObj = NULL;
+        }
     }
     else {
         /* Count specified as the name of some other thing */

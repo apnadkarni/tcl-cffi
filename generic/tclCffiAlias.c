@@ -31,18 +31,51 @@ CffiAliasGet(CffiInterpCtx *ipCtxP,
              CffiFlags flags)
 {
     CffiTypeAndAttrs *aliasTypeAttrP;
+    const char *aliasNameP;
     CffiResult ret;
+    const char *lbStr; /* Left bracket */
+    char temp[CFFI_K_MAX_NAME_LENGTH+1];
+    const char *message = NULL;
+
+    aliasNameP = Tcl_GetString(aliasNameObj);
+    lbStr     = strchr(aliasNameP, '[');
+    if (lbStr) {
+        /* array size component */
+        Tcl_Size nameLen = (Tcl_Size)(lbStr - aliasNameP);
+        if (nameLen >= sizeof(temp)) {
+            message = "Invalid alias name.";
+            goto invalid;
+        }
+        memmove(temp, aliasNameP, nameLen+1);
+        temp[nameLen] = 0;
+        aliasNameP    = temp;
+    }
     ret = CffiNameLookup(ipCtxP->interp,
                          &ipCtxP->scope.aliases,
-                         Tcl_GetString(aliasNameObj),
+                         aliasNameP,
                          "Alias",
                          flags & CFFI_F_SKIP_ERROR_MESSAGES,
                          (ClientData *)&aliasTypeAttrP,
                          NULL);
+
     if (ret == TCL_ERROR)
         return 0;
+
+
     CffiTypeAndAttrsInit(typeAttrP, aliasTypeAttrP);
+    /* If an array size is specified here, override one in alias def */
+    if (lbStr) {
+        if (CffiTypeParseArraySize(lbStr, &typeAttrP->dataType) != TCL_OK) {
+            message = "Invalid array size.";
+            goto invalid;
+        }
+    }
     return 1;
+
+invalid:
+    (void)Tclh_ErrorInvalidValue(
+        ipCtxP->interp, aliasNameObj, message);
+    return 0;
 }
 
 /* Function: CffiAliasAdd

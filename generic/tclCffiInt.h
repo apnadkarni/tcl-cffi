@@ -91,6 +91,8 @@ typedef int CffiResult; /* TCL_OK etc. */
 
 #define CFFI_PANIC TCLH_PANIC
 
+#define CFFI_K_MAX_NAME_LENGTH 511 /* Max length for various names */
+
 /*
  * Base types - IMPORTANT!!! order must match cffiBaseTypes array
  */

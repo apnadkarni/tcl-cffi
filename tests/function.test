@@ -1422,6 +1422,20 @@ namespace eval ${NS}::test {
         set outstruct
     } -result {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}}
 
+    test function-struct-array-0.alias "Pass in and out array of structs using alias" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        unset -nocomplain outstruct
+        cffi::alias delete *
+        cffi::alias define ALIAS struct.SimpleStruct
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        testDll function structArrayCopy void {from {ALIAS[n]} to {ALIAS[n] out} n int}
+        structArrayCopy {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} outstruct 3
+        set outstruct
+    } -result {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}}
+
     test function-struct-array-1 "Pass in and out short array of structs" -setup {
         catch {SimpleStruct destroy}
         cffi::Struct create SimpleStruct {c uchar i longlong s short}
@@ -1439,6 +1453,21 @@ namespace eval ${NS}::test {
         set b {{c 10 i 11 s 12} {c 13 i 14 s 15}}
     } -body {
         testDll function structArrayExchange void {from {struct.SimpleStruct[n] inout} to {struct.SimpleStruct[n] inout} n int}
+        structArrayExchange a b 2
+        list $a $b
+    } -result {{{c 10 i 11 s 12} {c 13 i 14 s 15}} {{c 0 i 1 s 2} {c 3 i 4 s 5}}}
+
+    test function-struct-array-2.alias "Pass inout short array of structs using alias" -setup {
+        catch {SimpleStruct destroy}
+        cffi::Struct create SimpleStruct {c uchar i longlong s short}
+        cffi::alias delete *
+        cffi::alias define STRUCTALIAS struct.SimpleStruct
+        set a {{c 0 i 1 s 2} {c 3 i 4 s 5}}
+        set b {{c 10 i 11 s 12} {c 13 i 14 s 15}}
+    } -cleanup {
+        cffi::alias delete *
+    } -body {
+        testDll function structArrayExchange void {from {STRUCTALIAS[n] inout} to {STRUCTALIAS[n] inout} n int}
         structArrayExchange a b 2
         list $a $b
     } -result {{{c 10 i 11 s 12} {c 13 i 14 s 15}} {{c 0 i 1 s 2} {c 3 i 4 s 5}}}
@@ -2208,6 +2237,77 @@ namespace eval ${NS}::test {
                 } -result [lmap v $vals {expr {$v+1}}]
             }
         }
+
+        # Tests using aliases
+        test function-array-$type-alias-in-0 "Array input using aliases" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS $type
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_in $type [list n int arr ALIAS\[3\]]
+            ${type}_array_in 3 {1 2 3}
+        } -result [expr {$type in $realTypes ? 6.0 : 6}]
+        test function-array-$type-alias-in-1 "Array input using aliases - override array size" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS "$type\[2\]"
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_in $type [list n int arr ALIAS\[3\]]
+            ${type}_array_in 3 {1 2 3}
+        } -result [expr {$type in $realTypes ? 6.0 : 6}]
+        test function-array-$type-alias-in-2 "Array input using aliases - dynamic array size" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS "$type\[2\]"
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_in $type [list n int arr ALIAS\[n\]]
+            ${type}_array_in 4 {1 2 3 4 5}; # n less than array size
+        } -result [expr {$type in $realTypes ? 10.0 : 10}]
+
+        test function-array-$type-alias-out-0 "Array out parameters using aliases" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS $type
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_out void [list n int arr [list ALIAS\[3\] out]]
+            ${type}_array_out 3 out
+            set out
+        } -result [expr {$type in $realTypes ? {0.0 1.0 2.0} : {0 1 2}}]
+        test function-array-$type-alias-out-1 "Array out parameters using aliases - override array size" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS $type\[3\]
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_out void [list n int arr [list ALIAS\[4\] out]]
+            ${type}_array_out 4 out
+            set out
+        } -result [expr {$type in $realTypes ? {0.0 1.0 2.0 3.0} : {0 1 2 3}}]
+        test function-array-$type-alias-out-2 "Array out parameters using aliases - dynamic array size" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS $type
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_out void [list n int arr [list ALIAS\[n\] out]]
+            ${type}_array_out 2 out
+            set out
+        } -result [expr {$type in $realTypes ? {0.0 1.0} : {0 1}}]
+        test function-array-$type-alias-inout-0 "Array inout parameters using aliases" -setup {
+            cffi::alias delete *
+            cffi::alias define ALIAS $type
+        } -cleanup {
+            cffi::alias delete *
+        } -body {
+            testDll function ${type}_array_inout void [list n int arr [list ALIAS\[3\] inout]]
+            set out {0 1 2}
+            ${type}_array_inout 3 out
+            set out
+        } -result [expr {$type in $realTypes ? {1.0 2.0 3.0} : {1 2 3}}]
 
         # Tests added for bug#41. Some may duplicate existing tests above
         test function-array-count-$type-0 {Copy array when count param is AFTER array pointer} -setup {
