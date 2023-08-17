@@ -188,6 +188,7 @@ namespace eval cffi::test {
         if {$::tcl_platform(platform) eq "windows"} {
             lappend struct win $testStrings(unicode)
         }
+        return $struct
     }
     cffi::Struct create ::cffi::test::InnerTestStruct {
         c chars[15]

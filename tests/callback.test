@@ -115,20 +115,18 @@ namespace eval ${NS}::test {
     }
 
     # string, unistring, winstring
-    proc ::xxx {a b} {
-        puts a=$a
-        puts b=$b
-        string equal $a $b
+    set matrix [list string $testStrings(ascii) string.utf-8 $testStrings(unicode) string.jis0208 $testStrings(jis0208) unistring $testStrings(unicode)]
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winstring $testStrings(unicode)
     }
-    foreach {type val} [list string $testStrings(ascii) string.utf-8 $testStrings(unicode) string.jis0208 $testStrings(jis0208) unistring $testStrings(unicode) winstring $testStrings(unicode)] {
+    foreach {type val} $matrix {
         test callback-new-$type-0 "Pass value" -setup {
             cffi::prototype clear
             cffi::prototype function proto int [list input $type]
             set caller callback_check_byref
             testDll function $caller int [list str $type fnptr pointer.proto]
         } -constraints libffi -body {
-            #set fnptr [cffi::callback new [namespace current]::proto [list string equal $val] 0]
-            set fnptr [cffi::callback new [namespace current]::proto [list ::xxx $val] -1]
+            set fnptr [cffi::callback new [namespace current]::proto [list string equal $val] 0]
             $caller $val $fnptr
         } -result 1
     }

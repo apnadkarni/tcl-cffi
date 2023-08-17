@@ -623,7 +623,11 @@ namespace eval cffi::test {
             $s destroy
         } -result [list fld [dict get [cffi::type info $type] Size]]
     }
-    foreach type {float double pointer chars[2] unichars[2] string unistring winstring binary struct.::TestStruct} {
+    set matrix {float double pointer chars[2] unichars[2] string unistring binary struct.::TestStruct}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winstring
+    }
+    foreach type $matrix {
         test struct-field-structsize-$type-error-0 "$type field structsize" -body {
             cffi::Struct new [list fld [list $type structsize]]
         } -result "Invalid value \"[list $type] structsize\". $errorMessages(attrtype)" -returnCodes error

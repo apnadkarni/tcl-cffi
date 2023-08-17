@@ -505,8 +505,10 @@ static char utf8_test_string[] = {0xc3,0xa0,0xc3,0xa1,0xc3,0xa2, 0};
 static char jis_test_string[]  = {'8', 'c', 0, 0};
 static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 static Tcl_UniChar unichar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
+#ifdef _WIN32
 static WCHAR winchar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 static WCHAR winchar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
+#endif
 
 FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {

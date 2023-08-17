@@ -1184,8 +1184,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 && (flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0
                 && baseType != CFFI_K_TYPE_POINTER
                 && baseType != CFFI_K_TYPE_ASTRING
-                && baseType != CFFI_K_TYPE_UNISTRING
-                && baseType != CFFI_K_TYPE_WINSTRING) {
+#ifdef _WIN32
+                && baseType != CFFI_K_TYPE_WINSTRING
+#endif
+                && baseType != CFFI_K_TYPE_UNISTRING) {
                 message = "\"onerror\" requires an error checking annotation.";
                 goto invalid_format;
             }
