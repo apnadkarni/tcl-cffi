@@ -8,7 +8,7 @@ eval tcltest::configure $argv
 
 set NS cffi
 if {[catch {package require $NS}]} {
-    if {$tcl_platform(platform) eq "windows"} {
+    if {$::tcl_platform(platform) eq "windows"} {
         if {$tcl_platform(pointerSize) == 8} {
             set BINDIR ../win/Release_AMD64_VC1933
         } else {
@@ -52,6 +52,10 @@ namespace eval cffi::test {
     variable numericTypes [concat $intTypes $realTypes]
     variable stringTypes {string unistring binary}
     variable charArrayTypes {chars unichars bytes}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend stringTypes winstring
+        lappend charArrayTypes winchars
+    }
     variable pointerTypes {pointer}
 
     variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes]
@@ -121,6 +125,7 @@ namespace eval cffi::test {
     set testValues(bytes\[[string length $testStrings(bytes)]\]) $testStrings(bytes)
     set testValues(string) $testStrings(ascii)
     set testValues(unistring) $testStrings(unicode)
+    set testValues(winstring) $testStrings(unicode)
     set testValues(binary) $testStrings(bytes)
     set testValues(struct.::StructValue) {c 42 i 4242}
 
@@ -166,15 +171,23 @@ namespace eval cffi::test {
         fieldvararray {Fields cannot be arrays of variable size.}
     }
 
-    cffi::Struct create ::StructWithStrings {
+    set structDef {
         s string
         utf8 string.utf-8
         jis string.jis0208
         uni unistring
     }
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend structDef win winstring
+    }
+    cffi::Struct create ::StructWithStrings $structDef
+
     proc makeStructWithStrings {} {
         variable testStrings
-        return [list s $testStrings(ascii) utf8 $testStrings(unicode) jis $testStrings(jis0208) uni $testStrings(unicode)]
+        set struct [list s $testStrings(ascii) utf8 $testStrings(unicode) jis $testStrings(jis0208) uni $testStrings(unicode)]
+        if {$::tcl_platform(platform) eq "windows"} {
+            lappend struct win $testStrings(unicode)
+        }
     }
     cffi::Struct create ::cffi::test::InnerTestStruct {
         c chars[15]

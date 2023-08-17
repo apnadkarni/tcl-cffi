@@ -120,6 +120,10 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_CHAR_ARRAY,
     CFFI_K_TYPE_UNICHAR_ARRAY,
     CFFI_K_TYPE_BYTE_ARRAY,
+#ifdef _WIN32
+    CFFI_K_TYPE_WINSTRING,
+    CFFI_K_TYPE_WINCHAR_ARRAY,
+#endif
     CFFI_K_NUM_TYPES
 } CffiBaseType;
 CFFI_INLINE int CffiTypeIsInteger(CffiBaseType type) {

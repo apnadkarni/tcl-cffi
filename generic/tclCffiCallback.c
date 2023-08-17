@@ -151,6 +151,9 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
 
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
     case CFFI_K_TYPE_STRUCT:
         if (isReturn) {
             return Tclh_ErrorInvalidValue(

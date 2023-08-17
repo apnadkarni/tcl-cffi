@@ -28,7 +28,7 @@ namespace eval cffi::test {
 
 
     foreach {type val} [array get testValues] {
-        if {$type ni {string unistring binary}} {
+        if {$type ni {string unistring winstring binary}} {
             test memory-allocate-$type-0 "allocate $type" -setup {
                 unset -nocomplain p
                 set p [cffi::memory allocate $type]
@@ -605,7 +605,7 @@ namespace eval cffi::test {
         } -result {Pointer is NULL.} -returnCodes error
     }
     foreach {type val} [array get testValues] {
-        if {$type ni {string unistring binary}} {
+        if {$type ni {string unistring winstring binary}} {
             test memory-set-get-$type-0 "set/get $type" -setup {
                 unset -nocomplain p
                 set p [cffi::memory allocate $type]
@@ -720,7 +720,11 @@ namespace eval cffi::test {
         cffi::memory get $p $type 1
     } -result $val
 
-    foreach type {string unistring binary} {
+    set matrix {string unistring binary}
+    if {$::tcl_platform(platform) eq "windows"} {
+       lappend matrix winstring
+    }
+    foreach type $matrix {
         test memory-set-$type-0 "set $type" -setup {
             unset -nocomplain p
             set p [cffi::memory allocate 8]; # Enough to hold a pointer
@@ -752,7 +756,7 @@ namespace eval cffi::test {
     } -body {
         cffi::memory get $p string.utf-8
     } -result $testValues(unistring)
-    test memory-get-unistring-0 "get string utf-8" -setup {
+    test memory-get-unistring-0 "get unistring" -setup {
         set enc [expr {$unicharSize == 4 ? "utf-32" : "unicode"}]
         set s [cffi::memory fromstring $testValues(unistring) $enc]
         unset -nocomplain p
@@ -764,6 +768,19 @@ namespace eval cffi::test {
     } -body {
         cffi::memory get $p unistring
     } -result $testValues(unistring)
+
+    test memory-get-winstring-0 "get winstring" -setup {
+        set s [cffi::memory fromstring $testValues(winstring) utf-16le]
+        unset -nocomplain p
+        set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
+        cffi::memory set $p pointer $s
+    } -cleanup {
+        if {[info exists s]} {cffi::memory free $s}
+        if {[info exists p]} {cffi::memory free $p}
+    } -constraints win -body {
+        cffi::memory get $p winstring
+    } -result $testValues(winstring)
+
     test memory-get-binary-0 "set $type" -setup {
         unset -nocomplain p
         set p [cffi::memory allocate 8]; # Enough to hold a pointer
@@ -847,7 +864,7 @@ namespace eval cffi::test {
     testnumargs memory-new "cffi::memory new" "TYPE INITIALIZER" "?TAG?"
 
     foreach {type val} [array get testValues] {
-        if {$type ni {string unistring binary}} {
+        if {$type ni {string unistring winstring binary}} {
             test memory-new-$type-0 "new $type" -cleanup {
                 if {[info exists p]} {cffi::memory free $p}
             } -body {
@@ -913,7 +930,12 @@ namespace eval cffi::test {
         cffi::memory get $p $type\[2\]
     } -result [list {c 0 i 0} $val]
 
-    foreach type {string unistring binary} {
+    set matrix {string unistring binary}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winstring
+    }
+
+    foreach type $matrix {
         test memory-new-$type-0 "new $type" -body {
             cffi::memory new $type $testValues($type)
         } -result "Invalid value*" -returnCodes error -match glob

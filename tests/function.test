@@ -482,8 +482,12 @@ namespace eval ${NS}::test {
 
     }
 
-    ## Parameter tests - string, unistring
-    foreach {type val} [list string $testStrings(ascii) unistring $testStrings(unicode)] {
+    ## Parameter tests - string, unistring, winstring
+    set matrix [list string $testStrings(ascii) unistring $testStrings(unicode)]
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winstring $testStrings(unicode)
+    }
+    foreach {type val} $matrix {
         set len [string length $val]
         set repeat 100000
         set largelen [expr {[string length $val] * $repeat}]
@@ -617,7 +621,12 @@ namespace eval ${NS}::test {
 
     test function-unistring-array-in-0 "unistring input array" -body {
         testDll function unistring_array_in unistring {strings unistring[3] n int}
-        string_array_in [list abc $testStrings(unicode) ghi] 1
+        unistring_array_in [list abc $testStrings(unicode) ghi] 1
+    } -result $testStrings(unicode)
+
+    test function-winstring-array-in-0 "winstring input array" -body {
+        testDll function winstring_array_in winstring {strings winstring[3] n int}
+        winstring_array_in [list abc $testStrings(unicode) ghi] 1
     } -result $testStrings(unicode)
 
     test function-string-array-out-0 "string output array" -setup {
@@ -644,21 +653,6 @@ namespace eval ${NS}::test {
         set s
     } -result {{} {} {}}
 
-    test function-string-array-retval-0 "string retval array" -body {
-        testDll function string_array_out {int nonzero} {strings {string[n] retval} n int}
-        string_array_out 4
-    } -result {abc def ghi abc}
-
-    test function-string-array-retval-1 "string retval array - zero size array" -body {
-        testDll function string_array_out {int zero} {strings {string[n] retval nullok} n int}
-        string_array_out 0
-    } -result {}
-
-    test function-string-array-retval-error-0 "string retval array - error" -body {
-        testDll function string_array_out {int zero} {strings {string[n] retval} n int}
-        string_array_out 4
-    } -result {Invalid value "*". Function returned an error value.} -returnCodes error -match glob
-
     test function-unistring-array-out-0 "unistring output array" -setup {
         unset -nocomplain s
     } -body {
@@ -683,6 +677,45 @@ namespace eval ${NS}::test {
         set s
     } -result {{} {} {}}
 
+    test function-winstring-array-out-0 "winstring output array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function winstring_array_out int {strings {winstring[n] out} n int}
+        winstring_array_out s 2
+        set s
+    } -result [list $testStrings(unicode) "\u00e3\u00e4\u00e5"]
+
+    test function-winstring-array-out-1 "winstring output array - zero size array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function winstring_array_out int {strings {winstring[n] out nullok} n int}
+        winstring_array_out s 0
+        array size s
+    } -result 0
+
+    test function-winstring-array-out-2 "winstring output array - uninitialized output" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function winstring_array_out int {strings {winstring[3] out nullok} n int}
+        winstring_array_out s 0
+        set s
+    } -result {{} {} {}}
+
+    test function-string-array-retval-0 "string retval array" -body {
+        testDll function string_array_out {int nonzero} {strings {string[n] retval} n int}
+        string_array_out 4
+    } -result {abc def ghi abc}
+
+    test function-string-array-retval-1 "string retval array - zero size array" -body {
+        testDll function string_array_out {int zero} {strings {string[n] retval nullok} n int}
+        string_array_out 0
+    } -result {}
+
+    test function-string-array-retval-error-0 "string retval array - error" -body {
+        testDll function string_array_out {int zero} {strings {string[n] retval} n int}
+        string_array_out 4
+    } -result {Invalid value "*". Function returned an error value.} -returnCodes error -match glob
+
     test function-unistring-array-retval-0 "unistring retval array" -body {
         testDll function unistring_array_out {int nonzero} {strings {unistring[n] retval} n int}
         unistring_array_out 2
@@ -698,6 +731,21 @@ namespace eval ${NS}::test {
         unistring_array_out 2
     } -result {Invalid value "*". Function returned an error value.} -returnCodes error -match glob
 
+    test function-winstring-array-retval-0 "winstring retval array" -body {
+        testDll function winstring_array_out {int nonzero} {strings {winstring[n] retval} n int}
+        winstring_array_out 2
+    } -result [list $testStrings(unicode) "\u00e3\u00e4\u00e5"]
+
+    test function-winstring-array-retval-1 "winstring retval array - zero size array" -body {
+        testDll function winstring_array_out {int zero} {strings {winstring[n] retval nullok} n int}
+        winstring_array_out 0
+    } -result {}
+
+    test function-winstring-array-retval-error-0 "winstring retval array" -body {
+        testDll function winstring_array_out {int zero} {strings {winstring[n] retval} n int}
+        winstring_array_out 2
+    } -result {Invalid value "*". Function returned an error value.} -returnCodes error -match glob
+
     test function-string-array-inout-0 "string inout array" -setup {
         unset -nocomplain s
     } -body {
@@ -708,7 +756,11 @@ namespace eval ${NS}::test {
     } -body {
         testDll function unistring_array_out void {strings {unistring[3] inout} n int}
     } -result {Invalid value "unistring\[3\] inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
-
+    test function-winstring-array-inout-0 "winstring inout array" -setup {
+        unset -nocomplain s
+    } -body {
+        testDll function winstring_array_out void {strings {winstring[3] inout} n int}
+    } -result {Invalid value "winstring\[3\] inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
 
     ## Parameter tests - chars, unichars
     # NOTE:  use only ascii for utf8 test here because of the buflen calculation
@@ -1282,7 +1334,7 @@ namespace eval ${NS}::test {
         testDll function getStructWithNullStrings void {s {struct.StructWithStrings out}}
         getStructWithNullStrings s
         set s
-    } -result {s {} utf8 {} jis {} uni {}}
+    } -result {s {} utf8 {} jis {} uni {} win {}}
 
     test function-struct-out-crash-bug#39 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
@@ -1558,11 +1610,21 @@ namespace eval ${NS}::test {
     } -result 1
 
     test function-struct-field-defaults-2 "field defaults of type string/unistring" -body {
+        set def [list \
+                     s [list string [list default $testStrings(ascii)]] \
+                     utf8 [list string.utf-8 [list default $testStrings(unicode)]] \
+                     jis [list string.jis0208 [list default $testStrings(jis0208)]] \
+                     uni [list unistring [list default $testStrings(unicode)]] \
+                    ]
+        if {$::tcl_platform(platform) eq "windows"} {
+            lappend def win [list winstring [list default $testStrings(unicode)]]
+        }
         cffi::Struct create X [list \
                                    s [list string [list default $testStrings(ascii)]] \
                                    utf8 [list string.utf-8 [list default $testStrings(unicode)]] \
                                    jis [list string.jis0208 [list default $testStrings(jis0208)]] \
                                    uni [list unistring [list default $testStrings(unicode)]] \
+                                   win [list winstring [list default $testStrings(unicode)]] \
                                   ]
         testDll function checkStructWithStrings int {s {struct.X byref}}
         checkStructWithStrings {}
@@ -1910,7 +1972,11 @@ namespace eval ${NS}::test {
     }
 
     # string, unistring return types
-    foreach type {string string.utf-8 unistring} {
+    set matrix {string string.utf-8 unistring}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winstring
+    }
+    foreach type $matrix {
         test function-return-$type-NULL-nullok-0 "return $type NULL - nullok" -setup {
             testDll function pointer_to_pointer "$type nullok" {p {pointer nullok unsafe}}
         } -body {
@@ -1971,6 +2037,22 @@ namespace eval ${NS}::test {
         testDll function unistring_return {unistring nullok} {}
     } -body {
         unistring_return
+    } -result "\xe0\xe1\xe2"
+
+    test function-return-winstring-1 "return winstring" -setup {
+        testDll function winstring_return winstring {}
+    } -body {
+        winstring_return
+    } -result "\xe0\xe1\xe2"
+    test function-return-winstring-byref-1 "return winstring byref" -setup {
+        testDll function winstring_return_byref {winstring byref} {}
+    } -body {
+        winstring_return_byref
+    } -result "\xe0\xe1\xe2"
+    test function-return-winstring-2 "return winstring - nullok" -setup {
+        testDll function winstring_return {winstring nullok} {}
+    } -body {
+        winstring_return
     } -result "\xe0\xe1\xe2"
 
     test function-return-string-byref-null-0 "return string byref - NULL" -setup {

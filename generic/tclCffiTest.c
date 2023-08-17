@@ -209,6 +209,9 @@ EXTERN void double_to_void(double a) { return ; }
 EXTERN void pointer_to_void(void *a) { return ; }
 EXTERN void string_to_void(char *s) { return; }
 EXTERN void unistring_to_void(Tcl_UniChar *s) { return; }
+#ifdef _WIN32
+EXTERN void winstring_to_void(WCHAR *s) { return; }
+#endif
 EXTERN void chars_to_void(char s[]) { return; }
 EXTERN void unichars_to_void(Tcl_UniChar s[]) { return; }
 EXTERN void binary_to_void(unsigned char *b) { return; }
@@ -502,6 +505,8 @@ static char utf8_test_string[] = {0xc3,0xa0,0xc3,0xa1,0xc3,0xa2, 0};
 static char jis_test_string[]  = {'8', 'c', 0, 0};
 static Tcl_UniChar unichar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 static Tcl_UniChar unichar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
+static WCHAR winchar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
+static WCHAR winchar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
 
 FNSTRINGS(string, char)
 EXTERN const char *ascii_return() {
@@ -568,6 +573,34 @@ EXTERN int unistring_array_out (Tcl_UniChar *strings[], int n)
         strings[i] = strs[i%2];
     return n;
 }
+
+#ifdef _WIN32
+FNSTRINGS(winstring, WCHAR)
+EXTERN const WCHAR *winstring_return() {
+    return winchar_test_string;
+}
+EXTERN const WCHAR **winstring_return_byref() {
+    static const WCHAR *s = winchar_test_string;
+    return &s;
+}
+EXTERN int winstring_param_out(WCHAR **strPP) {
+    *strPP = winchar_test_string;
+    return (sizeof(winchar_test_string)/sizeof(winchar_test_string[0])) - 1;
+}
+
+EXTERN const WCHAR *winstring_array_in (const WCHAR *strings[], int index)
+{
+    return strings[index];
+}
+EXTERN int winstring_array_out (WCHAR *strings[], int n)
+{
+    int i;
+    static WCHAR *strs[] = {winchar_test_string, winchar_test_string2};
+    for (i = 0; i < n; ++i)
+        strings[i] = strs[i%2];
+    return n;
+}
+#endif
 
 FNSTRINGS(binary, unsigned char)
 
@@ -836,6 +869,9 @@ struct StructWithStrings {
     char *utf8;
     char *jis;
     Tcl_UniChar *uni;
+#ifdef _WIN32
+    WCHAR *ws;
+#endif
 };
 
 EXTERN int checkStructWithStrings(struct StructWithStrings *structP)
@@ -856,6 +892,14 @@ EXTERN int checkStructWithStrings(struct StructWithStrings *structP)
         if (structP->uni[i] != unichar_test_string[i])
             return 4;
     }
+#ifdef _WIN32
+    for (i = 0;
+         i < (sizeof(winchar_test_string) / sizeof(winchar_test_string[0]));
+         ++i) {
+        if (structP->uni[i] != winchar_test_string[i])
+            return 5;
+    }
+#endif
     return 0;
 }
 EXTERN int checkStructWithStringsByVal(struct StructWithStrings s)
@@ -867,10 +911,21 @@ EXTERN void getStructWithStrings(struct StructWithStrings *sP) {
     sP->utf8 = utf8_test_string;
     sP->jis  = jis_test_string;
     sP->uni  = unichar_test_string;
+#ifdef _WIN32
+    sP->ws   = winchar_test_string;
+#endif
 }
 EXTERN struct StructWithStrings returnStructWithStrings() {
     struct StructWithStrings s = {
-        "abc", utf8_test_string, jis_test_string, unichar_test_string};
+        "abc",
+        utf8_test_string,
+        jis_test_string,
+        unichar_test_string,
+#ifdef _WIN32
+        winchar_test_string,
+#endif
+
+    };
     return s;
 }
 EXTERN void getStructWithNullStrings(struct StructWithStrings *sP) {
@@ -878,31 +933,52 @@ EXTERN void getStructWithNullStrings(struct StructWithStrings *sP) {
     sP->utf8 = NULL;
     sP->jis  = NULL;
     sP->uni  = NULL;
+#ifdef _WIN32
+    sP->ws  = NULL;
+#endif
 }
 
 struct StructWithStringArrays {
     char *strings[3];
     Tcl_UniChar *unistrings[3];
+#ifdef _WIN32
+    WCHAR winstrings[3];
+#endif
 };
 
 EXTERN void
 getStringFromStructStringArray(const struct StructWithStringArrays *structP,
                                int i,
                                char **stringP,
-                               Tcl_UniChar **unistringP)
+                               Tcl_UniChar **unistringP
+#ifdef _WIN32
+                               ,
+                               WCHAR *winstringP
+#endif
+)
 {
     *stringP = structP->strings[i];
     *unistringP = structP->unistrings[i];
+#ifdef _WIN32
+    *winstringP = structP->winstrings[i];
+#endif
 }
 EXTERN void
-getStringFromStructByvalStringArray(
-    struct StructWithStringArrays s,
-    int i,
-    char **stringP,
-    Tcl_UniChar **unistringP)
+getStringFromStructByvalStringArray(struct StructWithStringArrays s,
+                                    int i,
+                                    char **stringP,
+                                    Tcl_UniChar **unistringP
+#ifdef _WIN32
+                                    ,
+                                    WCHAR **winstringP
+#endif
+)
 {
     *stringP = s.strings[i];
     *unistringP = s.unistrings[i];
+#ifdef _WIN32
+    *winstringP = s.winstrings[i];
+#endif
 }
 
 EXTERN void

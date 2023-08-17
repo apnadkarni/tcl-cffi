@@ -248,6 +248,10 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
             break;
         case CFFI_K_TYPE_UNISTRING:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINSTRING:
+        case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
             Tcl_AppendPrintfToObj(objP, "\n  %s", cffiBaseTypes[baseType].token);
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
             if (CffiTypeIsArray(&fieldP->fieldType.dataType))

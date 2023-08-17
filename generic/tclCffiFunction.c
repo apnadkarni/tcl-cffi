@@ -427,6 +427,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_DOUBLE:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
         if (argP->arraySize < 0) {
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 /* NOTE - &argP->value is start of all field values */
@@ -457,6 +460,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             case CFFI_K_TYPE_DOUBLE: PUSHARG(CffiStoreArgDouble, dbl); break;
             case CFFI_K_TYPE_ASTRING: PUSHARG(CffiStoreArgPointer, ptr); break;
             case CFFI_K_TYPE_UNISTRING: PUSHARG(CffiStoreArgPointer, ptr); break;
+#ifdef _WIN32
+            case CFFI_K_TYPE_WINSTRING: PUSHARG(CffiStoreArgPointer, ptr); break;
+#endif
             default:
                 return Tclh_ErrorGeneric(
                     ip, NULL, "Internal error: type not handled.");
@@ -803,6 +809,9 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
         /* Scalars stored at valueP, arrays of scalars at valueP->u.ptr */
         if (arraySize < 0)
             ret = CffiNativeValueToObj(
@@ -989,6 +998,9 @@ CffiReturnPrepare(CffiCall *callP)
     case CFFI_K_TYPE_DOUBLE: callP->retValueP = &callP->retValue.u.dbl; break;
     case CFFI_K_TYPE_ASTRING: /* Fallthru - treat as pointer */
     case CFFI_K_TYPE_UNISTRING: /* Fallthru - treat as pointer */
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
     case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
     case CFFI_K_TYPE_STRUCT:
         callP->retValueP = Tclh_LifoAlloc(
@@ -1717,6 +1729,9 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
         pointer = CffiCallPointerFunc(&callCtx);
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {
             if (pointer)
@@ -1747,6 +1762,15 @@ CffiFunctionCall(ClientData cdata,
                 else
                     resultObj = Tcl_NewObj();
                 break;
+#ifdef _WIN32
+            case CFFI_K_TYPE_WINSTRING:
+                if (pointer)
+                    resultObj = Tclh_ObjFromWinChars(
+                        ipCtxP->tclhCtxP, (WCHAR *)pointer, -1);
+                else
+                    resultObj = Tcl_NewObj();
+                break;
+#endif
             default:
                 /* Just to keep gcc happy */
                 CFFI_PANIC("UNEXPECTED BASE TYPE");

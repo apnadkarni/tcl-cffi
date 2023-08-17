@@ -26,6 +26,7 @@ namespace eval cffi::test {
              pointer [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              string [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              unistring [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
+             winstring [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              binary [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              chars {1 1} \
              unichars [list $unicharSize $unicharSize] \
@@ -124,6 +125,9 @@ namespace eval cffi::test {
     basictypetest pointer
     basictypetest string
     basictypetest unistring
+    if {$::tcl_platform(platform) eq "windows"} {
+        basictypetest winstring
+    }
     basictypetest binary
     basictypetest chars
     basictypetest unichars
@@ -831,7 +835,11 @@ namespace eval cffi::test {
         } -result [list Size [expr {2*$::tcl_platform(pointerSize)}] Count $count Alignment $::tcl_platform(pointerSize) Definition [list $type\[$count\] {*}$expected_typeattrs] BaseSize $::tcl_platform(pointerSize)] -match dict {*}$args
     }
 
-    foreach type {string string.utf-8 unistring} {
+    set matrix {string string.utf-8 unistring}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winstring
+    }
+    foreach type $matrix {
         ## param mode
         # in parameters valid for all types
         foreach {attr expected} {

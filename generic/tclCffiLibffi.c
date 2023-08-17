@@ -171,6 +171,9 @@ CffiTypeToLibffiType(Tcl_Interp *ip,
     case CFFI_K_TYPE_DOUBLE   : *ffiTypePP = &ffi_type_double; break;
     case CFFI_K_TYPE_ASTRING  : /* Fallthru - treated as pointer */
     case CFFI_K_TYPE_UNISTRING: /* Fallthru - treated as pointer */
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
     case CFFI_K_TYPE_BINARY   : /* Fallthru - treated as pointer */
     case CFFI_K_TYPE_POINTER  : *ffiTypePP = &ffi_type_pointer; break;
     case CFFI_K_TYPE_STRUCT:
@@ -355,6 +358,9 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
     case CFFI_K_TYPE_POINTER:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
         EXTRACT_(void *, ptr);
         break;
     case CFFI_K_TYPE_STRUCT:
@@ -456,6 +462,9 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
 
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+#endif
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:

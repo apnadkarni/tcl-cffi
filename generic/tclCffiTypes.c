@@ -14,6 +14,12 @@
      | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
      | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NULLOK)
 
+/* Note string cannot be INOUT parameter */
+#define CFFI_VALID_STRING_ATTRS                                                \
+    (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF \
+     | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR    \
+     | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR)
+
 /*
  * Basic type meta information. The order *MUST* match the order in
  * cffiTypeId.
@@ -88,17 +94,11 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      sizeof(void *)},
     {TOKENANDLEN(string),
      CFFI_K_TYPE_ASTRING,
-     /* Note string cannot be INOUT parameter */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF
-         | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR
-         | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
+     CFFI_VALID_STRING_ATTRS,
      sizeof(void *)},
     {TOKENANDLEN(unistring),
      CFFI_K_TYPE_UNISTRING,
-     /* Note unistring cannot be INOUT parameter */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF
-         | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR
-         | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
+     CFFI_VALID_STRING_ATTRS,
      sizeof(void *)},
     {TOKENANDLEN(binary),
      CFFI_K_TYPE_BINARY,
@@ -117,6 +117,16 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_K_TYPE_BYTE_ARRAY,
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(unsigned char)},
+#ifdef _WIN32
+    {TOKENANDLEN(winstring),
+     CFFI_K_TYPE_WINSTRING,
+     CFFI_VALID_STRING_ATTRS,
+     sizeof(void *)},
+    {TOKENANDLEN(winchars),
+     CFFI_K_TYPE_WINCHAR_ARRAY,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     sizeof(WCHAR)},
+#endif
     {NULL}};
 
 enum cffiTypeAttrOpt {
@@ -582,6 +592,10 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
 
     case CFFI_K_TYPE_UNISTRING:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     default: /* Numerics */
         if (tagLen) {
             message = "Tags are not permitted for this base type.";
@@ -1016,6 +1030,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             if (baseType != CFFI_K_TYPE_POINTER
                 && baseType != CFFI_K_TYPE_ASTRING
                 && baseType != CFFI_K_TYPE_UNISTRING
+#ifdef _WIN32
+                && baseType != CFFI_K_TYPE_WINSTRING
+#endif
                 && baseType != CFFI_K_TYPE_BINARY
                 && baseType != CFFI_K_TYPE_STRUCT
                 && !CffiTypeIsArray(&typeAttrP->dataType)) {
@@ -1167,7 +1184,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 && (flags & CFFI_F_ATTR_REQUIREMENT_MASK) == 0
                 && baseType != CFFI_K_TYPE_POINTER
                 && baseType != CFFI_K_TYPE_ASTRING
-                && baseType != CFFI_K_TYPE_UNISTRING) {
+                && baseType != CFFI_K_TYPE_UNISTRING
+                && baseType != CFFI_K_TYPE_WINSTRING) {
                 message = "\"onerror\" requires an error checking annotation.";
                 goto invalid_format;
             }
@@ -1218,6 +1236,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             case CFFI_K_TYPE_POINTER:
             case CFFI_K_TYPE_ASTRING:
             case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+            case CFFI_K_TYPE_WINSTRING:
+#endif
             case CFFI_K_TYPE_BINARY:
                 break;
             default:
@@ -1564,7 +1585,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             break;
         case CFFI_K_TYPE_UNISTRING:
             if (memlifoP == NULL) {
-                return ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
+                return Tclh_ErrorInvalidValue(ip, NULL, "unistring type not supported in this struct context.");
             }
             else {
                 Tcl_Size space;
@@ -1583,6 +1604,32 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                 }
             }
             break;
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINSTRING:
+            if (memlifoP == NULL) {
+                return ErrorInvalidValue(ip, NULL, "winstring type not supported in this struct context.");
+            }
+            else {
+                WCHAR *wsP;
+                Tcl_Size numChars;
+                wsP = Tclh_ObjToWinCharsLifo(
+                    ipCtxP->tclhCtxP, &ipCtxP->memlifo, valueObj, &numChars);
+                CFFI_ASSERT(wsP);
+                if (wsP == NULL) {
+                    return Tclh_ErrorInvalidValue(
+                        ip, valueObj, "could not convert to WCHARS.");
+                }
+                WCHAR **wsPP = indx + (WCHAR **)valueBaseP;
+                if (numChars == 0
+                    && (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY)) {
+                    *wsPP = NULL;
+                }
+                else {
+                    *wsPP = wsP;
+                }
+            }
+            break;
+#endif
         default:
             return ErrorInvalidValue(
                 ip, NULL, "Unsupported type.");
@@ -1865,6 +1912,11 @@ CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
     case CFFI_K_TYPE_UNISTRING:
         valueObj = Tcl_NewUnicodeObj(*(indx + (Tcl_UniChar **)valueBaseP), -1);
         break;
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINSTRING:
+        valueObj = Tclh_ObjFromWinChars(ipCtxP->tclhCtxP, *(indx + (WCHAR **)valueBaseP), -1);
+        break;
+#endif
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
