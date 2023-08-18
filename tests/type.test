@@ -126,14 +126,14 @@ namespace eval cffi::test {
     basictypetest pointer
     basictypetest string
     basictypetest unistring
-    if {$::tcl_platform(platform) eq "windows"} {
-        basictypetest winstring
-    }
     basictypetest binary
     basictypetest chars
     basictypetest unichars
-    basictypetest winchars
     basictypetest bytes
+    if {$::tcl_platform(platform) eq "windows"} {
+        basictypetest winstring
+        basictypetest winchars
+    }
 
 
     proc testinvalidattr {typedecl parse_mode expected_message args} {
@@ -752,7 +752,11 @@ namespace eval cffi::test {
             cffi::type info "$type\[$count\] $typeattrs" $parse_mode
         } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $alignment] -match dict
     }
-    foreach type {chars chars.utf-8 unichars winchars bytes} {
+    set matrix {chars chars.utf-8 unichars bytes}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winchars
+    }
+    foreach type $matrix {
         ### Parse mode = param, return, field
         foreach parse_mode {param return field} {
             # Scalar tests

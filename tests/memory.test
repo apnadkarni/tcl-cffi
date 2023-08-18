@@ -769,17 +769,19 @@ namespace eval cffi::test {
         cffi::memory get $p unistring
     } -result $testValues(unistring)
 
-    test memory-get-winstring-0 "get winstring" -setup {
-        set s [cffi::memory fromstring $testValues(winstring) utf-16le]
-        unset -nocomplain p
-        set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
-        cffi::memory set $p pointer $s
-    } -cleanup {
-        if {[info exists s]} {cffi::memory free $s}
-        if {[info exists p]} {cffi::memory free $p}
-    } -constraints win -body {
-        cffi::memory get $p winstring
-    } -result $testValues(winstring)
+    if {$::tcl_platform(platform) eq "windows"} {
+        test memory-get-winstring-0 "get winstring" -setup {
+            set s [cffi::memory fromstring $testValues(winstring) utf-16le]
+            unset -nocomplain p
+            set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
+            cffi::memory set $p pointer $s
+        } -cleanup {
+            if {[info exists s]} {cffi::memory free $s}
+            if {[info exists p]} {cffi::memory free $p}
+        } -constraints win -body {
+            cffi::memory get $p winstring
+        } -result $testValues(winstring)
+    }
 
     test memory-get-binary-0 "set $type" -setup {
         unset -nocomplain p

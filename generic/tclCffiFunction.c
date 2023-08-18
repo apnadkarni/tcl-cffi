@@ -715,6 +715,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
 
+#ifdef _WIN32
     case CFFI_K_TYPE_WINCHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         if (argP->arraySize == 0)
@@ -723,6 +724,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
+#endif
 
     case CFFI_K_TYPE_BINARY:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_IN);

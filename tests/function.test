@@ -2173,7 +2173,12 @@ namespace eval ${NS}::test {
             testDll function ${type}_out $type {}
         } -result "Invalid value \"$type\". $errorMessages(typeparsemode)* Error defining function *" -match glob -returnCodes error
     }
-    foreach type {chars unichars winchars bytes} {
+
+    set matrix {chars unichars bytes}
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winchars
+    }
+    foreach type $matrix {
         test function-return-$type-0 "Return type $type" -body {
             # Prototype does not match C. Does not have to!
             testDll function string_out ${type}\[2\] {}
@@ -2246,7 +2251,11 @@ namespace eval ${NS}::test {
 
     ###
     # Array tests - empty arrays, all types
-    foreach type [list {*}$numericTypes pointer struct.::TestStruct chars unichars winchars bytes] {
+    set matrix [list {*}$numericTypes pointer struct.::TestStruct chars unichars bytes]
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winchars
+    }
+    foreach type $matrix {
         # Test for zero size array with nullok
         test function-array-count0-$type-in-0 {array input size 0} -setup {
             # Fake out function as taking array. Doesn't matter as we pass NULL

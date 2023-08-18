@@ -122,13 +122,16 @@ namespace eval cffi::test {
     set testValues(pointer\ unsafe) [makeptr 1]
     set testValues(chars\[[expr {[string length $testStrings(ascii)]+1}]\]) $testStrings(ascii)
     set testValues(unichars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
-    set testValues(winchars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
     set testValues(bytes\[[string length $testStrings(bytes)]\]) $testStrings(bytes)
     set testValues(string) $testStrings(ascii)
     set testValues(unistring) $testStrings(unicode)
-    set testValues(winstring) $testStrings(unicode)
     set testValues(binary) $testStrings(bytes)
     set testValues(struct.::StructValue) {c 42 i 4242}
+    if {$::tcl_platform(platform) eq "windows"} {
+        set testValues(winstring) $testStrings(unicode)
+        set testValues(winchars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
+    }
+
 
     variable badValues
     foreach type $numericTypes {

@@ -1536,6 +1536,9 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             CHECK(CffiPointerFromObj(ipCtxP, typeAttrsP, valueObj, &value.u.ptr));
             *(indx + (void **)valueBaseP) = value.u.ptr;
             break;
+#ifdef OBSOLETE
+        Not used. Also note the code seems wrong in terms of the calculation
+        of target location using indx.
         case CFFI_K_TYPE_CHAR_ARRAY:
             CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
             if (flags & CFFI_F_PRESERVE_ON_ERROR) {
@@ -1591,6 +1594,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                        + (unsigned char *)valueBaseP,
                                    typeAttrsP->dataType.arraySize));
             break;
+#endif /* OBSOLETE */
         case CFFI_K_TYPE_ASTRING:
             if (memlifoP == NULL) {
                 return Tclh_ErrorInvalidValue(

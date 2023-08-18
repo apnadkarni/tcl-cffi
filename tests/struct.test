@@ -408,7 +408,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         list [catch {S tonative $p {i 42 c abcd}} emsg] $emsg [S fromnative $p]
-    } -result [list 1 {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} {i 0 c ab}]
+    } -constraints win -result [list 1 {Invalid value "abcd". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} {i 0 c ab}]
 
 
     test struct-tonative-error-7 "struct tonative bytes overflow" -setup {
@@ -605,11 +605,16 @@ namespace eval cffi::test {
     # struct field defaults
     # Note: struct tobinary does not support string/unistring/winstring. Those will have
     # to be covered in function.test
-    foreach {type val} {
+    set matrix {
         schar -1 uchar 1 short -2 ushort 2 int -3 uint 3 long -4 ulong 4
         longlong -5 ulonglong 5 float 0.5 double 1.5
-        chars[3] ab unichars[3] de winchars[3] fg
-    } {
+        chars[3] ab unichars[3] de
+    }
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix {winchars[3]} fg
+    }
+
+    foreach {type val} $matrix {
         test struct-field-default-$type-0 "$type field with default" -body {
             set s [cffi::Struct new [list fld [list $type [list default $val]]]]
             $s frombinary [$s tobinary {}]
@@ -1247,7 +1252,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S new {c abc}
-    } -result {Invalid value "abc". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
+    } -constraints win -result {Invalid value "abc". String length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
 
     test struct-new-error-7 "struct new bytes overflow" -setup {
         cffi::Struct create ::S {c bytes[3]}
