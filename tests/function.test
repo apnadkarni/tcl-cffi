@@ -762,9 +762,13 @@ namespace eval ${NS}::test {
         testDll function winstring_array_out void {strings {winstring[3] inout} n int}
     } -constraints win -result {Invalid value "winstring\[3\] inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
 
-    ## Parameter tests - chars, unichars
+    ## Parameter tests - chars, unichars, winchars
     # NOTE:  use only ascii for utf8 test here because of the buflen calculation
-    foreach {type val} [list chars $testStrings(ascii) chars.utf-8 abc unichars $testStrings(unicode)] {
+    set matrix [list chars $testStrings(ascii) chars.utf-8 abc unichars $testStrings(unicode)]
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend matrix winchars $testStrings(unicode)
+    }
+    foreach {type val} $matrix {
         set len [string length $val]
         set buflen [expr {$len+1}]
         set repeat 100000
@@ -773,10 +777,13 @@ namespace eval ${NS}::test {
         set largeval [string repeat $val $repeat]
         if {$type in {chars chars.utf-8}} {
             set fn string_out
+        } elseif {$type eq "winchars"} {
+            set fn winstring_out
         } else {
             set fn unistring_out
         }
         testDll function $fn int [list input "$type\[$buflen\]" output [list $type\[$buflen\] out]]
+        # Note the -out- tests also test "in" parameters
         test function-$type-out-0 "$type out" -body {
             list [$fn $val result] $result
         } -result [list $len $val]
@@ -799,6 +806,11 @@ namespace eval ${NS}::test {
             set output
         } -result ""
 
+        testDll function $fn int [list input "$type\[[expr {$buflen-1}]\]" output [list $type\[$buflen\] out]]
+        test function-$type-in-error-0 "Input string too long" -body {
+            $fn $val result
+        } -result {Invalid value *. String length is greater than specified maximum buffer size.} -match glob -returnCodes error
+
         test function-$type-retval-0 "$type retval" -setup {
             testDll function $fn {int nonzero} [list input "$type\[$buflen\]" output [list $type\[$buflen\] retval]]
         } -body {
@@ -807,6 +819,8 @@ namespace eval ${NS}::test {
 
         if {$type in {chars chars.utf-8}} {
             set fn string_reverse_inout
+        } elseif {$type eq "winchars"} {
+            set fn winstring_reverse_inout
         } else {
             set fn unistring_reverse_inout
         }
@@ -2159,7 +2173,7 @@ namespace eval ${NS}::test {
             testDll function ${type}_out $type {}
         } -result "Invalid value \"$type\". $errorMessages(typeparsemode)* Error defining function *" -match glob -returnCodes error
     }
-    foreach type {chars unichars bytes} {
+    foreach type {chars unichars winchars bytes} {
         test function-return-$type-0 "Return type $type" -body {
             # Prototype does not match C. Does not have to!
             testDll function string_out ${type}\[2\] {}
@@ -2232,7 +2246,7 @@ namespace eval ${NS}::test {
 
     ###
     # Array tests - empty arrays, all types
-    foreach type [list {*}$numericTypes pointer struct.::TestStruct chars unichars bytes] {
+    foreach type [list {*}$numericTypes pointer struct.::TestStruct chars unichars winchars bytes] {
         # Test for zero size array with nullok
         test function-array-count0-$type-in-0 {array input size 0} -setup {
             # Fake out function as taking array. Doesn't matter as we pass NULL

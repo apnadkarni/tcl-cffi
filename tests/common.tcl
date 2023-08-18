@@ -122,6 +122,7 @@ namespace eval cffi::test {
     set testValues(pointer\ unsafe) [makeptr 1]
     set testValues(chars\[[expr {[string length $testStrings(ascii)]+1}]\]) $testStrings(ascii)
     set testValues(unichars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
+    set testValues(winchars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
     set testValues(bytes\[[string length $testStrings(bytes)]\]) $testStrings(bytes)
     set testValues(string) $testStrings(ascii)
     set testValues(unistring) $testStrings(unicode)
@@ -161,7 +162,7 @@ namespace eval cffi::test {
         attrtype {A type annotation is not valid for the data type.}
         attrconflict {Unknown, repeated or conflicting type annotations specified.}
         arraysize {Invalid array size or extra trailing characters.}
-        scalarchars {Declarations of type chars, unichars and bytes must be arrays.}
+        scalarchars {Declarations of type chars, unichars, winchars and bytes must be arrays.}
         arrayreturn {Function return type must not be an array.}
         namesyntax {Invalid name syntax.}
         attrparamdir {One or more annotations are invalid for the parameter direction.}

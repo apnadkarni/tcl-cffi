@@ -30,6 +30,7 @@ namespace eval cffi::test {
              binary [list $::tcl_platform(pointerSize) $::tcl_platform(pointerSize)] \
              chars {1 1} \
              unichars [list $unicharSize $unicharSize] \
+             winchars [list 2 2] \
              bytes {1 1} \
             ]
 
@@ -44,7 +45,7 @@ namespace eval cffi::test {
         set typeattrs [lassign $typedecl type]
         lassign $typeInfo($type) size alignment
         # Scalar tests
-        if {$type ni {chars unichars bytes}} {
+        if {$type ni {chars unichars winchars bytes}} {
             test type-info-$testlabel-0 "type info $typedecl" -body {
                 cffi::type info $typedecl
             } -result [list Size $size Count -1 Alignment $alignment Definition $typedecl BaseSize $size] -match dict
@@ -58,7 +59,7 @@ namespace eval cffi::test {
             } -result -1
 
         } else {
-            # chars, unichars, bytes
+            # chars, unichars, winchars, bytes
             test type-info-$testlabel-1 "type info $typedecl" -body {
                 cffi::type info $typedecl
             } -result "Invalid value \"$type\". $errorMessages(scalarchars)" -returnCodes error
@@ -131,6 +132,7 @@ namespace eval cffi::test {
     basictypetest binary
     basictypetest chars
     basictypetest unichars
+    basictypetest winchars
     basictypetest bytes
 
 
@@ -730,11 +732,16 @@ namespace eval cffi::test {
         set typeattrs [lassign $typedecl type]
         set testlabel type-info-[join $typedecl -]-$count
 
-
-        set alignment [expr {$type eq "unichars" ? $unicharSize : 1}]
+        switch $type {
+            unichars { set alignment $unicharSize }
+            winchars { set alignment 2 }
+            default { set alignment 1 }
+        }
         if {[string is integer -strict $count]} {
             if {$type eq "unichars"} {
                 set size [expr {$unicharSize*$count}]
+            } elseif {$type eq "winchars"} {
+                set size [expr {2*$count}]
             } else {
                 set size $count
             }
@@ -745,7 +752,7 @@ namespace eval cffi::test {
             cffi::type info "$type\[$count\] $typeattrs" $parse_mode
         } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $alignment] -match dict
     }
-    foreach type {chars chars.utf-8 unichars bytes} {
+    foreach type {chars chars.utf-8 unichars winchars bytes} {
         ### Parse mode = param, return, field
         foreach parse_mode {param return field} {
             # Scalar tests

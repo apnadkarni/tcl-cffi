@@ -274,6 +274,9 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
     case CFFI_K_TYPE_CHAR_ARRAY: /* FALLTHRU */
     case CFFI_K_TYPE_BYTE_ARRAY: /* FALLTHRU */
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
         dcArgPointer(vmP, argP->value.u.ptr);
         break;
     case CFFI_K_TYPE_ASTRING:/* FALLTHRU */

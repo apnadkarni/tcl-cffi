@@ -627,9 +627,12 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
         break;
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
         if (CffiTypeIsNotArray(typeP)) {
-            message = "Declarations of type chars, unichars and bytes must be arrays.";
+            message = "Declarations of type chars, unichars, winchars and bytes must be arrays.";
             goto invalid_type;
         }
     default:
@@ -1127,6 +1130,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     break;
                 case CFFI_K_TYPE_CHAR_ARRAY:
                 case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+                case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
                 case CFFI_K_TYPE_BYTE_ARRAY:
                     flags |=
                         CFFI_F_ATTR_BYREF; /* Arrays always by reference */
@@ -1162,6 +1168,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_BINARY:
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
         case CFFI_K_TYPE_BYTE_ARRAY:
             message = typeInvalidForContextMsg;
             goto invalid_format;
@@ -1205,10 +1214,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             goto invalid_format;
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
         case CFFI_K_TYPE_BYTE_ARRAY:
             if (CffiTypeIsNotArray(&typeAttrP->dataType)
                 || CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
-                message = "Fields of type chars, unichars or bytes must be fixed size "
+                message = "Fields of type chars, unichars, winchars or bytes must be fixed size "
                           "arrays.";
                 goto invalid_format;
             }
@@ -1554,6 +1566,23 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                             + (Tcl_UniChar *)valueBaseP,
                                         typeAttrsP->dataType.arraySize));
             break;
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINCHAR_ARRAY:
+            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
+            tempP = Tcl_GetStringFromObj(valueObj, &len);
+            int encStatus = Tclh_UtfToWinChars(
+                ipCtxP->tclhCtxP,
+                tempP,
+                len,
+                (indx * typeAttrsP->dataType.arraySize) + (WCHAR *)valueBaseP,
+                typeAttrsP->dataType.arraySize,
+                NULL);
+            if (encStatus != TCL_OK) {
+                return Tclh_ErrorEncodingFromUtf8(
+                    ipCtxP->interp, encStatus, tempP, len);
+            }
+            break;
+#endif
         case CFFI_K_TYPE_BYTE_ARRAY:
             CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
             CHECK(CffiBytesFromObjSafe(ip,
@@ -1745,6 +1774,24 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
             CHECK(CffiUniCharsFromObjSafe(
                 ip, valueObj, (Tcl_UniChar *)valueP, count));
             break;
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINCHAR_ARRAY:
+            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
+            Tcl_Size srcLen;
+            const char *srcP = Tcl_GetStringFromObj(valueObj, &srcLen);
+            int encStatus = Tclh_UtfToWinChars(
+                ipCtxP->tclhCtxP,
+                srcP,
+                srcLen,
+                (WCHAR *) valueP,
+                count,
+                NULL);
+            if (encStatus != TCL_OK) {
+                return Tclh_ErrorEncodingFromUtf8(
+                    ipCtxP->interp, encStatus, srcP, srcLen);
+            }
+            break;
+#endif
         case CFFI_K_TYPE_BYTE_ARRAY:
             CHECK(CffiBytesFromObjSafe(ip, valueObj, valueP, count));
             break;
@@ -1922,6 +1969,9 @@ CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
     case CFFI_K_TYPE_BINARY:
         /* FALLTHRU - this function should not have been called for these */
@@ -2025,6 +2075,13 @@ CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
         CFFI_ASSERT(count > 0);
         *valueObjP = Tcl_NewUnicodeObj((Tcl_UniChar *)valueP, -1);
         return TCL_OK;
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+        CFFI_ASSERT(count > 0);
+        *valueObjP =
+            Tclh_ObjFromWinChars(ipCtxP->tclhCtxP, (WCHAR *)valueP, -1);
+        return TCL_OK;
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
         CFFI_ASSERT(count > 0);
         *valueObjP = Tcl_NewByteArrayObj((unsigned char *)valueP, count);

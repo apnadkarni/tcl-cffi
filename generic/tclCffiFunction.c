@@ -204,6 +204,66 @@ CffiArgPrepareUniChars(CffiCall *callP,
     }
 }
 
+#ifdef _WIN32
+/* Function: CffiArgPrepareWinChars
+ * Initializes a CffiValue to pass a winchars argument.
+ *
+ * Parameters:
+ * callP - the call context
+ * arg_index - index into argument array of call context. Caller must
+ * ensure this is an array of size > 0.
+ * valueObj - the value passed in from script. May be NULL for pure output.
+ * valueP - location of native value to store
+ *
+ * The function may allocate storage which must be freed by calling
+ * CffiArgCleanup when no longer needed.
+ *
+ * Returns:
+ * *TCL_OK* on success with pointer to chars in *valueP* or *TCL_ERROR*
+ * on failure with error message in the interpreter.
+ */
+static CffiResult
+CffiArgPrepareWinChars(CffiCall *callP,
+                       int arg_index,
+                       Tcl_Obj *valueObj,
+                       CffiValue *valueP)
+{
+    CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
+    CffiArgument *argP    = &callP->argsP[arg_index];
+    const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
+
+    CFFI_ASSERT(argP->arraySize > 0);
+    CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_WINCHAR_ARRAY);
+
+    valueP->u.ptr =
+        Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(WCHAR));
+
+    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
+        int encResult;
+        Tcl_Size len;
+        const char *p = Tcl_GetStringFromObj(valueObj, &len);
+
+        encResult = Tclh_UtfToWinChars(
+            ipCtxP->tclhCtxP, p, len, valueP->u.ptr, argP->arraySize, NULL);
+        if (encResult == TCL_OK)
+            return TCL_OK;
+        else {
+            return Tclh_ErrorEncodingFromUtf8(
+                ipCtxP->interp, encResult, Tcl_GetString(valueObj), len);
+        }
+    }
+    else {
+        /*
+         * To protect against the called C function leaving the output
+         * argument unmodified on error which would result in our
+         * processing garbage in CffiArgPostProcess, set null terminator.
+         */
+        *(WCHAR *)valueP->u.ptr = 0;
+        return TCL_OK;
+    }
+}
+#endif
+
 /* Function: CffiArgCleanup
  * Releases any resources stored within a CffiValue
  *
@@ -351,12 +411,18 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
+#ifdef _WIN32
+                    && baseType != CFFI_K_TYPE_WINCHAR_ARRAY
+#endif
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 #else
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
+#ifdef _WIN32
+                    && baseType != CFFI_K_TYPE_WINCHAR_ARRAY
+#endif
                     && baseType != CFFI_K_TYPE_STRUCT
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 #endif
@@ -639,11 +705,21 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
+
     case CFFI_K_TYPE_UNICHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
         if (argP->arraySize == 0)
             goto pass_null_array;
         CHECK(CffiArgPrepareUniChars(callP, arg_index, valueObj, &argP->value));
+        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        STOREARGBYVAL(CffiStoreArgPointer, ptr);
+        break;
+
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+        CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+        if (argP->arraySize == 0)
+            goto pass_null_array;
+        CHECK(CffiArgPrepareWinChars(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
@@ -823,6 +899,9 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
             ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
@@ -1822,6 +1901,9 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
 #if 0
         /* Currently BYREF not allowed for arrays and DC does not support struct byval */

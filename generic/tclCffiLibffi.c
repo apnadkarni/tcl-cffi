@@ -184,6 +184,9 @@ CffiTypeToLibffiType(Tcl_Interp *ip,
         break;
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
     default:
         /* Either BYREF should have been set or some unknown type */
@@ -385,6 +388,9 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_VOID:
@@ -468,6 +474,9 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
     case CFFI_K_TYPE_BINARY:
     default:

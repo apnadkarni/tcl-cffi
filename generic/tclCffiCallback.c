@@ -178,6 +178,9 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+#ifdef _WIN32
+    case CFFI_K_TYPE_WINCHAR_ARRAY:
+#endif
     case CFFI_K_TYPE_BYTE_ARRAY:
     case CFFI_K_TYPE_BINARY:
     default:

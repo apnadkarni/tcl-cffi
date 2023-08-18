@@ -214,6 +214,7 @@ EXTERN void winstring_to_void(WCHAR *s) { return; }
 #endif
 EXTERN void chars_to_void(char s[]) { return; }
 EXTERN void unichars_to_void(Tcl_UniChar s[]) { return; }
+EXTERN void winchars_to_void(Tcl_UniChar s[]) { return; }
 EXTERN void binary_to_void(unsigned char *b) { return; }
 EXTERN void bytes_to_void(unsigned char *b[]) { return; }
 
@@ -944,7 +945,7 @@ struct StructWithStringArrays {
     char *strings[3];
     Tcl_UniChar *unistrings[3];
 #ifdef _WIN32
-    WCHAR winstrings[3];
+    WCHAR *winstrings[3];
 #endif
 };
 
@@ -955,7 +956,7 @@ getStringFromStructStringArray(const struct StructWithStringArrays *structP,
                                Tcl_UniChar **unistringP
 #ifdef _WIN32
                                ,
-                               WCHAR *winstringP
+                               WCHAR **winstringP
 #endif
 )
 {
