@@ -1450,8 +1450,11 @@ namespace eval ${NS}::test {
         structCheck [list c 1 ll $ll] 1 $ll 2
     } -result {Struct field "s" not found or inaccessible. Field missing in struct dictionary value. Error converting field ::S.s to a native value.} -returnCodes error
 
-    set uniround [expr {$unicharSize == 2 ? 2 : 0}]
-    set unibytecount [expr {13*$unicharSize + $uniround}]
+    if {$::tcl_platform(platform) eq "windows"} {
+        set result [list c -127 i -2147483647 shrt -32767 uint 0 ushrt 0 l [expr {$intMin(long)+1}] uc 0 ul 0 chars CHARS ll -9223372036854775807 unic UNIC ull 0 b \x01\x02\x03 f 0.75 s {c INNER} d 1.125 wchars WCHARS]
+    } else {
+        set result [list c -127 i -2147483647 shrt -32767 uint 0 ushrt 0 l [expr {$intMin(long)+1}] uc 0 ul 0 chars CHARS ll -9223372036854775807 unic UNIC ull 0 b \x01\x02\x03 f 0.75 s {c INNER} d 1.125]
+    }
     test function-struct-inout-0 "Pass struct inout" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
         testDll function incrTestStruct void {s {struct.TestStruct inout}}
@@ -1460,9 +1463,8 @@ namespace eval ${NS}::test {
         incrTestStruct s
         # TBD - fix this result check for all platforms, including 32-bits
         set s
-    } -result [expr {$::tcl_platform(wordSize) == 4 ?
-                     [list c 1 i 5 shrt 9 ui 13 ushrt 17 l 21 uc 25 ul 29 c3 33 ll 49 unic 57 ull [expr 57+$unibytecount+4] b [expr {$unicharSize == 4 ? "yz\{" : "abc"}] f [expr 57.0+$unibytecount+4+8+(3+1)] s [list c [expr 57+$unibytecount+4+8+(3+1)+4]] d [expr 57.0+$unibytecount+4+8+(3+1)+4+(15+1)]] :
-                     [list c 1 i 5 shrt 9 ui 13 ushrt 17 l 25 uc 33 ul 41 c3 49 ll 65 unic 73 ull [expr 73+$unibytecount+4] b [expr {$unicharSize == 4 ? "\x89\x8A\x8B" : "qrs"}] f [expr 73.0+$unibytecount+4+8+(3+1)] s [list c [expr 73+$unibytecount+4+8+(3+1)+4]] d [expr 73.0+$unibytecount+4+8+(3+1)+4+(15+1)]]}]
+    } -result $result
+
     test function-struct-inout-1 "Pass struct with pointer array inout" -setup {
         catch {struct_with_pointer_array destroy}
         cffi::Struct create struct_with_pointer_array {ptrs {pointer[3] counted}}

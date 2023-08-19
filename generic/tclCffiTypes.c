@@ -1781,19 +1781,24 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
 #ifdef _WIN32
         case CFFI_K_TYPE_WINCHAR_ARRAY:
             CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-            Tcl_Size srcLen;
-            const char *srcP = Tcl_GetStringFromObj(valueObj, &srcLen);
-            int encStatus = Tclh_UtfToWinChars(
-                ipCtxP->tclhCtxP,
-                srcP,
-                srcLen,
-                (WCHAR *) valueP,
-                count,
-                NULL);
-            if (encStatus != TCL_OK) {
-                return Tclh_ErrorEncodingFromUtf8(
-                    ipCtxP->interp, encStatus, srcP, srcLen);
+            if (flags & CFFI_F_PRESERVE_ON_ERROR) {
+                CHECK(CffiWinCharsFromObjSafe(
+                    ipCtxP, valueObj, (WCHAR *)valueP, count));
+            } else {
+                Tcl_Size srcLen;
+                const char *srcP = Tcl_GetStringFromObj(valueObj, &srcLen);
+                int encStatus    = Tclh_UtfToWinChars(ipCtxP->tclhCtxP,
+                                                   srcP,
+                                                   srcLen,
+                                                   (WCHAR *)valueP,
+                                                   count,
+                                                   NULL);
+                if (encStatus != TCL_OK) {
+                    return Tclh_ErrorEncodingFromUtf8(
+                        ipCtxP->interp, encStatus, srcP, srcLen);
+                }
             }
+
             break;
 #endif
         case CFFI_K_TYPE_BYTE_ARRAY:
@@ -2580,6 +2585,56 @@ CffiUniCharsFromObjSafe(
     memmove(toP, fromP, fromLen * sizeof(Tcl_UniChar));
     return TCL_OK;
 }
+
+#ifdef _WIN32
+/* Function: CffiWinCharsFromObjSafe
+ * Encodes a Tcl_Obj to a *WCHAR* array.
+ *
+ * Parameters:
+ * ip - interpreter
+ * fromObj - *Tcl_Obj* containing value to be stored
+ * toP - buffer to store the encoded string
+ * toSize - size of buffer in *WCHAR* units
+ *
+ * The output buffer will be unmodified in case of an error return.
+ *
+ * Returns:
+ * *TCL_OK* on success with  or *TCL_ERROR* * on failure with error message
+ * in the interpreter.
+ */
+CffiResult
+CffiWinCharsFromObjSafe(
+    CffiInterpCtx *ipCtxP, Tcl_Obj *fromObj, WCHAR *toP, Tcl_Size toSize)
+{
+    Tcl_Size numChars;
+    Tclh_LifoMark mark;
+    WCHAR *bufP;
+    CffiResult ret;
+
+    mark = Tclh_LifoPushMark(&ipCtxP->memlifo);
+    bufP = Tclh_ObjToWinCharsLifo(
+        ipCtxP->tclhCtxP, &ipCtxP->memlifo, fromObj, &numChars);
+    if (bufP) {
+        ++numChars; /* For terminating nul */
+        if (numChars > toSize) {
+            ret = Tclh_ErrorInvalidValue(ipCtxP->interp,
+                                         fromObj,
+                                         "String length is greater than "
+                                         "specified maximum buffer size.");
+        }
+        else {
+            memmove(toP, bufP, numChars * sizeof(*toP));
+            ret = TCL_OK;
+        }
+    } else {
+        ret = Tclh_ErrorOperFailed(
+            ipCtxP->interp, "encoding to winchars", fromObj, NULL);
+    }
+
+    Tclh_LifoPopMark(mark);
+    return ret;
+}
+#endif
 
 /* Function: CffiBytesFromObjSafe
  * Encodes a Tcl_Obj to a C array of bytes

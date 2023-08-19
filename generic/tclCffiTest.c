@@ -16,6 +16,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <limits.h>
+#ifdef _WIN32
+#include <strsafe.h>
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -174,14 +178,17 @@ typedef struct TestStruct {
     long l;
     unsigned char uc;
     unsigned long ul;
-    char c3[13];
+    char chars[11];
     long long ll;
-    Tcl_UniChar unic[13];
+    Tcl_UniChar unic[7];
     unsigned long long ull;
     unsigned char b[3];
     float f;
     InnerTestStruct s;
     double d;
+#ifdef _WIN32
+    WCHAR wchars[13];
+#endif
 } TestStruct;
 
 EXTERN int noargs () { return 42; }
@@ -671,43 +678,37 @@ EXTERN void get_array_int(int *a, int n) {
     for (i = 0; i < n; ++i)
         a[i] = 2*a[i];
 }
-
 EXTERN int getTestStructSize() { return (int)sizeof(TestStruct); }
 EXTERN int getTestStruct(TestStruct *tsP)
 {
-    int off;
+    memset(tsP, 0, sizeof(*tsP));
 
 #define OFF(type, field) (type) offsetof(TestStruct, field)
-    tsP->c = OFF(signed char, c);
-    tsP->i = OFF(int, i);
-    tsP->shrt = OFF(short,shrt);
-    tsP->uint = OFF(unsigned int,uint);
-    tsP->ushrt = OFF(unsigned short,ushrt);
-    tsP->l = OFF(long,l);
-    tsP->uc = OFF(unsigned char,uc);
-    tsP->ul = OFF(unsigned long,ul);
-    snprintf(tsP->c3, sizeof(tsP->c3), "%d", (int) offsetof(TestStruct, c3));
-    tsP->ll = OFF(long long, ll);
-    {
-        /* This awkardness because we do not want to link to Tcl lib for
-           Tcl_UniChar functions and cannot use wsprintf etc because sizes
-           may not match UniChar */
-        char offset_string[20];
-        int i;
-        snprintf(offset_string, sizeof(offset_string), "%d", (int)offsetof(TestStruct, unic));
-        for (i = 0; offset_string[i]; ++i)
-            tsP->unic[i] = (Tcl_UniChar)offset_string[i];
-        tsP->unic[i] = 0;
-    }
-    tsP->ull = OFF(unsigned long long, ull);
-    tsP->b[0] = OFF(unsigned char, b);
-    tsP->b[1] = tsP->b[0]+1;
-    tsP->b[2] = tsP->b[0]+2;
-    off          = OFF(int, f);
-    tsP->f       = (float)off; /* Two step because direct assign causes MSVC 15.9.20 to crash */
-    snprintf(tsP->s.c, sizeof(tsP->s.c), "%d", (int) offsetof(TestStruct, s));
-    off          = OFF(int, d);
-    tsP->d       = off; /* Two step because direct assign causes MSVC 15.9.20 to crash */
+    tsP->c     = CHAR_MIN;
+    tsP->i     = INT_MIN;
+    tsP->shrt  = SHRT_MIN;
+    tsP->uint  = UINT_MAX;
+    tsP->ushrt = USHRT_MAX;
+    tsP->l     = LONG_MIN;
+    tsP->uc    = UCHAR_MAX;
+    tsP->ul    = ULONG_MAX;
+    strncpy(tsP->chars, "CHARS", sizeof(tsP->chars));
+    tsP->ll = LLONG_MIN;
+    tsP->unic[0] = 'U';
+    tsP->unic[1] = 'N';
+    tsP->unic[2] = 'I';
+    tsP->unic[3] = 'C';
+    tsP->unic[4] = 0;
+    tsP->ull     = ULLONG_MAX;
+    tsP->b[0]    = 1;
+    tsP->b[1]    = 2;
+    tsP->b[2]    = 3;
+    tsP->f       = -0.25;
+    strncpy(tsP->s.c, "INNER", sizeof(tsP->s.c));
+    tsP->d = 0.125;
+#ifdef _WIN32
+    StringCchCopyW(tsP->wchars, ARRAYSIZE(tsP->wchars), L"WCHARS");
+#endif
     return sizeof(*tsP);
 }
 EXTERN TestStruct  returnTestStruct() {
@@ -721,11 +722,9 @@ EXTERN TestStruct *returnTestStructByRef() {
     return &ts;
 }
 
-/* Increments every field value by 1 */
+/* Increments every numeric field value by 1 */
 EXTERN void incrTestStruct(TestStruct *tsP)
 {
-    int i;
-
 #define SET(fld)                 \
     do {                         \
         tsP->fld = tsP->fld + 1; \
@@ -739,39 +738,9 @@ EXTERN void incrTestStruct(TestStruct *tsP)
     SET(l);
     SET(uc);
     SET(ul);
-
-    sscanf(tsP->c3, "%d", &i);
-    snprintf(tsP->c3, sizeof(tsP->c3), "%d", i + 1);
-
     SET(ll);
-
-    /* unic */
-    {
-        /* This awkardness because we do not want to link to Tcl lib for
-           Tcl_UniChar functions and cannot use wsprintf etc because sizes
-           may not match UniChar */
-        char ascii[20];
-        int i;
-        for (i = 0; tsP->unic[i]; ++i)
-            ascii[i] = (char) tsP->unic[i];
-        ascii[i] = 0;
-        sscanf(ascii, "%d", &i);
-        snprintf(ascii, sizeof(ascii), "%d", i + 1);
-        for (i = 0; ascii[i]; ++i)
-            tsP->unic[i] = (Tcl_UniChar)ascii[i];
-        tsP->unic[i] = 0;
-    }
-
     SET(ull);
-
-    for (i = 0; i < sizeof(tsP->b); ++i)
-        tsP->b[i] = tsP->b[i] + 1;
-
     SET(f);
-
-    sscanf(tsP->s.c, "%d", &i);
-    snprintf(tsP->s.c, sizeof(tsP->s.c), "%d", i + 1);
-
     SET(d);
 }
 

@@ -1026,10 +1026,14 @@ namespace eval cffi::test {
         S setnative $p nosuchfield 1
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
     set testnum -1
-    foreach {fld val} {
-        c 256 i notanint shrt 100000 ui -1 ushrt -1 l notanint uc -1 ul -1 c3 morethan13chars ll notanint unic morethan13chars ull -1 b morethan3bytes f notanumber s {unknownfield 104} d notanumber
-    } {
-        test struct-setnative-value-error-[incr testnum] "Setnative field struct bad $fld value" -setup {
+    set testvals {
+        c 256 i notanint shrt 100000 uint -1 ushrt -1 l notanint uc -1 ul -1 chars toolongastring ll notanint unic toolongastring ull -1 b morethan3bytes f notanumber s {unknownfield 104} d notanumber
+    }
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend testvals wchars toolongastring
+    }
+    foreach {fld val} $testvals {
+        test struct-setnative-value-error-$fld "Setnative field struct bad $fld value" -setup {
             set p [::TestStruct allocate]
             testDll function getTestStruct int {p pointer.::TestStruct}
             getTestStruct $p

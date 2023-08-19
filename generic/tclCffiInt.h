@@ -546,6 +546,12 @@ CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
                                Tcl_Obj *fromObj,
                                Tcl_UniChar *toP,
                                Tcl_Size toSize);
+#ifdef _WIN32
+CffiResult CffiWinCharsFromObjSafe(CffiInterpCtx *ipCtxP,
+                                   Tcl_Obj *fromObj,
+                                   WCHAR *toP,
+                                   Tcl_Size toSize);
+#endif
 CffiResult CffiCharsFromTclString(Tcl_Interp *ip,
                                   Tcl_Encoding enc,
                                   const char *fromP,

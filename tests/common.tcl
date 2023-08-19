@@ -197,43 +197,61 @@ namespace eval cffi::test {
     cffi::Struct create ::cffi::test::InnerTestStruct {
         c chars[15]
     }
-    cffi::Struct create ::TestStruct {
+    set def {
         c  schar
         i  int
         shrt short
-        ui uint
+        uint uint
         ushrt ushort
         l  long
         uc uchar
         ul ulong
-        c3 chars[13]
+        chars chars[11]
         ll longlong
-        unic unichars[13]
+        unic unichars[7]
         ull ulonglong
         b   bytes[3]
         f float
         s struct.cffi::test::InnerTestStruct
         d double
     }
+    if {$::tcl_platform(platform) eq "windows"} {
+        lappend def wchars {winchars[13]}
+    }
+    cffi::Struct create ::TestStruct $def
+
     proc checkTestStruct {sdict} {
         # Returns list of mismatched fields assuming as initialzed
         # by getTestStruct in tclCffiTest.c
-        # Each field is set in C to its offset
-        set sinfo [::TestStruct info]
+        variable intMax
+        variable intMin
+
+        set values [list \
+                        c $intMin(schar) \
+                        i $intMin(int) \
+                        shrt $intMin(short) \
+                        uint $intMax(uint) \
+                        ushrt $intMax(ushort) \
+                        l $intMin(long) \
+                        uc $intMax(uchar) \
+                        ul $intMax(ulong) \
+                        chars CHARS \
+                        ll $intMin(longlong) \
+                        unic UNIC \
+                        ull $intMax(ulonglong) \
+                        b "\x01\x02\x03" \
+                        f -0.25 \
+                        s [list c INNER] \
+                        d 0.125]
+        if {$::tcl_platform(platform) eq "windows"} {
+            lappend values wchars WCHARS
+        }
         set mismatches {}
-        foreach fld {c i shrt ui ushrt l uc ul c3 ll unic ull f d} {
-            if {[expr {[dict get $sdict $fld] != [dict get $sinfo Fields $fld Offset]}]} {
-                puts "$fld: [dict get $sdict $fld] != [dict get $sinfo Fields $fld Offset]"
+        foreach {fld val} $values {
+            if {[dict get $sdict $fld] != $val} {
+                puts "$fld: [dict get $sdict $fld] != $val"
                 lappend mismatches $fld
             }
-        }
-        binary scan [dict get $sdict b] cucucu byte0 byte1 byte2
-        set off [dict get $sinfo Fields b Offset]
-        if {$byte0 != $off || $byte1 != [incr off] || $byte2 != [incr off]} {
-            lappend mismatches b
-        }
-        if {[dict get [dict get $sdict s] c] != [dict get $sinfo Fields s Offset]} {
-            lappend mismatches s
         }
         return $mismatches
     }
