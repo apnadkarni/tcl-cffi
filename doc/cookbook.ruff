@@ -317,8 +317,8 @@ namespace eval Cookbook {
               +-      -+
         ```
 
-        The `byref` is not present because `string` and `unistring` are
-        already implicit pointers,
+        The `byref` is not present because `string`, `unistring` and `winstring`
+        are already implicit pointers,
         (`string byref` would correspond to `char **`, not `char *`).
         An optional `nullok` annotation will cause a NULL pointer return
         to be mapped to the empty string instead of generating an exception.
@@ -886,12 +886,14 @@ namespace eval Cookbook {
         string          |in | |byref| |nullifempty|
         string.ENCODING +- -+ +-   -+ +-         -+
         unistring
+        winstring
         ```
 
-        * C does not have a string type and the `string` and `unistring` CFFI
-        types map to pointers to nul terminated character strings: `char*` in
-        the case of `string` and `Tcl_UniChar *` in the case of `unistring`. For
-        input parameters, they have the `const` attribute.
+        * C does not have a string type and the `string`, `unistring` and
+        `winstring` CFFI types map to pointers to nul terminated character
+        strings: `char*` in the case of `string`, `Tcl_UniChar *` in the case of
+        `unistring` and `WCHAR *` in the case of `winstring`. For input
+        parameters, they have the `const` attribute.
 
         * The `in` annotation is optional because it is the default if none of
         `out`, `retval` or `inout` annotations is present.
@@ -950,11 +952,12 @@ namespace eval Cookbook {
         chars[N]          |out   | |storealways |
         chars.ENCODING[N] |inout | |storeonerror|
         unichars[N]       |retval| +-          -+
-                          +-    -+
+        winchars[N]       +-    -+
         ```
 
         This is the first case described above where the C function expects
-        a pointer to a character (or `Tcl_UniChar` in the case of `unichars`)
+        a pointer to a character
+        (or `Tcl_UniChar` and `WCHAR` in the case of `unichars` and `winchars`)
         array.
 
         * The script level argument corresponding to `out` and `inout` parameters
@@ -1018,6 +1021,7 @@ namespace eval Cookbook {
         string          |out   | |nullok| |storealways |
         string.ENCODING |retval| +-    -+ |storeonerror|
         unistring       +-    -+          +-          -+
+        winstring
         ```
         * Output parameters in C are always passed as pointers
         to the location where output value is to be stored. Thus `out`
@@ -1322,6 +1326,7 @@ namespace eval Cookbook {
         string          |nullifempty|
         string.ENCODING +-         -+
         unistring
+        winstring
         ```
 
         * The `nullifempty` annotation may be used in cases where an empty
@@ -1344,12 +1349,14 @@ namespace eval Cookbook {
         chars[N]          +-               -+
         chars.ENCODING[N] |{default DEFAULT}|
         unichars[N]       +-               -+
+        winchars[N]
         ```
 
-        Like `string` and `unistring`, the `chars` and `unichars` CFFI types are
-        character strings at the script level. However, while the former maps
-        to pointers at the C level, `chars` and `unichars` map to
-        `char[]` and `Tcl_UniChar[]` arrays.
+        Like `string`, `unistring` and `winstring`, the `chars`, `unichars` and
+        `winchars` CFFI types are character strings at the script level.
+        However, while the former maps to pointers at the C level, `chars`,
+        `unichars` and `winchars` map to `char[]`, `Tcl_UniChar[]` and `WCHAR`
+        arrays.
 
         * The `default` annotation may be used to supply a default value to
         be stored in the native C struct if the dictionary representation

@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.2.0)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v2.0a0)</a>
 
 
             <div id="ruffButtonBar">
@@ -151,7 +151,8 @@ D:/src/tcl-cffi/win/Release_AMD64_VC1916
 </figure><p class='ruff'>In the above examples, the strings in all cases are encoded in the system encoding before being passed to the C function. Similarly, the output buffers returned by the C function are assumed to be in system encoding and translated into Tcl's internal form accordingly. Both <code>string</code> and <code>chars</code> can be tagged with an encoding name. For example, if the functions were defined using <code>string.jis0208</code> or <code>chars[512].jis0208</code>, the JIS0208 encoding would be used to transform the strings in both directions.</p>
 <p class='ruff'>The package has other related types that serve a similar purpose.</p>
 <ul class='ruff'>
-<li>The <code>unistring</code> and <code>unichars</code> type are analogous to <code>string</code> and <code>chars</code> except they assume the encoding is that of the <code>Tcl_UniChar</code> C type and have all sizes specified in <code>Tcl_UniChar</code> units as opposed to chars/bytes. This is primarily useful on Windows.</li>
+<li>The <code>unistring</code> and <code>unichars</code> type are analogous to <code>string</code> and <code>chars</code> except they assume the encoding is that of the <code>Tcl_UniChar</code> C type and have all sizes specified in <code>Tcl_UniChar</code> units as opposed to chars/bytes.</li>
+<li>The <code>winstring</code> and <code>winchars</code> type are similarly analogous to <code>string</code> and <code>chars</code> except they assume the encoding is that of the <code>WCHAR</code> C type (UTF-16) and have all sizes specified in <code>WCHAR</code> units as opposed to chars/bytes. These types ae specific to Windows and only available there.</li>
 <li>The <code>binary</code> and <code>bytes</code> types are again analogous except they assume binary data (Tcl byte array at the C level).</li>
 </ul>
 <h3 class='ruff'><a name='Error checking'></a>Error checking<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>

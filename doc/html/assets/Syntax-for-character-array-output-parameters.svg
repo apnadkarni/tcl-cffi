@@ -21,6 +21,7 @@
     <text x='10' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[chars[N]]]></text>
     <text x='10' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[chars.ENCODING[N]]]></text>
     <text x='10' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[unichars[N]]]></text>
+    <text x='10' y='82' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[winchars[N]]]></text>
     <text x='200' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[out]]></text>
     <text x='200' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[inout]]></text>
     <text x='200' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[retval]]></text>

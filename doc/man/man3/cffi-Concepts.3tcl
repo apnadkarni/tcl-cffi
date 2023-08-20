@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Concepts" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
+.TH "Concepts" 3tcl 2\&.0a0 "cffi" "Tcl CFFI package"
 .SH NAME
 Concepts - Commands in namespace Concepts
 .SH CONCEPTS
@@ -178,7 +178,7 @@ scalars, such as integers and pointers
 arrays and structs
 .TP
 \(bu
-string and unistring types which are actually scalar pointers at the C level but treated as nul-terminated character strings by CFFI\&.
+string, unistring, winstring types which are actually scalar pointers at the C level but treated as nul-terminated character strings by CFFI\&.
 .PP
 The \fItype info\fP, \fItype size\fP and
 \fItype count\fP commands may be used to obtain information
@@ -305,6 +305,16 @@ If the size argument used by a dynamic array type is passed as 0, an error
 is raised unless the type declaration includes a nullok annotation\&. In
 that case, the array pointer argument is passed as NULL to the function\&.
 .PP
+In the above function, the dwLen parameter was an in parameter
+containing the size of the buffer and the function filled the entire
+buffer\&. In many cases, a function is passed a pointer to the size
+of the buffer\&. It then overwrites the location with the actual
+count stored in the buffer\&. In such cases, the parameter should
+be declared with the inout annotation\&. When the function is called
+the size of the buffer passed is that specified by the corresponding
+variable argument\&. On return, the number of elements returned is
+that actually returned by the wrapped function\&.
+.PP
 \fBArrays as strings\fR
 .PP
 C arrays are generally represented as a list at the script level\&. So in
@@ -312,11 +322,11 @@ the above example, the value stored in pbBuffer would be seen in Tcl
 as a list of unsigned 8-bit integer values\&. Sometimes this list representation
 is not the most appropriate or convenient\&.
 .PP
-For example, the returned data
-from CryptGenRandom might be better handled as a binary string\&. CFFI
-provides the types bytes, chars and unichars that are defined as
-arrays but treat C arrays of 8-bit values as strings instead\&.
-See \fIStrings\fP and \fIBinary strings\fP for more information\&.
+For example, the returned data from CryptGenRandom might be better
+handled as a binary string\&. CFFI provides the types bytes, chars,
+unichars and winchars that are defined as arrays but treat C arrays
+of 8-bit values as strings instead\&. See \fIStrings\fP and \fIBinary strings\fP
+for more information\&.
 .SS POINTERS
 .PP
 Pointers are declared in one of the following forms:
@@ -549,18 +559,18 @@ At the script level, a null pointers is any pointer whose address
 component is 0\&. The token NULL may also be used for this purpose\&.
 .PP
 Null pointers have their own safety checks and are independent of the
-pointer registration mechanisms described above\&. By default,
-a function result that is a null pointer is treated as an error and
-triggers the function's error handling mechanisms\&. Similarly, an attempt
-to pass a null pointer to a function or store it as a field value
-in a C struct will raise an exception\&. This can be overridden by
-including the nullok annotation on the function return, parameter
-or structure fields type definition\&. For return values of type string
-and unistring with this annotation, an empty string is returned when
+pointer registration mechanisms described above\&. By default, a function
+result that is a null pointer is treated as an error and triggers the
+function's error handling mechanisms\&. Similarly, an attempt to pass a
+null pointer to a function or store it as a field value in a C struct
+will raise an exception\&. This can be overridden by including the
+nullok annotation on the function return, parameter or structure
+fields type definition\&. For return values of type string, unistring
+and winstring with this annotation, an empty string is returned when
 the called function returns NULL\&. In case of structs that are returned
-by reference, a nullok annotation will map a NULL return value to
-a struct with default values for all fields\&. If any field does not
-have a default, an error is raised\&.
+by reference, a nullok annotation will map a NULL return value to a
+struct with default values for all fields\&. If any field does not have a
+default, an error is raised\&.
 .PP
 Note that when returned as output parameters from a function,
 either directly or embedded as struct field, null pointers are
@@ -600,28 +610,34 @@ Values declared using this type are still pointers at the C level but are conver
 unistring
 This is similar to string\&.ENCODING except the values are Tcl_UniChar* at the C level and the encoding is implicitly the one used by Tcl for the Tcl_UniChar data type\&.
 .TP
+winstring
+This is similar to string\&.ENCODING except the values are WCHAR at the C level and the encoding is implicitly the one UTF-16 as used by the Windows API\&. This type is only present on Windows\&.
+.TP
 chars\&.ENCODING
 The value is an array of characters at the C level\&. The type must always appear as an array, for example, chars\&.utf-8[10] and not as a scalar chars\&.utf-8\&. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding\&. Following standard C rules, arrays are passed by reference as function arguments and thus an declaration of chars[10] would also be passed into a function as a char*\&. Within a struct definition on the other hand, it would be stored as an array\&.
 .TP
 unichars
 The value is an array of Tcl_UniChar characters and follows the same rules as chars except that the encoding is always that used by Tcl for the Tcl_UniChar type\&.
+.TP
+winchars
+The value is an array of WCHAR characters and follows the same rules as chars except that the encoding is UTF-16 as used in the Windows API\&. This type is only present on Windows\&.
 .RE
 .PP
-The choice of using pointer, string (and unistring), or chars
-(and unichars) depends on the C declaration and context as well as
-convenience\&.
+The choice of using pointer, string (or unistring, winstring),
+or chars (or unichars, winchars) depends on the C declaration and
+context as well as convenience\&.
 .TP
 \(bu
-Function parameters of type char* that are purely input are best declared as string or unistring\&.
+Function parameters of type char* that are purely input are best declared as string, unistring or winstring\&.
 .TP
 \(bu
-Function parameters that are actually output buffers in which the called function stores the output string value are best declared as chars[]\&. Generally these have an associated parameter which indicates the buffer size\&. In such cases the output parameter can be declared as (for example) chars[nchars] where nchars is the name of the parameter containing the buffer size\&.
+Function parameters that are actually output buffers in which the called function stores the output string value are best declared as chars[], unichars[] or winchars[]\&. Generally these have an associated parameter which indicates the buffer size\&. In such cases the output parameter can be declared as (for example) chars[nchars] where nchars is the name of the parameter containing the buffer size\&.
 .TP
 \(bu
-Function output parameters that are stored by the called function as pointer to strings can be declared as out parameters of type string or unistring in the limited case where the stored pointer does not need to be disposed of (e\&.g\&. a pointer to a statically allocated string is being returned)\&. In the general case, these parameters have to be declared as pointers so they can be freed or otherwise disposed\&.
+Function output parameters that are stored by the called function as pointer to strings can be declared as out parameters of type string, unistring or winstring in the limited case where the stored pointer does not need to be disposed of (e\&.g\&. a pointer to a statically allocated string is being returned)\&. In the general case, these parameters have to be declared as pointers so they can be freed or otherwise disposed\&.
 .TP
 \(bu
-Function return values cannot be declared as chars or unichars as C itself does not support array return values\&. Generally, functions typed as returning char * need to be declaring as returning pointer as the pointers have to be explicitly managed\&. Only in the specific cases where the returned pointer is static or does not need to be disposed of for some other reason, the return value can be typed as string or unistring\&.
+Function return values cannot be declared as chars, unichars or winchars as C itself does not support array return values\&. Generally, functions typed as returning char * need to be declaring as returning pointer as the pointers have to be explicitly managed\&. Only in the specific cases where the returned pointer is static or does not need to be disposed of for some other reason, the return value can be typed as string, unistring or winstring\&.
 .PP
 The examples below illustrate use cases for each of the above to wrap
 these directory related functions\&.
@@ -717,21 +733,23 @@ Usage is also straightforward\&.
 .PP
 \fBStrings as NULL pointers\fR
 .PP
-Some API's allow for char* pointer parameters or struct fields to be NULL\&.
-If these are wrapped as string or unistring, the nullifempty annotation
-can be used to specify that empty string values should be passed or stored
-as NULL pointers as opposed to pointers to an empty string\&.
+Some API's allow for char* pointer parameters or struct fields to be
+NULL\&. If these are wrapped as string, unistring or winstring, the
+nullifempty annotation can be used to specify that empty string values
+should be passed or stored as NULL pointers as opposed to pointers to an
+empty string\&.
 .SS "BINARY STRINGS"
 .PP
-While the string, unistring, chars and unichars types deal with
-character strings, the types binary or bytes serve a similar purpose
-for dealing with binary data - a sequence of bytes in memory\&. The
-binary type translates to a C unsigned char * type where the memory
-is treated as a Tcl binary string (byte array)\&. Similarly, the bytes
-type is analogous to the chars type except it declares a size array of
-bytes, not characters in an encoding\&. These types are converted between
-Tcl values and C values with the Tcl_GetByteArrayFromObj and
-Tcl_NewByteArrayFromObj functions\&.
+While the string, unistring, winstring, chars, unichars and
+winchars types deal with character strings, the types binary or
+bytes serve a similar purpose for dealing with binary data - a
+sequence of bytes in memory\&. The binary type translates to a C
+unsigned char * type where the memory is treated as a Tcl binary
+string (byte array)\&. Similarly, the bytes type is analogous to the
+chars type except it declares a size array of bytes, not characters in
+an encoding\&. These types are converted between Tcl values and C values
+with the Tcl_GetByteArrayFromObj and Tcl_NewByteArrayFromObj
+functions\&.
 .PP
 Consider the wrapper for the CryptGenRandom function that we saw
 earlier\&.
@@ -765,7 +783,7 @@ string instead\&. The function wrapper would therefore be better defined as
 advapi32 stdcall CryptGenRandom BOOL {
     hProv HANDLE
     dwLen DWORD
-    pbBuffer {uchar[dwLen] out}
+    pbBuffer {bytes[dwLen] out}
 }
 .fi
 .RE
@@ -799,11 +817,11 @@ type declarations\&. An example of a definition would be
 .fi
 .RE
 .PP
-A struct field may be of any type except void and binary\&. In addition,
-fields that are string or unistring impose certain limitations\&. They
-can be used in structs that are passed in and out of functions as arguments
-but cannot be allocated from the heap using methods like allocate,
-tonative etc\&.
+A struct field may be of any type except void and binary\&. In
+addition, fields that are string, unistring or winstring impose
+certain limitations\&. They can be used in structs that are passed in and
+out of functions as arguments but cannot be allocated from the heap
+using methods like allocate, tonative etc\&.
 .PP
 As for function parameters, field types can have associated annotations\&.
 For example, the above definition may be changed to assign default
@@ -827,7 +845,7 @@ Annotations that may be applied to field type declarations include
 \fIenum\fP and \fIbitmask\fP for integer types
 .TP
 \(bu
-\fInullifempty\fP for string and unistring types\&.
+\fInullifempty\fP for string, unistring and winstring types\&.
 .TP
 \(bu
 structsize\&. This annotation is specific to field type declarations and results in fields being automatically initialized to the size of the struct if no value is supplied in the dictionary value for the struct\&. This is a common convention in Win32 APIs\&.
@@ -866,8 +884,8 @@ x 42 y 1
 .RE
 .PP
 \fBNOTE\fP: structs that are manipulated as raw structs in memory cannot
-contain fields of type string and unistring\&. They must use raw pointers
-and explicitly manage their target memory\&.
+contain fields of type string, unistring and winstring\&. They must
+use raw pointers and explicitly manage their target memory\&.
 .PP
 The package provides other methods to access fields and otherwise
 manipulate native structs in memory\&. See \fI::cffi::Struct\fP\&.
@@ -914,11 +932,15 @@ Type aliases can be nested, i\&.e\&. one alias may be defined in terms of anothe
 When a type alias is used in a declaration, additional annotations may be specified\&. These are merged with those included in the type alias definition\&.
 .TP
 \(bu
-Type aliases are scoped\&. If the alias name in a definition is not fully qualified, it is qualified with the name of the current Tcl namespace\&. If an alias name is not fully qualified on use, it is looked up using the current Tcl namespace as the scope and the global scope if not found there\&.
+Aliases in a declaration may also have an array size specified\&. This will override the array size (if any) specified in the alias itself\&.
+.TP
+\(bu
+Type aliases are scoped\&. If the alias name in a definition is not fully qualified, it is qualified with the name of the current Tcl namespace\&. If an alias name is not fully qualified on use, it is looked up using the current Tcl namespace as the scope, the global scope and the ::cffi scope in that order\&.
 .PP
 For convenience, the package provides the \fI::cffi::alias load\fP command
 which defines some standard C type aliases like size_t as well as some
-platform-specific type aliases such as HANDLE on Windows\&.
+platform-specific type aliases such as HANDLE on Windows\&. These are
+all loaded in the ::cffi scope\&.
 .PP
 Currently defined type aliases can be listed with the
 \fI::cffi::alias list\fP command and removed with
@@ -1036,15 +1058,15 @@ The C function may then be invoked as FNNAME like any other Tcl command\&.
 .PP
 A function return declaration is a type or type alias followed by zero
 or more annotations\&. The resolved type must not be void or an array
-including chars, unichars, binary and bytes\&. Note pointers to
-these are permitted\&.
+including chars, unichars, winchars, binary and bytes\&. Note
+pointers to these are permitted\&.
 .PP
-In the case of string and unistring types, the script level return
-values are constructed by dereferencing the returned pointer as
-character strings\&. Since the underlying pointer is not available, any
-storage cannot be freed and these types should only be used as the
-return type in cases where that is not needed (for example, when the
-function returns pointers to static strings)\&.
+In the case of string, unistring and winstring types, the script
+level return values are constructed by dereferencing the returned
+pointer as character strings\&. Since the underlying pointer is not
+available, any storage cannot be freed and these types should only be
+used as the return type in cases where that is not needed (for example,
+when the function returns pointers to static strings)\&.
 .PP
 Returning structs from functions is only supported by the libffi
 backend\&.
@@ -1064,7 +1086,7 @@ The bitmask annotation may be used for integer types\&. This only has effect if 
 The \fIerror checking annotations\fP zero, nonzero, nonnegative, positive may be specified for integer types\&. If present, any function return value that does not satisfy the annotation will be treated as an error\&. See \fIError handling\fP for more\&.
 .TP
 \(bu
-The \fIerror reporting annotations\fP errno, lasterror, winerror and onerror may be specified for integer types and with the exception of winerror for pointer, string and unistring types\&. (Remember that string and unistring are both pointers under the covers\&.) For integer types they require one of the above error checking annotations to also be present to have effect\&.
+The \fIerror reporting annotations\fP errno, lasterror, winerror and onerror may be specified for integer types and with the exception of winerror for pointer, string, unistring and winstring types\&. (Remember that string, unistring and winstring are both pointers under the covers\&.) For integer types they require one of the above error checking annotations to also be present to have effect\&.
 .TP
 \(bu
 The unsafe and counted \fIpointer safety\fP annotations may be specified for pointer types\&. By default, pointers returned from functions are registered as safe pointers\&. The counted annotation registers them as reference counted safe pointers\&. Pointers returned with the unsafe annotation are not registered at all\&.
@@ -1102,9 +1124,9 @@ argument must be specified as a Tcl value even when the byref
 annotation is present\&. The passing through a pointer to the reference
 is implicit\&.
 .PP
-\fBNOTE:\fP In the case of string and unistring, in parameters
-correspond to char * and Tcl_UniChar * respectively, while in
-byref map to char ** and Tcl_UniChar **\&.
+\fBNOTE:\fP In the case of string, unistring and winstring, in
+parameters correspond to char * and Tcl_UniChar * respectively,
+while in byref map to char ** and Tcl_UniChar **\&.
 .PP
 Parameters that are out or inout are always passed by reference
 irrespective of whether the byref annotation is present or not\&. The
@@ -1113,9 +1135,9 @@ the caller's context\&. For inout parameters, the variable must exist
 and contain a valid value for the parameter type\&. For out parameters,
 the variable need not exist\&. In both cases, on return from the function
 the output value stored in the parameter by the function will be stored
-in the variable\&. Note that inout cannot be used with string and
-unistring types while neither out nor inout can be used with
-binary\&.
+in the variable\&. Note that inout cannot be used with string,
+unistring and winstring types while neither out nor inout can be
+used with binary\&.
 .PP
 There are some subtleties with respect to error handling that are
 relevant to output parameters and must be accounted for in declarations\&.
@@ -1177,7 +1199,7 @@ The bitmask annotation may be used for integer types\&. For in and inout paramet
 The default annotation may be used for pure input parameters\&. The associated value is passed to the function if an argument is not explicitly supplied\&. The annotation comprises of a list of two elements, the first being the annotation default and the second being the value to use\&. As for Tcl procs, if a default is specified for a parameter, all subsequent parameters must also have a default specified\&.
 .TP
 \(bu
-The nullifempty annotation is available only for in parameters of type string, unistring, binary and struct\&. If present, a NULL pointer is passed into the C function if the passed argument is an empty string in the case of string or unistring and an empty dictionary in the case of struct\&. This facility is useful for API's where NULL pointers signify default options\&. Note that the binary type always has nullifempty implied even if not explicitly specified\&.
+The nullifempty annotation is available only for in parameters of type string, unistring, winstring, binary and struct\&. If present, a NULL pointer is passed into the C function if the passed argument is an empty string in the case of string, unistring and winstring, and an empty dictionary in the case of struct\&. This facility is useful for API's where NULL pointers signify default options\&. Note that the binary type always has nullifempty implied even if not explicitly specified\&.
 .TP
 \(bu
 The storeonerror and storealways annotations are only applicable when either out or inout annotations are present\&. These control storage of output parameters in the presence of errors\&. See \fIErrors and output parameters\fP\&.
@@ -1235,19 +1257,19 @@ The return value from every call to the function is then checked as to
 whether it satisfies the condition\&. Failure to do so is treated as an
 error condition\&.
 .PP
-An error condition is also generated when a function returning
-a pointer returns a null pointer\&. This is also true for string and
-unistring return types as well as struct types that are returned
-by reference since those are all pointers beneath the covers\&.
-This treatment of null pointers as errors can be overridden with the
-the nullok annotation\&. If this annotation is specified and the function
+An error condition is also generated when a function returning a pointer
+returns a null pointer\&. This is also true for string, unistring and
+winstring return types as well as struct types that are returned by
+reference since those are all pointers beneath the covers\&. This
+treatment of null pointers as errors can be overridden with the the
+nullok annotation\&. If this annotation is specified and the function
 returns a NULL pointer,
 .TP
 \(bu
 for pointer types, the NULL pointer is returned to the caller
 .TP
 \(bu
-for string and unistring types, an empty string is returned to the caller
+for string, unistring and winstring types, an empty string is returned to the caller
 .TP
 \(bu
 for struct byref types, a dictionary with default field values is returned\&. If any field does not have a default specified in the struct definition, an error is raised\&.

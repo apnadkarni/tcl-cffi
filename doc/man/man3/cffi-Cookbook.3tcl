@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Cookbook" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
+.TH "Cookbook" 3tcl 2\&.0a0 "cffi" "Tcl CFFI package"
 .SH NAME
 Cookbook - Commands in namespace Cookbook
 .SH COOKBOOK
@@ -346,8 +346,8 @@ STRING| nullok |
 .fi
 .RE
 .PP
-The byref is not present because string and unistring are
-already implicit pointers,
+The byref is not present because string, unistring and winstring
+are already implicit pointers,
 (string byref would correspond to char **, not char *)\&.
 An optional nullok annotation will cause a NULL pointer return
 to be mapped to the empty string instead of generating an exception\&.
@@ -882,6 +882,7 @@ LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct\&.RECT out}}
 string          |in | |byref| |nullifempty|
 string\&.ENCODING +- -+ +-   -+ +-         -+
 unistring
+winstring
 
 \fISyntax for input character string parameters\fP
 
@@ -889,7 +890,7 @@ unistring
 .RE
 .TP
 \(bu
-C does not have a string type and the string and unistring CFFI types map to pointers to nul terminated character strings: char* in the case of string and Tcl_UniChar * in the case of unistring\&. For input parameters, they have the const attribute\&.
+C does not have a string type and the string, unistring and winstring CFFI types map to pointers to nul terminated character strings: char* in the case of string, Tcl_UniChar * in the case of unistring and WCHAR * in the case of winstring\&. For input parameters, they have the const attribute\&.
 .TP
 \(bu
 The in annotation is optional because it is the default if none of out, retval or inout annotations is present\&.
@@ -941,7 +942,7 @@ The two are handled differently in CFFI as described below\&.
 chars[N]          |out   | |storealways |
 chars\&.ENCODING[N] |inout | |storeonerror|
 unichars[N]       |retval| +-          -+
-                  +-    -+
+winchars[N]       +-    -+
 
 \fISyntax for character array output parameters\fP
 
@@ -949,7 +950,8 @@ unichars[N]       |retval| +-          -+
 .RE
 .PP
 This is the first case described above where the C function expects
-a pointer to a character (or Tcl_UniChar in the case of unichars)
+a pointer to a character
+(or Tcl_UniChar and WCHAR in the case of unichars and winchars)
 array\&.
 .TP
 \(bu
@@ -1007,6 +1009,7 @@ implicitly declare it as an output parameter of
 string          |out   | |nullok| |storealways |
 string\&.ENCODING |retval| +-    -+ |storeonerror|
 unistring       +-    -+          +-          -+
+winstring
 
 \fISyntax for output character string parameters\fP
 
@@ -1286,6 +1289,7 @@ Pointer fields that hold pointers to character strings may be alternatively decl
 string          |nullifempty|
 string\&.ENCODING +-         -+
 unistring
+winstring
 
 \fISyntax for string pointer fields\fP
 
@@ -1312,16 +1316,18 @@ to allocate a native struct in memory\&.
 chars[N]          +-               -+
 chars\&.ENCODING[N] |{default DEFAULT}|
 unichars[N]       +-               -+
+winchars[N]
 
 \fISyntax for character array fields\fP
 
 .fi
 .RE
 .PP
-Like string and unistring, the chars and unichars CFFI types are
-character strings at the script level\&. However, while the former maps
-to pointers at the C level, chars and unichars map to
-char[] and Tcl_UniChar[] arrays\&.
+Like string, unistring and winstring, the chars, unichars and
+winchars CFFI types are character strings at the script level\&.
+However, while the former maps to pointers at the C level, chars,
+unichars and winchars map to char[], Tcl_UniChar[] and WCHAR
+arrays\&.
 .TP
 \(bu
 The default annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field\&.

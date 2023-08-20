@@ -130,7 +130,7 @@ namespace eval Concepts {
         - the `void` type
         - scalars, such as integers and pointers
         - arrays and structs
-        - `string` and `unistring` types which are actually scalar pointers at
+        - `string`, `unistring`, `winstring` types which are actually scalar pointers at
         the C level but treated as nul-terminated character strings by CFFI.
 
         The [type info][::cffi::type info], [type size][::cffi::type size] and
@@ -241,11 +241,11 @@ namespace eval Concepts {
         as a list of unsigned 8-bit integer values. Sometimes this list representation
         is not the most appropriate or convenient.
 
-        For example, the returned data
-        from `CryptGenRandom` might be better handled as a binary string. CFFI
-        provides the types `bytes`, `chars` and `unichars` that are defined as
-        arrays but treat C arrays of 8-bit values as strings instead.
-        See [Strings] and [Binary strings] for more information.
+        For example, the returned data from `CryptGenRandom` might be better
+        handled as a binary string. CFFI provides the types `bytes`, `chars`,
+        `unichars` and `winchars` that are defined as arrays but treat C arrays
+        of 8-bit values as strings instead. See [Strings] and [Binary strings]
+        for more information.
 
         ### Pointers
 
@@ -456,18 +456,18 @@ namespace eval Concepts {
         component is 0. The token `NULL` may also be used for this purpose.
 
         Null pointers have their own safety checks and are independent of the
-        pointer registration mechanisms described above. By default,
-        a function result that is a null pointer is treated as an error and
-        triggers the function's error handling mechanisms. Similarly, an attempt
-        to pass a null pointer to a function or store it as a field value
-        in a C struct will raise an exception. This can be overridden by
-        including the `nullok` annotation on the function return, parameter
-        or structure fields type definition. For return values of type `string`
-        and `unistring` with this annotation, an empty string is returned when
+        pointer registration mechanisms described above. By default, a function
+        result that is a null pointer is treated as an error and triggers the
+        function's error handling mechanisms. Similarly, an attempt to pass a
+        null pointer to a function or store it as a field value in a C struct
+        will raise an exception. This can be overridden by including the
+        `nullok` annotation on the function return, parameter or structure
+        fields type definition. For return values of type `string`, `unistring`
+        and `winstring` with this annotation, an empty string is returned when
         the called function returns NULL. In case of structs that are returned
-        by reference, a `nullok` annotation will map a NULL return value to
-        a struct with default values for all fields. If any field does not
-        have a default, an error is raised.
+        by reference, a `nullok` annotation will map a NULL return value to a
+        struct with default values for all fields. If any field does not have a
+        default, an error is raised.
 
         Note that when returned as output parameters from a function,
         either directly or embedded as struct field, null pointers are
@@ -490,7 +490,7 @@ namespace eval Concepts {
         write memory.
 
         ### Strings
-        
+
         Strings in C are generally represented in memory as a sequence of null
         terminated bytes in some specific encoding. They may be declared either
         as a `char *` or as an array of `char` where the size of the array
@@ -512,6 +512,10 @@ namespace eval Concepts {
         `Tcl_UniChar*` at the C level and the encoding is implicitly the one
         used by Tcl for the `Tcl_UniChar` data type.
 
+        `winstring` - This is similar to `string.ENCODING` except the values are
+        `WCHAR` at the C level and the encoding is implicitly the one
+        UTF-16 as used by the Windows API. This type is only present on Windows.
+
         `chars.ENCODING` - The value is an array of characters at the C level.
         The type must always appear as an array, for example, `chars.utf-8[10]`
         and not as a scalar `chars.utf-8`. In this as well, conversion to and
@@ -525,34 +529,40 @@ namespace eval Concepts {
         and follows the same rules as `chars` except that the encoding is
         always that used by Tcl for the `Tcl_UniChar` type.
 
-        The choice of using `pointer`, `string` (and `unistring`), or `chars`
-        (and `unichars`) depends on the C declaration and context as well as
-        convenience.
+        `winchars` - The value is an array of `WCHAR` characters
+        and follows the same rules as `chars` except that the encoding is
+        UTF-16 as used in the Windows API. This type is only present on
+        Windows.
+
+        The choice of using `pointer`, `string` (or `unistring`, `winstring`),
+        or `chars` (or `unichars`, `winchars`) depends on the C declaration and
+        context as well as convenience.
 
         - Function parameters of type `char*` that are purely input are best
-        declared as `string` or `unistring`.
+        declared as `string`, `unistring` or `winstring`.
 
         - Function parameters that are actually output buffers in which the
         called function stores the output string value are best declared as
-        `chars[]`. Generally these have an associated parameter which indicates
-        the buffer size. In such cases the output parameter can be declared as
-        (for example) `chars[nchars]` where `nchars` is the name of the
-        parameter containing the buffer size.
+        `chars[]`, `unichars[]` or `winchars[]`. Generally these have an
+        associated parameter which indicates the buffer size. In such cases the
+        output parameter can be declared as (for example) `chars[nchars]` where
+        `nchars` is the name of the parameter containing the buffer size.
 
         - Function output parameters that are stored by the called function as
-        pointer to strings can be declared as `out` parameters of type `string`
-        or `unistring` in the limited case where the stored pointer does not
-        need to be disposed of (e.g. a pointer to a statically allocated string
-        is being returned). In the general case, these parameters have to be
-        declared as pointers so they can be freed or otherwise disposed.
+        pointer to strings can be declared as `out` parameters of type `string`,
+        `unistring` or `winstring` in the limited case where the stored pointer
+        does not need to be disposed of (e.g. a pointer to a statically
+        allocated string is being returned). In the general case, these
+        parameters have to be declared as pointers so they can be freed or
+        otherwise disposed.
 
-        - Function return values cannot be declared as `chars` or `unichars` as
-        C itself does not support array return values. Generally, functions
-        typed as returning `char *` need to be declaring as returning `pointer`
-        as the pointers have to be explicitly managed. Only in the specific cases
-        where the returned pointer is static or does not need to be disposed of
-        for some other reason, the return value can be typed as `string` or
-        `unistring`.
+        - Function return values cannot be declared as `chars`, `unichars` or
+        `winchars` as C itself does not support array return values. Generally,
+        functions typed as returning `char *` need to be declaring as returning
+        `pointer` as the pointers have to be explicitly managed. Only in the
+        specific cases where the returned pointer is static or does not need to
+        be disposed of for some other reason, the return value can be typed as
+        `string`, `unistring` or `winstring`.
 
         The examples below illustrate use cases for each of the above to wrap
         these directory related functions.
@@ -634,22 +644,24 @@ namespace eval Concepts {
 
         #### Strings as NULL pointers
 
-        Some API's allow for `char*` pointer parameters or struct fields to be NULL.
-        If these are wrapped as `string` or `unistring`, the `nullifempty` annotation
-        can be used to specify that empty string values should be passed or stored
-        as NULL pointers as opposed to pointers to an empty string.
+        Some API's allow for `char*` pointer parameters or struct fields to be
+        NULL. If these are wrapped as `string`, `unistring` or `winstring`, the
+        `nullifempty` annotation can be used to specify that empty string values
+        should be passed or stored as NULL pointers as opposed to pointers to an
+        empty string.
 
         ### Binary strings
 
-        While the `string`, `unistring`, `chars` and `unichars` types deal with
-        character strings, the types `binary` or `bytes` serve a similar purpose
-        for dealing with binary data - a sequence of bytes in memory. The
-        `binary` type translates to a C `unsigned char *` type where the memory
-        is treated as a Tcl binary string (byte array). Similarly, the `bytes`
-        type is analogous to the `chars` type except it declares a size array of
-        bytes, not characters in an encoding. These types are converted between
-        Tcl values and C values with the `Tcl_GetByteArrayFromObj` and
-        `Tcl_NewByteArrayFromObj` functions.
+        While the `string`, `unistring`, `winstring`, `chars`, `unichars` and
+        `winchars` types deal with character strings, the types `binary` or
+        `bytes` serve a similar purpose for dealing with binary data - a
+        sequence of bytes in memory. The `binary` type translates to a C
+        `unsigned char *` type where the memory is treated as a Tcl binary
+        string (byte array). Similarly, the `bytes` type is analogous to the
+        `chars` type except it declares a size array of bytes, not characters in
+        an encoding. These types are converted between Tcl values and C values
+        with the `Tcl_GetByteArrayFromObj` and `Tcl_NewByteArrayFromObj`
+        functions.
 
         Consider the wrapper for the `CryptGenRandom` function that we saw
         earlier.
@@ -710,11 +722,11 @@ namespace eval Concepts {
         }
         ```
 
-        A struct field may be of any type except `void` and `binary`. In addition,
-        fields that are `string` or `unistring` impose certain limitations. They
-        can be used in structs that are passed in and out of functions as arguments
-        but cannot be allocated from the heap using methods like `allocate`,
-        `tonative` etc.
+        A struct field may be of any type except `void` and `binary`. In
+        addition, fields that are `string`, `unistring` or `winstring` impose
+        certain limitations. They can be used in structs that are passed in and
+        out of functions as arguments but cannot be allocated from the heap
+        using methods like `allocate`, `tonative` etc.
 
         As for function parameters, field types can have associated annotations.
         For example, the above definition may be changed to assign default
@@ -732,7 +744,8 @@ namespace eval Concepts {
         - [unsafe][Pointer safety], [counted][Pointer safety] and
         [nullok][Null pointers] for pointer types
         - [enum][Enumerations] and [bitmask][Type annotations] for integer types
-        - [nullifempty][Strings as NULL pointers] for `string` and `unistring` types.
+        - [nullifempty][Strings as NULL pointers] for `string`, `unistring`
+        and `winstring` types.
         - `structsize`. This annotation is specific to field type declarations
         and results in fields being automatically initialized to the size of the
         struct if no value is supplied in the dictionary value for the struct.
@@ -771,8 +784,8 @@ namespace eval Concepts {
         ````
 
         **NOTE**: structs that are manipulated as raw structs in memory cannot
-        contain fields of type `string` and `unistring`. They must use raw pointers
-        and explicitly manage their target memory.
+        contain fields of type `string`, `unistring` and `winstring`. They must
+        use raw pointers and explicitly manage their target memory.
 
         The package provides other methods to access fields and otherwise
         manipulate native structs in memory. See [::cffi::Struct].
@@ -942,15 +955,15 @@ namespace eval Concepts {
 
         A function return declaration is a type or type alias followed by zero
         or more annotations. The resolved type must not be `void` or an array
-        including `chars`, `unichars`, `binary` and `bytes`. Note pointers to
-        these are permitted.
+        including `chars`, `unichars`, `winchars`, `binary` and `bytes`. Note
+        pointers to these are permitted.
 
-        In the case of `string` and `unistring` types, the script level return
-        values are constructed by dereferencing the returned pointer as
-        character strings. Since the underlying pointer is not available, any
-        storage cannot be freed and these types should only be used as the
-        return type in cases where that is not needed (for example, when the
-        function returns pointers to static strings).
+        In the case of `string`, `unistring` and `winstring` types, the script
+        level return values are constructed by dereferencing the returned
+        pointer as character strings. Since the underlying pointer is not
+        available, any storage cannot be freed and these types should only be
+        used as the return type in cases where that is not needed (for example,
+        when the function returns pointers to static strings).
 
         Returning structs from functions is only supported by the `libffi`
         backend.
@@ -977,13 +990,13 @@ namespace eval Concepts {
         satisfy the annotation will be treated as an error. See [Error handling]
         for more.
 
-        - The [error reporting annotations][Error handling]
-        `errno`, `lasterror`, `winerror` and `onerror` may
-        be specified for integer types and with the exception of `winerror` for
-        `pointer`, `string` and `unistring` types.
-        (Remember that `string` and `unistring` are both pointers under the covers.)
-        For integer types they require one of the above error checking
-        annotations to also be present to have effect.
+        - The [error reporting annotations][Error handling] `errno`,
+        `lasterror`, `winerror` and `onerror` may be specified for integer types
+        and with the exception of `winerror` for `pointer`, `string`,
+        `unistring` and `winstring` types. (Remember that `string`, `unistring`
+        and `winstring` are both pointers under the covers.) For integer types
+        they require one of the above error checking annotations to also be
+        present to have effect.
 
         - The `unsafe` and `counted` [pointer safety][Pointer safety] annotations
         may be specified for pointer types. By default, pointers returned from
@@ -1030,9 +1043,9 @@ namespace eval Concepts {
         annotation is present. The passing through a pointer to the reference
         is implicit.
 
-        **NOTE:** In the case of `string` and `unistring`, `in` parameters
-        correspond to `char *` and `Tcl_UniChar *` respectively, while `in
-        byref` map to `char **` and `Tcl_UniChar **`.
+        **NOTE:** In the case of `string`, `unistring` and `winstring`, `in`
+        parameters correspond to `char *` and `Tcl_UniChar *` respectively,
+        while `in byref` map to `char **` and `Tcl_UniChar **`.
 
         Parameters that are `out` or `inout` are always passed by reference
         irrespective of whether the `byref` annotation is present or not. The
@@ -1041,9 +1054,9 @@ namespace eval Concepts {
         and contain a valid value for the parameter type. For `out` parameters,
         the variable need not exist. In both cases, on return from the function
         the output value stored in the parameter by the function will be stored
-        in the variable. Note that `inout` cannot be used with `string` and
-        `unistring` types while neither `out` nor `inout` can be used with
-        `binary`.
+        in the variable. Note that `inout` cannot be used with `string`,
+        `unistring` and `winstring` types while neither `out` nor `inout` can be
+        used with `binary`.
 
         There are some subtleties with respect to error handling that are
         relevant to output parameters and must be accounted for in declarations.
@@ -1137,13 +1150,14 @@ namespace eval Concepts {
         to use. As for Tcl procs, if a default is specified for a parameter, all
         subsequent parameters must also have a default specified.
 
-        - The `nullifempty` annotation is available only
-        for `in` parameters of type `string`, `unistring`, `binary` and `struct`. If
+        - The `nullifempty` annotation is available only for `in` parameters of
+        type `string`, `unistring`, `winstring`, `binary` and `struct`. If
         present, a NULL pointer is passed into the C function if the passed
-        argument is an empty string in the case of `string` or `unistring` and
-        an empty dictionary in the case of `struct`. This facility is useful for
-        API's where NULL pointers signify default options. Note that the `binary`
-        type always has `nullifempty` implied even if not explicitly specified.
+        argument is an empty string in the case of `string`, `unistring` and
+        `winstring`, and an empty dictionary in the case of `struct`. This
+        facility is useful for API's where NULL pointers signify default
+        options. Note that the `binary` type always has `nullifempty` implied
+        even if not explicitly specified.
 
         - The `storeonerror` and `storealways` annotations are only applicable
         when either `out` or `inout` annotations are present. These control
@@ -1195,17 +1209,17 @@ namespace eval Concepts {
         whether it satisfies the condition. Failure to do so is treated as an
         error condition.
 
-        An error condition is also generated when a function returning
-        a pointer returns a null pointer. This is also true for `string` and
-        `unistring` return types as well as `struct` types that are returned
-        by reference since those are all pointers beneath the covers.
-        This treatment of null pointers as errors can be overridden with the
-        the `nullok` annotation. If this annotation is specified and the function
+        An error condition is also generated when a function returning a pointer
+        returns a null pointer. This is also true for `string`, `unistring` and
+        `winstring` return types as well as `struct` types that are returned by
+        reference since those are all pointers beneath the covers. This
+        treatment of null pointers as errors can be overridden with the the
+        `nullok` annotation. If this annotation is specified and the function
         returns a NULL pointer,
 
         - for `pointer` types, the NULL pointer is returned to the caller
-        - for `string` and `unistring` types, an empty string is returned to
-        the caller
+        - for `string`, `unistring` and `winstring` types, an empty string
+        is returned to the caller
         - for `struct byref` types, a dictionary with default field values
         is returned. If any field does not have a default specified in the
         struct definition, an error is raised.

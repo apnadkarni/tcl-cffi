@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.0a0 "cffi" "Tcl CFFI package"
 .SH NAME
 Introduction - Tcl CFFI package
 .SH "GETTING STARTED"
@@ -257,7 +257,10 @@ encoding would be used to transform the strings in both directions\&.
 The package has other related types that serve a similar purpose\&.
 .TP
 \(bu
-The unistring and unichars type are analogous to string and chars except they assume the encoding is that of the Tcl_UniChar C type and have all sizes specified in Tcl_UniChar units as opposed to chars/bytes\&. This is primarily useful on Windows\&.
+The unistring and unichars type are analogous to string and chars except they assume the encoding is that of the Tcl_UniChar C type and have all sizes specified in Tcl_UniChar units as opposed to chars/bytes\&.
+.TP
+\(bu
+The winstring and winchars type are similarly analogous to string and chars except they assume the encoding is that of the WCHAR C type (UTF-16) and have all sizes specified in WCHAR units as opposed to chars/bytes\&. These types ae specific to Windows and only available there\&.
 .TP
 \(bu
 The binary and bytes types are again analogous except they assume binary data (Tcl byte array at the C level)\&.

@@ -2,7 +2,7 @@
 <svg 
     xmlns='http://www.w3.org/2000/svg'
     width='390'
-    height='84'
+    height='98'
     shape-rendering='geometricPrecision'
     version='1.0'>
   <defs>
@@ -13,12 +13,13 @@
     </filter>
   </defs>
   <g stroke-width='1' stroke-linecap='square' stroke-linejoin='round'>
-    <rect x='0' y='0' width='390' height='84' style='fill: #ffffff'/>
+    <rect x='0' y='0' width='390' height='98' style='fill: #ffffff'/>
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M365.0 63.0 L375.0 63.0 L375.0 35.0 L365.0 35.0 ' />
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M205.0 63.0 L195.0 63.0 L195.0 35.0 L205.0 35.0 ' />
     <text x='10' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[chars[N]]]></text>
     <text x='10' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[chars.ENCODING[N]]]></text>
     <text x='10' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[unichars[N]]]></text>
+    <text x='10' y='82' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[winchars[N]]]></text>
     <text x='222' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[{default DEFAULT}]]></text>
   </g>
 </svg>

@@ -233,7 +233,11 @@ set start_page {
     - The `unistring` and `unichars` type are analogous to `string` and `chars`
     except they assume the encoding is that of the `Tcl_UniChar` C type and
     have all sizes specified in `Tcl_UniChar` units as opposed to chars/bytes.
-    This is primarily useful on Windows.
+
+    - The `winstring` and `winchars` type are similarly analogous to `string` and `chars`
+    except they assume the encoding is that of the `WCHAR` C type (UTF-16) and
+    have all sizes specified in `WCHAR` units as opposed to chars/bytes.
+    These types ae specific to Windows and only available there.
 
     - The `binary` and `bytes` types are again analogous except they assume
     binary data (Tcl byte array at the C level).

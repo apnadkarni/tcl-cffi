@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.2.0)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v2.0a0)</a>
 
 
             <div id="ruffButtonBar">
@@ -86,7 +86,7 @@ package require cffi
 <h5 class='ruff'>Description</h5><p class='ruff'>The command returns the alias names that match the specified pattern. The conditions for matching the pattern are:</p>
 <ul class='ruff'>
 <li>the tail of the pattern must match the tail of the alias name using Tcl's glob pattern matching rules.</li>
-<li>the scope component of the alias name must match exactly.</li>
+<li>the scope component of the alias name must match the pattern's scope exactly. If the pattern does not include a scope, the caller's scope is assumed.</li>
 </ul>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a list of aliases that match the specified pattern.</p>
 <h3 class='ruffproc'><a name='::cffi::alias load'>alias load</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -96,7 +96,7 @@ package require cffi
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>alias_set</code></td><td>The alias set to load.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The aliases are loaded into the calling scope.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The aliases are loaded into the <code>::cffi</code> scope. Since this scope is also searched when looking up aliases, the aliases defined by this command is available in all namespace without explicit qualification.</p>
 <p class='ruff'>The possible values of <code>$alias_set</code> are <code>C</code>, <code>win32</code> (Windows only), or <code>posix</code> (platform dependent).</p>
 <p class='ruff'>The <code>C</code> predefined alias set includes <code>_Bool</code>, <code>bool</code>, <code>int8_t</code> <code>uint8_t</code> <code>int16_t</code> <code>uint16_t</code> <code>int32_t</code> <code>uint32_t</code> <code>int64_t</code> <code>uint64_t</code> <code>size_t</code> <code>ssize_t</code></p>
 <p class='ruff'>The <code>win32</code> predefined alias set includes <code>BOOL</code> <code>BOOLEAN</code> <code>BYTE</code> <code>CHAR</code> <code>DWORD</code> <code>DWORDLONG</code> <code>DWORD_PTR</code> <code>HALF_PTR</code> <code>HANDLE</code> <code>INT</code> <code>INT_PTR</code> <code>LONG</code> <code>LONGLONG</code> <code>LONG_PTR</code> <code>LPARAM</code> <code>LPVOID</code> <code>LRESULT</code> <code>SHORT</code> <code>SIZE_T</code> <code>SSIZE_T</code> <code>UCHAR</code> <code>UINT</code> <code>UINT_PTR</code> <code>ULONG</code> <code>ULONGLONG</code> <code>ULONG_PTR</code> <code>USHORT</code> <code>WORD</code> <code>WPARAM</code></p>

@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 1\&.2\&.0 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.0a0 "cffi" "Tcl CFFI package"
 .SH NAME
 cffi - Commands in namespace cffi
 .SH SYNOPSIS
@@ -392,7 +392,7 @@ The conditions for matching the pattern are:
 the tail of the pattern must match the tail of the alias name using Tcl's glob pattern matching rules\&.
 .TP
 \(bu
-the scope component of the alias name must match exactly\&.
+the scope component of the alias name must match the pattern's scope exactly\&. If the pattern does not include a scope, the caller's scope is assumed\&.
 .PP
 \fBReturn value\fR
 .PP
@@ -416,7 +416,10 @@ The alias set to load\&.
 .PP
 \fBDescription\fR
 .PP
-The aliases are loaded into the calling scope\&.
+The aliases are loaded into the ::cffi scope\&. Since this scope
+is also searched when looking up aliases, the aliases defined by
+this command is available in all namespace without explicit
+qualification\&.
 .PP
 The possible values of \fI$alias_set\fP are C, win32 (Windows only),
 or posix (platform dependent)\&.

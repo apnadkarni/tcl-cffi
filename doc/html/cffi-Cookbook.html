@@ -6,7 +6,7 @@
 <body>
 <div class='ruff-layout'>
 <header class='ruff-layout-header ruff-hd'>
-<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v1.2.0)</a>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v2.0a0)</a>
 
 
             <div id="ruffButtonBar">
@@ -190,7 +190,7 @@ LIBGIT function git_tree_oid {struct.git_oid byref} {pTree pointer.git_tree}
 <figure id='::Cookbook-Syntax for character string return types' class='ruff-figure'>
 <img src='assets/Syntax-for-character-string-return-types.svg'></img>
 <figcaption class='ruff-caption'>Figure 8. Syntax for character string return types</figcaption>
-</figure><p class='ruff'>The <code>byref</code> is not present because <code>string</code> and <code>unistring</code> are already implicit pointers, (<code>string byref</code> would correspond to <code>char **</code>, not <code>char *</code>). An optional <code>nullok</code> annotation will cause a NULL pointer return to be mapped to the empty string instead of generating an exception.</p>
+</figure><p class='ruff'>The <code>byref</code> is not present because <code>string</code>, <code>unistring</code> and <code>winstring</code> are already implicit pointers, (<code>string byref</code> would correspond to <code>char **</code>, not <code>char *</code>). An optional <code>nullok</code> annotation will cause a NULL pointer return to be mapped to the empty string instead of generating an exception.</p>
 <p class='ruff'>Note that if <code>STRING</code> is <code>string</code>, an encoding identifier may be optionally attached, e.g. <code>string.utf-8</code>.</p>
 <p class='ruff'><strong>Examples</strong></p>
 <p class='ruff'>C</p>
@@ -468,7 +468,7 @@ LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct.RECT out}}
 <img src='assets/Syntax-for-input-character-string-parameters.svg'></img>
 <figcaption class='ruff-caption'>Figure 18. Syntax for input character string parameters</figcaption>
 </figure><ul class='ruff'>
-<li>C does not have a string type and the <code>string</code> and <code>unistring</code> CFFI types map to pointers to nul terminated character strings: <code>char*</code> in the case of <code>string</code> and <code>Tcl_UniChar *</code> in the case of <code>unistring</code>. For input parameters, they have the <code>const</code> attribute.</li>
+<li>C does not have a string type and the <code>string</code>, <code>unistring</code> and <code>winstring</code> CFFI types map to pointers to nul terminated character strings: <code>char*</code> in the case of <code>string</code>, <code>Tcl_UniChar *</code> in the case of <code>unistring</code> and <code>WCHAR *</code> in the case of <code>winstring</code>. For input parameters, they have the <code>const</code> attribute.</li>
 <li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
 <li>For the <code>string</code> type an optional encoding may be specified and defaults to the system encoding. If a library API uses a specific encoding (commonly UTF-8), it may be convenient to define a type alias.</li>
 <li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the pointer to the character string (double indirection). This is rare for passing character string values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
@@ -498,7 +498,7 @@ LIBC function chdir {int zero errno} {path string}
 <figure id='::Cookbook-Syntax for character array output parameters' class='ruff-figure'>
 <img src='assets/Syntax-for-character-array-output-parameters.svg'></img>
 <figcaption class='ruff-caption'>Figure 19. Syntax for character array output parameters</figcaption>
-</figure><p class='ruff'>This is the first case described above where the C function expects a pointer to a character (or <code>Tcl_UniChar</code> in the case of <code>unichars</code>) array.</p>
+</figure><p class='ruff'>This is the first case described above where the C function expects a pointer to a character (or <code>Tcl_UniChar</code> and <code>WCHAR</code> in the case of <code>unichars</code> and <code>winchars</code>) array.</p>
 <ul class='ruff'>
 <li>The script level argument corresponding to <code>out</code> and <code>inout</code> parameters are the name of the variable to which the output value is to be assigned. For <code>inout</code> parameters this must exist at the time of function call and hold a valid value for the type.</li>
 <li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
@@ -679,7 +679,7 @@ double +-         -+
 <figure id='::Cookbook-Syntax for character array fields' class='ruff-figure'>
 <img src='assets/Syntax-for-character-array-fields.svg'></img>
 <figcaption class='ruff-caption'>Figure 27. Syntax for character array fields</figcaption>
-</figure><p class='ruff'>Like <code>string</code> and <code>unistring</code>, the <code>chars</code> and <code>unichars</code> CFFI types are character strings at the script level. However, while the former maps to pointers at the C level, <code>chars</code> and <code>unichars</code> map to <code>char[]</code> and <code>Tcl_UniChar[]</code> arrays.</p>
+</figure><p class='ruff'>Like <code>string</code>, <code>unistring</code> and <code>winstring</code>, the <code>chars</code>, <code>unichars</code> and <code>winchars</code> CFFI types are character strings at the script level. However, while the former maps to pointers at the C level, <code>chars</code>, <code>unichars</code> and <code>winchars</code> map to <code>char[]</code>, <code>Tcl_UniChar[]</code> and <code>WCHAR</code> arrays.</p>
 <ul class='ruff'>
 <li>The <code>default</code> annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field.</li>
 <li>The array size <code>N</code> must be an positive integer constant and not dynamically sized as is permitted for array parameters.</li>
