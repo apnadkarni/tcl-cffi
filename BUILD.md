@@ -26,16 +26,19 @@ This is particularly important if the private and system Tcl versions differ.
 The first step is to install the `libffi` libraries. Most Unix systems will provide
 this through the package manager as either `libffi` or `libffi-dev`. In addition,
 depending on how your Tcl installation was built, you may also need to install
-`libtommath`.  For example, on Ubuntu, these may be installed as 
+`libtommath`.  For example, on Ubuntu, these may be installed as
 
 ```
 sudo apt install libffi-dev
 sudo apt install libtommath-dev
 ```
 
-If not available with the package manager, download sources from 
+If not available with the package manager, download sources from
 http://sourceware.org/libffi/ and follow the instructions in the `README.md`
 file in the downloaded sources.
+
+**The libffi version must be at least 3.4.4 as earlier versions have a stack
+corruption bug on x86 platforms.**
 
 Once `libffi` is installed in standard system directories, the `cffi` package
 itself can be built like any standard Tcl extension. From the top level
@@ -139,7 +142,10 @@ vcpkg install libffi:x86-windows-static-md libffi:x64-windows-static-md
 ```
 
 Note the above installs both the 32-bit and 64-bit libraries and include files
-under the `installed` subdirectory under the `vcpkg` root directory.
+under the `installed` subdirectory under the `vcpkg** root directory.
+
+**The libffi version must be at least 3.4.4 as earlier versions have a stack
+corruption bug on x86 platforms.**
 
 Once `libffi` is installed, to build the `cffi` extension, 
 start a Visual Studio build command shell (32- or 64-bit depending on the
@@ -218,6 +224,9 @@ pacboy sync libffi:i libffi:x
 The `:i` and `:x` suffixes correspond to `gcc` 32- and 64-bit libraries
 respectively. For `clang` these would be `z` and `c` instead.
 
+**The libffi version must be at least 3.4.4 as earlier versions have a stack
+corruption bug on x86 platforms.**
+
 Then follow the standard procedure for Tcl extensions.
 From a MinGW-w64 (not msys2) 64-bit shell, run the following commands at the top level
 
@@ -228,10 +237,10 @@ make
 make test
 ```
 
-Note that the `--with-tcl` option has to be specified pointing to a Tcl
-installation that was also built with MinGW-w64. Without this, the build system
-will use the `tclsh` that comes with the `msys2` installation that comes with
-MinGW-w64. That is **not** what you want.
+Note that the `--with-tcl` and `--with-tclinclude` options have to be specified
+pointing to a Tcl installation that was also built with MinGW-w64. Without this,
+the build system will use the `tclsh` that comes with the `msys2` installation
+that comes with MinGW-w64. That is **not** what you want.
 
 For 32-bit builds, use the 32-bit shell and leave off the `--enable-64bit` option.
 

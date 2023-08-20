@@ -302,9 +302,19 @@ namespace eval ${NS}::test {
                           $ch + $uch + $shrt + $ushrt + $i + $ui + $l + $ul + $ll + $ull +$f + $d
                       }]
         }
-        set caller manyargs_callback
         cffi::prototype stdcall proto double {ch schar uch uchar shrt short ushrt ushort i int ui uint l long ul ulong ll longlong ull ulonglong f float d double}
-        testDll stdcall $caller double {ch schar uch uchar shrt short ushrt ushort i int ui uint l long ul ulong ll longlong ull ulonglong f float d double fnptr pointer.proto}
+        set caller manyargs_callback_stdcall
+        set param_defs {ch schar uch uchar shrt short ushrt ushort i int ui uint l long ul ulong ll longlong ull ulonglong f float d double fnptr pointer.proto}
+        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+            # VC++ and mingw64 follow different naming conventions
+            if {[catch {
+                testDll stdcall [list _${caller}@64 $caller] double $param_defs
+            }]} {
+                testDll stdcall [list ${caller}@64 $caller] double $param_defs
+            }
+        } else {
+            testDll stdcall $caller double $param_defs
+        }
     } -constraints libffi -body {
         set fnptr [cffi::callback new [namespace current]::proto [namespace current]::cb -1]
         $caller 1 2 3 4 5 6 7 8 9 10 10.5 11.5 $fnptr

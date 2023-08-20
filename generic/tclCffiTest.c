@@ -17,9 +17,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <limits.h>
-#ifdef _WIN32
-#include <strsafe.h>
-#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -707,7 +704,7 @@ EXTERN int getTestStruct(TestStruct *tsP)
     strncpy(tsP->s.c, "INNER", sizeof(tsP->s.c));
     tsP->d = 0.125;
 #ifdef _WIN32
-    StringCchCopyW(tsP->wchars, ARRAYSIZE(tsP->wchars), L"WCHARS");
+    lstrcpyW(tsP->wchars, L"WCHARS");
 #endif
     return sizeof(*tsP);
 }

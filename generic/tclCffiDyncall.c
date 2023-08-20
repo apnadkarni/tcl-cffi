@@ -281,7 +281,9 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
         break;
     case CFFI_K_TYPE_ASTRING:/* FALLTHRU */
     case CFFI_K_TYPE_UNISTRING: /* FALLTHRU */
+#ifdef _WIN32
     case CFFI_K_TYPE_WINSTRING:
+#endif
     case CFFI_K_TYPE_BINARY:
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)
             dcArgPointer(vmP, &argP->value.u.ptr);

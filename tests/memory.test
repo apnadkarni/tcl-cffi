@@ -771,7 +771,7 @@ namespace eval cffi::test {
 
     if {$::tcl_platform(platform) eq "windows"} {
         test memory-get-winstring-0 "get winstring" -setup {
-            set s [cffi::memory fromstring $testValues(winstring) utf-16le]
+            set s [cffi::memory fromstring $testValues(winstring) [expr {[package vsatisfies [info tclversion] 9] ? "utf-16le" : "unicode"}]]
             unset -nocomplain p
             set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
             cffi::memory set $p pointer $s
