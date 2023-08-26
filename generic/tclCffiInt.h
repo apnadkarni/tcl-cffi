@@ -158,6 +158,10 @@ typedef struct CffiBaseTypeInfo {
 } CffiBaseTypeInfo;
 extern const CffiBaseTypeInfo cffiBaseTypes[];
 
+typedef enum CffiTypeFlags {
+    CFFI_F_TYPE_VARSIZE = 1 /* Type is of variable size */
+} CffiTypeFlags;
+
 typedef struct CffiType {
     enum CffiBaseType baseType;
     int arraySize;           /* -1 -> scalar. TODO - make Tcl_Size
@@ -165,13 +169,14 @@ typedef struct CffiType {
                                  through countHolderObj
                                  >0 -> array of count base type elements */
     union {
-        Tcl_Obj *tagNameObj; /* POINTER tag, Enum name */
+        Tcl_Obj *tagNameObj;   /* POINTER tag, Enum name */
         Tcl_Encoding encoding; /* ASTRING, CHAR_ARRAY */
         CffiStruct *structP;   /* STRUCT */
     } u;
     Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
                                 that contains the actual count at call time */
-    int baseTypeSize; /* size of baseType */
+    int baseTypeSize;        /* size of baseType */
+    CffiTypeFlags flags;
 } CffiType;
 CFFI_INLINE int CffiTypeIsArray(const CffiType *typeP) {
     return typeP->arraySize >= 0;
@@ -181,6 +186,10 @@ CFFI_INLINE int CffiTypeIsNotArray(const CffiType *typeP) {
 }
 CFFI_INLINE int CffiTypeIsVariableSizeArray(const CffiType *typeP) {
     return typeP->arraySize == 0;
+}
+CFFI_INLINE int CffiTypeIsVariableSize(const CffiType *typeP) {
+    return CffiTypeIsVariableSizeArray(typeP)
+        || (typeP->flags & CFFI_F_TYPE_VARSIZE);
 }
 
 typedef enum CffiAttrFlags {
@@ -305,6 +314,11 @@ typedef struct CffiField {
     unsigned int size;          /* Size of the field */
 } CffiField;
 
+typedef enum CffiStructFlags {
+    CFFI_F_STRUCT_CLEAR   = 0x0001,
+    CFFI_F_STRUCT_VARSIZE = 0x0002,
+} CffiStructFlags;
+
 /* Struct: CffiStruct
  * Descriptor for a struct layout.
  *
@@ -317,18 +331,24 @@ struct CffiStruct {
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
     int nRefs;                /* Shared, so need ref count */
-    unsigned int size;        /* Size of struct */
+    unsigned int size;        /* Fixed size of struct not including variable
+                                 sized component if any. */
     unsigned short alignment; /* Alignment required for struct */
-    unsigned short flags;     /* Misc CFFI_F_STRUCT_ flags */
+    CffiStructFlags flags;     /* Misc CFFI_F_STRUCT_ flags */
+    int dynamicCountFieldIndex; /* Index into fields[] of field holding
+                                   array size of variable-sized last field.
+                                   -1 if not variable size */
     int nFields;              /* Cardinality of fields[] */
-    CffiField fields[1];      /* Actual size given by nFields */
+    CffiField fields[1];      /* Actual count given by nFields */
     /* !!!DO NOT ADD FIELDS HERE!!! */
 };
 CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
     structP->nRefs += 1;
 }
-#define CFFI_F_STRUCT_CLEAR 0x0001
-
+CFFI_INLINE int CffiStructIsVariableSize(const CffiStruct *structP) {
+    return structP->dynamicCountFieldIndex >= 0
+        || (structP->flags & CFFI_F_STRUCT_VARSIZE);
+}
 
 /* Struct: CffiScope
  * Contains scope-specific definitions.
@@ -538,6 +558,9 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
+Tcl_Size CffiStructSize(CffiInterpCtx *ipCtxP,
+                        CffiStruct *structP,
+                        Tcl_Obj *fieldValueObjs);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult

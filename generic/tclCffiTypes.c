@@ -437,6 +437,7 @@ CffiTypeParseArraySize(const char *lbStr, CffiType *typeP)
             return TCL_ERROR;
         typeP->arraySize      = 0; /* Variable size array */
         typeP->countHolderObj = Tcl_NewStringObj(lbStr, (Tcl_Size)(p - lbStr));
+        typeP->flags |= CFFI_F_TYPE_VARSIZE;
         Tcl_IncrRefCount(typeP->countHolderObj);
     }
     return TCL_OK;
@@ -545,7 +546,7 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
             goto invalid_type;
         }
         if (lbStr) {
-            /* Tag is not null terminated. We cannot modify that string */
+            /* Array. Tag is not null terminated. We cannot modify that string */
             char *structNameP = ckalloc(tagLen+1);
             memmove(structNameP, tagStr, tagLen);
             structNameP[tagLen] = '\0';
@@ -558,6 +559,18 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
         }
         if (ret != TCL_OK)
             goto error_return;
+        /* Struct valid, check if its variable size */
+        if (CffiStructIsVariableSize(typeP->u.structP)) {
+            if (lbStr) {
+                (void) Tclh_ErrorInvalidValue(
+                    ipCtxP->interp,
+                    typeObj,
+                    "Array element types must be fixed size.");
+                goto error_return;
+            }
+            typeP->flags |= CFFI_F_TYPE_VARSIZE;
+        }
+
         CffiStructRef(typeP->u.structP);
         typeP->baseType = CFFI_K_TYPE_STRUCT;
         typeP->baseTypeSize = typeP->u.structP->size;
@@ -614,7 +627,6 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
 
     /*
      * chars, unichars and bytes must have the count specified.
-     * pointers, astrings, unistrings and bytes - arrays not implemented yet - TBD.
      */
     switch (typeP->baseType) {
     case CFFI_K_TYPE_VOID:
@@ -698,8 +710,7 @@ void CffiTypeCleanup (CffiType *typeP)
  * The size returned for arrays is the size of the whole array not just the
  * base size.
  *
- * The type must not be CFFI_K_TYPE_VOID and must not be a variable size
- * array.
+ * The type must not be CFFI_K_TYPE_VOID and must not be of variable size.
  *
  * Returns:
  * Size of the type.
@@ -708,7 +719,7 @@ int
 CffiTypeActualSize(const CffiType *typeP)
 {
     CFFI_ASSERT(typeP->baseTypeSize != 0);
-    CFFI_ASSERT(typeP->arraySize != 0); /* Not variable size array */
+    CFFI_ASSERT(! CffiTypeIsVariableSize(typeP)); /* Not variable size array */
     if (CffiTypeIsArray(typeP))
         return typeP->arraySize * typeP->baseTypeSize;
     else
@@ -1226,10 +1237,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             }
             break;
         default:
+#ifdef OBSOLETE
             if (CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
                 message = "Fields cannot be arrays of variable size.";
                 goto invalid_format;
             }
+#endif
             break;
         }
         break;

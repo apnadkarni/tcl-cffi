@@ -585,9 +585,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 }
                 /* NULLIFEMPTY but dictionary has elements */
             }
-            /* TBD - check out struct size matches Libffi's */
-            structValueP = Tclh_LifoAlloc(&ipCtxP->memlifo,
-                                        typeAttrsP->dataType.u.structP->size);
+            Tcl_Size needed = CffiStructSize(
+                ipCtxP, typeAttrsP->dataType.u.structP, valueObj);
+            structValueP = Tclh_LifoAlloc(&ipCtxP->memlifo, needed);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 CHECK(CffiStructFromObj(ipCtxP,
                                         typeAttrsP->dataType.u.structP,
