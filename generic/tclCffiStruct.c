@@ -51,7 +51,7 @@ CffiStructUnref(CffiStruct *structP)
  * array in a struct
  *
  * Parameters:
- * ipCtxP - interp context
+ * ip - interpreter
  * structP - parent struct descriptor
  * fieldNameObj - name of field holding the count
  *
@@ -60,12 +60,15 @@ CffiStructUnref(CffiStruct *structP)
  * in the interpreter
  */
 static int
-CffiFindDynamicCountField(CffiInterpCtx *ipCtxP,
+CffiFindDynamicCountField(Tcl_Interp *ip,
                           CffiStruct *structP,
                           Tcl_Obj *fieldNameObj)
 {
     int i;
     const char *name = Tcl_GetString(fieldNameObj);
+    
+    /* Could use CffiStructFindField but order of tests makes this faster */
+
     /* Note only last field can be variable sized and cannot be the count */
     for (i = 0; i < structP->nFields-1; ++i) {
         CffiField *fieldP = &structP->fields[i];
@@ -75,7 +78,7 @@ CffiFindDynamicCountField(CffiInterpCtx *ipCtxP,
             return i;
         }
     }
-    (void)Tclh_ErrorNotFound(ipCtxP->interp,
+    (void)Tclh_ErrorNotFound(ip,
                              "Field",
                              fieldNameObj,
                              "Could not find referenced count for dynamic "
@@ -84,48 +87,58 @@ CffiFindDynamicCountField(CffiInterpCtx *ipCtxP,
 
 }
 
-/* Function: CffiStructSize
- * Get the number of bytes needed to store a struct.
+static Tcl_Size
+CffiStructGetDynamicCount(CffiInterpCtx *ipCtxP,
+                             CffiStruct *structP,
+                             Tcl_Obj *structValueObj)
+{
+    int fldIndex = structP->dynamicCountFieldIndex;
+    CFFI_ASSERT(structP->dynamicCountFieldIndex >= 0);
+    /* fldIndex can never be last one, already checked in parse */
+    CFFI_ASSERT(fldIndex < structP->nFields - 1);
+
+    Tcl_Obj *countObj;
+    if (Tcl_DictObjGet(ipCtxP->interp,
+                       structValueObj,
+                       structP->fields[fldIndex].nameObj,
+                       &countObj)
+            != TCL_OK
+        || countObj == NULL) {
+        return -1;
+    }
+    Tcl_Size count;
+    if (Tclh_ObjToSizeInt(ipCtxP->interp, countObj, &count) != TCL_OK) {
+        return -1;
+    }
+    return count;
+}
+
+/* Function: CffiStructSizeVLACount
+ * Get the number of bytes needed to store a struct with a variable length
+ * array field.
  *
  * Parameters:
  * ipCtxP - interp context
- * structP - struct descriptor
- * nFieldValues - count of fieldValueObjs
- * fieldValuesObj - values of the struct fields. May be NULL for fixed size
- *   structs. If non-NULL, must be a list with at least structP->nFields
- *   elements.
+ * structP - struct descriptor. Must be a struct of variable size
+ * vlaCount - number of array elements in variable component of the struct.
+ *   This may be either the passed struct or a nested field. Note there
+ *   can be only one variable sized array in any structure even taking
+ *   nesting into account.
  * 
- * The function takes into account variable sized structs.
- *
  * Returns:
- * Size of the struct or -1 if it could not be calculated (e.g. the struct
- * is variable size and not enough field values were not provided). The
- * interp result holds an error message on failure.
+ * Size of the struct or -1 if it could not be calculated.
+ * The interp result holds an error message on failure.
  */
 Tcl_Size
-CffiStructSize(CffiInterpCtx *ipCtxP,
-               CffiStruct *structP,
-               Tcl_Obj *fieldValuesObj)
+CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
+                       CffiStruct *structP,
+                       Tcl_Size vlaCount)
 {
     if (!CffiStructIsVariableSize(structP))
         return structP->size;
 
-    Tcl_Obj **fieldValues;
-    Tcl_Size nFieldValues;
-
-    if (fieldValuesObj) {
-        CHECK(Tcl_ListObjGetElements(
-            ipCtxP->interp, fieldValuesObj, &nFieldValues, &fieldValues));
-    } else {
-        nFieldValues = 0;
-    }
-
-    if (nFieldValues < structP->nFields) {
-        Tclh_ErrorInvalidValue(
-            ipCtxP->interp,
-            NULL,
-            "Insufficient number of field values supplied for variable sized struct.");
-        return -1;
+    if (vlaCount < 0) {
+        return Tclh_ErrorInvalidValue(ipCtxP->interp, NULL, "Internal error: Negative array size.");
     }
 
     Tcl_Size size = structP->size; /* Base size - should include alignment */
@@ -138,37 +151,106 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
      *    because of either of these two reasons.
      * Note that arrays of variable sized structs are not permitted.
      */
-    int lastFldIndex = structP->nFields - 1;
+    
+    /* typeP -> type for last field, only one that can be variably sized */
+    CffiType *typeP  = &structP->fields[structP->nFields-1].fieldType.dataType;
+    CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
     if (structP->dynamicCountFieldIndex >= 0) {
         /* Case 1 */
-        int fldIndex = structP->dynamicCountFieldIndex;
-        /* fldIndex can never be last one, already checked in parse */
-        CFFI_ASSERT(fldIndex < lastFldIndex);
-        CFFI_ASSERT(CffiTypeIsVariableSizeArray(
-            &structP->fields[fldIndex].fieldType.dataType));
+        CFFI_ASSERT(CffiTypeIsVariableSizeArray(typeP));
 
-        Tcl_Size count;
-        if (Tclh_ObjToSizeInt(ipCtxP->interp, fieldValues[fldIndex], &count)
-            != TCL_OK) {
-            return -1;
-        }
         int elemAlignment;
         int elemSize;
-        CffiTypeLayoutInfo(&structP->fields[fldIndex].fieldType.dataType,
-                           &elemSize,
-                           NULL,
-                           &elemAlignment);
+        CffiTypeLayoutInfo(typeP, &elemSize, NULL, &elemAlignment);
+        /* Align to field size */
+        size = (size + elemAlignment - 1) & ~(elemAlignment - 1);
+        size += vlaCount * elemSize;
+    } else {
+        /* Case 2 - vlaCount is meant for nested component */
+        CFFI_ASSERT(typeP->baseType == CFFI_K_TYPE_STRUCT);
+        CffiStruct *innerStructP = typeP->u.structP;
+        Tcl_Size innerStructSize =
+            CffiStructSizeVLACount(ipCtxP, innerStructP, vlaCount);
+        if (innerStructSize < 0)
+            return -1;
+        /* Usual alignment as above */
+        size = (size + innerStructP->alignment - 1)
+             & ~(innerStructP->alignment - 1);
+        size += innerStructSize;
+    }
+    /* Now ensure whole thing aligned to struct size */
+    size = (size + structP->alignment - 1) & ~(structP->alignment - 1);
+    return size;
+}
+
+/* Function: CffiStructSize
+ * Get the number of bytes needed to store a struct.
+ *
+ * Parameters:
+ * ipCtxP - interp context
+ * structP - struct descriptor
+ * structValueObj - struct value as a dictionary mapping field names to values.
+ *   May be NULL for fixed size structs.
+ * 
+ * The function takes into account variable sized structs.
+ *
+ * Returns:
+ * Size of the struct or -1 if it could not be calculated (e.g. the struct
+ * is variable size and not enough field values were not provided). The
+ * interp result holds an error message on failure.
+ */
+Tcl_Size
+CffiStructSize(CffiInterpCtx *ipCtxP,
+               CffiStruct *structP,
+               Tcl_Obj *structValueObj)
+{
+    if (!CffiStructIsVariableSize(structP))
+        return structP->size;
+
+    Tcl_Size size = structP->size; /* Base size - should include alignment */
+
+    /*
+     * There are two possibilities. The struct is variable size because
+     *  1 the last field is a variable sized array whose
+     *    count is given by another field
+     *  2 the last field is a struct whose last field is variable size
+     *    because of either of these two reasons.
+     * Note that arrays of variable sized structs are not permitted.
+     */
+    int lastFldIndex = structP->nFields - 1;
+    CffiType *typeP  = &structP->fields[lastFldIndex].fieldType.dataType;
+    CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
+    if (structP->dynamicCountFieldIndex >= 0) {
+        /* Case 1 */
+        CFFI_ASSERT(CffiTypeIsVariableSizeArray(typeP));
+
+        int elemAlignment;
+        int elemSize;
+        CffiTypeLayoutInfo(typeP, &elemSize, NULL, &elemAlignment);
+
+        Tcl_Size count;
+        count = CffiStructGetDynamicCount(ipCtxP, structP, structValueObj);
+        if (count < 0)
+            return -1;
+
         /* Align to field size */
         size = (size + elemAlignment - 1) & ~(elemAlignment - 1);
         size += count * elemSize;
     } else {
-        /* Case 2 */
-        CFFI_ASSERT(structP->fields[lastFldIndex].fieldType.dataType.baseType
-                    == CFFI_K_TYPE_STRUCT);
-        CffiStruct *innerStructP =
-            structP->fields[lastFldIndex].fieldType.dataType.u.structP;
+        /* Case 2 - recurse to get variable inner struct size and add */
+        CFFI_ASSERT(typeP->baseType == CFFI_K_TYPE_STRUCT);
+        CffiStruct *innerStructP = typeP->u.structP;
+        Tcl_Obj *innerStructObj;
+        if (Tcl_DictObjGet(ipCtxP->interp,
+                           structValueObj,
+                           structP->fields[lastFldIndex].nameObj,
+                           &innerStructObj)
+            != TCL_OK || innerStructObj == NULL) {
+            return -1;
+        }
+
         Tcl_Size innerStructSize =
-            CffiStructSize(ipCtxP, innerStructP, fieldValues[lastFldIndex]);
+            CffiStructSize(ipCtxP, innerStructP, innerStructObj);
         if (innerStructSize < 0)
             return -1;
         /* Usual alignment as above */
@@ -238,25 +320,14 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
             return TCL_ERROR;
         }
         if (CffiTypeIsVariableSize(&structP->fields[j].fieldType.dataType)) {
-            if (j < (nfields-1)) {
-                /* Only last field may be variable size */
+            if (j < (nfields-1) || j == 0) {
+                /* Only last field may be variable size and cannot be only one */
                 CffiStructUnref(structP);
                 return Tclh_ErrorInvalidValue(
                     ip,
                     objs[i + 1],
-                    "Fields of variable size must be the last field in the struct.");
+                    "Field of variable size must be the last and must not be the only field.");
             }
-            int countFieldIndex;
-            countFieldIndex = CffiFindDynamicCountField(
-                ipCtxP,
-                structP,
-                structP->fields[j].fieldType.dataType.countHolderObj);
-            if (countFieldIndex < 0) {
-                CffiStructUnref(structP);
-                return TCL_ERROR;
-            }
-            structP->dynamicCountFieldIndex = countFieldIndex;
-            structP->flags |= CFFI_F_STRUCT_VARSIZE;
         }
 
         /* Check for dup field names */
@@ -288,12 +359,9 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         CFFI_ASSERT(fieldP->fieldType.dataType.baseType != CFFI_K_TYPE_VOID);
         CffiTypeLayoutInfo(
             &fieldP->fieldType.dataType, NULL, &field_size, &field_alignment);
+        /* Note field_size will be 0 for dynamic fields - last one */
+        CFFI_ASSERT(field_size > 0 || i == nfields - 1);
 
-        if (field_size <= 0) {
-            /* Dynamic size field. Should have been caught in earlier pass */
-            return Tclh_ErrorGeneric(
-                ip, NULL, "Internal error: struct field is not fixed size.");
-        }
         if (field_alignment > struct_alignment)
             struct_alignment = field_alignment;
 
@@ -301,7 +369,37 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         offset = (offset + field_alignment - 1) & ~(field_alignment - 1);
         fieldP->offset = offset;
         fieldP->size   = field_size;
-        offset += field_size;
+        if (field_size > 0) {
+            /* Fixed size field */
+            CFFI_ASSERT(i == nfields - 1);
+            offset += field_size;
+        }
+    }
+
+    /*
+     * Calculate and cache the field (if any) holding dynamic count of
+     * elements in the last field
+     */
+    CffiType *lastFldTypeP = &structP->fields[nfields - 1].fieldType.dataType;
+    if (CffiTypeIsVariableSize(lastFldTypeP)) {
+        if (CffiTypeIsVariableSize(lastFldTypeP)) {
+            CFFI_ASSERT(lastFldTypeP->countHolderObj != NULL);
+            int countFieldIndex;
+            countFieldIndex = CffiFindDynamicCountField(
+                ipCtxP->interp, structP, lastFldTypeP->countHolderObj);
+            if (countFieldIndex < 0) {
+                CffiStructUnref(structP);
+                return TCL_ERROR;
+            }
+            structP->dynamicCountFieldIndex = countFieldIndex;
+        } else {
+            /* Nested variable component. Nought to do */
+        }
+        /* 
+         * Mark as variable size - last field is variable size array
+         * or a nested struct with a variable size array.
+         */
+        structP->flags |= CFFI_F_STRUCT_VARSIZE;
     }
 
     Tcl_IncrRefCount(nameObj);
@@ -423,9 +521,14 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                 cffiBaseTypes[baseType].token,
                 Tcl_GetString(fieldP->fieldType.dataType.u.structP->name),
                 Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
+            if (CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType)) {
+                Tcl_AppendPrintfToObj(
+                    objP, "[%s]", Tcl_GetString(fieldP->fieldType.dataType.countHolderObj));
+            }
+            else if (CffiTypeIsArray(&fieldP->fieldType.dataType)) {
                 Tcl_AppendPrintfToObj(
                     objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+            }
             break;
 
         default:
@@ -434,9 +537,11 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                                   "\n  %s %s",
                                   cffiBaseTypes[baseType].token,
                                   Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
+            if (CffiTypeIsArray(&fieldP->fieldType.dataType)) {
                 Tcl_AppendPrintfToObj(
                     objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+
+            }
             break;
         }
         Tcl_AppendPrintfToObj(
@@ -538,6 +643,12 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
     Tcl_DString ds;
     CffiResult ret;
     void *structAddress;
+    Tcl_Size structSize;
+
+    structSize = CffiStructSize(ipCtxP, structP, structValueObj);
+    if (structSize <= 0) {
+        return TCL_ERROR;
+    }
 
     /*
      * If we have to preserve, make a copy. Note we cannot just rely on
@@ -546,14 +657,14 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
      */
     if (flags & CFFI_F_PRESERVE_ON_ERROR) {
         Tcl_DStringInit(&ds);
-        Tcl_DStringSetLength(&ds, structP->size);
+        Tcl_DStringSetLength(&ds, structSize);
         structAddress = Tcl_DStringValue(&ds);
     }
     else
         structAddress = structResultP;
 
     if (structP->flags & CFFI_F_STRUCT_CLEAR)
-        memset(structAddress, 0, structP->size);
+        memset(structAddress, 0, structSize);
 
     ret = TCL_OK;
     for (i = 0; i < structP->nFields; ++i) {
@@ -571,34 +682,34 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 /* Fill in struct size */
                 switch (fieldP->fieldType.dataType.baseType) {
                 case CFFI_K_TYPE_SCHAR:
-                    *(signed char *)fieldAddress = (signed char)structP->size;
+                    *(signed char *)fieldAddress = (signed char)structSize;
                     continue;
                 case CFFI_K_TYPE_UCHAR:
-                    *(unsigned char *)fieldAddress = (unsigned char)structP->size;
+                    *(unsigned char *)fieldAddress = (unsigned char)structSize;
                     continue;
                 case CFFI_K_TYPE_SHORT:
-                    *(short *)fieldAddress = (short)structP->size;
+                    *(short *)fieldAddress = (short)structSize;
                     continue;
                 case CFFI_K_TYPE_USHORT:
-                    *(unsigned short *)fieldAddress = (unsigned short)structP->size;
+                    *(unsigned short *)fieldAddress = (unsigned short)structSize;
                     continue;
                 case CFFI_K_TYPE_INT:
-                    *(int *)fieldAddress = (int)structP->size;
+                    *(int *)fieldAddress = (int)structSize;
                     continue;
                 case CFFI_K_TYPE_UINT:
-                    *(unsigned int *)fieldAddress = (unsigned int)structP->size;
+                    *(unsigned int *)fieldAddress = (unsigned int)structSize;
                     continue;
                 case CFFI_K_TYPE_LONG:
-                    *(long *)fieldAddress = (long)structP->size;
+                    *(long *)fieldAddress = (long)structSize;
                     continue;
                 case CFFI_K_TYPE_ULONG:
-                    *(unsigned long *)fieldAddress = (unsigned long)structP->size;
+                    *(unsigned long *)fieldAddress = (unsigned long)structSize;
                     continue;
                 case CFFI_K_TYPE_LONGLONG:
-                    *(long long *)fieldAddress = (long long)structP->size;
+                    *(long long *)fieldAddress = (long long)structSize;
                     continue;
                 case CFFI_K_TYPE_ULONGLONG:
-                    *(unsigned long long *)fieldAddress = (unsigned long long)structP->size;
+                    *(unsigned long long *)fieldAddress = (unsigned long long)structSize;
                     continue;
                 default:
                     break; /* Just fall thru looking for default */
@@ -621,10 +732,22 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 "Field missing in struct dictionary value.");
             break;
         }
+
+        Tcl_Size realArraySize = 0;
+        /* The last field may be a variable sized array */
+        if (i == (structP->nFields - 1)
+            && CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType)) {
+            realArraySize =
+                CffiStructGetDynamicCount(ipCtxP, structP, structValueObj);
+            if (realArraySize <= 0) {
+                ret = TCL_ERROR;
+                break;
+            }
+        }
         /* Turn off PRESERVE_ON_ERROR as we are already taken care to preserve */
         ret = CffiNativeValueFromObj(ipCtxP,
                                      typeAttrsP,
-                                     0,
+                                     realArraySize,
                                      valueObj,
                                      flags & ~CFFI_F_PRESERVE_ON_ERROR,
                                      fieldAddress,
@@ -637,7 +760,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
     if (flags & CFFI_F_PRESERVE_ON_ERROR) {
         /* If preserving, result was built in temp storage, copy it */
         if (ret == TCL_OK)
-            memcpy(structResultP, structAddress, structP->size);
+            memcpy(structResultP, structAddress, structSize);
         Tcl_DStringFree(&ds);
     }
 
@@ -683,8 +806,8 @@ CffiStructToObj(CffiInterpCtx *ipCtxP,
     for (i = 0; i < structP->nFields; ++i) {
         const CffiField *fieldP  = &structP->fields[i];
         Tcl_Obj          *fieldObj;
-        /* fields within structs cannot be dynamic size */
-        CFFI_ASSERT(! CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType));
+        /* fields other than last cannot be dynamic size */
+        CFFI_ASSERT((i == structP->nFields - 1) || ! CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType));
         ret = CffiNativeValueToObj(ipCtxP,
                                    &fieldP->fieldType,
                                    fieldP->offset + (char *)valueP,
@@ -704,6 +827,23 @@ error_return:
     return TCL_ERROR;
 }
 
+/* Function: CffiErrorVariableSizeStruct
+ * Stores an error message in the interpreter stating the operation is not
+ * valid for a variable sized struct.
+ *
+ * Parameters:
+ * ip - interpreter. May be NULL>
+ * structP - struct descriptor
+ *
+ * Returns:
+ * Always returns TCL_ERROR.
+ */
+CffiResult
+CffiErrorVariableSizeStruct(Tcl_Interp *ip, CffiStruct *structP)
+{
+    return Tclh_ErrorInvalidValue(
+        ip, structP->name, "Operation not permitted on variable sized structs");
+}
 
 /* Function: CffiStructAllocateCmd
  * Allocates memory for one or more structures.
@@ -733,6 +873,11 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     Tcl_Obj *resultObj;
     void *resultP;
     int count;
+
+    CFFI_ASSERT(objc >= 2);
+
+    if (CffiStructIsVariableSize(structP))
+        return CffiErrorVariableSizeStruct(ip, structP);
 
     if (objc == 2)
         count = 1;
@@ -779,13 +924,20 @@ CffiStructNewCmd(Tcl_Interp *ip,
                  CffiStructCmdCtx *structCtxP)
 {
     CffiStruct *structP = structCtxP->structP;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
     Tcl_Obj *resultObj;
     void *resultP;
     int ret;
+    Tcl_Size structSize;
 
     CFFI_ASSERT(objc == 2 || objc == 3);
 
-    resultP = ckalloc(structP->size);
+    /* Note - this will fail for variable size structs when objc==2. TODO */
+    structSize = CffiStructSize(ipCtxP, structP, objc == 2 ? NULL : objv[2]);
+    if (structSize <= 0)
+        return TCL_ERROR;
+
+    resultP = ckalloc(structSize);
     if (objc == 3)
         ret = CffiStructFromObj(
             structCtxP->ipCtxP, structP, objv[2], 0, resultP, NULL);
@@ -1177,6 +1329,9 @@ CffiStructGetNativePointer(Tcl_Interp *ip,
     /* TBD - check alignment of fieldP for the struct */
 
     if (objc > 4) {
+        if (CffiStructIsVariableSize(structP))
+            return CffiErrorVariableSizeStruct(ip, structP);
+
         Tcl_WideInt wide;
         CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
         fieldAddr += structP->size * (int)wide;
@@ -1317,6 +1472,9 @@ CffiStructSetNativePointer(Tcl_Interp *ip,
     /* TBD - sanity check alignment of fieldP for the struct */
 
     if (objc > 5) {
+        if (CffiStructIsVariableSize(structP)) {
+            return CffiErrorVariableSizeStruct(ip, structP);
+        }
         Tcl_WideInt wide;
         CHECK(Tclh_ObjToRangedInt(ip, objv[5], 0, INT_MAX, &wide));
         fieldAddr += structP->size * (int)wide;
@@ -1450,6 +1608,8 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
     }
     if (objc > 4) {
         /* Index into array of structs */
+        if (CffiStructIsVariableSize(structP))
+            return CffiErrorVariableSizeStruct(ip, structP);
         Tcl_WideInt wide;
         CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
         structAddr = (structP->size * (int)wide) + (char *)structAddr;
@@ -1600,6 +1760,8 @@ CffiStructFieldPointerCmd(Tcl_Interp *ip,
 
     /* TBD - check alignment of fieldP for the struct */
     if (objc == 6) {
+        if (CffiStructIsVariableSize(structP))
+            return CffiErrorVariableSizeStruct(ip, structP);
         Tcl_WideInt wide;
         CHECK(Tclh_ObjToRangedInt(ip, objv[5], 0, INT_MAX, &wide));
         fieldAddr += structP->size * (int)wide;

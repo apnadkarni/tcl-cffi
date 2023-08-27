@@ -558,9 +558,13 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
+CffiResult CffiErrorVariableSizeStruct(Tcl_Interp *ip, CffiStruct *structP);
 Tcl_Size CffiStructSize(CffiInterpCtx *ipCtxP,
                         CffiStruct *structP,
-                        Tcl_Obj *fieldValueObjs);
+                        Tcl_Obj *structValueObj);
+Tcl_Size CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
+                                CffiStruct *structP,
+                                Tcl_Size vlaCount);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult
