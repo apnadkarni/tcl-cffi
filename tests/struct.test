@@ -157,7 +157,7 @@ namespace eval cffi::test {
 
     ###
     # struct allocate
-    testnumargs struct-allocate "::TestStruct allocate" "" "?COUNT?"
+    testnumargs struct-allocate "::TestStruct allocate" "" "?COUNT ?VLACOUNT??"
 
     test struct-allocate-0 "struct allocate" -setup {
         cffi::Struct create S {x int}

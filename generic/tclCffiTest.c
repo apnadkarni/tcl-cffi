@@ -950,6 +950,22 @@ getStringFromStructByvalStringArray(struct StructWithStringArrays s,
 #endif
 }
 
+struct StructWithVLA {
+    int count;
+    int values[1];
+};
+EXTERN int copyStructWithVLA (struct StructWithVLA *from, struct StructWithVLA *to)
+{
+    int i;
+    int sum;
+    to->count = from->count;
+    for (sum =0, i = 0; i < from->count; ++i) {
+        to->values[i] = from->values[i];
+        sum += from->values[i];
+    }
+    return sum;
+}
+
 EXTERN void
 getEinvalString(char *bufP)
 {

@@ -835,6 +835,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     static const char *defaultNotAllowedMsg =
         "Defaults are not allowed in this declaration context.";
     static const char *typeInvalidForContextMsg = "The specified type is not valid for the type declaration context.";
+    static const char *variableSizeNotAllowedMsg =
+        "Variable sized types are not allowed in this type declaration "
+        "context.";
     const char *message;
 
     message = paramAnnotClashMsg;
@@ -1278,6 +1281,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     typeAttrP->flags = flags;
+    
     return TCL_OK;
 
 invalid_format:
@@ -2956,4 +2960,46 @@ CffiTypeObjCmd(ClientData cdata,
 
     CffiTypeAndAttrsCleanup(&typeAttrs);
     return ret;
+}
+
+/* Function: CffiGetTclSizeFromNative
+ * Returns the type-dependent integer value stored at the specified location
+ *
+ * Parameters:
+ * valueP - pointer to location
+ * baseType - must be an integer type
+ *
+ * Returns:
+ * The integer value at the location.
+ */
+int CffiGetCountFromNative (const void *valueP, CffiBaseType baseType)
+{
+    /* TODO - fix up for 64-bits */
+#define RETURN(type_) return (int)(*(type_ *)valueP)
+    switch (baseType) {
+    case CFFI_K_TYPE_SCHAR:
+        RETURN(signed char);
+    case CFFI_K_TYPE_UCHAR:
+        RETURN(unsigned char);
+    case CFFI_K_TYPE_SHORT:
+        RETURN(short);
+    case CFFI_K_TYPE_USHORT:
+        RETURN(unsigned short);
+    case CFFI_K_TYPE_INT:
+        RETURN(int);
+    case CFFI_K_TYPE_UINT:
+        RETURN(unsigned int);
+    case CFFI_K_TYPE_LONG:
+        RETURN(long);
+    case CFFI_K_TYPE_ULONG:
+        RETURN(unsigned long);
+    case CFFI_K_TYPE_LONGLONG:
+        RETURN(long long);
+    case CFFI_K_TYPE_ULONGLONG:
+        RETURN(unsigned long long);
+    default:
+        /* Should not happen. */
+        CFFI_PANIC("CffiGetCountFromNative called on non-integer type");
+        return 0;/* Keep compiler happy */
+    }
 }
