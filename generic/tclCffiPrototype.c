@@ -232,14 +232,14 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
         Tcl_IncrRefCount(objs[i]);
         protoP->params[j].nameObj = objs[i];
         protoP->nParams += 1; /* Update incrementally for error cleanup after return */
-        if (CffiTypeIsVariableSizeArray(&protoP->params[j].typeAttrs.dataType))
+        if (CffiTypeIsVLA(&protoP->params[j].typeAttrs.dataType))
             need_pass2 = 1;
     }
 
     /* Check type definitions for dynamic arrays */
     if (need_pass2) {
         for (i = 0; i < protoP->nParams; ++i) {
-            if (CffiTypeIsVariableSizeArray(
+            if (CffiTypeIsVLA(
                     &protoP->params[i].typeAttrs.dataType)) {
                 int dynamicParamIndex = CffiFindDynamicCountParam(
                     ip,

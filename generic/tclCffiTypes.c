@@ -769,7 +769,7 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     if (sizeP) {
         if (CffiTypeIsNotArray(typeP))
             *sizeP = baseSize;
-        else if (CffiTypeIsVariableSizeArray(typeP))
+        else if (CffiTypeIsVLA(typeP))
             *sizeP = 0; /* Variable size array */
         else
             *sizeP = typeP->arraySize * baseSize;
@@ -1124,6 +1124,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                           "parameter direction.";
                 goto invalid_format;
             }
+            if ((flags & CFFI_F_ATTR_OUT)
+                && CffiTypeIsVariableSize(&typeAttrP->dataType)
+                && !CffiTypeIsVLA(&typeAttrP->dataType)) {
+                /* The type is itself variable size, not because param is array */
+                message = variableSizeNotAllowedMsg;
+                goto invalid_format;
+            }
             flags |= CFFI_F_ATTR_BYREF; /* out, inout always byref */
         }
         else {
@@ -1178,6 +1185,13 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     case CFFI_F_TYPE_PARSE_RETURN:
         /* Return - parameter-mode flags should not be set */
         CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_DIRECTION_MASK) == 0);
+        if (CffiTypeIsVariableSize(&typeAttrP->dataType)
+            && !CffiTypeIsVLA(&typeAttrP->dataType)) {
+            /* The type is itself variable size, not because param is array */
+            message = variableSizeNotAllowedMsg;
+            goto invalid_format;
+        }
+
         switch (baseType) {
         case CFFI_K_TYPE_BINARY:
         case CFFI_K_TYPE_CHAR_ARRAY:
@@ -1233,7 +1247,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 #endif
         case CFFI_K_TYPE_BYTE_ARRAY:
             if (CffiTypeIsNotArray(&typeAttrP->dataType)
-                || CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
+                || CffiTypeIsVLA(&typeAttrP->dataType)) {
                 message = "Fields of type chars, unichars, winchars or bytes must be fixed size "
                           "arrays.";
                 goto invalid_format;
@@ -1241,7 +1255,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             break;
         default:
 #ifdef OBSOLETE
-            if (CffiTypeIsVariableSizeArray(&typeAttrP->dataType)) {
+            if (CffiTypeIsVLA(&typeAttrP->dataType)) {
                 message = "Fields cannot be arrays of variable size.";
                 goto invalid_format;
             }

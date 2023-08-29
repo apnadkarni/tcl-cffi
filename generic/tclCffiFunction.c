@@ -1429,7 +1429,7 @@ CffiFunctionSetupArgs(CffiCall *callP,
             typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
-        if (CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
+        if (CffiTypeIsVLA(&typeAttrsP->dataType)) {
             /* Dynamic array. */
             need_pass2 = 1;
             continue;
@@ -1464,7 +1464,7 @@ CffiFunctionSetupArgs(CffiCall *callP,
             typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
-        if (! CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
+        if (! CffiTypeIsVLA(&typeAttrsP->dataType)) {
             /* This arg already been parsed successfully. Just load it. */
             CFFI_ASSERT(argsP[i].flags & CFFI_F_ARG_INITIALIZED);
             CffiReloadArg(callP, &argsP[i], typeAttrsP);

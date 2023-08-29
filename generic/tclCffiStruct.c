@@ -8,6 +8,10 @@
 #define TCLH_SHORTNAMES
 #include "tclCffiInt.h"
 
+static int CffiStructFindField(Tcl_Interp *ip,
+                               CffiStruct *structP,
+                               const char *fieldNameP);
+
 static CffiStruct *CffiStructCkalloc(Tcl_Size nfields)
 {
     size_t         sz;
@@ -221,7 +225,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
     CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
     if (structP->dynamicCountFieldIndex >= 0) {
         /* Case 1 */
-        CFFI_ASSERT(CffiTypeIsVariableSizeArray(typeP));
+        CFFI_ASSERT(CffiTypeIsVLA(typeP));
 
         int elemAlignment;
         int elemSize;
@@ -286,7 +290,7 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
     CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
     if (structP->dynamicCountFieldIndex >= 0) {
         /* Case 1 */
-        CFFI_ASSERT(CffiTypeIsVariableSizeArray(typeP));
+        CFFI_ASSERT(CffiTypeIsVLA(typeP));
 
         int elemAlignment;
         int elemSize;
@@ -325,6 +329,119 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
     /* Now ensure whole thing aligned to struct size */
     size = (size + structP->alignment - 1) & ~(structP->alignment - 1);
     return size;
+}
+
+/* Function: CffiStructComputeFieldAddress
+ * Calculates the offset of a field within a struct in an array of structs.
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * structP - struct descriptor
+ * structAddr - address of the native struct
+ * fldNameObj - name of the field.
+ * fldIndexP - (out) location to hold index of field
+ * fldAddrP - (out) location to hold the address of the field within the struct
+ * fldArraySizeP - (out) number of elements in the field (-1 if scalar)
+ *
+ * Returns:
+ * TCL_OK on success, TCL_ERROR on failure with error message in interpreter
+ */
+static CffiResult
+CffiStructComputeFieldAddress(CffiInterpCtx *ipCtxP,
+                              CffiStruct *structP,
+                              void *structAddr,
+                              Tcl_Obj *fldNameObj,
+                              int *fldIndexP,
+                              void **fldAddrP,
+                              int *fldArraySizeP)
+{
+    Tcl_Interp *ip  = ipCtxP->interp;
+
+    int fldIndex = CffiStructFindField(ip, structP, Tcl_GetString(fldNameObj));
+    if (fldIndex < 0)
+        return TCL_ERROR;
+
+    CffiField *fieldP = &structP->fields[fldIndex];
+    int fldArraySize     = fieldP->fieldType.dataType.arraySize;
+
+    /*
+     * Struct may be variable size either because
+     *  - last field is an VLA, or
+     *  - because last field is nested struct with a VLA. I
+     * If we are retrieving the last field and it is a VLA (first case),
+     * retrieve the dynamic array size
+     */
+    if (fldIndex == (structP->nFields - 1)
+        && CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
+        fldArraySize =
+            CffiStructGetDynamicCountNative(ipCtxP, structP, structAddr);
+        if (fldArraySize <= 0)
+            return TCL_ERROR;
+    }
+
+    *fldIndexP     = fldIndex;
+    *fldAddrP      = fieldP->offset + (char *)structAddr;
+    *fldArraySizeP = fldArraySize;
+    return TCL_OK;
+}
+
+/* Function: CffiStructComputeAddress
+ * Calculates the address of a struct in an array of structs.
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * structP - struct descriptor
+ * nativePointerObj - Tcl_Obj holding the pointer to the native struct location
+ * safe - if non-0, nativePointerObj must be a registered pointer
+ * indexObj - Tcl_Obj containing index into array of structs. If NULL, defaults
+ *  to index value of 0.
+ * structAddrP - (out) location to hold address of the struct
+ *
+ * Returns:
+ * TCL_OK on success, TCL_ERROR on failure with error message in interpreter
+ */
+static CffiResult
+CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
+                         CffiStruct *structP,
+                         Tcl_Obj *nativePointerObj,
+                         int safe,
+                         Tcl_Obj *indexObj,
+                         void **structAddrP)
+{
+    Tcl_Interp *ip  = ipCtxP->interp;
+    void *structAddr;
+
+    if (safe)
+        CHECK(Tclh_PointerObjVerify(
+            ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
+    else {
+        /* TODO - check - is this correct. Won't below check for registration? */
+        CHECK(Tclh_PointerUnwrapTagged(
+            ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
+        if (structAddr == NULL) {
+            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
+            return TCL_ERROR;
+        }
+    }
+
+    int structIndex; /* Index into array of structs */
+    if (indexObj) {
+        Tcl_WideInt wide;
+        CHECK(Tclh_ObjToRangedInt(ip, indexObj, 0, INT_MAX, &wide));
+        structIndex = (int)wide;
+    } else
+        structIndex = 0;
+
+    if (CffiStructIsVariableSize(structP)) {
+        /* Arrays of variable sized structs are not allowed. */
+        if (structIndex > 0)
+            return CffiErrorVariableSizeStruct(ip, structP);
+    } else {
+        /* Not variable size struct. Indexing allowed. */
+        structAddr = (structP->size * structIndex) + (char *)structAddr;
+    }
+    *structAddrP = structAddr;
+    return TCL_OK;
 }
 
 /* Function: CffiStructParse
@@ -446,7 +563,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
      */
     CffiType *lastFldTypeP = &structP->fields[nfields - 1].fieldType.dataType;
     if (CffiTypeIsVariableSize(lastFldTypeP)) {
-        if (CffiTypeIsVariableSize(lastFldTypeP)) {
+        if (CffiTypeIsVLA(lastFldTypeP)) {
             CFFI_ASSERT(lastFldTypeP->countHolderObj != NULL);
             int countFieldIndex;
             countFieldIndex = CffiFindDynamicCountField(
@@ -585,7 +702,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                 cffiBaseTypes[baseType].token,
                 Tcl_GetString(fieldP->fieldType.dataType.u.structP->name),
                 Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType)) {
+            if (CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
                 Tcl_AppendPrintfToObj(
                     objP, "[%s]", Tcl_GetString(fieldP->fieldType.dataType.countHolderObj));
             }
@@ -601,7 +718,11 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                                   "\n  %s %s",
                                   cffiBaseTypes[baseType].token,
                                   Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsArray(&fieldP->fieldType.dataType)) {
+            if (CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
+                Tcl_AppendPrintfToObj(
+                    objP, "[%s]", Tcl_GetString(fieldP->fieldType.dataType.countHolderObj));
+            }
+            else if (CffiTypeIsArray(&fieldP->fieldType.dataType)) {
                 Tcl_AppendPrintfToObj(
                     objP, "[%d]", fieldP->fieldType.dataType.arraySize);
 
@@ -800,7 +921,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
         int realArraySize = 0;
         /* The last field may be a variable sized array */
         if (i == (structP->nFields - 1)
-            && CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType)) {
+            && CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
             realArraySize =
                 CffiStructGetDynamicCountFromObj(ipCtxP, structP, structValueObj);
             if (realArraySize <= 0) {
@@ -871,7 +992,7 @@ CffiStructToObj(CffiInterpCtx *ipCtxP,
         const CffiField *fieldP = &structP->fields[i];
         Tcl_Obj *fieldObj;
         int count;
-        if (CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType)) {
+        if (CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
             count = CffiStructGetDynamicCountNative(ipCtxP, structP, valueP);
             if (count < 0)
                 return TCL_ERROR;
@@ -879,7 +1000,7 @@ CffiStructToObj(CffiInterpCtx *ipCtxP,
             count = fieldP->fieldType.dataType.arraySize;
         }
         /* fields other than last cannot be dynamic size */
-        CFFI_ASSERT((i == structP->nFields - 1) || ! CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType));
+        CFFI_ASSERT((i == structP->nFields - 1) || ! CffiTypeIsVLA(&fieldP->fieldType.dataType));
         ret = CffiNativeValueToObj(ipCtxP,
                                    &fieldP->fieldType,
                                    fieldP->offset + (char *)valueP,
@@ -1134,44 +1255,18 @@ CffiStructFromNativePointer(Tcl_Interp *ip,
                         )
 {
     CffiStruct *structP = structCtxP->structP;
-    int index;
-    void *valueP;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
+    void *structAddr;
     Tcl_Obj *resultObj;
 
-    if (safe)
-        CHECK(Tclh_PointerObjVerify(ip,
-                                    structCtxP->ipCtxP->tclhCtxP,
-                                    objv[2],
-                                    &valueP,
-                                    structP->name));
-    else {
-        /* TODO - check - is this correct. Won't below check for registration? */
-        CHECK(Tclh_PointerUnwrapTagged(ip,
-                                       structCtxP->ipCtxP->tclhCtxP,
-                                       objv[2],
-                                       &valueP,
-                                       structP->name));
-        if (valueP == NULL) {
-            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-            return TCL_ERROR;
-        }
-    }
+    CHECK(CffiStructComputeAddress(ipCtxP,
+                                   structP,
+                                   objv[2],
+                                   safe,
+                                   objc > 3 ? objv[3] : NULL,
+                                   &structAddr));
 
-    /* TBD - check alignment of valueP */
-
-    if (objc == 4) {
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[3], 0, INT_MAX, &wide));
-        index = (int) wide;
-    }
-    else
-        index = 0;
-
-    /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructToObj(structCtxP->ipCtxP,
-                          structP,
-                          (index * structP->size) + (char *)valueP,
-                          &resultObj));
+    CHECK(CffiStructToObj(ipCtxP, structP, structAddr, &resultObj));
 
     Tcl_SetObjResult(ip, resultObj);
     return TCL_OK;
@@ -1263,45 +1358,22 @@ CffiStructToNativePointer(Tcl_Interp *ip,
                           CffiStructCmdCtx *structCtxP,
                           int safe)
 {
+    void *structAddr;
     CffiStruct *structP = structCtxP->structP;
-    void *valueP;
-    int index;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
 
-    if (safe)
-        CHECK(Tclh_PointerObjVerify(ip,
-                                    structCtxP->ipCtxP->tclhCtxP,
-                                    objv[2],
-                                    &valueP,
-                                    structP->name));
-    else {
-        /* TODO - check - is this correct. Won't below check for registration? */
-        CHECK(Tclh_PointerUnwrapTagged(ip,
-                                       structCtxP->ipCtxP->tclhCtxP,
-                                       objv[2],
-                                       &valueP,
-                                       structP->name));
-        if (valueP == NULL) {
-            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-            return TCL_ERROR;
-        }
-    }
+    CHECK(CffiStructComputeAddress(ipCtxP,
+                                   structP,
+                                   objv[2],
+                                   safe,
+                                   objc > 4 ? objv[4] : NULL,
+                                   &structAddr));
 
-    /* TBD - check alignment of valueP */
-
-    if (objc == 5) {
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
-        index = (int) wide;
-    }
-    else
-        index = 0;
-
-    /* TBD - check addition does not cause valueP to overflow */
-    CHECK(CffiStructFromObj(structCtxP->ipCtxP,
+    CHECK(CffiStructFromObj(ipCtxP,
                             structP,
                             objv[3],
                             CFFI_F_PRESERVE_ON_ERROR,
-                            (index * structP->size) + (char *)valueP,
+                            structAddr,
                             NULL));
 
     return TCL_OK;
@@ -1393,71 +1465,36 @@ CffiStructGetNativePointer(Tcl_Interp *ip,
                            CffiStructCmdCtx *structCtxP,
                            int safe)
 {
-    CffiStruct *structP = structCtxP->structP;
-    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
-    int fieldIndex;
-    Tcl_Obj *valueObj;
-    void *structAddr;
-
     /* S fieldpointer POINTER FIELDNAME ?INDEX? */
     CFFI_ASSERT(objc >= 4);
 
-    fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
-    if (fieldIndex < 0)
-        return TCL_ERROR;
+    CffiStruct *structP = structCtxP->structP;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
+    Tcl_Obj *valueObj;
+    void *structAddr;
+    void *fldAddr;
+    int fldArraySize;
+    int fldIndex;
 
-    if (safe)
-        CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->tclhCtxP, objv[2], &structAddr, structP->name));
-    else {
-        /* TODO - check - is this correct. Won't below check for registration? */
-        CHECK(Tclh_PointerUnwrapTagged(
-            ip, ipCtxP->tclhCtxP, objv[2], &structAddr, structP->name));
-        if (structAddr == NULL) {
-            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-            return TCL_ERROR;
-        }
-    }
-
-    int structIndex = 0; /* Index into array of structs */
-    if (objc > 4) {
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
-        structIndex = (int)wide;
-    }
-
-    CffiField *fieldP = &structP->fields[fieldIndex];
-    int fieldArraySize     = fieldP->fieldType.dataType.arraySize;
-    char *fieldAddr;
-
-    if (CffiStructIsVariableSize(structP)) {
-        /* Arrays of variable sized structs are not allowed. */
-        if (structIndex > 0)
-            return CffiErrorVariableSizeStruct(ip, structP);
-        /*
-         * Struct may be variable size either because 
-         *  - last field is an VLA, or
-         *  - because last field is nested struct with a VLA. I
-         * If we are retrieving the last field and it is a VLA (first case),
-         * retrieve the dynamic array size
-         */
-        if (fieldIndex == (structP->nFields - 1)
-            && CffiTypeIsVariableSizeArray(&fieldP->fieldType.dataType)) {
-            fieldArraySize =
-                CffiStructGetDynamicCountNative(ipCtxP, structP, structAddr);
-            if (fieldArraySize <= 0) {
-                return TCL_ERROR;
-            } 
-        }
-    }
-    else {
-        /* Not variable size struct. Indexing allowed. */
-        structAddr = (structP->size * structIndex) + (char *)structAddr;
-    }
-    fieldAddr = fieldP->offset + (char *)structAddr;
-
-    CHECK(CffiNativeValueToObj(
-        ipCtxP, &fieldP->fieldType, fieldAddr, 0, fieldArraySize, &valueObj));
+    CHECK(CffiStructComputeAddress(ipCtxP,
+                                   structP,
+                                   objv[2],
+                                   safe,
+                                   objc > 4 ? objv[4] : NULL,
+                                   &structAddr));
+    CHECK(CffiStructComputeFieldAddress(ipCtxP,
+                                        structP,
+                                        structAddr,
+                                        objv[3],
+                                        &fldIndex,
+                                        &fldAddr,
+                                        &fldArraySize));
+    CHECK(CffiNativeValueToObj(ipCtxP,
+                               &structP->fields[fldIndex].fieldType,
+                               fldAddr,
+                               0,
+                               fldArraySize,
+                               &valueObj));
     Tcl_SetObjResult(ip, valueObj);
     return TCL_OK;
 }
@@ -1549,57 +1586,34 @@ CffiStructSetNativePointer(Tcl_Interp *ip,
                            CffiStructCmdCtx *structCtxP,
                            int safe)
 {
-    CffiStruct *structP = structCtxP->structP;
-    char *fieldAddr;
-    int fieldIndex;
-    void *pv;
-
     /* S fieldpointer POINTER FIELDNAME VALUE ?INDEX? */
     CFFI_ASSERT(objc >= 5);
+    CffiStruct *structP = structCtxP->structP;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
 
-    fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
-    if (fieldIndex < 0)
-        return TCL_ERROR;
-
-    if (safe)
-        CHECK(Tclh_PointerObjVerify(ip,
-                                    structCtxP->ipCtxP->tclhCtxP,
-                                    objv[2],
-                                    &pv,
-                                    structP->name));
-    else {
-        /* TODO - check - is this correct. Won't below check for registration? */
-        CHECK(Tclh_PointerUnwrapTagged(ip,
-                                       structCtxP->ipCtxP->tclhCtxP,
-                                       objv[2],
-                                       &pv,
-                                       structP->name));
-        if (pv == NULL) {
-            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-            return TCL_ERROR;
-        }
-    }
-
-    fieldAddr = pv;
-
-    /* TBD - sanity check alignment of fieldP for the struct */
-
-    if (objc > 5) {
-        if (CffiStructIsVariableSize(structP)) {
-            return CffiErrorVariableSizeStruct(ip, structP);
-        }
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[5], 0, INT_MAX, &wide));
-        fieldAddr += structP->size * (int)wide;
-    }
-    fieldAddr += structP->fields[fieldIndex].offset;
-
-    CHECK(CffiNativeValueFromObj(structCtxP->ipCtxP,
-                                 &structP->fields[fieldIndex].fieldType,
-                                 0,
+    void *structAddr;
+    void *fldAddr;
+    int fldArraySize;
+    int fldIndex;
+    CHECK(CffiStructComputeAddress(ipCtxP,
+                                   structP,
+                                   objv[2],
+                                   safe,
+                                   objc > 5 ? objv[5] : NULL,
+                                   &structAddr));
+    CHECK(CffiStructComputeFieldAddress(ipCtxP,
+                                        structP,
+                                        structAddr,
+                                        objv[3],
+                                        &fldIndex,
+                                        &fldAddr,
+                                        &fldArraySize));
+    CHECK(CffiNativeValueFromObj(ipCtxP,
+                                 &structP->fields[fldIndex].fieldType,
+                                 fldArraySize,
                                  objv[4],
                                  CFFI_F_PRESERVE_ON_ERROR,
-                                 fieldAddr,
+                                 fldAddr,
                                  0,
                                  NULL));
     return TCL_OK;
@@ -1694,6 +1708,7 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
                                  int safe)
 {
     CffiStruct *structP = structCtxP->structP;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
     void *structAddr;
     Tcl_Size nNames;
     int ret;
@@ -1701,66 +1716,50 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
     /* S fieldpointer POINTER FIELDNAMES ?INDEX? */
     CFFI_ASSERT(objc >= 4);
 
-    if (safe)
-        CHECK(Tclh_PointerObjVerify(ip,
-                                    structCtxP->ipCtxP->tclhCtxP,
-                                    objv[2],
-                                    &structAddr,
-                                    structP->name));
-    else {
-        /* TODO - check - is this correct. Won't below check for registration? */
-        CHECK(Tclh_PointerUnwrapTagged(ip,
-                                 structCtxP->ipCtxP->tclhCtxP,
-                                 objv[2],
-                                 &structAddr,
-                                 structP->name));
-        if (structAddr == NULL) {
-            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-            return TCL_ERROR;
-        }
-    }
-    if (objc > 4) {
-        /* Index into array of structs */
-        if (CffiStructIsVariableSize(structP))
-            return CffiErrorVariableSizeStruct(ip, structP);
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &wide));
-        structAddr = (structP->size * (int)wide) + (char *)structAddr;
-    }
+    CHECK(CffiStructComputeAddress(structCtxP->ipCtxP,
+                                   structP,
+                                   objv[2],
+                                   safe,
+                                   objc > 4 ? objv[4] : NULL,
+                                   &structAddr));
 
     /*
      * Just a little note here about not using Tcl_ListObjGetElements
      * here - the fear is that it may shimmer in one of the calls.
-     * To guard against that we would need to cal Tcl_DuplicateObj.
+     * To guard against that we would need to call Tcl_DuplicateObj.
      * That is slower than the below approach since number of fields
      * is likely quite small.
      */
     ret = Tcl_ListObjLength(ip, objv[3], &nNames);
     if (ret == TCL_OK) {
-        int fieldIndex;
         Tcl_Obj *valueObj;
         Tcl_Obj *valuesObj;
         int i;
         valuesObj = Tcl_NewListObj(nNames, NULL);
         for (i = 0; ret == TCL_OK && i < nNames; ++i) {
             Tcl_Obj *nameObj;
+            int fldIndex;
+            void *fldAddr;
+            int fldArraySize;
             Tcl_ListObjIndex(NULL, objv[3], i, &nameObj);
-            fieldIndex =
-                CffiStructFindField(ip, structP, Tcl_GetString(nameObj));
-            if (fieldIndex < 0)
-                ret = TCL_ERROR;
-            else {
-                ret = CffiNativeValueToObj(
-                    structCtxP->ipCtxP,
-                    &structP->fields[fieldIndex].fieldType,
-                    structP->fields[fieldIndex].offset + (char *)structAddr,
-                    0,
-                    structP->fields[fieldIndex].fieldType.dataType.arraySize,
-                    &valueObj);
+            ret = CffiStructComputeFieldAddress(ipCtxP,
+                                                structP,
+                                                structAddr,
+                                                nameObj,
+                                                &fldIndex,
+                                                &fldAddr,
+                                                &fldArraySize);
+            if (ret == TCL_OK) {
+                ret = CffiNativeValueToObj(ipCtxP,
+                                           &structP->fields[fldIndex].fieldType,
+                                           fldAddr,
+                                           0,
+                                           fldArraySize,
+                                           &valueObj);
                 if (ret == TCL_OK) {
                     Tcl_ListObjAppendElement(NULL, valuesObj, valueObj);
                 }
-            }
+            } 
         }
         if (ret == TCL_OK)
             Tcl_SetObjResult(ip, valuesObj);
@@ -1855,37 +1854,33 @@ CffiStructFieldPointerCmd(Tcl_Interp *ip,
                           Tcl_Obj *const objv[],
                           CffiStructCmdCtx *structCtxP)
 {
-    CffiStruct *structP = structCtxP->structP;
-    void *pv;
-    char *fieldAddr;
-    int fieldIndex;
-
     /* S fieldpointer POINTER FIELDNAME ?TAG? ?INDEX? */
     CFFI_ASSERT(objc >= 4);
 
-    fieldIndex = CffiStructFindField(ip, structP, Tcl_GetString(objv[3]));
-    if (fieldIndex < 0)
-        return TCL_ERROR;
-
-    CHECK(Tclh_PointerObjVerify(
-        ip, structCtxP->ipCtxP->tclhCtxP, objv[2], &pv, structP->name));
-    fieldAddr = pv;
-
-    /* TBD - check alignment of fieldP for the struct */
-    if (objc == 6) {
-        if (CffiStructIsVariableSize(structP))
-            return CffiErrorVariableSizeStruct(ip, structP);
-        Tcl_WideInt wide;
-        CHECK(Tclh_ObjToRangedInt(ip, objv[5], 0, INT_MAX, &wide));
-        fieldAddr += structP->size * (int)wide;
-    }
-    fieldAddr += structP->fields[fieldIndex].offset;
+    CffiStruct *structP = structCtxP->structP;
+    CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
+    void *structAddr;
+    void *fldAddr;
+    int fldArraySize;
+    int fldIndex;
+    CHECK(CffiStructComputeAddress(ipCtxP,
+                                   structP,
+                                   objv[2],
+                                   1,
+                                   objc > 5 ? objv[5] : NULL,
+                                   &structAddr));
+    CHECK(CffiStructComputeFieldAddress(ipCtxP,
+                                        structP,
+                                        structAddr,
+                                        objv[3],
+                                        &fldIndex,
+                                        &fldAddr,
+                                        &fldArraySize));
     Tcl_SetObjResult(ip,
-                     Tclh_PointerWrap(fieldAddr, objc > 4 ? objv[4] : NULL));
+                     Tclh_PointerWrap(fldAddr, objc > 4 ? objv[4] : NULL));
 
     return TCL_OK;
 }
-
 
 /* Function: CffiStructFreeCmd
  * Releases the memory allocated for a struct instance.
