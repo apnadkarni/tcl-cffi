@@ -105,7 +105,7 @@ CffiFindDynamicCountField(Tcl_Interp *ip,
  */
 static int
 CffiStructGetDynamicCountNative(CffiInterpCtx *ipCtxP,
-                                CffiStruct *structP,
+                                const CffiStruct *structP,
                                 void *valueP)
 {
     int fldIndex = structP->dynamicCountFieldIndex;
@@ -113,7 +113,7 @@ CffiStructGetDynamicCountNative(CffiInterpCtx *ipCtxP,
     /* fldIndex can never be last one, already checked in parse */
     CFFI_ASSERT(fldIndex < structP->nFields - 1);
 
-    CffiField *fieldP = &structP->fields[fldIndex];
+    const CffiField *fieldP = &structP->fields[fldIndex];
     ptrdiff_t offset = fieldP->offset;
     int vlaCount = CffiGetCountFromNative(
         offset + (char *)valueP, fieldP->fieldType.dataType.baseType);
@@ -142,7 +142,7 @@ CffiStructGetDynamicCountNative(CffiInterpCtx *ipCtxP,
  */
 static int
 CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
-                             CffiStruct *structP,
+                             const CffiStruct *structP,
                              Tcl_Obj *structValueObj)
 {
     int fldIndex = structP->dynamicCountFieldIndex;
@@ -185,7 +185,7 @@ CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
  * array field.
  *
  * Parameters:
- * ipCtxP - interp context
+ * ipCtxP - interp context. Used for error messages. May be NULL.
  * structP - struct descriptor. Must be a struct of variable size
  * vlaCount - number of array elements in variable component of the struct.
  *   This may be either the passed struct or a nested field. Note there
@@ -196,10 +196,10 @@ CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
  * Size of the struct or -1 if it could not be calculated.
  * The interp result holds an error message on failure.
  */
-Tcl_Size
+int
 CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
                        CffiStruct *structP,
-                       Tcl_Size vlaCount)
+                       int vlaCount)
 {
     if (!CffiStructIsVariableSize(structP))
         return structP->size;
@@ -209,7 +209,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
             "Variable length array size must be greater than 0.");
     }
 
-    Tcl_Size size = structP->size; /* Base size - should include alignment */
+    int size = structP->size; /* Base size - should include alignment */
 
     /*
      * There are two possibilities. The struct is variable size because
@@ -229,7 +229,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
 
         int elemAlignment;
         int elemSize;
-        CffiTypeLayoutInfo(typeP, &elemSize, NULL, &elemAlignment);
+        CffiTypeLayoutInfo(typeP, 0, &elemSize, NULL, &elemAlignment);
         /* Align to field size */
         size = (size + elemAlignment - 1) & ~(elemAlignment - 1);
         size += vlaCount * elemSize;
@@ -237,7 +237,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
         /* Case 2 - vlaCount is meant for nested component */
         CFFI_ASSERT(typeP->baseType == CFFI_K_TYPE_STRUCT);
         CffiStruct *innerStructP = typeP->u.structP;
-        Tcl_Size innerStructSize =
+        int innerStructSize =
             CffiStructSizeVLACount(ipCtxP, innerStructP, vlaCount);
         if (innerStructSize < 0)
             return -1;
@@ -255,7 +255,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
  * Get the number of bytes needed to store a struct.
  *
  * Parameters:
- * ipCtxP - interp context
+ * ipCtxP - interp context. Used for error messages. May be NULL.
  * structP - struct descriptor
  * structValueObj - struct value as a dictionary mapping field names to values.
  *   May be NULL for fixed size structs.
@@ -267,15 +267,15 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
  * is variable size and not enough field values were not provided). The
  * interp result holds an error message on failure.
  */
-Tcl_Size
+int
 CffiStructSize(CffiInterpCtx *ipCtxP,
-               CffiStruct *structP,
+               const CffiStruct *structP,
                Tcl_Obj *structValueObj)
 {
     if (!CffiStructIsVariableSize(structP))
         return structP->size;
 
-    Tcl_Size size = structP->size; /* Base size - should include alignment */
+    int size = structP->size; /* Base size - should include alignment */
 
     /*
      * There are two possibilities. The struct is variable size because
@@ -286,7 +286,7 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
      * Note that arrays of variable sized structs are not permitted.
      */
     int lastFldIndex = structP->nFields - 1;
-    CffiType *typeP  = &structP->fields[lastFldIndex].fieldType.dataType;
+    const CffiType *typeP  = &structP->fields[lastFldIndex].fieldType.dataType;
     CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
     if (structP->dynamicCountFieldIndex >= 0) {
         /* Case 1 */
@@ -294,9 +294,9 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
 
         int elemAlignment;
         int elemSize;
-        CffiTypeLayoutInfo(typeP, &elemSize, NULL, &elemAlignment);
+        CffiTypeLayoutInfo(typeP, 0, &elemSize, NULL, &elemAlignment);
 
-        Tcl_Size count;
+        int count;
         count = CffiStructGetDynamicCountFromObj(ipCtxP, structP, structValueObj);
         if (count < 0)
             return -1;
@@ -317,7 +317,7 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
             return -1;
         }
 
-        Tcl_Size innerStructSize =
+        int innerStructSize =
             CffiStructSize(ipCtxP, innerStructP, innerStructObj);
         if (innerStructSize < 0)
             return -1;
@@ -539,8 +539,11 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         int field_alignment;
         CFFI_ASSERT(fieldP->fieldType.dataType.baseType != CFFI_K_TYPE_VOID);
         CffiTypeLayoutInfo(
-            &fieldP->fieldType.dataType, NULL, &field_size, &field_alignment);
-        /* Note field_size will be 0 for dynamic fields - last one */
+            &fieldP->fieldType.dataType, 0, NULL, &field_size, &field_alignment);
+        /*
+         * Note field_size will be 0 for dynamic fields - last one since we
+         * do not know VLA size when defining type
+         */
         CFFI_ASSERT(field_size > 0 || i == nfields - 1);
 
         if (field_alignment > struct_alignment)
@@ -552,7 +555,6 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         fieldP->size   = field_size;
         if (field_size > 0) {
             /* Fixed size field */
-            CFFI_ASSERT(i == nfields - 1);
             offset += field_size;
         }
     }

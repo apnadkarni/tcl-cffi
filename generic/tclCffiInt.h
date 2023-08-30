@@ -175,7 +175,8 @@ typedef struct CffiType {
     } u;
     Tcl_Obj *countHolderObj; /* Holds the name of the slot (e.g. parameter name)
                                 that contains the actual count at call time */
-    int baseTypeSize;        /* size of baseType */
+    int baseTypeSize;        /* Size of baseType. For variable size structs,
+                                this does not include the variable part. */
     CffiTypeFlags flags;
 } CffiType;
 CFFI_INLINE int CffiTypeIsArray(const CffiType *typeP) {
@@ -544,6 +545,7 @@ void CffiTypeCleanup(CffiType *);
 int CffiGetCountFromNative (const void *valueP, CffiBaseType baseType);
 int CffiTypeActualSize(const CffiType *typeP);
 void CffiTypeLayoutInfo(const CffiType *typeP,
+                        int vlaCount,
                         int *baseSizeP,
                         int *sizeP,
                         int *alignP);
@@ -560,12 +562,12 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorVariableSizeStruct(Tcl_Interp *ip, CffiStruct *structP);
-Tcl_Size CffiStructSize(CffiInterpCtx *ipCtxP,
-                        CffiStruct *structP,
+int CffiStructSize(CffiInterpCtx *ipCtxP,
+                        const CffiStruct *structP,
                         Tcl_Obj *structValueObj);
-Tcl_Size CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
+int CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
                                 CffiStruct *structP,
-                                Tcl_Size vlaCount);
+                                int vlaCount);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult

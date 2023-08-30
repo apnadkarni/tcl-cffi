@@ -353,6 +353,7 @@ void CffiTypeInit(CffiType *toP, CffiType *fromP)
         toP->baseType = fromP->baseType;
         toP->arraySize = fromP->arraySize;
         toP->countHolderObj = fromP->countHolderObj;
+        toP->flags          = fromP->flags;
         if (toP->countHolderObj)
             Tcl_IncrRefCount(toP->countHolderObj);
         switch (fromP->baseType) {
@@ -736,6 +737,10 @@ CffiTypeActualSize(const CffiType *typeP)
  *
  * Parameters:
  *   typeP - pointer to the CffiType
+ *   vlaCount - number of elements in a Variable Size Array type. Ignored
+ *           unless the type is a VLA or a struct with a nested VLA field.
+ *           Note type checking does not permit a VLA of structs which
+ *           themselves contain a VLA field.
  *   baseSizeP - if non-NULL, location to store base size of the type.
  *   sizeP - if non-NULL, location to store size of the type. For scalars,
  *           the size and base size are the same. For arrays, the former is
@@ -745,6 +750,7 @@ CffiTypeActualSize(const CffiType *typeP)
  */
 void
 CffiTypeLayoutInfo(const CffiType *typeP,
+                    int vlaCount,
                     int *baseSizeP,
                     int *sizeP,
                     int *alignP)
@@ -754,11 +760,16 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     CffiBaseType baseType;
 
     baseType = typeP->baseType;
-    baseSize = typeP->baseTypeSize;
-    if (baseType == CFFI_K_TYPE_STRUCT)
-        alignment = typeP->u.structP->alignment;
-    else
+    if (baseType == CFFI_K_TYPE_STRUCT) {
+        CffiStruct *structP = typeP->u.structP;
+        alignment = structP->alignment;
+        baseSize  = CffiStructSizeVLACount(NULL, structP, vlaCount);
+        CFFI_ASSERT(baseSize > 0);
+    }
+    else {
+        baseSize  = typeP->baseTypeSize;
         alignment = baseSize;
+    }
     if (baseSize == 0 && baseType != CFFI_K_TYPE_VOID) {
         TCLH_PANIC("Unexpected 0 size type %d", baseType);
     }
@@ -769,8 +780,12 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     if (sizeP) {
         if (CffiTypeIsNotArray(typeP))
             *sizeP = baseSize;
-        else if (CffiTypeIsVLA(typeP))
-            *sizeP = 0; /* Variable size array */
+        else if (CffiTypeIsVLA(typeP)) {
+            /* Cannot have a VLA of variable sized structs */
+            CFFI_ASSERT(baseType != CFFI_K_TYPE_STRUCT
+                        || !CffiStructIsVariableSize(typeP->u.structP));
+            *sizeP = vlaCount * baseSize ; /* Variable size array */
+        }
         else
             *sizeP = typeP->arraySize * baseSize;
     }
@@ -1182,12 +1197,14 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             }
         }
         break;
+
     case CFFI_F_TYPE_PARSE_RETURN:
         /* Return - parameter-mode flags should not be set */
         CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_DIRECTION_MASK) == 0);
+
         if (CffiTypeIsVariableSize(&typeAttrP->dataType)
             && !CffiTypeIsVLA(&typeAttrP->dataType)) {
-            /* The type is itself variable size, not because param is array */
+            /* The type is itself variable size, not because it is an array */
             message = variableSizeNotAllowedMsg;
             goto invalid_format;
         }
@@ -1231,6 +1248,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             break;
         }
         break;
+
     case CFFI_F_TYPE_PARSE_FIELD:
         /* Struct field - parameter-mode flags should not be set */
         CFFI_ASSERT((flags & CFFI_F_ATTR_PARAM_MASK) == 0);
@@ -1254,12 +1272,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             }
             break;
         default:
-#ifdef OBSOLETE
-            if (CffiTypeIsVLA(&typeAttrP->dataType)) {
-                message = "Fields cannot be arrays of variable size.";
-                goto invalid_format;
-            }
-#endif
             break;
         }
         break;
@@ -1295,7 +1307,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     typeAttrP->flags = flags;
-    
+
     return TCL_OK;
 
 invalid_format:
@@ -1754,7 +1766,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
      */
 
     /* Calculate offset into memory where this value is to be stored */
-    if (typeAttrsP->dataType.arraySize == 0) {
+    if (CffiTypeIsVariableSize(&typeAttrsP->dataType)) {
         if (valueIndex != 0) {
             Tcl_SetResult(ip,
                           "Internal error: dynamic array is nested. Should not "
@@ -2064,7 +2076,7 @@ CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
     }
 
     /* Calculate offset into memory where this value is to be stored */
-    if (typeAttrsP->dataType.arraySize == 0) {
+    if (CffiTypeIsVariableSize(&typeAttrsP->dataType)) {
         if (startIndex != 0) {
             Tcl_SetResult(ip,
                           "Internal error: dynamic array is nested. Should not "
@@ -2141,7 +2153,7 @@ CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
             int offset;
             int elem_size;
 
-            CffiTypeLayoutInfo(&typeAttrsP->dataType, &elem_size, NULL, NULL);
+            CffiTypeLayoutInfo(&typeAttrsP->dataType, 0, &elem_size, NULL, NULL);
             CFFI_ASSERT(elem_size > 0);
             listObj = Tcl_NewListObj(count, NULL);
             for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
@@ -2898,6 +2910,29 @@ CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP)
     return resultObj;
 }
 
+static CffiResult
+CffiParseParseMode(Tcl_Interp *ip, Tcl_Obj *parseModeObj, int *parseModeP)
+{
+    int idx;
+    static const struct {
+        const char *modeName;
+        int mode;
+    } parseModes[] = {{"", -1},
+                      {"param", CFFI_F_TYPE_PARSE_PARAM},
+                      {"return", CFFI_F_TYPE_PARSE_RETURN},
+                      {"field", CFFI_F_TYPE_PARSE_FIELD},
+                      {NULL, 0}};
+    CHECK(Tcl_GetIndexFromObjStruct(ip,
+                                    parseModeObj,
+                                    parseModes,
+                                    sizeof(parseModes[0]),
+                                    "parse mode",
+                                    0,
+                                    &idx));
+    *parseModeP = parseModes[idx].mode;
+    return TCL_OK;
+}
+
 CffiResult
 CffiTypeObjCmd(ClientData cdata,
                 Tcl_Interp *ip,
@@ -2906,39 +2941,59 @@ CffiTypeObjCmd(ClientData cdata,
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiTypeAndAttrs typeAttrs;
-    CffiResult ret;
     enum cmdIndex { INFO, SIZE, COUNT };
     int cmdIndex;
     int baseSize, size, alignment;
     int parse_mode;
+    Tcl_WideInt wide;
     static const Tclh_SubCommand subCommands[] = {
-        {"info", 1, 2, "TYPE ?PARSEMODE?", NULL},
-        {"size", 1, 1, "TYPE", NULL},
+        {"info", 1, 5, "TYPE ?-parsemode PARSEMODE? ?-vlacount VLACOUNT?", NULL},
+        {"size", 1, 3, "TYPE ?-vlacount VLACOUNT?", NULL},
         {"count", 1, 1, "TYPE", NULL},
         {NULL}
     };
+    enum Opts { PARSEMODE, VLACOUNT };
+    static const char *const opts[] = {"-parsemode", "-vlacount", NULL};
+    int vlaCount = -1;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
-
     /* For type info, check if a parse mode is specified */
     parse_mode = -1;
     if (cmdIndex == INFO && objc == 4) {
-        const char *s = Tcl_GetString(objv[3]);
-        if (*s == '\0')
-            parse_mode = -1;
-        else if (!strcmp(s, "param"))
-            parse_mode = CFFI_F_TYPE_PARSE_PARAM;
-        else if (!strcmp(s, "return"))
-            parse_mode = CFFI_F_TYPE_PARSE_RETURN;
-        else if (!strcmp(s, "field"))
-            parse_mode = CFFI_F_TYPE_PARSE_FIELD;
-        else
-            return Tclh_ErrorInvalidValue(ip, objv[3], "Invalid parse mode.");
+        /* For backwards compat to 1.x */
+        if (CffiParseParseMode(ip, objv[3], &parse_mode) != TCL_OK)
+            return TCL_ERROR;
+    } else {
+        int optIndex;
+        int i;
+        for (i = 3; i < objc; ++i) {
+            CHECK(Tcl_GetIndexFromObj(ip, objv[i], opts, "option", 0, &optIndex));
+            if (i == objc-1)
+                return Tclh_ErrorOptionValueMissing(ip, objv[i], NULL);
+            if (cmdIndex == COUNT || (cmdIndex == SIZE && optIndex == PARSEMODE)) {
+                return Tclh_ErrorInvalidValue(ip, objv[i], "option");
+            }
+            ++i;
+            switch (optIndex) {
+            case PARSEMODE:
+                CHECK(CffiParseParseMode(ip, objv[i], &parse_mode));
+                break;
+            case VLACOUNT:
+                CHECK(Tclh_ObjToRangedInt(ip, objv[i], 0, INT_MAX, &wide));
+                vlaCount = (int)wide;
+                break;
+            }
+        }
     }
-    ret = CffiTypeAndAttrsParse(
-        ipCtxP, objv[2], parse_mode, &typeAttrs);
-    if (ret == TCL_ERROR)
-        return ret;
+
+    CHECK(CffiTypeAndAttrsParse(ipCtxP, objv[2], parse_mode, &typeAttrs));
+    if (CffiTypeIsVariableSize(&typeAttrs.dataType) && vlaCount < 0) {
+        CffiTypeAndAttrsCleanup(&typeAttrs);
+        return Tclh_ErrorOptionMissingStr(
+            ip,
+            "-vlacount",
+            "This option is required for variable size structs.");
+    }
 
     if (cmdIndex == COUNT) {
         /* type count */
@@ -2948,7 +3003,7 @@ CffiTypeObjCmd(ClientData cdata,
             Tcl_SetObjResult(ip, typeAttrs.dataType.countHolderObj);
     }
     else {
-        CffiTypeLayoutInfo(&typeAttrs.dataType, &baseSize, &size, &alignment);
+        CffiTypeLayoutInfo(&typeAttrs.dataType, vlaCount, &baseSize, &size, &alignment);
         if (cmdIndex == SIZE)
             Tcl_SetObjResult(ip, Tcl_NewIntObj(size));
         else {
@@ -2973,7 +3028,7 @@ CffiTypeObjCmd(ClientData cdata,
     }
 
     CffiTypeAndAttrsCleanup(&typeAttrs);
-    return ret;
+    return TCL_OK;
 }
 
 /* Function: CffiGetTclSizeFromNative
