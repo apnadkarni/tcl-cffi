@@ -146,33 +146,33 @@ CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
                              Tcl_Obj *structValueObj)
 {
     int fldIndex = structP->dynamicCountFieldIndex;
+    Tcl_Interp *ip = ipCtxP ? ipCtxP->interp : NULL;
+
     CFFI_ASSERT(structP->dynamicCountFieldIndex >= 0);
     /* fldIndex can never be last one, already checked in parse */
     CFFI_ASSERT(fldIndex < structP->nFields - 1);
 
     if (structValueObj == NULL) {
         Tclh_ErrorInvalidValue(
-            ipCtxP->interp,
+            ip,
             structP->fields[fldIndex].nameObj,
             "No value supplied for dynamic field count.");
         return -1;
 
     }
     Tcl_Obj *countObj;
-    if (Tcl_DictObjGet(ipCtxP->interp,
-                       structValueObj,
-                       structP->fields[fldIndex].nameObj,
-                       &countObj)
+    if (Tcl_DictObjGet(
+            ip, structValueObj, structP->fields[fldIndex].nameObj, &countObj)
             != TCL_OK
         || countObj == NULL) {
         return -1;
     }
     int count;
-    if (Tcl_GetIntFromObj(ipCtxP->interp, countObj, &count) != TCL_OK)
+    if (Tcl_GetIntFromObj(ip, countObj, &count) != TCL_OK)
         return -1;
     if (count <= 0) {
         Tclh_ErrorInvalidValue(
-            ipCtxP->interp,
+            ip,
             countObj,
             "Variable length array size must be greater than 0.");
         return -1;
@@ -204,9 +204,11 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
     if (!CffiStructIsVariableSize(structP))
         return structP->size;
 
+    Tcl_Interp *ip = ipCtxP ? ipCtxP->interp : NULL;
+
     if (vlaCount <= 0) {
-        return Tclh_ErrorInvalidValue(ipCtxP->interp, NULL, 
-            "Variable length array size must be greater than 0.");
+        return Tclh_ErrorInvalidValue(
+            ip, NULL, "Variable length array size must be greater than 0.");
     }
 
     int size = structP->size; /* Base size - should include alignment */
@@ -229,7 +231,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
 
         int elemAlignment;
         int elemSize;
-        CffiTypeLayoutInfo(typeP, 0, &elemSize, NULL, &elemAlignment);
+        CffiTypeLayoutInfo(ipCtxP, typeP, 0, &elemSize, NULL, &elemAlignment);
         /* Align to field size */
         size = (size + elemAlignment - 1) & ~(elemAlignment - 1);
         size += vlaCount * elemSize;
@@ -294,7 +296,7 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
 
         int elemAlignment;
         int elemSize;
-        CffiTypeLayoutInfo(typeP, 0, &elemSize, NULL, &elemAlignment);
+        CffiTypeLayoutInfo(ipCtxP, typeP, 0, &elemSize, NULL, &elemAlignment);
 
         int count;
         count = CffiStructGetDynamicCountFromObj(ipCtxP, structP, structValueObj);
@@ -538,8 +540,12 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         int field_size;
         int field_alignment;
         CFFI_ASSERT(fieldP->fieldType.dataType.baseType != CFFI_K_TYPE_VOID);
-        CffiTypeLayoutInfo(
-            &fieldP->fieldType.dataType, 0, NULL, &field_size, &field_alignment);
+        CffiTypeLayoutInfo(ipCtxP,
+                           &fieldP->fieldType.dataType,
+                           0,
+                           NULL,
+                           &field_size,
+                           &field_alignment);
         /*
          * Note field_size will be 0 for dynamic fields - last one since we
          * do not know VLA size when defining type
@@ -593,7 +599,6 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     structP->nRefs     = 0;
     structP->alignment = struct_alignment;
     structP->size      = (offset + struct_alignment - 1) & ~(struct_alignment - 1);
-    structP->flags     = 0;
     *structPP          = structP;
     return TCL_OK;
 }

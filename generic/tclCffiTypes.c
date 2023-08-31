@@ -736,6 +736,7 @@ CffiTypeActualSize(const CffiType *typeP)
  * for sizing purposes.
  *
  * Parameters:
+ *   ipCtxP - interp context
  *   typeP - pointer to the CffiType
  *   vlaCount - number of elements in a Variable Size Array type. Ignored
  *           unless the type is a VLA or a struct with a nested VLA field.
@@ -749,11 +750,12 @@ CffiTypeActualSize(const CffiType *typeP)
  *   alignP - if non-NULL, location to store the alignment for the type
  */
 void
-CffiTypeLayoutInfo(const CffiType *typeP,
-                    int vlaCount,
-                    int *baseSizeP,
-                    int *sizeP,
-                    int *alignP)
+CffiTypeLayoutInfo(CffiInterpCtx *ipCtxP,
+                   const CffiType *typeP,
+                   int vlaCount,
+                   int *baseSizeP,
+                   int *sizeP,
+                   int *alignP)
 {
     int baseSize;
     int alignment;
@@ -763,7 +765,7 @@ CffiTypeLayoutInfo(const CffiType *typeP,
     if (baseType == CFFI_K_TYPE_STRUCT) {
         CffiStruct *structP = typeP->u.structP;
         alignment = structP->alignment;
-        baseSize  = CffiStructSizeVLACount(NULL, structP, vlaCount);
+        baseSize  = CffiStructSizeVLACount(ipCtxP, structP, vlaCount);
         CFFI_ASSERT(baseSize > 0);
     }
     else {
@@ -2153,7 +2155,8 @@ CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
             int offset;
             int elem_size;
 
-            CffiTypeLayoutInfo(&typeAttrsP->dataType, 0, &elem_size, NULL, NULL);
+            CffiTypeLayoutInfo(
+                ipCtxP, &typeAttrsP->dataType, 0, &elem_size, NULL, NULL);
             CFFI_ASSERT(elem_size > 0);
             listObj = Tcl_NewListObj(count, NULL);
             for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
@@ -3003,7 +3006,7 @@ CffiTypeObjCmd(ClientData cdata,
             Tcl_SetObjResult(ip, typeAttrs.dataType.countHolderObj);
     }
     else {
-        CffiTypeLayoutInfo(&typeAttrs.dataType, vlaCount, &baseSize, &size, &alignment);
+        CffiTypeLayoutInfo(ipCtxP, &typeAttrs.dataType, vlaCount, &baseSize, &size, &alignment);
         if (cmdIndex == SIZE)
             Tcl_SetObjResult(ip, Tcl_NewIntObj(size));
         else {

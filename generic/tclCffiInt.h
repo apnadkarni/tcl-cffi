@@ -544,7 +544,8 @@ CffiResult CffiTypeParse(CffiInterpCtx *ipCtxP,
 void CffiTypeCleanup(CffiType *);
 int CffiGetCountFromNative (const void *valueP, CffiBaseType baseType);
 int CffiTypeActualSize(const CffiType *typeP);
-void CffiTypeLayoutInfo(const CffiType *typeP,
+void CffiTypeLayoutInfo(CffiInterpCtx *ipCtxP,
+                        const CffiType *typeP,
                         int vlaCount,
                         int *baseSizeP,
                         int *sizeP,

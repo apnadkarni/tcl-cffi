@@ -1286,7 +1286,45 @@ namespace eval cffi::test {
     } -cleanup {
         rename S {}
     } -result {Invalid value "S". Not a cffi::Struct.} -returnCodes error
+
+    #
+    # Variable size struct tests
+
+    test struct-varsize-error-0 {Variable size struct must have one more field} -body {
+        cffi::Struct create S {a int[n]}
+    } -result {Invalid value "int[n]". Field of variable size must be the last and must not be the only field.} -returnCodes error
+    test struct-varsize-error-1 {Variable size struct must be last} -body {
+        cffi::Struct create S {a int[n] n int}
+    } -result {Invalid value "int[n]". Field of variable size must be the last and must not be the only field.} -returnCodes error
+    test struct-varsize-error-2 {Variable size count field must be integer} -body {
+        cffi::Struct create S {n double a int[n]}
+    } -result {Field "n" not found or inaccessible. Could not find referenced count for dynamic array, possibly wrong type or not scalar.} -returnCodes error
+    test struct-varsize-error-3 {Arrays of variable size structs not permitted} -setup {
+        cffi::Struct create S {n int a int[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::type info {struct.S[2]}
+    } -result {Invalid value "struct.S[2]". Array element types must be fixed size.} -returnCodes error
+
+    test struct-varsize-nested-error-0 {Nested variable size struct must be last} -setup {
+        cffi::Struct create S {n int a int[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create Outer {s struct.S i int}
+    } -result {Invalid value "struct.S". Field of variable size must be the last and must not be the only field.} -returnCodes error
+    test struct-varsize-nested-error-2 {Nested variable size struct must not be an array} -setup {
+        cffi::Struct create S {n int a int[n]}
+        cffi::Struct create Outer {i int s struct.S}
+    } -cleanup {
+        Outer destroy
+        S destroy
+    } -body {
+        cffi::type info {struct.Outer[2]}
+    } -result {Invalid value "struct.Outer[2]". Array element types must be fixed size.} -returnCodes error
 }
+
 
 ::tcltest::cleanupTests
 namespace delete cffi::test
