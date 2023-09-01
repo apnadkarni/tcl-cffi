@@ -421,7 +421,7 @@ CffiTypeParseArraySize(const char *lbStr, CffiType *typeP)
         /* Count specified as an integer */
         if (count <= 0 || count >= TCL_SIZE_MAX || rightbracket != ']')
             return TCL_ERROR;
-        typeP->arraySize = count; /* TODO - make arraySize Tcl_Size */
+        typeP->arraySize = count;
         if (typeP->countHolderObj) {
             Tcl_DecrRefCount(typeP->countHolderObj);
             typeP->countHolderObj = NULL;
@@ -560,7 +560,14 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
         }
         if (ret != TCL_OK)
             goto error_return;
-        /* Struct valid, check if its variable size */
+
+        CffiStructRef(typeP->u.structP);
+        typeP->baseType = CFFI_K_TYPE_STRUCT;
+        typeP->baseTypeSize = typeP->u.structP->size;
+        /*
+         * Check AFTER init of typeP just above since typeP must be consistent
+         * for cleaning up in case of errors.
+         */
         if (CffiStructIsVariableSize(typeP->u.structP)) {
             if (lbStr) {
                 (void) Tclh_ErrorInvalidValue(
@@ -572,13 +579,10 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
             typeP->flags |= CFFI_F_TYPE_VARSIZE;
         }
 
-        CffiStructRef(typeP->u.structP);
-        typeP->baseType = CFFI_K_TYPE_STRUCT;
-        typeP->baseTypeSize = typeP->u.structP->size;
         break;
 
     case CFFI_K_TYPE_POINTER:
-        if (tagStr != NULL) {
+        if (tagLen) {
             typeP->u.tagNameObj = CffiMakePointerTag(ipCtxP, tagStr, tagLen);
                 Tcl_IncrRefCount(typeP->u.tagNameObj);
         }
@@ -654,6 +658,11 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
 
     return TCL_OK;
 
+    /*
+     * For all jumps to error labels, typeP MUST BE in a consistent state.
+     * i.e. the content must be valid for the typeP->baseType including
+     * reference counts for non-NULL pointers.
+     */
 invalid_type:
     (void) Tclh_ErrorInvalidValue(ipCtxP->interp, typeObj, message);
 
