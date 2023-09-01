@@ -62,3 +62,4 @@ autom4te.cache
 *.srctrl*
 win/build.bat
 doc/internal*
+win/tclsh90.bat

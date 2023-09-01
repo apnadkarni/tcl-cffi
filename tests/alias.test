@@ -50,7 +50,12 @@ namespace eval cffi::test {
 
     testalias alias-define-0 "int" "Size 4 Count -1 Alignment 4 Definition int BaseSize 4"
     testalias alias-define-1 "double\[2\]" "Size 16 Count 2 Alignment 8 Definition {{double\[2\]}} BaseSize 8"
-    testalias alias-define-2 {int[n]} [list Size 0 Count n Alignment 4 Definition [list {int[n]}] BaseSize 4]
+    test alias-define-2 {alias int[n]} -body {
+        cffi::alias define alias_define_2 {int[n]}
+        cffi::type info alias_define_2 -vlacount 2
+    } -cleanup {
+        cffi::alias delete *
+    } -result [list Size 8 Count n Alignment 4 Definition [list {int[n]}] BaseSize 4]
 
     testalias alias-define-nested-0 "nested" "Size 4 Count -1 Alignment 4 Definition {int out} BaseSize 4" {
         cffi::alias define nested {int out}

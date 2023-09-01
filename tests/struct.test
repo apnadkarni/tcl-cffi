@@ -1323,6 +1323,34 @@ namespace eval cffi::test {
     } -body {
         cffi::type info {struct.Outer[2]}
     } -result {Invalid value "struct.Outer[2]". Array element types must be fixed size.} -returnCodes error
+
+    # Test size and alignment with various combination of field alignment order
+    test struct-varsize-uchar-int-0 {uchar count int array[0]} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count uchar values int[count]}
+        cffi::type info struct.S -vlacount 0
+    } -result {Size 4 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 4} -match dict
+    test struct-varsize-uchar-int-1 {uchar count int array[3]} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count uchar values int[count]}
+        cffi::type info struct.S -vlacount 3
+    } -result {Size 16 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 16} -match dict
+
+    test struct-varsize-int-uchar-0 {int count uchar array[0]} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count int values uchar[count]}
+        cffi::type info struct.S -vlacount 0
+    } -result {Size 4 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 4} -match dict
+    test struct-varsize-int-uchar-1 {int count uchar array[3]} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count int values uchar[count]}
+        cffi::type info struct.S -vlacount 3
+    } -result {Size 8 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 8} -match dict
+
 }
 
 

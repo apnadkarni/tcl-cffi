@@ -988,6 +988,7 @@ namespace eval cffi::test {
 
     ###
     # struct
+    # NOTE: varsize structs are tested in struct.test
     proc teststruct {typedecl parse_mode expected_typeattrs {count 0} args} {
         variable typeInfo
         variable testStructSize
@@ -997,9 +998,18 @@ namespace eval cffi::test {
             set typedecl "$type $typeattrs"
         }
         set testlabel type-info-[join $typedecl -]
+
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
         } -result [list Size [expr {$count ? ($count * $testStructSize) : $testStructSize}] Count [expr {$count == 0 ? -1 : $count}] Alignment 8 Definition [list $type {*}$expected_typeattrs] BaseSize $testStructSize] -match dict {*}$args
+        if {$parse_mode eq "param"} {
+            # Not parse mode dependent so only test is param
+            set testlabel type-size-[join $typedecl -]
+            test $testlabel-0 "type size $typedecl" -body {
+                cffi::type size $typedecl
+            } -result [expr {$count ? ($count * $testStructSize) : $testStructSize}] {*}$args
+            
+        }
     }
     foreach parse_mode {param return field} {
         if {$parse_mode eq "param"} {
