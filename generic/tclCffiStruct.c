@@ -206,7 +206,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
 
     Tcl_Interp *ip = ipCtxP ? ipCtxP->interp : NULL;
 
-    if (vlaCount <= 0) {
+    if (vlaCount < 0) {
         return Tclh_ErrorInvalidValue(
             ip, NULL, "Variable length array size must be greater than 0.");
     }
