@@ -157,7 +157,7 @@ namespace eval cffi::test {
 
     ###
     # struct allocate
-    testnumargs struct-allocate "::TestStruct allocate" "" "?COUNT ?VLACOUNT??"
+    testnumargs struct-allocate "::TestStruct allocate" "" "?-count COUNT? ?-vlacount VLACOUNT?"
 
     test struct-allocate-0 "struct allocate" -setup {
         cffi::Struct create S {x int}
@@ -168,16 +168,7 @@ namespace eval cffi::test {
         list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
     } -result {1 {} 0}
 
-    test struct-allocate-1 "struct allocate array" -setup {
-        cffi::Struct create S {x int}
-    } -cleanup {
-        rename S {}
-    } -body {
-        set p [S allocate 10]
-        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
-    } -result {1 {} 0}
-
-    test struct-allocate-2 "struct allocate check tag" -setup {
+    test struct-allocate-tag-0 "struct allocate check tag" -setup {
         cffi::Struct create S {x int}
     } -cleanup {
         S free $p
@@ -187,21 +178,143 @@ namespace eval cffi::test {
         cffi::pointer tag $p
     } -result [namespace current]::S
 
-    test struct-allocate-error-0 "struct allocate zero count" -setup {
+    test struct-allocate-array-0 "struct allocate array" -setup {
+        cffi::Struct create S {x int}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate 10]
+        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+
+    test struct-allocate-array-1 "struct allocate array -count" -setup {
+        cffi::Struct create S {x int}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate -count 10]
+        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+
+    test struct-allocate-array-2 "struct allocate zero count" -setup {
         cffi::Struct create S {x int}
     } -cleanup {
         rename S {}
     } -body {
         S allocate 0
-    } -result {Invalid value. Array size must be a positive integer.} -returnCodes error
+    } -result {Value 0 not in range. Must be within [1,2147483647].} -returnCodes error
 
-    test struct-allocate-error-2 "struct allocate negative count" -setup {
+    test struct-allocate-array-3 "struct allocate negative count" -setup {
         cffi::Struct create S {x int}
     } -cleanup {
         rename S {}
     } -body {
         S allocate -1
-    } -result {Invalid value. Array size must be a positive integer.} -returnCodes error
+    } -result {Value -1 not in range. Must be within [1,2147483647].} -returnCodes error
+
+    test struct-allocate-array-4 "struct allocate -count 0" -setup {
+        cffi::Struct create S {x int}
+    } -cleanup {
+        rename S {}
+    } -body {
+        S allocate -count 0
+    } -result {Value 0 not in range. Must be within [1,2147483647].} -returnCodes error
+
+    test struct-allocate-array-5 "struct allocate -count -1" -setup {
+        cffi::Struct create S {x int}
+    } -cleanup {
+        rename S {}
+    } -body {
+        S allocate -count -1
+    } -result {Value -1 not in range. Must be within [1,2147483647].} -returnCodes error
+
+    # allocate varsize structs
+
+    test struct-allocate-varsize-0 "struct allocate" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate]
+        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
+    } -result {Required option "-vlacount" not specified. Variable size structs must specify the size of the contained variable length array.} -returnCodes error
+
+    test struct-allocate-varsize-1 "struct allocate -vlacount" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate -vlacount 2]
+        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+
+    test struct-allocate-varsize-tag-0 "struct allocate check tag" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        S free $p
+        rename S {}
+    } -body {
+        set p [S allocate -vlacount 2]
+        cffi::pointer tag $p
+    } -result [namespace current]::S
+
+    test struct-allocate-varsize-array-0 "struct allocate array 1" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate 1]
+    } -result {Required option "-vlacount" not specified. Variable size structs must specify the size of the contained variable length array.} -returnCodes error
+
+    test struct-allocate-varsize-array-1 "struct allocate -count 1 -vlacount" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate -count 1 -vlacount 2]
+        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+
+    test struct-allocate-varsize-array-2 "struct allocate -count 1 -vlacount 0" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate -count 1 -vlacount 0]
+        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+
+    test struct-allocate-varsize-array-3 "struct allocate array" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate 10]
+    } -result {Invalid value. Allocation count must 1 for variable sized structs.} -returnCodes error
+
+    test struct-allocate-varsize-array-4 "struct allocate array -count" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        set p [S allocate -count 10 -vlacount 2]
+    } -result {Invalid value. Allocation count must 1 for variable sized structs.} -returnCodes error
+
+    test struct-allocate-varsize-array-5 "struct allocate zero count" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        S allocate -count 0 -vlacount 2
+    } -result {Value 0 not in range. Must be within [1,2147483647].} -returnCodes error
+
+    test struct-allocate-varsize-array-6 "struct allocate negative vlacount" -setup {
+        cffi::Struct create S {count int values int[count]}
+    } -cleanup {
+        rename S {}
+    } -body {
+        S allocate -vlacount -1
+    } -result {Value -1 not in range. Must be within [0,2147483647].} -returnCodes error
 
     ###
     # struct free
@@ -267,6 +380,26 @@ namespace eval cffi::test {
         ::TestStruct fromnative NULL
     } -result "*Pointer is NULL*" -match glob -returnCodes error
 
+    test struct-fromnative-varsize-0 "struct fromnative - varsize" -setup {
+        cffi::Struct create S {n int d double[n]}
+        set p [S new {n 2 d {1 2}}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        S fromnative $p
+    } -result {n 2 d {1.0 2.0}}
+
+    test struct-fromnative-varsize-1 "struct fromnative - varsize - zero count" -setup {
+        cffi::Struct create S {n int d double[n]}
+        set p [S new {n 0 d {1 2}}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        S fromnative $p
+    } -result {n 0 d {}}
+
     ###
     # fromnative!
     testnumargs struct-fromnative! "::TestStruct fromnative!" "POINTER" "?INDEX?"
@@ -311,6 +444,30 @@ namespace eval cffi::test {
     test struct-fromnative!-error-0 "struct fromnative! - null pointer" -body {
         ::TestStruct fromnative! NULL
     } -result "*Pointer is NULL*" -match glob -returnCodes error
+
+    test struct-fromnative!-varsize-0 "struct fromnative - varsize" -setup {
+        cffi::Struct create S {n int d double[n]}
+        set p [S new {n 2 d {1 2}}]
+        cffi::pointer dispose $p ;# Make unsafe
+    } -cleanup {
+        cffi::pointer safe $p ;# Before freeing
+        S free $p
+        S destroy
+    } -body {
+        S fromnative! $p
+    } -result {n 2 d {1.0 2.0}}
+
+    test struct-fromnative!-varsize-1 "struct fromnative - varsize - zero count" -setup {
+        cffi::Struct create S {n int d double[n]}
+        set p [S new {n 0 d {1 2}}]
+        cffi::pointer dispose $p ;# Make unsafe
+    } -cleanup {
+        cffi::pointer safe $p ;# Before freeing
+        S free $p
+        S destroy
+    } -body {
+        S fromnative! $p
+    } -result {n 0 d {}}
 
 
     ###
@@ -446,6 +603,30 @@ namespace eval cffi::test {
         S tonative NULL {c 1 i 2 s 3}
     } -result {*Pointer is NULL*} -match glob -returnCodes error
 
+    test struct-tonative-varsize-0 "struct tonative varsize" -setup {
+        set vlacount 2
+        cffi::Struct create ::S {n uchar d double[n]}
+        set p [::S allocate -vlacount $vlacount]
+    } -cleanup {
+        S free $p
+        rename S ""
+    } -body {
+        set structVal [list n $vlacount d {42 43}]
+        list [S tonative $p $structVal] [S fromnative $p]
+    } -result [list {} {n 2 d {42.0 43.0}}]
+
+    test struct-tonative-varsize-1 "struct tonative varsize vlacount = 0" -setup {
+        set vlacount 0
+        cffi::Struct create ::S {n uchar d double[n]}
+        set p [::S allocate -vlacount $vlacount]
+    } -cleanup {
+        S free $p
+        rename S ""
+    } -body {
+        set structVal [list n $vlacount d {42 43}]
+        list [S tonative $p $structVal] [S fromnative $p]
+    } -result [list {} {n 0 d {}}]
+
     ###
     # struct tonative!
     testnumargs struct-tonative! "::TestStruct tonative!" "POINTER INITIALIZER" "?INDEX?"
@@ -468,6 +649,34 @@ namespace eval cffi::test {
     } -body {
         S tonative! NULL {c 1 i 2 s 3}
     } -result {*Pointer is NULL*} -match glob -returnCodes error
+
+    test struct-tonative!-varsize-0 "struct tonative! varsize" -setup {
+        set vlacount 2
+        cffi::Struct create ::S {n uchar d double[n]}
+        set p [::S allocate -vlacount $vlacount]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        S free $p
+        rename S ""
+    } -body {
+        set structVal [list n $vlacount d {42 43}]
+        list [S tonative! $p $structVal] [S fromnative! $p]
+    } -result [list {} {n 2 d {42.0 43.0}}]
+
+    test struct-tonative!-varsize-1 "struct tonative! varsize vlacount = 0" -setup {
+        set vlacount 0
+        cffi::Struct create ::S {n uchar d double[n]}
+        set p [::S allocate -vlacount $vlacount]
+        cffi::pointer dispose $p
+    } -cleanup {
+        cffi::pointer safe $p
+        S free $p
+        rename S ""
+    } -body {
+        set structVal [list n $vlacount d {42 43}]
+        list [S tonative! $p $structVal] [S fromnative! $p]
+    } -result [list {} {n 0 d {}}]
 
     ###
     # struct describe
@@ -1174,7 +1383,7 @@ namespace eval cffi::test {
     test struct-new-0 "struct new" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
     } -cleanup {
-        S destroy
+        ::S destroy
     } -body {
         set p [S new {c 1 i 2 s 3}]
         list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
@@ -1203,7 +1412,7 @@ namespace eval cffi::test {
     test struct-new-3 "struct new with -clear" -setup {
         cffi::Struct create ::S {c uchar i longlong s short} -clear
     } -cleanup {
-        S destroy
+        ::S destroy
     } -body {
         set p [S new]
         list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
@@ -1212,7 +1421,7 @@ namespace eval cffi::test {
     test struct-new-3 "struct new with default field values" -setup {
         cffi::Struct create ::S {i {int {default 42}} b {double {default 24}}}
     } -cleanup {
-        S destroy
+        ::S destroy
     } -body {
         set p [S new]
         list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
@@ -1261,7 +1470,7 @@ namespace eval cffi::test {
     test struct-new-error-7 "struct new bytes overflow" -setup {
         cffi::Struct create ::S {c bytes[3]}
     } -cleanup {
-        rename S ""
+        rename ::S ""
     } -body {
         S new {c abcd}
     } -result {Invalid value. Byte array length is greater than specified maximum buffer size. Error converting field ::S.c to a native value.} -returnCodes error
@@ -1269,6 +1478,54 @@ namespace eval cffi::test {
     test struct-new-error-8 "struct new - struct with strings" -body {
         StructWithStrings new [makeStructWithStrings]
     } -result {Invalid value. string type not supported in this struct context. Error converting field ::StructWithStrings.s to a native value.} -returnCodes error
+
+    test struct-new-varsize-0 "struct new - varsize" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        set p [::S new {n 2 d { 2 3}}]
+        ::S fromnative $p
+    } -result {n 2 d {2.0 3.0}} -match dict
+
+    test struct-new-varsize-1 "struct new - varsize - more values than space " -setup {
+        cffi::Struct create ::S {n int d double[n]}
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        set p [::S new {n 2 d { 2 3 4}}]
+        ::S fromnative $p
+    } -result {n 2 d {2.0 3.0}} -match dict
+
+    test struct-new-varsize-2 "struct new - varsize - fewer values than space " -setup {
+        cffi::Struct create ::S {n int d double[n]}
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        set p [::S new {n 2 d { 1 }}]
+        ::S fromnative $p
+    } -result {n 2 d {1.0 0.0}} -match dict
+
+    test struct-new-varsize-3 "struct new - varsize - clear" -setup {
+        cffi::Struct create ::S {n int d double[n]} -clear
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        set p [::S new {n 2}]
+        ::S fromnative $p
+    } -result {n 2 d {0.0 0.0}} -match dict
+
+    test struct-new-varsize-4 "struct new - varsize - clear, no count specified" -setup {
+        cffi::Struct create ::S {n int d double[n]} -clear
+    } -cleanup {
+        rename ::S ""
+    } -body {
+        set p [::S new {d {1 2}}]
+    } -result {Invalid value "n". No value supplied for dynamic field count.} -returnCodes error
 
     ###
     # Bug fixes

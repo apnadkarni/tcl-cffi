@@ -1,4 +1,4 @@
-# (c) 2021 Ashok P. Nadkarni
+# (c) 2021-2023 Ashok P. Nadkarni
 # See LICENSE for license terms.
 
 oo::class create ${NS}::Struct {
@@ -31,10 +31,11 @@ oo::class create ${NS}::Struct {
         # Allocates memory for one or more C structs.
         #   count - number of structs to allocate
         #
-        # The allocated memory is not initialized even if the struct definition
-        # includes the `-clear` option.
+        # Unlike in the [new] method, the allocated memory is not initialized
+        # even if the struct definition includes the `-clear` option.
         #
-        # It must be freed by calling the [free] method.
+        # The allocate memory must be freed by calling the [free] method of
+        # the struct.
         #
         # Returns a safe pointer to the allocated memory tagged with the
         # struct name.
@@ -46,7 +47,9 @@ oo::class create ${NS}::Struct {
         #
         # If no argument is supplied or fields are missing, defaults from the
         # struct definition are used for initialization. An error is raised
-        # if any fields are not defaulted.
+        # if any fields are not defaulted unless the `-clear` option was specified
+        # for the [Struct]. In that case missing fields without defaults are
+        # filled with zeroes.
         #
         # The allocated memory must be freed by calling the [free] method for the
         # struct.

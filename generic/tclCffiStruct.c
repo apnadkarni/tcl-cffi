@@ -118,7 +118,7 @@ CffiStructGetDynamicCountNative(CffiInterpCtx *ipCtxP,
     int vlaCount = CffiGetCountFromNative(
         offset + (char *)valueP, fieldP->fieldType.dataType.baseType);
 
-    if (vlaCount <= 0) {
+    if (vlaCount < 0) {
         Tclh_ErrorInvalidValue(
             ipCtxP->interp,
             NULL,
@@ -153,24 +153,21 @@ CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
     CFFI_ASSERT(fldIndex < structP->nFields - 1);
 
     if (structValueObj == NULL) {
-        Tclh_ErrorInvalidValue(
-            ip,
-            structP->fields[fldIndex].nameObj,
-            "No value supplied for dynamic field count.");
-        return -1;
-
+        goto unknown_count;
     }
     Tcl_Obj *countObj;
     if (Tcl_DictObjGet(
             ip, structValueObj, structP->fields[fldIndex].nameObj, &countObj)
-            != TCL_OK
-        || countObj == NULL) {
-        return -1;
+            != TCL_OK) {
+        return -1; /* Invalid dict */
     }
+    if (countObj == NULL)
+        goto unknown_count; /* Valid dict but no count field value */
+
     int count;
     if (Tcl_GetIntFromObj(ip, countObj, &count) != TCL_OK)
         return -1;
-    if (count <= 0) {
+    if (count < 0) {
         Tclh_ErrorInvalidValue(
             ip,
             countObj,
@@ -178,6 +175,12 @@ CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
         return -1;
     }
     return count;
+
+unknown_count:
+    Tclh_ErrorInvalidValue(ip,
+                           structP->fields[fldIndex].nameObj,
+                           "No value supplied for dynamic field count.");
+    return -1;
 }
 
 /* Function: CffiStructSizeVLACount
@@ -931,7 +934,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
             && CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
             realArraySize =
                 CffiStructGetDynamicCountFromObj(ipCtxP, structP, structValueObj);
-            if (realArraySize <= 0) {
+            if (realArraySize < 0) {
                 ret = TCL_ERROR;
                 break;
             }
@@ -1067,38 +1070,53 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
 {
     CffiStruct *structP = structCtxP->structP;
     int count;
-    int vlaCount;
+    int vlaCount = -1;
+    static const char *const opts[] = {"-count", "-vlacount", NULL};
+    enum Opts { COUNT, VLACOUNT };
+    int optIndex;
+    Tcl_WideInt wide;
+
     CFFI_ASSERT(objc >= 2 && objc <=4);
 
     if (objc == 2)
         count = 1;
-    else {
-        CHECK(Tclh_ObjToInt(ip, objv[2], &count));
-        if (count <= 0)
-            goto invalid_array_size;
-        if (objc > 3) {
-            CHECK(Tclh_ObjToInt(ip, objv[3], &vlaCount));
-            if (vlaCount <= 0)
-                goto invalid_array_size;
+    else if (objc == 3) {
+        /* Old style - S allocate COUNT */
+        CHECK(Tclh_ObjToRangedInt(ip, objv[2], 1, INT_MAX, &wide));
+        count = (int)wide;
+    } else {
+        /* New style - S allocate ?-count N? ?-vlacount VLACOUNT? */
+        int i;
+        count = 1; /* Default */
+        for (i = 2; i < objc; ++i) {
+            CHECK( Tcl_GetIndexFromObj(ip, objv[i], opts, "option", 0, &optIndex));
+            if (i == objc-1)
+                return Tclh_ErrorOptionValueMissing(ip, objv[i], NULL);
+            ++i;
+            switch (optIndex) {
+            case COUNT:
+                CHECK(Tclh_ObjToRangedInt(ip, objv[i], 1, INT_MAX, &wide));
+                count = (int)wide;
+                break;
+            case VLACOUNT:
+                CHECK(Tclh_ObjToRangedInt(ip, objv[i], 0, INT_MAX, &wide));
+                vlaCount = (int)wide;
+                break;
+            }
         }
     }
+
     if (CffiStructIsVariableSize(structP)) {
-        if (objc != 4) {
-            return Tclh_ErrorNumArgs(
-                ip,
-                2,
-                objv,
-                "COUNT VLASIZE. The size of the variable length "
-                "array component must be specified.");
-        }
         if (count != 1) {
             return Tclh_ErrorInvalidValue(
-                ip, NULL, "Struct is variable sized and arrays of variable size structs not allowed.");
+                ip, NULL, "Allocation count must 1 for variable sized structs.");
         }
-    }
-    else {
-        if (objc > 3) {
-            return Tclh_ErrorNumArgs(ip, 2, objv, "?COUNT?. Fixed size structs do not take a VLASIZE argument.");
+        if (vlaCount < 0) {
+            return Tclh_ErrorOptionMissingStr(
+                ip,
+                "-vlacount",
+                "Variable size structs must specify the size of the contained "
+                "variable length array.");
         }
     }
 
@@ -1125,10 +1143,6 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     }
     Tcl_SetObjResult(ip, resultObj);
     return TCL_OK;
-
-invalid_array_size:
-    return Tclh_ErrorInvalidValue(
-        ip, NULL, "Array size must be a positive integer.");
 }
 
 /* Function: CffiStructNewCmd
@@ -2072,7 +2086,7 @@ CffiStructInstanceCmd(ClientData cdata,
 {
     CffiStructCmdCtx *structCtxP = (CffiStructCmdCtx *)cdata;
     static const Tclh_SubCommand subCommands[] = {
-        {"allocate", 0, 2, "?COUNT ?VLACOUNT??", CffiStructAllocateCmd},
+        {"allocate", 0, 4, "?-count COUNT? ?-vlacount VLACOUNT?", CffiStructAllocateCmd},
         {"describe", 0, 0, "", CffiStructDescribeCmd},
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
         {"fieldpointer", 2, 4, "POINTER FIELD ?TAG? ?INDEX?", CffiStructFieldPointerCmd},
