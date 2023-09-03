@@ -585,7 +585,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 }
                 /* NULLIFEMPTY but dictionary has elements */
             }
-            Tcl_Size needed = CffiStructSize(
+            Tcl_Size needed = CffiStructSizeForObj(
                 ipCtxP, typeAttrsP->dataType.u.structP, valueObj);
             if (needed <= 0)
                 return TCL_ERROR;
@@ -615,6 +615,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             char *valueArray;
             char *toP;
             int struct_size = typeAttrsP->dataType.u.structP->size;
+            CFFI_ASSERT(!CffiStructIsVariableSize(typeAttrsP->dataType.u.structP));
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             if (argP->arraySize == 0)
                 goto pass_null_array;
@@ -1086,6 +1087,7 @@ CffiReturnPrepare(CffiCall *callP)
 #endif
     case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
     case CFFI_K_TYPE_STRUCT:
+        CFFI_ASSERT(!CffiTypeIsVariableSize(&retTypeAttrsP->dataType));
         callP->retValueP = Tclh_LifoAlloc(
             &callP->fnP->libCtxP->ipCtxP->memlifo,
             retTypeAttrsP->dataType.u.structP->size);
@@ -1869,7 +1871,8 @@ CffiFunctionCall(ClientData cdata,
             if (pointer == NULL) {
                 CffiStruct *structP =
                     protoP->returnType.typeAttrs.dataType.u.structP;
-                if (fnCheckRet == TCL_OK) {
+                if (fnCheckRet == TCL_OK
+                    && !CffiStructIsVariableSize(structP)) {
                     /* Null pointer but allowed. Construct a default value. */
                     pointer = Tclh_LifoAlloc(&ipCtxP->memlifo, structP->size);
                     ret     = CffiStructObjDefault(ipCtxP, structP, pointer);

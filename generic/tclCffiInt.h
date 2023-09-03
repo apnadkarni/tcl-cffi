@@ -562,10 +562,13 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *structObj,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
-CffiResult CffiErrorVariableSizeStruct(Tcl_Interp *ip, CffiStruct *structP);
-int CffiStructSize(CffiInterpCtx *ipCtxP,
+CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
+int CffiStructSizeForObj(CffiInterpCtx *ipCtxP,
                         const CffiStruct *structP,
                         Tcl_Obj *structValueObj);
+int CffiStructSizeForNative(CffiInterpCtx *ipCtxP,
+                        const CffiStruct *structP,
+                        void *valueP);
 int CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
                                 CffiStruct *structP,
                                 int vlaCount);

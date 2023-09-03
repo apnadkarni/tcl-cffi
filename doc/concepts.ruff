@@ -815,16 +815,20 @@ namespace eval Concepts {
         When converting to native form, the actual size of the `values` array
         will be as contained in the `count` field.
 
-        Variable size structs have the following restrictions:
+        Variable size structs have the following restrictions some of which
+        parallel C99:
 
         - The VLA must be the last field in the struct (C99)
         - The VLA must not be the only field in the struct (C99)
         - Arrays of variable size structs are not supported (C99)
-        - the length specifier for a VLA must be an field
-        in the same struct.
+        - the length specifier for a VLA must be an field in the same struct.
         - Variable size structs can be nested provided the inner struct is
         the last field in the outer one. Nesting is not permitted in C99
         but is supported by some compilers.
+        - Certain operations that modify variable length structs are not
+        permitted. This is to prevent memory faults resulting from inadvertent
+        size changes. See the documentation for each [Struct] method for details
+        about these limitations.
 
         ## Type aliases
 

@@ -400,6 +400,18 @@ namespace eval cffi::test {
         S fromnative $p
     } -result {n 0 d {}}
 
+    test struct-fromnative-varsize-2 "struct fromnative - varsize - nested" -setup {
+        cffi::Struct create S {n int d double[n]}
+        cffi::Struct create T {i uchar s struct.S}
+        set p [T new {i 42 s {n 2 d {1 2}}}]
+    } -cleanup {
+        T free $p
+        T destroy
+        S destroy
+    } -body {
+        T fromnative $p
+    } -result {i 42 s {n 2 d {1.0 2.0}}}
+
     ###
     # fromnative!
     testnumargs struct-fromnative! "::TestStruct fromnative!" "POINTER" "?INDEX?"
@@ -469,6 +481,19 @@ namespace eval cffi::test {
         S fromnative! $p
     } -result {n 0 d {}}
 
+    test struct-fromnative!-varsize-2 "struct fromnative! - varsize - nested" -setup {
+        cffi::Struct create S {n int d double[n]}
+        cffi::Struct create T {i uchar s struct.S}
+        set p [T new {i 42 s {n 2 d {1 2}}}]
+        cffi::pointer dispose $p ;# Make unsafe
+    } -cleanup {
+        cffi::pointer safe $p ;# Before freeing
+        T free $p
+        T destroy
+        S destroy
+    } -body {
+        T fromnative! $p
+    } -result {i 42 s {n 2 d {1.0 2.0}}}
 
     ###
     # struct tonative
@@ -612,20 +637,20 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         set structVal [list n $vlacount d {42 43}]
-        list [S tonative $p $structVal] [S fromnative $p]
-    } -result [list {} {n 2 d {42.0 43.0}}]
+        S tonative $p $structVal
+    } -result {Operation tonative failed on ::S. Operation not permitted on variable sized structs.} -returnCodes error
 
-    test struct-tonative-varsize-1 "struct tonative varsize vlacount = 0" -setup {
-        set vlacount 0
-        cffi::Struct create ::S {n uchar d double[n]}
-        set p [::S allocate -vlacount $vlacount]
+    test struct-tonative-varsize-1 "struct tonative - varsize - nested" -setup {
+        cffi::Struct create S {n int d double[n]}
+        cffi::Struct create T {i uchar s struct.S}
+        set p [T allocate -vlacount $vlacount]
     } -cleanup {
-        S free $p
-        rename S ""
+        T free $p
+        T destroy
+        S destroy
     } -body {
-        set structVal [list n $vlacount d {42 43}]
-        list [S tonative $p $structVal] [S fromnative $p]
-    } -result [list {} {n 0 d {}}]
+        T tonative $p {i 42 s {n 2 d {1 2}}}
+    } -result {Operation tonative failed on ::cffi::test::T. Operation not permitted on variable sized structs.} -returnCodes error
 
     ###
     # struct tonative!
@@ -661,22 +686,8 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         set structVal [list n $vlacount d {42 43}]
-        list [S tonative! $p $structVal] [S fromnative! $p]
-    } -result [list {} {n 2 d {42.0 43.0}}]
-
-    test struct-tonative!-varsize-1 "struct tonative! varsize vlacount = 0" -setup {
-        set vlacount 0
-        cffi::Struct create ::S {n uchar d double[n]}
-        set p [::S allocate -vlacount $vlacount]
-        cffi::pointer dispose $p
-    } -cleanup {
-        cffi::pointer safe $p
-        S free $p
-        rename S ""
-    } -body {
-        set structVal [list n $vlacount d {42 43}]
-        list [S tonative! $p $structVal] [S fromnative! $p]
-    } -result [list {} {n 0 d {}}]
+        S tonative! $p $structVal
+    } -result {Operation tonative failed on ::S. Operation not permitted on variable sized structs.} -returnCodes error
 
     ###
     # struct describe
@@ -701,6 +712,25 @@ namespace eval cffi::test {
         float f offset=100 size=4
         struct cffi::test::InnerTestStruct s offset=104 size=15
         double d offset=120 size=8} " "]
+
+    test struct-describe-varsize-0 "struct describe - varsize" -setup {
+        cffi::Struct create S {n int d double[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        regsub -all {\s+} [S describe] " "
+    } -result {Struct ::cffi::test::S nRefs=1 size=8 alignment=8 flags=2 nFields=2 int n offset=0 size=4 double d[n] offset=8 size=0}
+
+    test struct-describe-varsize-1 "struct describe - varsize - nested" -setup {
+        cffi::Struct create S {n int d double[n]}
+        cffi::Struct create T {i uchar s struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        regsub -all {\s+} [T describe] " "
+    } -result {Struct ::cffi::test::T nRefs=1 size=16 alignment=8 flags=2 nFields=2 uchar i offset=0 size=1 struct ::cffi::test::S s offset=8 size=8}
+
 
     ###
     # tobinary/frombinary
@@ -761,6 +791,44 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S frombinary [string range $b 0 end-1]
+    } -result {Invalid value. Truncated structure binary value.} -returnCodes error
+
+    test struct-tobinary-varsize-0 "struct tobinary/frombinary varsize" -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        set bin [S tobinary [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]]
+        S frombinary $bin
+    } -result [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]
+
+    test struct-tobinary-varsize-1 "struct tobinary/frombinary varsize" -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+        cffi::Struct create T {i int s struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set bin [T tobinary [list i 42 s [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]]]
+        T frombinary $bin
+    } -result [list i 42 s [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]]
+
+    test struct-frombinary-varsize-1 "struct frombinary truncation - less than minsize" -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        set bin [S tobinary [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]]
+        S frombinary [string range $bin 0 6]
+    } -result {Invalid value. Truncated structure binary value.} -returnCodes error
+
+    test struct-frombinary-varsize-1 "struct frombinary truncation - greater than minsize" -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        set bin [S tobinary [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]]
+        S frombinary [string range $bin 0 end-1]
     } -result {Invalid value. Truncated structure binary value.} -returnCodes error
 
     ###
@@ -839,6 +907,44 @@ namespace eval cffi::test {
         } -result [list fld [expr {$type in $realTypes ? 42.0 : 42}]]
     }
 
+    test struct-field-default-varsize-0 "struct field default - varsize" -setup {
+        cffi::Struct create S {n int d {double[n] {default {3 4}}}}
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        set p [S new {n 2}]
+        S fromnative $p
+    } -result {n 2 d {3.0 4.0}}
+
+    test struct-field-default-varsize-1 "struct field default - varsize - extra elems" -setup {
+        cffi::Struct create S {n int d {double[n] {default {3 4 5}}}}
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        set p [S new {n 2}]
+        S fromnative $p
+    } -result {n 2 d {3.0 4.0}}
+
+    test struct-field-default-varsize-2 "struct field default - varsize - fewer elems" -setup {
+        cffi::Struct create S {n int d {double[n] {default {3 4}}}}
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        set p [S new {n 3}]
+        S fromnative $p
+    } -result {n 3 d {3.0 4.0 0.0}}
+
+    test struct-field-default-varsize-3 "struct field default - varsize - count cannot be defaulted" -setup {
+        cffi::Struct create S {n {int {default 2}} d double[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        set p [S new {d {1 2}}]
+    } -result {Invalid value "n". No value supplied for dynamic field count.} -returnCodes error
+
     ###
     # Struct field structsize annotation
     foreach {type val} {
@@ -876,6 +982,24 @@ namespace eval cffi::test {
     } -cleanup {
         $s destroy
     } -result {i 0 j 1 k 0}
+
+    test struct-clear-varsize-0 "struct clear varsize" -setup {
+        cffi::Struct create S {n int d double[n]} -clear
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        set p [S new {n 3}]
+        S fromnative $p
+    } -result {n 3 d {0.0 0.0 0.0}}
+
+    test struct-clear-varsize-1 "struct clear varsize" -setup {
+        cffi::Struct create S {n int d double[n]} -clear
+    } -cleanup {
+        S destroy
+    } -body {
+        set p [S new {}]
+    } -result {Invalid value "n". No value supplied for dynamic field count.} -returnCodes error
 
     ###
     # enum and bitmask
@@ -1153,6 +1277,35 @@ namespace eval cffi::test {
         S getnative $p nosuchfield
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
 
+    test struct-getnative-varsize-0 "struct getnative - varsize" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 2 d { 2 3}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnative $p d
+    } -result {2.0 3.0}
+
+    ###
+    # getnative!
+    testnumargs struct-getnative! "::TestStruct getnative!" "POINTER FIELD" "?INDEX?"
+    test struct-getnative!-0 "Getnative! each field struct" -setup {
+        testDll function getTestStruct int {p pointer.::TestStruct}
+        set p [::TestStruct allocate]
+        getTestStruct $p
+        cffi::pointer dispose $p
+        unset -nocomplain testval
+    } -cleanup {
+        cffi::pointer safe $p
+        ::TestStruct free $p
+    } -body {
+        dict for {name -} [dict get [::TestStruct info] Fields] {
+            lappend testval $name [::TestStruct getnative! $p $name]
+        }
+        checkTestStruct $testval
+    } -result ""
+
     ###
     # struct setnative
 
@@ -1253,6 +1406,83 @@ namespace eval cffi::test {
                 [regexp {not in range|expected.*but got|greater than.*maximum buffer|Field missing} $result] [checkTestStruct [::TestStruct fromnative $p]]
         } -result {1 1 {}}
     }
+
+    test struct-setnative-varsize-0 "setnative varsize struct on field other than count and vla" -setup {
+        cffi::Struct create S {u uchar n {int {default 2}} d double[n]}
+        set p [S new {u 42 d {1 2} n 2}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        list [S fromnative $p] [S setnative $p u 99] [S fromnative $p]
+    } -result {{u 42 n 2 d {1.0 2.0}} {} {u 99 n 2 d {1.0 2.0}}}
+
+    test struct-setnative-varsize-1 "setnative varsize struct at index 0" -setup {
+        cffi::Struct create S {u uchar n {int {default 2}} d double[n]}
+        set p [S new {u 42 d {1 2} n 2}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        list [S fromnative $p] [S setnative $p u 99 0] [S fromnative $p]
+    } -result {{u 42 n 2 d {1.0 2.0}} {} {u 99 n 2 d {1.0 2.0}}}
+
+    test struct-setnative-varsize-2 "setnative varsize struct at index 1" -setup {
+        cffi::Struct create S {u uchar n {int {default 2}} d double[n]}
+        set p [S new {u 42 d {1 2} n 2}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        list [S fromnative $p] [S setnative $p u 99 1] [S fromnative $p]
+    } -result {Operation indexing failed on ::cffi::test::S. Operation not permitted on variable sized structs.} -returnCodes error
+
+    test struct-setnative-varsize-3 "setnative varsize struct at index 1" -setup {
+        cffi::Struct create S {n {int {default 2}} d double[n]}
+        set p [S new {d {1 2} n 2}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        list [catch {S setnative $p d {3 4} 1} message] $message [S fromnative $p]
+    } -result {1 {Operation indexing failed on ::cffi::test::S. Operation not permitted on variable sized structs.} {n 2 d {1.0 2.0}}}
+
+    test struct-setnative-varsize-4 "setnative varsize struct - count must not be modified" -setup {
+        cffi::Struct create S {n {int {default 2}} d double[n]}
+        set p [S new {d {1 2} n 2}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        list [catch {S setnative $p n 3} message] $message [S fromnative $p]
+    } -result {1 {Invalid value "n". The count field in a variable size struct must not be modified.} {n 2 d {1.0 2.0}}}
+
+    test struct-setnative-varsize-5 "setnative varsize struct vla must not be modified." -setup {
+        cffi::Struct create S {n {int {default 2}} d double[n]}
+        set p [S new {d {1 2} n 2}]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        S setnative $p d {3 4}
+    } -result {Operation setnative failed on ::cffi::test::S. Operation not permitted on variable sized structs.} -returnCodes error
+
+    test struct-setnative-varsize-6 "setnative varsize struct nested varsize must not be modified." -setup {
+        cffi::Struct create S {n {int {default 2}} d double[n]}
+        cffi::Struct create T {u uchar s struct.S}
+        set p [T new {u 42 s {d {1 2} n 2}}]
+    } -cleanup {
+        T free $p
+        T destroy
+        S destroy
+    } -body {
+        list \
+            [catch {T setnative $p s {n 2 d {3 4}}} message] \
+            $message \
+            [T fromnative $p] \
+            [T setnative $p u 99] \
+            [T fromnative $p]
+    } -result {1 {Operation setnative failed on ::cffi::test::T. Operation not permitted on variable sized structs.} {u 42 s {n 2 d {1.0 2.0}}} {} {u 99 s {n 2 d {1.0 2.0}}}}
 
     ###
     # struct setnative!

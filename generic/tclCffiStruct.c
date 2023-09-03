@@ -256,7 +256,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
     return size;
 }
 
-/* Function: CffiStructSize
+/* Function: CffiStructSizeForObj
  * Get the number of bytes needed to store a struct.
  *
  * Parameters:
@@ -273,7 +273,7 @@ CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
  * interp result holds an error message on failure.
  */
 int
-CffiStructSize(CffiInterpCtx *ipCtxP,
+CffiStructSizeForObj(CffiInterpCtx *ipCtxP,
                const CffiStruct *structP,
                Tcl_Obj *structValueObj)
 {
@@ -323,7 +323,7 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
         }
 
         int innerStructSize =
-            CffiStructSize(ipCtxP, innerStructP, innerStructObj);
+            CffiStructSizeForObj(ipCtxP, innerStructP, innerStructObj);
         if (innerStructSize < 0)
             return -1;
         /* Usual alignment as above */
@@ -331,6 +331,64 @@ CffiStructSize(CffiInterpCtx *ipCtxP,
              & ~(innerStructP->alignment - 1);
         size += innerStructSize;
     }
+    /* Now ensure whole thing aligned to struct size */
+    size = (size + structP->alignment - 1) & ~(structP->alignment - 1);
+    return size;
+}
+
+int CffiStructSizeForNative(CffiInterpCtx *ipCtxP,
+                            const CffiStruct *structP,
+                            void *valueP)
+{
+    if (!CffiStructIsVariableSize(structP))
+        return structP->size;
+
+    int size = structP->size; /* Base size - should include alignment */
+
+    /*
+     * There are two possibilities. The struct is variable size because
+     *  1 the last field is a variable sized array whose
+     *    count is given by another field
+     *  2 the last field is a struct whose last field is variable size
+     *    because of either of these two reasons.
+     * Note that arrays of variable sized structs are not permitted.
+     */
+    int lastFldIndex = structP->nFields - 1;
+    const CffiType *typeP  = &structP->fields[lastFldIndex].fieldType.dataType;
+    CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
+    if (structP->dynamicCountFieldIndex >= 0) {
+        /* Case 1 */
+        CFFI_ASSERT(CffiTypeIsVLA(typeP));
+
+        int elemAlignment;
+        int elemSize;
+        CffiTypeLayoutInfo(ipCtxP, typeP, 0, &elemSize, NULL, &elemAlignment);
+
+        int count;
+        count = CffiStructGetDynamicCountNative(ipCtxP, structP, valueP);
+        if (count < 0)
+            return -1;
+
+        /* Align to field size */
+        size = (size + elemAlignment - 1) & ~(elemAlignment - 1);
+        size += count * elemSize;
+    }
+    else {
+        /* Case 2 - recurse to get variable inner struct size and add */
+        CFFI_ASSERT(typeP->baseType == CFFI_K_TYPE_STRUCT);
+        CffiStruct *innerStructP = typeP->u.structP;
+        void *innerValueP =
+            structP->fields[lastFldIndex].offset + (char *)valueP;
+        int innerStructSize =
+            CffiStructSizeForNative(ipCtxP, innerStructP, innerValueP);
+        if (innerStructSize < 0)
+            return -1;
+        /* Usual alignment as above */
+        size = (size + innerStructP->alignment - 1)
+             & ~(innerStructP->alignment - 1);
+        size += innerStructSize;
+    }
+
     /* Now ensure whole thing aligned to struct size */
     size = (size + structP->alignment - 1) & ~(structP->alignment - 1);
     return size;
@@ -440,7 +498,7 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
     if (CffiStructIsVariableSize(structP)) {
         /* Arrays of variable sized structs are not allowed. */
         if (structIndex > 0)
-            return CffiErrorVariableSizeStruct(ip, structP);
+            return CffiErrorStructIsVariableSize(ip, structP, "indexing");
     } else {
         /* Not variable size struct. Indexing allowed. */
         structAddr = (structP->size * structIndex) + (char *)structAddr;
@@ -635,6 +693,20 @@ CffiStructFindField(Tcl_Interp *ip, CffiStruct *structP, const char *fieldNameP)
     return -1;
 }
 
+static void
+CffiStructDescribeArray(CffiField *fieldP, Tcl_Obj *objP)
+{
+    if (CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
+        Tcl_Obj *countObj = fieldP->fieldType.dataType.countHolderObj;
+        Tcl_AppendPrintfToObj(
+            objP, "[%s]", countObj? Tcl_GetString(countObj) : "");
+
+    }
+    else if (CffiTypeIsArray(&fieldP->fieldType.dataType))
+        Tcl_AppendPrintfToObj(
+            objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+}
+
 /* Function: CffiStructDescribeCmd
  * Stores a human readable description of the internal representation of
  * a <CffiStruct> as the interpreter result.
@@ -674,9 +746,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                     ".%s",
                     Tcl_GetString(fieldP->fieldType.dataType.u.tagNameObj));
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
-                Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+            CffiStructDescribeArray(fieldP, objP);
             break;
         case CFFI_K_TYPE_ASTRING:
         case CFFI_K_TYPE_CHAR_ARRAY:
@@ -689,9 +759,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                 }
             }
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
-                Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+            CffiStructDescribeArray(fieldP, objP);
             break;
         case CFFI_K_TYPE_UNISTRING:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -701,9 +769,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
 #endif
             Tcl_AppendPrintfToObj(objP, "\n  %s", cffiBaseTypes[baseType].token);
             Tcl_AppendPrintfToObj(objP, " %s", Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsArray(&fieldP->fieldType.dataType))
-                Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
+            CffiStructDescribeArray(fieldP, objP);
             break;
         case CFFI_K_TYPE_STRUCT:
             Tcl_AppendPrintfToObj(
@@ -728,15 +794,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
                                   "\n  %s %s",
                                   cffiBaseTypes[baseType].token,
                                   Tcl_GetString(fieldP->nameObj));
-            if (CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
-                Tcl_AppendPrintfToObj(
-                    objP, "[%s]", Tcl_GetString(fieldP->fieldType.dataType.countHolderObj));
-            }
-            else if (CffiTypeIsArray(&fieldP->fieldType.dataType)) {
-                Tcl_AppendPrintfToObj(
-                    objP, "[%d]", fieldP->fieldType.dataType.arraySize);
-
-            }
+            CffiStructDescribeArray(fieldP, objP);
             break;
         }
         Tcl_AppendPrintfToObj(
@@ -815,7 +873,8 @@ CffiStructInfoCmd(Tcl_Interp *ip,
  * flags - if CFFI_F_PRESERVE_ON_ERROR is set, the target location will
  *   be preserved in case of errors.
  * structResultP - the location where the struct is to be constructed. Caller
- *           has to ensure size is large enough (as per *structP->size*)
+ *           has to ensure size is large enough (taking into account
+ *           variable sized structs)
  * memlifoP - the memory allocator for fields that are typed as *string*
  *            or *unistring*. If *NULL*, fields of these types will
  *            result in an error being raised. Caller is responsible
@@ -840,7 +899,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
     void *structAddress;
     Tcl_Size structSize;
 
-    structSize = CffiStructSize(ipCtxP, structP, structValueObj);
+    structSize = CffiStructSizeForObj(ipCtxP, structP, structValueObj);
     if (structSize <= 0) {
         return TCL_ERROR;
     }
@@ -1030,22 +1089,41 @@ error_return:
     return TCL_ERROR;
 }
 
-/* Function: CffiErrorVariableSizeStruct
+/* Function: CffiErrorStructCountField
+ * Stores an error message in the interpreter stating the count field
+ * in a variable size struct cannot be modified.
+ *
+ * Parameters:
+ * ip - interpreter. May be NULL
+ * fldNameObj - name of the field
+ *
+ * Returns:
+ * Always returns TCL_ERROR.
+ */
+CffiResult
+CffiErrorStructCountField(Tcl_Interp *ip, Tcl_Obj *fldNameObj)
+{
+    return Tclh_ErrorInvalidValue(
+        ip, fldNameObj, "The count field in a variable size struct must not be modified.");
+}
+
+/* Function: CffiErrorStructIsVariableSize
  * Stores an error message in the interpreter stating the operation is not
  * valid for a variable sized struct.
  *
  * Parameters:
  * ip - interpreter. May be NULL>
  * structP - struct descriptor
+ * oper - operation that was attempted
  *
  * Returns:
  * Always returns TCL_ERROR.
  */
 CffiResult
-CffiErrorVariableSizeStruct(Tcl_Interp *ip, CffiStruct *structP)
+CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper)
 {
-    return Tclh_ErrorInvalidValue(
-        ip, NULL, "Operation not permitted on variable sized structs.");
+    return Tclh_ErrorOperFailed(
+        ip, oper, structP->name, "Operation not permitted on variable sized structs.");
 }
 
 /* Function: CffiStructAllocateCmd
@@ -1076,7 +1154,7 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     int optIndex;
     Tcl_WideInt wide;
 
-    CFFI_ASSERT(objc >= 2 && objc <=4);
+    CFFI_ASSERT(objc >= 2 && objc <= 6);
 
     if (objc == 2)
         count = 1;
@@ -1176,7 +1254,7 @@ CffiStructNewCmd(Tcl_Interp *ip,
     CFFI_ASSERT(objc == 2 || objc == 3);
 
     /* Note - this will fail for variable size structs when objc==2. TODO */
-    structSize = CffiStructSize(ipCtxP, structP, objc == 2 ? NULL : objv[2]);
+    structSize = CffiStructSizeForObj(ipCtxP, structP, objc == 2 ? NULL : objv[2]);
     if (structSize <= 0)
         return TCL_ERROR;
 
@@ -1382,6 +1460,10 @@ CffiStructToNativePointer(Tcl_Interp *ip,
     void *structAddr;
     CffiStruct *structP = structCtxP->structP;
     CffiInterpCtx *ipCtxP = structCtxP->ipCtxP;
+
+    if (CffiStructIsVariableSize(structP)) {
+        return CffiErrorStructIsVariableSize(ip, structP, "tonative");
+    }
 
     CHECK(CffiStructComputeAddress(ipCtxP,
                                    structP,
@@ -1629,6 +1711,13 @@ CffiStructSetNativePointer(Tcl_Interp *ip,
                                         &fldIndex,
                                         &fldAddr,
                                         &fldArraySize));
+    /* A field that holds a VLA count must not be modified. */
+    if (structP->dynamicCountFieldIndex == fldIndex) {
+        return CffiErrorStructCountField(ip, objv[3]);
+    }
+    if (CffiTypeIsVariableSize(&structP->fields[fldIndex].fieldType.dataType)) {
+        return CffiErrorStructIsVariableSize(ip, structP, "setnative");
+    }
     CHECK(CffiNativeValueFromObj(ipCtxP,
                                  &structP->fields[fldIndex].fieldType,
                                  fldArraySize,
@@ -1965,8 +2054,12 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
     CffiResult ret;
     Tcl_Obj *resultObj;
     CffiStruct *structP = structCtxP->structP;
+    int structSize;
 
-    resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
+    structSize = CffiStructSizeForObj(structCtxP->ipCtxP, structP, objv[2]);
+    if (structSize <= 0)
+        return TCL_ERROR;
+    resultObj = Tcl_NewByteArrayObj(NULL, structSize);
     valueP    = Tclh_ObjGetBytesByRef(ip, resultObj, NULL);
     TCLH_ASSERT(valueP);
     ret       = CffiStructFromObj(
@@ -2014,16 +2107,27 @@ CffiStructFromBinaryCmd(Tcl_Interp *ip,
     else
         offset = 0;
 
+    /* First ensure binary is minimal size. */
     if (len < (int) structP->size || (len - structP->size) < offset) {
-        /* Do not pass objv[2] to error function -> binary values not printable */
-        return Tclh_ErrorInvalidValue(
-            ip, NULL, "Truncated structure binary value.");
+        goto truncation;
     }
+    /* Now ensure get the actual size in case it is varsize struct */
+    int structSize = CffiStructSizeForNative(structCtxP->ipCtxP, structP, valueP);
+    if (structSize < 0)
+        return TCL_ERROR;
+    if (len < structSize)
+        goto truncation;
+
     ret = CffiStructToObj(
         structCtxP->ipCtxP, structP, offset + valueP, &resultObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, resultObj);
     return ret;
+
+truncation:
+    /* Do not pass objv[2] to error function -> binary values not printable */
+    return Tclh_ErrorInvalidValue(
+        ip, NULL, "Truncated structure binary value.");
 }
 
 /* Function: CffiStructNameCmd

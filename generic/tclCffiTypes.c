@@ -1557,7 +1557,10 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             *(indx + (double *)valueBaseP) = value.u.dbl;
             break;
         case CFFI_K_TYPE_STRUCT:
-            len = typeAttrsP->dataType.u.structP->size;
+            len = CffiStructSizeForObj(
+                ipCtxP, typeAttrsP->dataType.u.structP, valueObj);
+            if (len <= 0)
+                return TCL_ERROR;
             if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                 Tcl_DStringInit(&ds);
                 Tcl_DStringSetLength(&ds, len);
@@ -2128,16 +2131,16 @@ CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
             int i;
             int offset;
             int elem_size;
+            CffiStruct *structP = typeAttrsP->dataType.u.structP;
 
-            elem_size = typeAttrsP->dataType.u.structP->size;
+            CFFI_ASSERT((structP->flags & CFFI_F_STRUCT_VARSIZE) == 0);
+            elem_size = structP->size;
             /* TBD - may be allocate Tcl_Obj* array from memlifo for speed */
             listObj = Tcl_NewListObj(count, NULL);
             for (i = 0, offset = 0; i < count; ++i, offset += elem_size) {
-                ret = CffiStructToObj(ipCtxP,
-                                      typeAttrsP->dataType.u.structP,
-                                      offset + (char *)valueP,
-                                      &valueObj);
-                if (ret != TCL_OK) {
+                    ret = CffiStructToObj(
+                        ipCtxP, structP, offset + (char *)valueP, &valueObj);
+                    if (ret != TCL_OK) {
                     Tcl_DecrRefCount(listObj);
                     return ret;
                 }

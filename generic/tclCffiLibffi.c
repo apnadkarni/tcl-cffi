@@ -372,13 +372,13 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         valueP = *(void **)args[argIndex];
         if (valueP == NULL) {
             CffiStruct *structP;
-            if (!(typeAttrsP->flags & CFFI_F_ATTR_NULLOK)) {
+            structP = typeAttrsP->dataType.u.structP;
+            if (!(typeAttrsP->flags & CFFI_F_ATTR_NULLOK) || CffiStructIsVariableSize(structP)) {
                 return Tclh_ErrorInvalidValue(
                     cbP->ipCtxP->interp,
                     NULL,
                     "Pointer passed to callback is NULL.");
             }
-            structP = typeAttrsP->dataType.u.structP;
             valueP = Tclh_LifoAlloc(&cbP->ipCtxP->memlifo, structP->size);
             CHECK(CffiStructObjDefault(cbP->ipCtxP, structP, valueP));
         }
