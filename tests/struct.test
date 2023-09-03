@@ -1287,6 +1287,38 @@ namespace eval cffi::test {
         ::S getnative $p d
     } -result {2.0 3.0}
 
+    test struct-getnative-varsize-1 "struct getnative - nested varsize" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        cffi::Struct create ::T {i int s struct.S}
+        set p [::T new {i 42 s {n 2 d { 2 3}}}]
+    } -cleanup {
+        ::T free $p
+        rename ::T ""
+        rename ::S ""
+    } -body {
+        ::T getnative $p s
+    } -result {n 2 d {2.0 3.0}}
+
+    test struct-getnative-varsize-2 "struct getnative - varsize index 0" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 2 d { 2 3}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnative $p d 0
+    } -result {2.0 3.0}
+
+    test struct-getnative-varsize-2 "struct getnative - varsize index 1" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 2 d { 2 3}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnative $p d 1
+    } -result {Operation indexing failed on ::S. Operation not permitted on variable sized structs.} -returnCodes error
+
     ###
     # getnative!
     testnumargs struct-getnative! "::TestStruct getnative!" "POINTER FIELD" "?INDEX?"
@@ -1582,6 +1614,49 @@ namespace eval cffi::test {
     test struct-getnativefields-error-3 "unsafe pointer" -body {
         ::TestStruct getnativefields 1^::TestStruct {}
     } -result "Pointer [makeptr 1 ::TestStruct] is not registered." -returnCodes error
+
+    test struct-getnativefields-varsize-0 "struct getnativefields - varsize" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 2 d { 2 3}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnativefields $p {n d}
+    } -result {2 {2.0 3.0}}
+
+    test struct-getnativefields-varsize-1 "struct getnativefields - nested varsize" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        cffi::Struct create ::T {i int s struct.S}
+        set p [::T new {i 42 s {n 2 d { 2 3}}}]
+    } -cleanup {
+        ::T free $p
+        rename ::T ""
+        rename ::S ""
+    } -body {
+        ::T getnativefields $p {s i}
+    } -result {{n 2 d {2.0 3.0}} 42}
+
+    test struct-getnativefields-varsize-2 "struct getnativefields - varsize index 0" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 2 d { 2 3}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnativefields $p {n d} 0
+    } -result {2 {2.0 3.0}}
+
+    test struct-getnativefields-varsize-2 "struct getnativefields - varsize index 1" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 2 d { 2 3}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnativefields $p {n d} 1
+    } -result {Operation indexing failed on ::S. Operation not permitted on variable sized structs.} -returnCodes error
+
 
     ###
     # struct getnativefields!

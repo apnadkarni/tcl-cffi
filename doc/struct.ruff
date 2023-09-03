@@ -96,8 +96,10 @@ oo::class create ${NS}::Struct {
         #    a byte offset into memory.
         #    For variable sized structs `index` must be `0` or unspecified.
         #
-        # The decoded dictionary or dictionaries are keyed by the field
-        # names of the struct.
+        # The decoded dictionary or dictionaries are keyed by the field names of
+        # the struct. For fields containing variable length arrays, the field
+        # holding the length of the array must be explicitly specified and
+        # cannot be defaulted.
         #
         # See also: fromnative! tonative, frombinary
         #
@@ -111,8 +113,10 @@ oo::class create ${NS}::Struct {
         #    a byte offset into memory.
         #    For variable sized structs `index` must be `0` or unspecified.
         #
-        # The decoded dictionary or dictionaries are keyed by the field
-        # names of the struct.
+        # The decoded dictionary or dictionaries are keyed by the field names of
+        # the struct. For fields containing variable length arrays, the field
+        # holding the length of the array must be explicitly specified and
+        # cannot be defaulted.
         #
         # See also: fromnative, tonative, frombinary
         #
@@ -183,7 +187,8 @@ oo::class create ${NS}::Struct {
         #    For variable sized structs `index` must be `0` or unspecified.
         #
         # The field being set must not be a variable sized field, or field
-        # holding a count for a variable sized field.
+        # holding a count for a variable sized field; otherwise, an error is
+        # raised.
     }
     method setnative! {pointer fieldname value {index 0}} {
         # Sets the value of a field in a native structure in memory
@@ -196,7 +201,8 @@ oo::class create ${NS}::Struct {
         #    For variable sized structs `index` must be `0` or unspecified.
         #
         # The field being set must not be a variable sized field, or field
-        # holding a count for a variable sized field.
+        # holding a count for a variable sized field; otherwise, an error is
+        # raised.
     }
     method fieldpointer {pointer fieldname {tag ""} {index 0}} {
         # Returns a pointer corresponding to the address of a field within a
