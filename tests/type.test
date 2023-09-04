@@ -34,9 +34,9 @@ namespace eval cffi::test {
              bytes {1 1} \
             ]
 
-    testnumargs type-size "cffi::type size" "TYPE"
+    testnumargs type-size "cffi::type size" "TYPE" "?-vlacount VLACOUNT?"
     testnumargs type-count "cffi::type count" "TYPE"
-    testnumargs type-info "cffi::type info" "TYPE" "?PARSEMODE?"
+    testnumargs type-info "cffi::type info" "TYPE" "?-parsemode PARSEMODE? ?-vlacount VLACOUNT?"
 
     proc basictypetest {typedecl} {
         variable typeInfo
@@ -75,31 +75,39 @@ namespace eval cffi::test {
         }
 
         # Array tests
-        if {$type ni {struct.TypeTestStruct  binary void}} {
+        if {$type ni {binary void}} {
 
-            test type-info-$testlabel-array-1 "type info $typedecl array" -body {
+            test type-info-$testlabel-array-0 "type info $typedecl array" -body {
                 cffi::type info "$type\[10\] $typeattrs"
             } -result [list Size [expr {10 * $size}] Count 10 Alignment $alignment Definition [list "$type\[10\]" {*}$typeattrs] BaseSize $size] -match dict
 
-            test type-size-$testlabel-array-1 "type size $typedecl array" -body {
+            test type-info-$testlabel-array-NUMELEMS-0 "type info $typedecl variable size array" -body {
+                cffi::type info "$type\[NUMELEMS\] $typeattrs" -vlacount 3
+            } -result [list Size [expr {3 * $size}] Count NUMELEMS Alignment $alignment Definition [list "$type\[NUMELEMS\]" {*}$typeattrs] BaseSize $size] -match dict
+
+            test type-size-$testlabel-array-0 "type size $typedecl array" -body {
                 cffi::type size "$type\[10\] $typeattrs"
             } -result [expr {10 * $size}]
 
-            test type-count-$testlabel-array-1 "type count $typedecl array" -body {
+            test type-size-$testlabel-array-NUMELEMS-0 "type size $typedecl variable size array" -body {
+                cffi::type size "$type\[NUMELEMS\] $typeattrs" -vlacount 3
+            } -result [expr {3 * $size}]
+
+            test type-count-$testlabel-array-0 "type count $typedecl array" -body {
                 cffi::type count "$type\[10\] $typeattrs"
             } -result 10
 
         } else {
 
-            test type-info-$testlabel-array-1 "type info $typedecl array" -body {
+            test type-info-$testlabel-array-0 "type info $typedecl array" -body {
                 cffi::type info "$type\[10\] $typeattrs"
             } -result "Invalid value \"$type\[10\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
 
-            test type-size-$testlabel-array-1 "type size $typedecl array" -body {
+            test type-size-$testlabel-array-0 "type size $typedecl array" -body {
                 cffi::type size "$type\[10\] $typeattrs"
             } -result "Invalid value \"$type\[10\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
 
-            test type-count-$testlabel-array-1 "type count $typedecl array" -body {
+            test type-count-$testlabel-array-0 "type count $typedecl array" -body {
                 cffi::type count "$type\[10\] $typeattrs"
             } -result "Invalid value \"$type\[10\]\". $errorMessages(unsupportedarraytype)" -returnCodes error
 
@@ -174,25 +182,25 @@ namespace eval cffi::test {
         set testlabel type-info-[join $typedecl -]
 
         set basesize $size
-        if {$parse_mode eq "param"} {
+        if {$parse_mode in "field param"} {
             if {[string is integer -strict $count]} {
                 set size [expr {$size * $count}]
-            } else {
-                set size 0
-            }
-            test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
-                cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-            } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $basesize] -match dict {*}$args
-        } elseif {$parse_mode eq "field"} {
-            # Only fixed size array element counts allowed
-            if {[string is integer -strict $count]} {
                 test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
                     cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-                } -result [list Size [expr {$count * $size}] Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $basesize] -match dict {*}$args
+                } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $basesize] -match dict {*}$args
+                test $testlabel-array$count-$parse_mode-1 "type info -parsemode $parse_mode, $typedecl array" -body {
+                    cffi::type info "$type\[$count\] $typeattrs" -parsemode $parse_mode
+                } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $basesize] -match dict {*}$args
+                test $testlabel-array$count-$parse_mode-2 "type info -parsemode $parse_mode, $typedecl array -vlacount (ignored)" -body {
+                    cffi::type info "$type\[$count\] $typeattrs" -parsemode $parse_mode -vlacount 1000
+                } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $basesize] -match dict {*}$args
             } else {
+                # Not fixed size. Need -vlacount option
+                set vlacount 3
+                set size [expr {$size * $vlacount}]
                 test $testlabel-array$count-$parse_mode-0 "type info $parse_mode, $typedecl array" -body {
-                    cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-                } -result "Invalid value \"$type\[$count\]\". $errorMessages(arraysize)" -returnCodes error {*}$args
+                    cffi::type info "$type\[$count\] $typeattrs" -parsemode $parse_mode -vlacount $vlacount
+                } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $basesize] -match dict {*}$args
             }
         } else {
             # parse mode = return
@@ -520,6 +528,7 @@ namespace eval cffi::test {
 
         # Array tests - success
         testnumericarray "$type" 2 field ""
+        testnumericarray "$type" NUMELEMS field ""
 
         # Failure tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs nullifempty] {
@@ -717,7 +726,6 @@ namespace eval cffi::test {
         }
 
         # Array test failures
-        testinvalidattr "$type\[NUMELEMS\]" field $errorMessages(fieldvararray)
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" field "$errorMessages(arraysize)"
         }
@@ -745,12 +753,23 @@ namespace eval cffi::test {
             } else {
                 set size $count
             }
+            test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
+                cffi::type info "$type\[$count\] $typeattrs" $parse_mode
+            } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $alignment] -match dict
         } else {
-            set size 0
+            # Not fixed count
+            set vlacount 10
+            if {$type eq "unichars"} {
+                set size [expr {$unicharSize*$vlacount}]
+            } elseif {$type eq "winchars"} {
+                set size [expr {2*$vlacount}]
+            } else {
+                set size $vlacount
+            }
+            test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
+                cffi::type info "$type\[$count\] $typeattrs" -parsemode $parse_mode -vlacount $vlacount
+            } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $alignment] -match dict
         }
-        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
-            cffi::type info "$type\[$count\] $typeattrs" $parse_mode
-        } -result [list Size $size Count $count Alignment $alignment Definition [list "$type\[$count\]" {*}$expected_typeattrs] BaseSize $alignment] -match dict
     }
     set matrix {chars chars.utf-8 unichars bytes}
     if {$::tcl_platform(platform) eq "windows"} {
@@ -843,7 +862,7 @@ namespace eval cffi::test {
 
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl \[$count\]" -body {
             cffi::type info $typedecl\[$count\] $parse_mode
-        } -result [list Size [expr {2*$::tcl_platform(pointerSize)}] Count $count Alignment $::tcl_platform(pointerSize) Definition [list $type\[$count\] {*}$expected_typeattrs] BaseSize $::tcl_platform(pointerSize)] -match dict {*}$args
+        } -result [list Size [expr {$count*$::tcl_platform(pointerSize)}] Count $count Alignment $::tcl_platform(pointerSize) Definition [list $type\[$count\] {*}$expected_typeattrs] BaseSize $::tcl_platform(pointerSize)] -match dict {*}$args
     }
 
     set matrix {string string.utf-8 unistring}
@@ -876,7 +895,10 @@ namespace eval cffi::test {
         } {
             teststring "$type $attr" param $expected
         }
-        teststringarray $type 2 param "in byref"
+        teststringarray $type 3 param "in byref"
+        teststringarray $type 2 field ""
+        testinvalidattr "$type\[NUMELEMS\]" return $errorMessages(arrayreturn)
+        testinvalidattr "$type\[2\]" return $errorMessages(arrayreturn)
 
         foreach {attr expected} {
             "in lasterror" "in"
@@ -925,19 +947,8 @@ namespace eval cffi::test {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
                 }
             }
-            # Array tests - success
-            # none - currently arrays not supported
-
-            # Scalar tests - attributes invalid for param parse mode
-            # none - no attrs are invalid solely for param mode
 
             # array invalid count spec failure
-            if {$parse_mode eq "return"} {
-                testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(arrayreturn)
-                testinvalidattr "$type\[2\]" $parse_mode $errorMessages(arrayreturn)
-            } elseif {$parse_mode eq "field"} {
-                testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(fieldvararray)
-            }
             foreach count {[0] [-2] [] [2x] \[2 [2]x} {
                 testinvalidattr "$type$count" $parse_mode "$errorMessages(arraysize)"
             }
@@ -986,9 +997,18 @@ namespace eval cffi::test {
             set typedecl "$type $typeattrs"
         }
         set testlabel type-info-[join $typedecl -]
+
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
         } -result [list Size [expr {$count ? ($count * $testStructSize) : $testStructSize}] Count [expr {$count == 0 ? -1 : $count}] Alignment 8 Definition [list $type {*}$expected_typeattrs] BaseSize $testStructSize] -match dict {*}$args
+        if {$parse_mode eq "param"} {
+            # Not parse mode dependent so only test is param
+            set testlabel type-size-[join $typedecl -]
+            test $testlabel-0 "type size $typedecl" -body {
+                cffi::type size $typedecl
+            } -result [expr {$count ? ($count * $testStructSize) : $testStructSize}] {*}$args
+            
+        }
     }
     foreach parse_mode {param return field} {
         if {$parse_mode eq "param"} {
@@ -1048,7 +1068,7 @@ namespace eval cffi::test {
             teststruct {struct.::TestStruct out} param "out byref" 2
         }
         if {$parse_mode eq "field"} {
-            testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(fieldvararray)
+            teststruct struct.::TestStruct field "" 2
         }
         if {$parse_mode eq "return"} {
             testinvalidattr "struct.TestStruct nullifempty" $parse_mode $errorMessages(attrparsemode)
@@ -1071,6 +1091,56 @@ namespace eval cffi::test {
         } -result "Struct definition \"NOSUCHSTRUCT\" not found or inaccessible. " -returnCodes error
     }
 
+    # Varsize struct tests
+
+    test type-info-struct-varsize-0 {test size and alignment of 0-size VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count uchar values int[count]}
+        cffi::type info struct.S -vlacount 0
+    } -result {Size 4 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 4} -match dict
+
+    test type-info-struct-varsize-1 {test size and alignment of VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count uchar values int[count]}
+        cffi::type info struct.S -vlacount 3
+    } -result {Size 16 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 16} -match dict
+
+    test type-info-struct-varsize-2 {test size and alignment with byte aligned 0-size VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count longlong values uchar[count]}
+        cffi::type info struct.S -vlacount 0
+    } -result {Size 8 Count -1 Alignment 8 Definition struct.::cffi::test::S BaseSize 8} -match dict
+
+    test type-info-struct-varsize-3 {test size and alignment with byte aligned VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count longlong values uchar[count]}
+        cffi::type info struct.S -vlacount 3
+    } -result {Size 16 Count -1 Alignment 8 Definition struct.::cffi::test::S BaseSize 16} -match dict
+
+    test type-info-struct-varsize-nested-0 {Test nested varsize} -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+        cffi::Struct create T {u uchar s struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        list [cffi::type size struct.T -vlacount 0] [cffi::type size struct.T -vlacount 1] [cffi::type info struct.T -vlacount 2]
+    } -result {16 24 {Size 32 Count -1 Alignment 8 Definition struct.::cffi::test::T BaseSize 32}}
+
+    test type-info-struct-varsize-nested-0 {Test nested varsize} -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+        cffi::Struct create T {u uchar s struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        list  [T info -vlacount 2]
+    } -result [list {Size 32 Alignment 8 Flags 2 Fields {u {Size 1 Offset 0 Definition uchar} s {Size 24 Offset 8 Definition struct.::cffi::test::S}}}]
+
     ###
     # Verify commands work with aliases
     test type-info-alias-0 "type info alias " -setup {
@@ -1088,6 +1158,13 @@ namespace eval cffi::test {
     } -body {
         cffi::type info type_info_test_alias_1 param
     } -result {Size 8 Count 2 Alignment 4 Definition {{int[2]} in byref} BaseSize 4} -match dict
+    test type-info-alias-2 "type info alias variable size array" -setup {
+        cffi::alias define type_info_test_alias_1 {int[NUMELEMS]}
+    } -cleanup {
+        cffi::alias delete type_info_test_alias_1
+    } -body {
+        cffi::type info type_info_test_alias_1 -parsemode param -vlacount 3
+    } -result {Size 12 Count NUMELEMS Alignment 4 Definition {{int[NUMELEMS]} in byref} BaseSize 4} -match dict
 
     test type-size-alias-0 "type size alias array" -setup {
         cffi::alias define type_size_test_alias_0 {int[2]}
@@ -1096,6 +1173,13 @@ namespace eval cffi::test {
     } -body {
         cffi::type size type_size_test_alias_0
     } -result 8
+    test type-size-alias-1 "type size alias variable size array" -setup {
+        cffi::alias define type_size_test_alias_1 {int[NUMELEMS]}
+    } -cleanup {
+        cffi::alias delete type_size_test_alias_1
+    } -body {
+        cffi::type size type_size_test_alias_1 -vlacount 3
+    } -result 12
 
     test type-count-alias-0 "type count alias array" -setup {
         cffi::alias define type_count_test_alias_0 {int[2]}

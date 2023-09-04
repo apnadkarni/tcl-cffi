@@ -950,6 +950,22 @@ getStringFromStructByvalStringArray(struct StructWithStringArrays s,
 #endif
 }
 
+struct StructWithVLA {
+    int count;
+    int values[1];
+};
+EXTERN int copyStructWithVLA (struct StructWithVLA *from, struct StructWithVLA *to)
+{
+    int i;
+    int sum;
+    to->count = from->count;
+    for (sum =0, i = 0; i < from->count; ++i) {
+        to->values[i] = from->values[i];
+        sum += from->values[i];
+    }
+    return sum;
+}
+
 EXTERN void
 getEinvalString(char *bufP)
 {
@@ -1080,3 +1096,48 @@ int formatVarargs(char *buf, int bufSize, const char *fmt,...)
     va_end(args);
     return n;
 }
+
+/*
+ * Variable size struct tests
+ */
+#define DefineVarsizeStruct(countType_, valueType_)                        \
+    typedef struct {                                                       \
+        countType_ count;                                                  \
+        valueType_ values[1];                                              \
+    } StructWithVLA##countType_##valueType_;                               \
+                                                                           \
+    typedef struct {                                                       \
+        unsigned short shrt;                                               \
+        StructWithVLA##countType_##valueType_ nested;                      \
+    } StructWithNestedVLA##countType_##valueType_;                         \
+                                                                           \
+    DLLEXPORT void copyVarSizeStruct##countType_##valueType_(              \
+        StructWithVLA##countType_##valueType_ *in,                         \
+        StructWithVLA##countType_##valueType_ *inout)                      \
+    {                                                                      \
+        long long i;                                                       \
+        countType_ count = in->count;                                      \
+        if (inout->count < in->count)                                      \
+            count = inout->count;                                          \
+        for (i = 0; i < count; ++i)                                        \
+            inout->values[i] = (valueType_)((long long)in->values[i] + 1); \
+    }                                                                      \
+    DLLEXPORT void copyNestedVarSizeStruct##countType_##valueType_(        \
+        StructWithNestedVLA##countType_##valueType_ *in,                   \
+        StructWithNestedVLA##countType_##valueType_ *inout)                \
+    {                                                                      \
+        long long i;                                                       \
+        countType_ count = in->nested.count;                               \
+        inout->shrt      = in->shrt+1;                                       \
+        if (inout->nested.count < in->nested.count)                        \
+            count = inout->nested.count;                                   \
+        for (i = 0; i < count; ++i)                                        \
+            inout->nested.values[i] =                                      \
+                (valueType_)((long long)in->nested.values[i] + 1);         \
+    }
+
+typedef void *voidpointer;
+DefineVarsizeStruct(int, int)
+DefineVarsizeStruct(char, double)
+DefineVarsizeStruct(int64_t, char)
+DefineVarsizeStruct(int, voidpointer)

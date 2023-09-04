@@ -1696,6 +1696,258 @@ namespace eval ${NS}::test {
         SimpleWithStructSize destroy
     } -result 1
 
+    ###
+    # varsize structs
+    test function-struct-varsize-pass-by-value {Pass by value of varsize not allowed} -setup {
+        Struct create S {count int values int[count]} -clear
+    } -cleanup {
+        S destroy
+    } -body {
+        testDll function copyVarSizeStructintint void {from struct.S to {struct.S inout}}
+    } -result {Invalid value "struct.S". Variable sized types are not allowed in this type declaration context. Error defining function copyVarSizeStructintint.} -returnCodes error
+
+    test function-struct-varsize-return {Return of varsize not allowed} -setup {
+        Struct create S {count int values int[count]} -clear
+    } -cleanup {
+        S destroy
+    } -body {
+        testDll function copyVarSizeStructintint struct.S {from {struct.S byref} to {struct.S inout}}
+    } -result {Invalid value "struct.S". Variable sized types are not allowed in this type declaration context. Error defining function copyVarSizeStructintint.} -returnCodes error
+
+    test function-struct-varsize-array {Arrays of varsize structs not allowed} -setup {
+        Struct create S {count int values int[count]} -clear
+    } -cleanup {
+        S destroy
+    } -body {
+        testDll function copyVarSizeStructintint void {from struct.S[3] to {struct.S inout}}
+    } -result {Invalid value "struct.S[3]". Array element types must be fixed size. Error defining function copyVarSizeStructintint.} -returnCodes error
+
+    test function-struct-varsize-missing-input-count {missing input count} -setup {
+        Struct create S {count int values int[count]} -clear
+        testDll function copyVarSizeStructintint void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {values {3 4}}
+        set out {count 2}
+        copyVarSizeStructintint $in out
+        set out
+    } -result {Invalid value "count". No value supplied for dynamic field count.} -returnCodes error
+
+    test function-struct-varsize-missing-output-count {missing output count} -setup {
+        Struct create S {count int values int[count]} -clear
+        testDll function copyVarSizeStructintint void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 2 values {3 4}}
+        set out {}
+        copyVarSizeStructintint $in out
+        set out
+    } -result {Invalid value "count". No value supplied for dynamic field count.} -returnCodes error
+
+    test function-struct-varsize-int-int {struct varsize countType=int valType=int} -setup {
+        Struct create S {count int values int[count]} -clear
+        testDll function copyVarSizeStructintint void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 2 values {3 4}}
+        set out {count 2}
+        copyVarSizeStructintint $in out
+        set out
+    } -result {count 2 values {4 5}}
+
+    test function-struct-varsize-char-double {struct varsize countType=char valType=double} -setup {
+        Struct create S {count schar values double[count]} -clear
+        testDll function copyVarSizeStructchardouble void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 2 values {3 4}}
+        set out {count 2}
+        copyVarSizeStructchardouble $in out
+        set out
+    } -result {count 2 values {4.0 5.0}}
+
+    test function-struct-varsize-int64_t-schar {struct varsize countType=int64_t valType=schar} -setup {
+        Struct create S {count longlong values schar[count]} -clear
+        testDll function copyVarSizeStructint64_tchar void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 2 values {3 4}}
+        set out {count 2}
+        copyVarSizeStructint64_tchar $in out
+        set out
+    } -result {count 2 values {4 5}}
+
+    test function-struct-varsize-int-pointer {struct varsize countType=int valType=pointer} -setup {
+        Struct create S {count int values {pointer[count] unsafe}} -clear
+        testDll function copyVarSizeStructintvoidpointer void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 2 values {1^ 2^}}
+        set out {count 2}
+        copyVarSizeStructintvoidpointer $in out
+        set out
+    } -result [list count 2 values [list [makeptr 2] [makeptr 3]]]
+
+    test function-struct-varsize-smaller-destination {struct varsize destination small} -setup {
+        Struct create S {count schar values double[count]} -clear
+        testDll function copyVarSizeStructchardouble void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 3 values {3 4 5}}
+        set out {count 1}
+        copyVarSizeStructchardouble $in out
+        set out
+    } -result [list count 1 values [list 4.0]]
+
+    test function-struct-varsize-zerosize-destination {struct varsize destination zero size} -setup {
+        Struct create S {count schar values double[count]} -clear
+        testDll function copyVarSizeStructchardouble void {from {struct.S byref} to {struct.S inout}}
+    } -cleanup {
+        S destroy
+    } -body {
+        set in {count 10 values {3 4 5}} ; # Extra elements will be 0
+        set out {count 0}
+        copyVarSizeStructchardouble $in out
+        set out
+    } -result [list count 0 values [list ]]
+
+    # nested varsize structs
+
+    test function-struct-varsize-nested-pass-by-value {Pass by value of nested varsize not allowed} -setup {
+        Struct create S {count int values int[count]} -clear
+        Struct create T {shrt short nested struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        testDll function copyNestedVarSizeStructintint void {from struct.T to {struct.T inout}}
+    } -result {Invalid value "struct.T". Variable sized types are not allowed in this type declaration context. Error defining function copyNestedVarSizeStructintint.} -returnCodes error
+
+    test function-struct-varsize-nested-pass-return {Return of nested varsize not allowed} -setup {
+        Struct create S {count int values int[count]} -clear
+        Struct create T {shrt short nested struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        testDll function copyNestedVarSizeStructintint struct.T {from {struct.T byref} to {struct.T inout}}
+    } -result {Invalid value "struct.T". Variable sized types are not allowed in this type declaration context. Error defining function copyNestedVarSizeStructintint.} -returnCodes error
+
+    test function-struct-varsize-nested-array {Pass array of nested varsize not allowed} -setup {
+        Struct create S {count int values int[count]} -clear
+        Struct create T {shrt short nested struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        testDll function copyNestedVarSizeStructintint void {from {struct.T[3] byref} to {struct.T inout}}
+    } -result {Invalid value "struct.T[3]". Array element types must be fixed size. Error defining function copyNestedVarSizeStructintint.} -returnCodes error
+
+    test function-struct-varsize-nested-missing-input-count {varsize missing input count} -setup {
+        Struct create S {count int values int[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructintint void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {values {3 4}}}
+        set out {nested {count 2}}
+        copyNestedVarSizeStructintint $in out
+        set out
+    } -result {Invalid value "count". No value supplied for dynamic field count.} -returnCodes error
+
+    test function-struct-varsize-nested-missing-output-count {varsize missing output count} -setup {
+        Struct create S {count int values int[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructintint void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {count 2 values {3 4}}}
+        set out {nested {}}
+        copyNestedVarSizeStructintint $in out
+        set out
+    } -result {Invalid value "count". No value supplied for dynamic field count.} -returnCodes error
+
+    test function-struct-varsize-nested-int-int {struct varsize countType=int valType=int} -setup {
+        Struct create S {count int values int[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructintint void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {count 2 values {3 4}}}
+        set out {nested {count 2}}
+        copyNestedVarSizeStructintint $in out
+        set out
+    } -result {shrt 43 nested {count 2 values {4 5}}}
+
+    test function-struct-varsize-nested-char-double {struct varsize countType=char valType=double} -setup {
+        Struct create S {count schar values double[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructchardouble void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {count 2 values {3 4}}}
+        set out {nested {count 2}}
+        copyNestedVarSizeStructchardouble $in out
+        set out
+    } -result {shrt 43 nested {count 2 values {4.0 5.0}}}
+
+    test function-struct-varsize-nested-int64_t-schar {struct varsize countType=int64_t valType=schar} -setup {
+        Struct create S {count longlong values schar[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructint64_tchar void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {count 2 values {3 4}}}
+        set out {nested {count 2}}
+        copyNestedVarSizeStructint64_tchar $in out
+        set out
+    } -result {shrt 43 nested {count 2 values {4 5}}}
+
+    test function-struct-varsize-nested-smaller-destination {struct varsize destination small} -setup {
+        Struct create S {count schar values double[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructchardouble void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {count 10 values {3 4 5}}}; # Extra elements will be 0
+        set out {nested {count 2}}
+        copyNestedVarSizeStructchardouble $in out
+        set out
+    } -result {shrt 43 nested {count 2 values {4.0 5.0}}}
+
+    test function-struct-varsize-nested-zerosize-destination {struct varsize destination zero size} -setup {
+        Struct create S {count schar values double[count]} -clear
+        Struct create T {shrt short nested struct.S} -clear
+        testDll function copyNestedVarSizeStructchardouble void {from {struct.T byref} to {struct.T inout}}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        set in {shrt 42 nested {count 10 values {3 4 5}}}; # Extra elements will be 0
+        set out {nested {count 0}}
+        copyNestedVarSizeStructchardouble $in out
+        set out
+    } -result {shrt 43 nested {count 0 values {}}}
+
     # Note -  tests for invalid parameter attrs are done in type.test
 
     ###

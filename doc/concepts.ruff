@@ -790,6 +790,46 @@ namespace eval Concepts {
         The package provides other methods to access fields and otherwise
         manipulate native structs in memory. See [::cffi::Struct].
 
+        #### Variable sized structs
+
+        C allows the definition of structs of variable size where the last field
+        in the struct is a *Variable Length Array* (VLA), an array whose length
+        is not fixed. Using C99's syntax, an example would be
+
+        ```
+        struct S {
+            int count;
+            double values[];
+        };
+        ```
+
+        The equivalent definition in CFFI is
+
+        ```
+        cffi::Struct define S {
+            count int
+            values double[count]
+        }
+        ```
+
+        When converting to native form, the actual size of the `values` array
+        will be as contained in the `count` field.
+
+        Variable size structs have the following restrictions some of which
+        parallel C99:
+
+        - The VLA must be the last field in the struct (C99)
+        - The VLA must not be the only field in the struct (C99)
+        - Arrays of variable size structs are not supported (C99)
+        - the length specifier for a VLA must be an field in the same struct.
+        - Variable size structs can be nested provided the inner struct is
+        the last field in the outer one. Nesting is not permitted in C99
+        but is supported by some compilers.
+        - Certain operations that modify variable length structs are not
+        permitted. This is to prevent memory faults resulting from inadvertent
+        size changes. See the documentation for each [Struct] method for details
+        about these limitations.
+
         ## Type aliases
 
         Type aliases provide a convenient way to bind data types and one or more
@@ -1173,6 +1213,13 @@ namespace eval Concepts {
 
         Passing of structs by reference is supported by both the `dyncall`
         and `libffi` backends but only the latter supports passing by value.
+
+        Variable size structs have some restriction as function return types
+        and parameters. They cannot be the return type for a function and
+        cannot be passed by value. Additionally, when passed by reference they
+        must be  `in` or `inout` parameters. They cannot be `out` parameters as
+        the field containing the size of the VLA array is part of the struct
+        and must be passed in to the function.
 
         ### Error handling
 

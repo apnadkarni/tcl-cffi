@@ -2,36 +2,44 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::type {
-    proc size {type} {
+    proc size {type args} {
         # Returns the size of a type in terms of the number of bytes of memory
         # occupied by that type.
         #  type - a type definition or alias
+        #  -vlacount VLACOUNT - number of elements in variable size array
         # In the case of array types, the size includes the size of the entire
         # array and not the size of a single element.
+        #
+        # The option `-vlacount` must be specified if the type is variable
+        # length array or a struct that contains a variable length array
     }
     proc count {type} {
         # Returns the count of elements in an array type
         #  type - a type definition or alias
-        # A return value of 0 indicates the type is not an array.
+        # A return value of `-1` indicates the type is not an array.
     }
-    proc info {typedecl {parse_mode {}}} {
+    proc info {typedecl args} {
         # Returns a dictionary containing various information about a type
         # declaration
         #   typedecl - a type declaration
-        #   parse_mode - one of `param`, `return`, `field`.
+        #   -parsemode MODE - one of `param`, `return`, `field`.
+        #   -vlacount VLACOUNT - number of elements in variable size array
         #
         # The type is parsed as a parameter type declaration, a function return
         # type declaration or a structure field type declaration depending
-        # on the $parse_mode argument. If this is unspecified or an empty
+        # on the `-parsemode` option. If this is unspecified or an empty
         # string, it is parsed in generic fashion and no context-specific
         # validation is done.
+        #
+        # The option `-vlacount` must be specified if the type is variable
+        # length array or a struct that contains a variable length array
         #
         # The returned dictionary contains the following keys:
         #
         # Alignment - the memory alignment needed for a value of that type
         # BaseSize - the number of bytes to store a single value of the type
         #  when the type is an array. For scalars, same as `Size`.
-        # Count - `0` for scalar values, else indicates the type is an array
+        # Count - `-1` for scalar values, else indicates the type is an array
         #  with that number of elements
         # Size - the number of bytes of memory needed to store a value of that
         #  type.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Ashok P. Nadkarni
+ * Copyright (c) 2021-2023 Ashok P. Nadkarni
  * All rights reserved.
  *
  * See the file LICENSE for license
@@ -196,38 +196,13 @@ CffiLimitsObjCmd(ClientData cdata,
     }
 }
 
-static int DoEncode(Tcl_Interp *ip, const char *p, const char *encName, char buf[], int bufSize)
-{
-    Tcl_Encoding enc;
-    enc = Tcl_GetEncoding(ip,encName);
-    return Tcl_UtfToExternal(ip,
-                             enc,
-                             p,
-                             -1,
-                             TCL_ENCODING_START | TCL_ENCODING_END,
-                             NULL,
-                             buf,
-                             bufSize,
-                             NULL,
-                             NULL,
-                             NULL);
-}
-
 static CffiResult
 CffiSandboxObjCmd(ClientData cdata,
                   Tcl_Interp *ip,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    int ret;
-    char buf[4];
-    int bufSize = sizeof(buf);
-    if ((ret = DoEncode(ip, Tcl_GetString(objv[1]) , "utf-8", buf, bufSize)) == TCL_OK) {
-        Tcl_SetObjResult(ip, Tcl_NewStringObj(buf, -1));
-        return TCL_OK;
-    }
-    Tcl_SetObjResult(ip, Tcl_NewIntObj(ret));
-    return TCL_ERROR;
+    return TCL_OK;
 }
 
 static void

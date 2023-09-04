@@ -585,9 +585,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 }
                 /* NULLIFEMPTY but dictionary has elements */
             }
-            /* TBD - check out struct size matches Libffi's */
-            structValueP = Tclh_LifoAlloc(&ipCtxP->memlifo,
-                                        typeAttrsP->dataType.u.structP->size);
+            int needed;
+            CHECK(CffiStructSizeForObj(ipCtxP,
+                                       typeAttrsP->dataType.u.structP,
+                                       valueObj,
+                                       &needed,
+                                       NULL));
+            structValueP = Tclh_LifoAlloc(&ipCtxP->memlifo, needed);
             if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
                 CHECK(CffiStructFromObj(ipCtxP,
                                         typeAttrsP->dataType.u.structP,
@@ -613,6 +617,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             char *valueArray;
             char *toP;
             int struct_size = typeAttrsP->dataType.u.structP->size;
+            CFFI_ASSERT(!CffiStructIsVariableSize(typeAttrsP->dataType.u.structP));
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
             if (argP->arraySize == 0)
                 goto pass_null_array;
@@ -1084,6 +1089,7 @@ CffiReturnPrepare(CffiCall *callP)
 #endif
     case CFFI_K_TYPE_POINTER: callP->retValueP = &callP->retValue.u.ptr; break;
     case CFFI_K_TYPE_STRUCT:
+        CFFI_ASSERT(!CffiTypeIsVariableSize(&retTypeAttrsP->dataType));
         callP->retValueP = Tclh_LifoAlloc(
             &callP->fnP->libCtxP->ipCtxP->memlifo,
             retTypeAttrsP->dataType.u.structP->size);
@@ -1427,7 +1433,7 @@ CffiFunctionSetupArgs(CffiCall *callP,
             typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
-        if (CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
+        if (CffiTypeIsVLA(&typeAttrsP->dataType)) {
             /* Dynamic array. */
             need_pass2 = 1;
             continue;
@@ -1462,7 +1468,7 @@ CffiFunctionSetupArgs(CffiCall *callP,
             typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
-        if (! CffiTypeIsVariableSizeArray(&typeAttrsP->dataType)) {
+        if (! CffiTypeIsVLA(&typeAttrsP->dataType)) {
             /* This arg already been parsed successfully. Just load it. */
             CFFI_ASSERT(argsP[i].flags & CFFI_F_ARG_INITIALIZED);
             CffiReloadArg(callP, &argsP[i], typeAttrsP);
@@ -1867,7 +1873,8 @@ CffiFunctionCall(ClientData cdata,
             if (pointer == NULL) {
                 CffiStruct *structP =
                     protoP->returnType.typeAttrs.dataType.u.structP;
-                if (fnCheckRet == TCL_OK) {
+                if (fnCheckRet == TCL_OK
+                    && !CffiStructIsVariableSize(structP)) {
                     /* Null pointer but allowed. Construct a default value. */
                     pointer = Tclh_LifoAlloc(&ipCtxP->memlifo, structP->size);
                     ret     = CffiStructObjDefault(ipCtxP, structP, pointer);

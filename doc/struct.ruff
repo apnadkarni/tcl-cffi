@@ -1,4 +1,4 @@
-# (c) 2021 Ashok P. Nadkarni
+# (c) 2021-2023 Ashok P. Nadkarni
 # See LICENSE for license terms.
 
 oo::class create ${NS}::Struct {
@@ -27,14 +27,21 @@ oo::class create ${NS}::Struct {
         # This also effectively provides a default zero value for all fields.
         #
     }
-    method allocate {{count 1}} {
+    method allocate {args} {
         # Allocates memory for one or more C structs.
-        #   count - number of structs to allocate
+        #  -count COUNT - number of structs to allocate
+        #  -vlacount VLACOUNT - number of elements in variable size array
         #
-        # The allocated memory is not initialized even if the struct definition
-        # includes the `-clear` option.
+        # Unlike in the [new] method, the allocated memory is **not
+        # initialized**. This is the case even if the struct definition includes
+        # the `-clear` option.
         #
-        # It must be freed by calling the [free] method.
+        # The option `-vlacount` must be specified if the struct contains
+        # a field that is a variable length array (VLA) or a nested struct
+        # that contains a VLA. `VLACOUNT` is then length of that array.
+        #
+        # The allocate memory must be freed by calling the [free] method of
+        # the struct.
         #
         # Returns a safe pointer to the allocated memory tagged with the
         # struct name.
@@ -46,7 +53,12 @@ oo::class create ${NS}::Struct {
         #
         # If no argument is supplied or fields are missing, defaults from the
         # struct definition are used for initialization. An error is raised
-        # if any fields are not defaulted.
+        # if any fields are not defaulted unless the `-clear` option was specified
+        # for the [Struct]. In that case missing fields without defaults are
+        # filled with zeroes.
+        #
+        # For fields containing variable length arrays, the field holding the
+        # length of the array must be explicitly specified and cannot be defaulted.
         #
         # The allocated memory must be freed by calling the [free] method for the
         # struct.
@@ -61,6 +73,7 @@ oo::class create ${NS}::Struct {
         #  fieldnames - list of field names
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
         # Returns a list of field values in the same order as $fieldnames
     }
@@ -71,6 +84,7 @@ oo::class create ${NS}::Struct {
         #  fieldnames - list of field names
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
         # Returns a list of field values in the same order as $fieldnames
     }
@@ -80,9 +94,12 @@ oo::class create ${NS}::Struct {
         #  index - the index position at which the struct is to be written.
         #    Note this interpreted as an **index** into an array of structs, not as
         #    a byte offset into memory.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
-        # The decoded dictionary or dictionaries are keyed by the field
-        # names of the struct.
+        # The decoded dictionary or dictionaries are keyed by the field names of
+        # the struct. For fields containing variable length arrays, the field
+        # holding the length of the array must be explicitly specified and
+        # cannot be defaulted.
         #
         # See also: fromnative! tonative, frombinary
         #
@@ -94,9 +111,12 @@ oo::class create ${NS}::Struct {
         #  index - the index position at which the struct is to be written.
         #    Note this interpreted as an **index** into an array of structs, not as
         #    a byte offset into memory.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
-        # The decoded dictionary or dictionaries are keyed by the field
-        # names of the struct.
+        # The decoded dictionary or dictionaries are keyed by the field names of
+        # the struct. For fields containing variable length arrays, the field
+        # holding the length of the array must be explicitly specified and
+        # cannot be defaulted.
         #
         # See also: fromnative, tonative, frombinary
         #
@@ -112,6 +132,8 @@ oo::class create ${NS}::Struct {
         #    Note this interpreted as an **index** into an array of structs, not as
         #    a byte offset into memory.
         #
+        # The method raises an error if the struct is variable size.
+        #
         # See also: tonative! fromnative tobinary
         #
     }
@@ -125,6 +147,8 @@ oo::class create ${NS}::Struct {
         #    Note this interpreted as an **index** into an array of structs, not as
         #    a byte offset into memory.
         #
+        # The method raises an error if the struct is variable size.
+        #
         # See also: tonative fromnative tobinary
         #
     }
@@ -135,6 +159,7 @@ oo::class create ${NS}::Struct {
         #  fieldname - name of the field
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
         # In the case of fields of type pointer, the returned pointer is registered
         # as a safe pointer unless the field was marked with the `unsafe` annotation.
@@ -146,6 +171,7 @@ oo::class create ${NS}::Struct {
         #  fieldname - name of the field
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
         # In the case of fields of type pointer, the returned pointer is registered
         # as a safe pointer unless the field was marked with the `unsafe` annotation.
@@ -158,7 +184,11 @@ oo::class create ${NS}::Struct {
         #  value - value to store in the field
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
+        # The field being set must not be a variable sized field, or field
+        # holding a count for a variable sized field; otherwise, an error is
+        # raised.
     }
     method setnative! {pointer fieldname value {index 0}} {
         # Sets the value of a field in a native structure in memory
@@ -168,7 +198,11 @@ oo::class create ${NS}::Struct {
         #  value - value to store in the field
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
+        # The field being set must not be a variable sized field, or field
+        # holding a count for a variable sized field; otherwise, an error is
+        # raised.
     }
     method fieldpointer {pointer fieldname {tag ""} {index 0}} {
         # Returns a pointer corresponding to the address of a field within a
@@ -179,6 +213,7 @@ oo::class create ${NS}::Struct {
         #  tag - tag for the returned pointer
         #  index - If present, $pointer is interpreted as pointing to an array of
         #    structs and this is the index into that array.
+        #    For variable sized structs `index` must be `0` or unspecified.
         #
         # Note the returned pointer is not registered as a safe pointer.
         #
@@ -187,8 +222,9 @@ oo::class create ${NS}::Struct {
         # Frees memory that was allocated for a native C struct.
         #  pointer - a pointer returned by [allocate]
     }
-    method info {} {
+    method info {args} {
         # Returns a dictionary containing information about the struct layout
+        #   -vlacount VLACOUNT - number of elements in variable size array
         #
         # The returned dictionary has the following fields:
         # Size - size of the struct
@@ -196,11 +232,17 @@ oo::class create ${NS}::Struct {
         # Fields - dictionary of fields keyed by field name. The value is another
         #   nested dictionary with keys *Size*, *Offset*, and *Definition*
         #   containing the size, offset in struct, and type definition of the field.
+        #
+        # The option `-vlacount` must be specified if the struct contains
+        # a field that is a variable length array (VLA) or a nested struct
+        # that contains a VLA. `VLACOUNT` is then length of that array.
     }
     method describe {} {
         # Returns a human-readable description of the C struct definition.
         #
-        # This is primarily for debugging and troubleshooting purposes.
+        # This is primarily for debugging and troubleshooting purposes. Note
+        # the returned information will not take into account the variable
+        # components of the struct if any.
     }
     method frombinary {bin_value} {
         # Decodes a Tcl binary string containing a native C struct into

@@ -69,8 +69,7 @@ namespace eval ${NS}::memory {
         # See also: "memory get!" "memory set"
     }
     proc get! {pointer typespec {index 0}} {
-        # Converts a value as per a type specification and stores it in memory
-        # in native form
+        # Converts a native value in memory into a Tcl script level value
         #  pointer - base address of memory location. The pointer is not checked
         #   for validity.
         #  typespec - type specification to use for conversion
