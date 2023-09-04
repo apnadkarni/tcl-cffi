@@ -6,7 +6,7 @@ namespace eval ${NS}::type {
         # Returns the size of a type in terms of the number of bytes of memory
         # occupied by that type.
         #  type - a type definition or alias
-        #  -vlacount COUNT - number of elements in variable size array
+        #  -vlacount VLACOUNT - number of elements in variable size array
         # In the case of array types, the size includes the size of the entire
         # array and not the size of a single element.
         #
@@ -23,7 +23,7 @@ namespace eval ${NS}::type {
         # declaration
         #   typedecl - a type declaration
         #   -parsemode MODE - one of `param`, `return`, `field`.
-        #   -vlacount COUNT - number of elements in variable size array
+        #   -vlacount VLACOUNT - number of elements in variable size array
         #
         # The type is parsed as a parameter type declaration, a function return
         # type declaration or a structure field type declaration depending

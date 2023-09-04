@@ -312,7 +312,7 @@ typedef struct CffiField {
     Tcl_Obj *nameObj;           /* Field name */
     CffiTypeAndAttrs fieldType; /* base type, cardinality, tag etc. */
     unsigned int offset;        /* Field offset from beginning of struct */
-    unsigned int size;          /* Size of the field */
+    unsigned int size;          /* Size of the field. Only includes the fixed size */
 } CffiField;
 
 typedef enum CffiStructFlags {
@@ -332,8 +332,8 @@ struct CffiStruct {
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
     int nRefs;                /* Shared, so need ref count */
-    unsigned int size;        /* Fixed size of struct not including variable
-                                 sized component if any. */
+    unsigned int size;        /* Fixed size of struct not including VLA
+                                 component if any. */
     unsigned short alignment; /* Alignment required for struct */
     CffiStructFlags flags;     /* Misc CFFI_F_STRUCT_ flags */
     int dynamicCountFieldIndex; /* Index into fields[] of field holding
@@ -563,15 +563,24 @@ CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
-int CffiStructSizeForObj(CffiInterpCtx *ipCtxP,
-                        const CffiStruct *structP,
-                        Tcl_Obj *structValueObj);
+CffiResult CffiErrorMissingVLACountOption(Tcl_Interp *ip);
+CffiResult CffiErrorStructCountField(Tcl_Interp *ip, Tcl_Obj *fldNameObj);
+
+CffiResult CffiStructSizeForObj(CffiInterpCtx *ipCtxP,
+                                const CffiStruct *structP,
+                                Tcl_Obj *structValueObj,
+                                int *sizeP,
+                                int *fixedSizeP);
 int CffiStructSizeForNative(CffiInterpCtx *ipCtxP,
-                        const CffiStruct *structP,
-                        void *valueP);
-int CffiStructSizeVLACount(CffiInterpCtx *ipCtxP,
-                                CffiStruct *structP,
-                                int vlaCount);
+                            const CffiStruct *structP,
+                            void *valueP,
+                            int *sizeP,
+                            int *fixedSizeP);
+CffiResult CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
+                                     CffiStruct *structP,
+                                     int vlaCount,
+                                     int *sizeP,
+                                     int *fixedSizeP);
 CffiResult
 CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
 CffiResult

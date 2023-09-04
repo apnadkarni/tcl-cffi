@@ -30,7 +30,7 @@ oo::class create ${NS}::Struct {
     method allocate {args} {
         # Allocates memory for one or more C structs.
         #  -count COUNT - number of structs to allocate
-        #  -vlacount COUNT - number of elements in variable size array
+        #  -vlacount VLACOUNT - number of elements in variable size array
         #
         # Unlike in the [new] method, the allocated memory is **not
         # initialized**. This is the case even if the struct definition includes
@@ -222,8 +222,9 @@ oo::class create ${NS}::Struct {
         # Frees memory that was allocated for a native C struct.
         #  pointer - a pointer returned by [allocate]
     }
-    method info {} {
+    method info {args} {
         # Returns a dictionary containing information about the struct layout
+        #   -vlacount VLACOUNT - number of elements in variable size array
         #
         # The returned dictionary has the following fields:
         # Size - size of the struct
@@ -231,11 +232,17 @@ oo::class create ${NS}::Struct {
         # Fields - dictionary of fields keyed by field name. The value is another
         #   nested dictionary with keys *Size*, *Offset*, and *Definition*
         #   containing the size, offset in struct, and type definition of the field.
+        #
+        # The option `-vlacount` must be specified if the struct contains
+        # a field that is a variable length array (VLA) or a nested struct
+        # that contains a VLA. `VLACOUNT` is then length of that array.
     }
     method describe {} {
         # Returns a human-readable description of the C struct definition.
         #
-        # This is primarily for debugging and troubleshooting purposes.
+        # This is primarily for debugging and troubleshooting purposes. Note
+        # the returned information will not take into account the variable
+        # components of the struct if any.
     }
     method frombinary {bin_value} {
         # Decodes a Tcl binary string containing a native C struct into

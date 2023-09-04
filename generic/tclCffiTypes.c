@@ -767,6 +767,7 @@ CffiTypeLayoutInfo(CffiInterpCtx *ipCtxP,
                    int *alignP)
 {
     int baseSize;
+    int fixedSize;
     int alignment;
     CffiBaseType baseType;
 
@@ -774,7 +775,7 @@ CffiTypeLayoutInfo(CffiInterpCtx *ipCtxP,
     if (baseType == CFFI_K_TYPE_STRUCT) {
         CffiStruct *structP = typeP->u.structP;
         alignment = structP->alignment;
-        baseSize  = CffiStructSizeVLACount(ipCtxP, structP, vlaCount);
+        CffiStructSizeForVLACount(ipCtxP, structP, vlaCount, &baseSize, &fixedSize);
         CFFI_ASSERT(baseSize > 0);
     }
     else {
@@ -1166,7 +1167,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                           "not allowed for \"in\" parameters.";
                 goto invalid_format;
             }
-
             if (CffiTypeIsArray(&typeAttrP->dataType))
                 flags |= CFFI_F_ATTR_BYREF; /* Arrays always by reference */
             else {
@@ -1204,6 +1204,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     break;
                 default:
                     break;
+                }
+                if ((flags & CFFI_F_ATTR_BYREF) == 0
+                    && CffiTypeIsVariableSize(&typeAttrP->dataType)) {
+                    /* variable size cannot be passed by value */
+                    message = variableSizeNotAllowedMsg;
+                    goto invalid_format;
                 }
             }
         }
@@ -1496,6 +1502,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
     Tcl_DString ds;
     char *tempP;
     Tcl_Size len;
+    int iLen;
 
     /*
      * Note if CFFI_F_PRESERVE_ON_ERROR is set, output must be preserved on error
@@ -1557,10 +1564,9 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             *(indx + (double *)valueBaseP) = value.u.dbl;
             break;
         case CFFI_K_TYPE_STRUCT:
-            len = CffiStructSizeForObj(
-                ipCtxP, typeAttrsP->dataType.u.structP, valueObj);
-            if (len <= 0)
-                return TCL_ERROR;
+            CHECK(CffiStructSizeForObj(
+                ipCtxP, typeAttrsP->dataType.u.structP, valueObj, &iLen, NULL));
+            len = iLen;
             if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                 Tcl_DStringInit(&ds);
                 Tcl_DStringSetLength(&ds, len);
@@ -3019,10 +3025,7 @@ CffiTypeObjCmd(ClientData cdata,
     CHECK(CffiTypeAndAttrsParse(ipCtxP, objv[2], parse_mode, &typeAttrs));
     if (CffiTypeIsVariableSize(&typeAttrs.dataType) && vlaCount < 0) {
         CffiTypeAndAttrsCleanup(&typeAttrs);
-        return Tclh_ErrorOptionMissingStr(
-            ip,
-            "-vlacount",
-            "This option is required for variable size structs.");
+        return CffiErrorMissingVLACountOption(ip);
     }
 
     if (cmdIndex == COUNT) {

@@ -988,7 +988,6 @@ namespace eval cffi::test {
 
     ###
     # struct
-    # NOTE: varsize structs are tested in struct.test
     proc teststruct {typedecl parse_mode expected_typeattrs {count 0} args} {
         variable typeInfo
         variable testStructSize
@@ -1091,6 +1090,56 @@ namespace eval cffi::test {
            cffi::type info struct.NOSUCHSTRUCT $parse_mode
         } -result "Struct definition \"NOSUCHSTRUCT\" not found or inaccessible. " -returnCodes error
     }
+
+    # Varsize struct tests
+
+    test type-info-struct-varsize-0 {test size and alignment of 0-size VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count uchar values int[count]}
+        cffi::type info struct.S -vlacount 0
+    } -result {Size 4 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 4} -match dict
+
+    test type-info-struct-varsize-1 {test size and alignment of VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count uchar values int[count]}
+        cffi::type info struct.S -vlacount 3
+    } -result {Size 16 Count -1 Alignment 4 Definition struct.::cffi::test::S BaseSize 16} -match dict
+
+    test type-info-struct-varsize-2 {test size and alignment with byte aligned 0-size VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count longlong values uchar[count]}
+        cffi::type info struct.S -vlacount 0
+    } -result {Size 8 Count -1 Alignment 8 Definition struct.::cffi::test::S BaseSize 8} -match dict
+
+    test type-info-struct-varsize-3 {test size and alignment with byte aligned VLA} -cleanup {
+        S destroy
+    } -body {
+        cffi::Struct create S {count longlong values uchar[count]}
+        cffi::type info struct.S -vlacount 3
+    } -result {Size 16 Count -1 Alignment 8 Definition struct.::cffi::test::S BaseSize 16} -match dict
+
+    test type-info-struct-varsize-nested-0 {Test nested varsize} -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+        cffi::Struct create T {u uchar s struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        list [cffi::type size struct.T -vlacount 0] [cffi::type size struct.T -vlacount 1] [cffi::type info struct.T -vlacount 2]
+    } -result {16 24 {Size 32 Count -1 Alignment 8 Definition struct.::cffi::test::T BaseSize 32}}
+
+    test type-info-struct-varsize-nested-0 {Test nested varsize} -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+        cffi::Struct create T {u uchar s struct.S}
+    } -cleanup {
+        T destroy
+        S destroy
+    } -body {
+        list  [T info -vlacount 2]
+    } -result [list {Size 32 Alignment 8 Flags 2 Fields {u {Size 1 Offset 0 Definition uchar} s {Size 24 Offset 8 Definition struct.::cffi::test::S}}}]
 
     ###
     # Verify commands work with aliases
