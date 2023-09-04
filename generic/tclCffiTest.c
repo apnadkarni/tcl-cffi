@@ -1128,7 +1128,7 @@ int formatVarargs(char *buf, int bufSize, const char *fmt,...)
     {                                                                      \
         long long i;                                                       \
         countType_ count = in->nested.count;                               \
-        inout->shrt      = in->shrt;                                       \
+        inout->shrt      = in->shrt+1;                                       \
         if (inout->nested.count < in->nested.count)                        \
             count = inout->nested.count;                                   \
         for (i = 0; i < count; ++i)                                        \
