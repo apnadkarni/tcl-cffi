@@ -153,7 +153,7 @@ namespace eval cffi::test {
     } -body {
         namespace eval ::tempnsA {::cffi::Struct create S {x int}}
         namespace eval ::tempnsB {cffi::type size struct.S}
-    } -result "Struct definition \"S\" not found or inaccessible. " -returnCodes error
+    } -result "Struct \"S\" not found or inaccessible. " -returnCodes error
 
     ###
     # struct allocate
@@ -1837,17 +1837,17 @@ namespace eval cffi::test {
 
     test struct-bug-53-0 "Check that command is actually a struct" -body {
         cffi::type info {struct.lindex}
-    } -result {Invalid value "lindex". Not a cffi::Struct.} -returnCodes error
+    } -result {Struct "lindex" not found or inaccessible. } -returnCodes error
     test struct-bug-53-1 "Check that command is actually a struct" -body {
         cffi::type info {struct.nosuchstruct}
-    } -result {Struct definition "nosuchstruct" not found or inaccessible. } -returnCodes error
+    } -result {Struct "nosuchstruct" not found or inaccessible. } -returnCodes error
     test struct-bug-53-2 "Check that command is actually a struct" -body {
         cffi::Struct create S {x int}
         proc S {} {}
         cffi::type info {struct.S}
     } -cleanup {
         rename S {}
-    } -result {Invalid value "S". Not a cffi::Struct.} -returnCodes error
+    } -result {Struct "S" not found or inaccessible. } -returnCodes error
 
     #
     # Variable size struct tests

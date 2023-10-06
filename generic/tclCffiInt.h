@@ -120,6 +120,7 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_CHAR_ARRAY,
     CFFI_K_TYPE_UNICHAR_ARRAY,
     CFFI_K_TYPE_BYTE_ARRAY,
+    CFFI_K_TYPE_UNION,
 #ifdef _WIN32
     CFFI_K_TYPE_WINSTRING,
     CFFI_K_TYPE_WINCHAR_ARRAY,
@@ -316,12 +317,13 @@ typedef struct CffiField {
 } CffiField;
 
 typedef enum CffiStructFlags {
-    CFFI_F_STRUCT_CLEAR   = 0x0001,
-    CFFI_F_STRUCT_VARSIZE = 0x0002,
+    CFFI_F_STRUCT_CLEAR   = 0x0001, /* Clear all fieldds on init */
+    CFFI_F_STRUCT_VARSIZE = 0x0002, /* Variable size struct */
+    CFFI_F_STRUCT_UNION   = 0x0004, /* Is a union */
 } CffiStructFlags;
 
 /* Struct: CffiStruct
- * Descriptor for a struct layout.
+ * Descriptor for a struct and union layout.
  *
  * Note this is not a fixed size structure. The *fields* array at the
  * end of the structure is variable sized.
@@ -349,6 +351,9 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
 CFFI_INLINE int CffiStructIsVariableSize(const CffiStruct *structP) {
     return structP->dynamicCountFieldIndex >= 0
         || (structP->flags & CFFI_F_STRUCT_VARSIZE);
+}
+CFFI_INLINE int CffiStructIsUnion(const CffiStruct *structP) {
+    return (structP->flags & CFFI_F_STRUCT_UNION) != 0;
 }
 
 /* Struct: CffiScope
@@ -557,10 +562,6 @@ CffiResult CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                  CffiTypeAndAttrs *typeAttrsP);
 void CffiTypeAndAttrsCleanup(CffiTypeAndAttrs *typeAttrsP);
 Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
-CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
-                           Tcl_Obj *nameObj,
-                           Tcl_Obj *structObj,
-                           CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
 CffiResult CffiErrorMissingVLACountOption(Tcl_Interp *ip);
@@ -581,8 +582,10 @@ CffiResult CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
                                      int vlaCount,
                                      int *sizeP,
                                      int *fixedSizeP);
-CffiResult
-CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
+CffiResult CffiStructResolve(Tcl_Interp *ip,
+                             const char *nameP,
+                             CffiBaseType baseType,
+                             CffiStruct **structPP);
 CffiResult
 CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_Size toSize);
 CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
@@ -961,6 +964,7 @@ Tcl_ObjCmdProc CffiMemoryObjCmd;
 Tcl_ObjCmdProc CffiPointerObjCmd;
 Tcl_ObjCmdProc CffiPrototypeObjCmd;
 Tcl_ObjCmdProc CffiStructObjCmd;
+Tcl_ObjCmdProc CffiUnionObjCmd;
 Tcl_ObjCmdProc CffiTypeObjCmd;
 
 #ifdef CFFI_ENABLE_CALLBACKS
