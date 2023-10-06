@@ -29,11 +29,13 @@ CffiStructUnref(CffiStruct *structP)
     if (structP->nRefs <= 1) {
         int i;
 #ifdef CFFI_USE_LIBFFI
-        CffiLibffiStruct *nextP = structP->libffiTypes;
-        while (nextP) {
-            CffiLibffiStruct *nextNextP = nextP->nextP;
-            ckfree(nextP);
-            nextP = nextNextP;
+        if (! CffiStructIsUnion(structP)) {
+            CffiLibffiStruct *nextP = structP->libffiTypes;
+            while (nextP) {
+                CffiLibffiStruct *nextNextP = nextP->nextP;
+                ckfree(nextP);
+                nextP = nextNextP;
+            }
         }
 #endif
         if (structP->name)
@@ -70,7 +72,9 @@ CffiFindDynamicCountField(Tcl_Interp *ip,
 {
     int i;
     const char *name = Tcl_GetString(fieldNameObj);
-    
+
+    CFFI_ASSERT(!CffiStructIsUnion(structP));
+
     /* Could use CffiStructFindField but order of tests makes this faster */
 
     /* Note only last field can be variable sized and cannot be the count */
@@ -109,6 +113,8 @@ CffiStructGetDynamicCountNative(CffiInterpCtx *ipCtxP,
                                 void *valueP)
 {
     int fldIndex = structP->dynamicCountFieldIndex;
+
+    CFFI_ASSERT(!CffiStructIsUnion(structP));
     CFFI_ASSERT(structP->dynamicCountFieldIndex >= 0);
     /* fldIndex can never be last one, already checked in parse */
     CFFI_ASSERT(fldIndex < structP->nFields - 1);
@@ -148,6 +154,7 @@ CffiStructGetDynamicCountFromObj(CffiInterpCtx *ipCtxP,
     int fldIndex = structP->dynamicCountFieldIndex;
     Tcl_Interp *ip = ipCtxP ? ipCtxP->interp : NULL;
 
+    CFFI_ASSERT(!CffiStructIsUnion(structP));
     CFFI_ASSERT(structP->dynamicCountFieldIndex >= 0);
     /* fldIndex can never be last one, already checked in parse */
     CFFI_ASSERT(fldIndex < structP->nFields - 1);
@@ -209,6 +216,8 @@ CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
                           int *sizeP,
                           int *fixedSizeP)
 {
+    CFFI_ASSERT(!CffiStructIsUnion(structP));
+
     if (!CffiStructIsVariableSize(structP) || sizeP == NULL) {
         if (sizeP)
             *sizeP = structP->size;
@@ -282,7 +291,7 @@ CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
  * ipCtxP - interp context. Used for error messages. May be NULL.
  * structP - struct descriptor
  * structValueObj - struct value as a dictionary mapping field names to values.
- *   May be NULL for fixed size structs.
+ *   May be NULL for unions and fixed size structs.
  * sizeP - output location to hold size of struct
  * fixedSizeP - output location to hold the fixed size of the struct
  *   i.e. size with vlacount == 0
@@ -300,7 +309,8 @@ CffiStructSizeForObj(CffiInterpCtx *ipCtxP,
                      int *sizeP,
                      int *fixedSizeP)
 {
-    if (!CffiStructIsVariableSize(structP) || sizeP == NULL) {
+    if (!CffiStructIsVariableSize(structP) || sizeP == NULL
+        || CffiStructIsUnion(structP)) {
         if (sizeP)
             *sizeP = structP->size;
         if (fixedSizeP)
@@ -403,7 +413,8 @@ CffiStructSizeForNative(CffiInterpCtx *ipCtxP,
                         int *sizeP,
                         int *fixedSizeP)
 {
-    if (!CffiStructIsVariableSize(structP) || sizeP == NULL) {
+    if (!CffiStructIsVariableSize(structP) || sizeP == NULL
+        || CffiStructIsUnion(structP)) {
         if (sizeP)
             *sizeP = structP->size;
         if (fixedSizeP)
@@ -513,6 +524,7 @@ CffiStructComputeFieldAddress(CffiInterpCtx *ipCtxP,
      */
     if (fldIndex == (structP->nFields - 1)
         && CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
+        CFFI_ASSERT(!CffiStructIsUnion(structP));
         fldArraySize =
             CffiStructGetDynamicCountNative(ipCtxP, structP, structAddr);
         if (fldArraySize <= 0)
@@ -555,7 +567,7 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerObjVerify(
             ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
     else {
-        /* TODO - check - is this correct. Won't below check for registration? */
+        /* TODO - check - is this correct. Won't the call check registration? */
         CHECK(Tclh_PointerUnwrapTagged(
             ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
         if (structAddr == NULL) {
@@ -593,6 +605,7 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
  * Parameters:
  * ip - interpreter
  * nameObj - name of the struct
+ * isUnion - if non-0, definition is a union
  * structObj - structure definition
  * structPP - pointer to location to store pointer to internal form.
  *
@@ -602,16 +615,15 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
  * in the interpreter.
  *
  */
-CffiResult
+static CffiResult
 CffiStructParse(CffiInterpCtx *ipCtxP,
                 Tcl_Obj *nameObj,
                 Tcl_Obj *structObj,
+                int isUnion,
                 CffiStruct **structPP)
 {
     Tcl_Obj **objs;
     Tcl_Size i, j, nobjs, nfields;
-    int offset;
-    int struct_alignment;
     CffiStruct *structP;
     Tcl_Interp *ip = ipCtxP->interp;
 
@@ -627,7 +639,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
             ip, structObj, "Empty struct or missing type definition for field.");
     nfields = nobjs / 2; /* objs[] is alternating name, type list */
 
-    structP          = CffiStructCkalloc(nfields);
+    structP = CffiStructCkalloc(nfields);
     structP->dynamicCountFieldIndex = -1;
     structP->nFields = 0; /* Update as we go along */
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
@@ -641,6 +653,13 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
             return TCL_ERROR;
         }
         if (CffiTypeIsVariableSize(&structP->fields[j].fieldType.dataType)) {
+            if (isUnion) {
+                CffiStructUnref(structP);
+                return Tclh_ErrorInvalidValue(
+                    ip,
+                    objs[i + 1],
+                    "A union cannot have a field of variable size.");
+            }
             if (j < (nfields-1) || j == 0) {
                 /* Only last field may be variable size and cannot be only one */
                 CffiStructUnref(structP);
@@ -670,8 +689,8 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     }
 
     /* Calculate metadata for all fields */
-    offset           = 0;
-    struct_alignment = 1;
+    int offset           = 0;
+    int struct_alignment = 1;
 
     for (i = 0; i < nfields; ++i) {
         CffiField *fieldP = &structP->fields[i];
@@ -693,13 +712,19 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         if (field_alignment > struct_alignment)
             struct_alignment = field_alignment;
 
-        /* See if offset needs to be aligned for this field */
-        offset = (offset + field_alignment - 1) & ~(field_alignment - 1);
-        fieldP->offset = offset;
-        fieldP->size   = field_size;
-        if (field_size > 0) {
-            /* Fixed size field */
-            offset += field_size;
+        fieldP->size = field_size;
+        if (isUnion) {
+            fieldP->offset = 0;
+            if (field_size > offset)
+                offset = field_size;
+        } else {
+            /* See if offset needs to be aligned for this field */
+            offset = (offset + field_alignment - 1) & ~(field_alignment - 1);
+            fieldP->offset = offset;
+            if (field_size > 0) {
+                /* Fixed size field */
+                offset += field_size;
+            }
         }
     }
 
@@ -737,6 +762,10 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
     structP->nRefs     = 0;
     structP->alignment = struct_alignment;
     structP->size      = (offset + struct_alignment - 1) & ~(struct_alignment - 1);
+    if (isUnion) {
+        CFFI_ASSERT((structP->flags & CFFI_F_STRUCT_VARSIZE) == 0);
+        structP->flags |= CFFI_F_STRUCT_UNION;
+    }
     *structPP          = structP;
     return TCL_OK;
 }
@@ -804,7 +833,8 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
     int i;
     CffiStruct *structP = structCtxP->structP;
     Tcl_Obj *objP =
-        Tcl_ObjPrintf("Struct %s nRefs=%d size=%d alignment=%d flags=%d nFields=%d",
+        Tcl_ObjPrintf("%s %s nRefs=%d size=%d alignment=%d flags=%d nFields=%d",
+                      CffiStructIsUnion(structP) ? "Union" : "Struct",
                       Tcl_GetString(structP->name),
                       structP->nRefs,
                       structP->size,
@@ -882,8 +912,6 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
 
     return TCL_OK;
 }
-
-
 
 /* Function: CffiStructInfoCmd
  * Returns a dictionary describing the structure as the interp result.
@@ -1047,61 +1075,74 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                  Tcl_DictObjGet(ip, structValueObj, fieldP->nameObj, &valueObj))
             != TCL_OK)
             break; /* Invalid dictionary. Note TCL_OK does not mean found */
-        if (valueObj == NULL) {
-            if (fieldP->fieldType.flags & CFFI_F_ATTR_STRUCTSIZE) {
-                /* Fill in struct size */
-                switch (fieldP->fieldType.dataType.baseType) {
-                case CFFI_K_TYPE_SCHAR:
-                    *(signed char *)fieldAddress = (signed char)structSize;
-                    continue;
-                case CFFI_K_TYPE_UCHAR:
-                    *(unsigned char *)fieldAddress = (unsigned char)structSize;
-                    continue;
-                case CFFI_K_TYPE_SHORT:
-                    *(short *)fieldAddress = (short)structSize;
-                    continue;
-                case CFFI_K_TYPE_USHORT:
-                    *(unsigned short *)fieldAddress = (unsigned short)structSize;
-                    continue;
-                case CFFI_K_TYPE_INT:
-                    *(int *)fieldAddress = (int)structSize;
-                    continue;
-                case CFFI_K_TYPE_UINT:
-                    *(unsigned int *)fieldAddress = (unsigned int)structSize;
-                    continue;
-                case CFFI_K_TYPE_LONG:
-                    *(long *)fieldAddress = (long)structSize;
-                    continue;
-                case CFFI_K_TYPE_ULONG:
-                    *(unsigned long *)fieldAddress = (unsigned long)structSize;
-                    continue;
-                case CFFI_K_TYPE_LONGLONG:
-                    *(long long *)fieldAddress = (long long)structSize;
-                    continue;
-                case CFFI_K_TYPE_ULONGLONG:
-                    *(unsigned long long *)fieldAddress = (unsigned long long)structSize;
-                    continue;
-                default:
-                    break; /* Just fall thru looking for default */
+        if (CffiStructIsUnion(structP)) {
+            continue; /* Move on to checking for next field */
+        }
+        else {
+            if (valueObj == NULL) {
+                /* Dictionary valid but field not found. See if size or
+                 * defaulted */
+                if (fieldP->fieldType.flags & CFFI_F_ATTR_STRUCTSIZE) {
+                    /* Fill in struct size */
+                    switch (fieldP->fieldType.dataType.baseType) {
+                    case CFFI_K_TYPE_SCHAR:
+                        *(signed char *)fieldAddress = (signed char)structSize;
+                        continue;
+                    case CFFI_K_TYPE_UCHAR:
+                        *(unsigned char *)fieldAddress =
+                            (unsigned char)structSize;
+                        continue;
+                    case CFFI_K_TYPE_SHORT:
+                        *(short *)fieldAddress = (short)structSize;
+                        continue;
+                    case CFFI_K_TYPE_USHORT:
+                        *(unsigned short *)fieldAddress =
+                            (unsigned short)structSize;
+                        continue;
+                    case CFFI_K_TYPE_INT:
+                        *(int *)fieldAddress = (int)structSize;
+                        continue;
+                    case CFFI_K_TYPE_UINT:
+                        *(unsigned int *)fieldAddress =
+                            (unsigned int)structSize;
+                        continue;
+                    case CFFI_K_TYPE_LONG:
+                        *(long *)fieldAddress = (long)structSize;
+                        continue;
+                    case CFFI_K_TYPE_ULONG:
+                        *(unsigned long *)fieldAddress =
+                            (unsigned long)structSize;
+                        continue;
+                    case CFFI_K_TYPE_LONGLONG:
+                        *(long long *)fieldAddress = (long long)structSize;
+                        continue;
+                    case CFFI_K_TYPE_ULONGLONG:
+                        *(unsigned long long *)fieldAddress =
+                            (unsigned long long)structSize;
+                        continue;
+                    default:
+                        break; /* Just fall thru looking for default */
+                    }
                 }
-            }
 
-            valueObj = fieldP->fieldType.parseModeSpecificObj;/* Default */
+                valueObj = fieldP->fieldType.parseModeSpecificObj; /* Default */
+            }
+            if (valueObj == NULL) {
+                /*
+                 * If still NULL, error unless the CLEAR bit is set which
+                 * indicates zeroing suffices
+                 */
+                if (structP->flags & CFFI_F_STRUCT_CLEAR)
+                    continue; /* Move on to next field leaving this cleared */
+                ret = Tclh_ErrorNotFound(
+                    ip,
+                    "Struct field",
+                    fieldP->nameObj,
+                    "Field missing in struct dictionary value.");
+                break;
+            }
         }
-        if (valueObj == NULL) {
-            /*
-             * If still NULL, error unless the CLEAR bit is set which
-             * indicates zeroing suffices
-             */
-            if (structP->flags & CFFI_F_STRUCT_CLEAR)
-                continue;/* Move on to next field leaving this cleared */
-            ret = Tclh_ErrorNotFound(
-                ip,
-                "Struct field",
-                fieldP->nameObj,
-                "Field missing in struct dictionary value.");
-            break;
-        }
+        CFFI_ASSERT(valueObj);
 
         int realArraySize = 0;
         /* The last field may be a variable sized array */
@@ -1123,7 +1164,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                                      fieldAddress,
                                      0,
                                      memlifoP);
-        if (ret != TCL_OK)
+        if (ret != TCL_OK || CffiStructIsUnion(structP))
             break;
     }
 
@@ -1144,10 +1185,25 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                              Tcl_GetString(structP->fields[i].nameObj),
                              " to a native value.",
                              NULL);
+    } else if (CffiStructIsUnion(structP)) {
+        Tcl_Size numDictElems;
+        if (i == structP->nFields) {
+            ret = Tclh_ErrorNotFound(
+                ip,
+                "Union field",
+                NULL,
+                "No union fields found in dictionary value.");
+        } else if (Tcl_DictObjSize(NULL, structValueObj, &numDictElems) == TCL_OK && numDictElems != 1) {
+            ret = Tclh_ErrorGeneric(
+                ip,
+                NULL,
+                "Union value dictionary must have exactly one field.");
+        }
     }
+
     return ret;
 }
-
+/* XXX */
 /* Function: CffiStructToObj
  * Wraps a C structure into a Tcl_Obj.
  *
@@ -2464,7 +2520,7 @@ CffiStructObjCmd(ClientData cdata,
     }
 
     ret = CffiStructParse(
-        ipCtxP, cmdNameObj, defObj, &structP);
+        ipCtxP, cmdNameObj, defObj, 0, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;

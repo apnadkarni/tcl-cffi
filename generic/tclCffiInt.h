@@ -316,8 +316,9 @@ typedef struct CffiField {
 } CffiField;
 
 typedef enum CffiStructFlags {
-    CFFI_F_STRUCT_CLEAR   = 0x0001,
-    CFFI_F_STRUCT_VARSIZE = 0x0002,
+    CFFI_F_STRUCT_CLEAR   = 0x0001, /* Clear all fieldds on init */
+    CFFI_F_STRUCT_VARSIZE = 0x0002, /* Variable size struct */
+    CFFI_F_STRUCT_UNION   = 0x0004, /* Is a union */
 } CffiStructFlags;
 
 /* Struct: CffiStruct
@@ -349,6 +350,9 @@ CFFI_INLINE void CffiStructRef(CffiStruct *structP) {
 CFFI_INLINE int CffiStructIsVariableSize(const CffiStruct *structP) {
     return structP->dynamicCountFieldIndex >= 0
         || (structP->flags & CFFI_F_STRUCT_VARSIZE);
+}
+CFFI_INLINE int CffiStructIsUnion(const CffiStruct *structP) {
+    return (structP->flags & CFFI_F_STRUCT_UNION) != 0;
 }
 
 /* Struct: CffiScope
@@ -560,6 +564,7 @@ Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
 CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *nameObj,
                            Tcl_Obj *structObj,
+                           int isUnion,
                            CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
