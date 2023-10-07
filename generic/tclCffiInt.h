@@ -561,11 +561,6 @@ CffiResult CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                  CffiTypeAndAttrs *typeAttrsP);
 void CffiTypeAndAttrsCleanup(CffiTypeAndAttrs *typeAttrsP);
 Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
-CffiResult CffiStructParse(CffiInterpCtx *ipCtxP,
-                           Tcl_Obj *nameObj,
-                           Tcl_Obj *structObj,
-                           int isUnion,
-                           CffiStruct **structPP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
 CffiResult CffiErrorMissingVLACountOption(Tcl_Interp *ip);

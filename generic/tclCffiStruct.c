@@ -1010,12 +1010,13 @@ CffiStructInfoCmd(Tcl_Interp *ip,
 }
 
 /* Function: CffiStructFromObj
- * Constructs a C struct from a *Tcl_Obj* wrapper.
+ * Constructs a C struct or union from a *Tcl_Obj* wrapper.
  *
  * Parameters:
  * ipCtxP - interpreter context
  * structP - pointer to the struct definition internal form
- * structValueObj - the *Tcl_Obj* containing the script level struct value
+ * structValueObj - the *Tcl_Obj* containing the script level struct value.
+ *           This is a dictionary for structs and byte array for unions.
  * flags - if CFFI_F_PRESERVE_ON_ERROR is set, the target location will
  *   be preserved in case of errors.
  * structResultP - the location where the struct is to be constructed. Caller
@@ -1047,6 +1048,18 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
 
     CHECK(CffiStructSizeForObj(
         ipCtxP, structP, structValueObj, &structSize, NULL));
+
+    /* 
+     * The code later below handles unions as well as a dictionary with
+     * one element. However, for symmetry with CffiObjFromStruct, we
+     * currently require unions to be passed as binaries.
+     * TODO - remove the dictionary based code from the main code below
+     * if we stick with treating unions as binaries.
+     */
+    if (CffiStructIsUnion(structP)) {
+        return CffiBytesFromObjSafe(
+            ipCtxP->interp, structValueObj, structResultP, structSize);
+    }
 
     /*
      * If we have to preserve, make a copy. Note we cannot just rely on
@@ -1203,7 +1216,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
 
     return ret;
 }
-/* XXX */
+
 /* Function: CffiStructToObj
  * Wraps a C structure into a Tcl_Obj.
  *
@@ -1214,8 +1227,11 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
  * valueObjP - location to store the pointer to the returned Tcl_Obj.
  *    Following standard practice, the reference ocunt on the Tcl_Obj is 0.
  *
- * Returns:
+ * For structs valueObjP will hold a dictionary. For unions, it is a binary.
  *
+ * Returns:
+ * *TCL_OK* on success with the wrapper Tcl_Obj pointer stored in valueObjP.
+ * *TCL_ERROR* on error with message stored in the interpreter.
  */
 CffiResult
 CffiStructToObj(CffiInterpCtx *ipCtxP,
@@ -1227,6 +1243,16 @@ CffiStructToObj(CffiInterpCtx *ipCtxP,
     Tcl_Obj *valueObj;
     int ret;
     Tcl_Interp *ip    = ipCtxP->interp;
+
+    /* Unions are always treated as binary as we do not know the field type */
+    if (CffiStructIsUnion(structP)) {
+        int unionSize;
+        if (CffiStructSizeForNative(ipCtxP, structP, valueP, &unionSize, NULL)
+            != TCL_OK)
+            return TCL_ERROR;
+        *valueObjP = Tcl_NewByteArrayObj(valueP, unionSize);
+        return TCL_OK;
+    }
 
     valueObj = Tcl_NewListObj(structP->nFields, NULL);
     for (i = 0; i < structP->nFields; ++i) {
@@ -1375,6 +1401,7 @@ CffiStructAllocateCmd(Tcl_Interp *ip,
     }
 
     if (CffiStructIsVariableSize(structP)) {
+        CFFI_ASSERT(!CffiStructIsUnion(structP));
         if (count != 1) {
             return Tclh_ErrorInvalidValue(
                 ip, NULL, "Allocation count must 1 for variable sized structs.");
