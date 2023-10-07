@@ -244,7 +244,7 @@ CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
      *    because of either of these two reasons.
      * Note that arrays of variable sized structs are not permitted.
      */
-    
+
     /* typeP -> type for last field, only one that can be variably sized */
     CffiType *typeP  = &structP->fields[structP->nFields-1].fieldType.dataType;
     CFFI_ASSERT(CffiTypeIsVariableSize(typeP));
@@ -295,7 +295,7 @@ CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
  * sizeP - output location to hold size of struct
  * fixedSizeP - output location to hold the fixed size of the struct
  *   i.e. size with vlacount == 0
- * 
+ *
  * The function takes into account variable sized structs.
  *
  * Returns:
@@ -399,7 +399,7 @@ CffiStructSizeForObj(CffiInterpCtx *ipCtxP,
  * sizeP - output location to hold size of struct
  * fixedSizeP - output location to hold the fixed size of the struct
  *   i.e. size with vlacount == 0
- * 
+ *
  * The function takes into account variable sized structs.
  *
  * Returns:
@@ -748,7 +748,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
         } else {
             /* Nested variable component. Nought to do */
         }
-        /* 
+        /*
          * Mark as variable size - last field is variable size array
          * or a nested struct with a variable size array.
          */
@@ -1050,7 +1050,7 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
     CHECK(CffiStructSizeForObj(
         ipCtxP, structP, structValueObj, &structSize, NULL));
 
-    /* 
+    /*
      * The code later below handles unions as well as a dictionary with
      * one element. However, for symmetry with CffiObjFromStruct, we
      * currently require unions to be passed as binaries.
@@ -2085,7 +2085,7 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
                 if (ret == TCL_OK) {
                     Tcl_ListObjAppendElement(NULL, valuesObj, valueObj);
                 }
-            } 
+            }
         }
         if (ret == TCL_OK)
             Tcl_SetObjResult(ip, valuesObj);
@@ -2296,7 +2296,7 @@ CffiStructToBinaryCmd(Tcl_Interp *ip,
  * objv - argument array. Caller should have checked it has 3-4 elements
  *        with objv[2] holding the byte array representation and optional
  *        objv[3] holding the offset into it.
- * scructCtxP - pointer to struct context
+ * structCtxP - pointer to struct context
  *
  * Returns:
  * *TCL_OK* on success with the *Tcl_Obj* dictionary in the interpreter
@@ -2444,6 +2444,129 @@ CffiStructOrUnionInstanceDeleter(ClientData cdata)
     ckfree(ctxP);
 }
 
+/* Function: CffiUnionUnmakeCmd
+ * Returns a union field value from a binary
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - number of elements in *objv*. Must be 1.
+ * objv - argument array. Caller should have checked it has four elements
+ *        with objv[3] holding the byte array representation and
+ *        objv[2] holding the field name.
+ * structCtxP - pointer to struct context
+ *
+ * Returns:
+ * TCL_OK on success, TCL_ERROR on failure
+ */
+static CffiResult
+CffiUnionUnmakeCmd(Tcl_Interp *ip,
+                   int objc,
+                   Tcl_Obj *const objv[],
+                   CffiStructCmdCtx *structCtxP)
+{
+    unsigned char *valueP;
+    Tcl_Size len;
+    CffiResult ret;
+    CffiStruct *structP = structCtxP->structP;
+
+    CFFI_ASSERT(objc == 4);
+    CFFI_ASSERT(CffiStructIsUnion(structP));
+
+    valueP = Tcl_GetByteArrayFromObj(objv[3], &len);
+    if (len < structP->size)
+        return Tclh_ErrorInvalidValue(
+            ip, objv[2], "Union binary value is truncated.");
+
+    int fldIndex;
+    void *fldAddr;
+    int fldArraySize;
+    ret = CffiStructComputeFieldAddress(structCtxP->ipCtxP,
+                                        structP,
+                                        valueP,
+                                        objv[2], /* Field name */
+                                        &fldIndex,
+                                        &fldAddr,
+                                        &fldArraySize);
+    if (ret != TCL_OK)
+        return ret;
+
+    Tcl_Obj *resultObj;
+    ret = CffiNativeValueToObj(structCtxP->ipCtxP,
+                               &structP->fields[fldIndex].fieldType,
+                               fldAddr,
+                               0,
+                               fldArraySize,
+                               &resultObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ip, resultObj);
+    return ret;
+}
+
+/* Function: CffiUnionMakeCmd
+ * Returns a binary for a union from a field value
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - number of elements in *objv*. Must be 1.
+ * objv - argument array. Caller should have checked it has four elements
+ *        with objv[2] holding the field name and objv[3] holding value
+ * structCtxP - pointer to struct context
+ *
+ * Returns:
+ * TCL_OK on success, TCL_ERROR on failure
+ */
+static CffiResult
+CffiUnionMakeCmd(Tcl_Interp *ip,
+                int objc,
+                Tcl_Obj *const objv[],
+                CffiStructCmdCtx *structCtxP)
+{
+    unsigned char *valueP;
+    Tcl_Size len;
+    CffiResult ret;
+    CffiStruct *structP = structCtxP->structP;
+
+    CFFI_ASSERT(objc == 4);
+    CFFI_ASSERT(CffiStructIsUnion(structP));
+
+    Tcl_Obj *resultObj;
+    resultObj = Tcl_NewByteArrayObj(NULL, structP->size);
+    valueP = Tcl_GetByteArrayFromObj(resultObj, &len);
+
+    int fldIndex;
+    void *fldAddr;
+    int fldArraySize;
+    ret = CffiStructComputeFieldAddress(structCtxP->ipCtxP,
+                                        structP,
+                                        valueP,
+                                        objv[2], /* Field name */
+                                        &fldIndex,
+                                        &fldAddr,
+                                        &fldArraySize);
+    if (ret != TCL_OK)
+        goto error_exit;
+
+    ret = CffiNativeValueFromObj(structCtxP->ipCtxP,
+                                 &structP->fields[fldIndex].fieldType,
+                                 fldArraySize,
+                                 objv[3],
+                                 0,
+                                 fldAddr,
+                                 0,
+                                 NULL);
+
+    if (ret != TCL_OK)
+        goto error_exit;
+
+    Tcl_SetObjResult(ip, resultObj);
+    return TCL_OK;
+
+error_exit:
+    Tcl_DecrRefCount(resultObj);
+    return TCL_ERROR;
+}
+
+
 /* Function: CffiUnionInstanceCmd
  * Implements the script level command for struct instances.
  *
@@ -2466,12 +2589,13 @@ CffiUnionInstanceCmd(ClientData cdata,
     static const Tclh_SubCommand subCommands[] = {
         {"describe", 0, 0, "", CffiStructDescribeCmd},
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
+        {"unmake", 2, 2, "FIELD BINARY", CffiUnionUnmakeCmd},
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
+        {"make", 2, 2, "FIELD VALUE", CffiUnionMakeCmd},
         {NULL}
     };
     int cmdIndex;
-
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
     return subCommands[cmdIndex].cmdFn(ip, objc, objv, structCtxP);
 }
