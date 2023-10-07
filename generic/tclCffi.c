@@ -313,6 +313,8 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Struct", CffiStructObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::Union", CffiUnionObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::call", CffiCallObjCmd, ipCtxP, NULL);
 #ifdef CFFI_USE_LIBFFI
     Tcl_CreateObjCommand(

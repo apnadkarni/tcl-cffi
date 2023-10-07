@@ -964,6 +964,7 @@ Tcl_ObjCmdProc CffiMemoryObjCmd;
 Tcl_ObjCmdProc CffiPointerObjCmd;
 Tcl_ObjCmdProc CffiPrototypeObjCmd;
 Tcl_ObjCmdProc CffiStructObjCmd;
+Tcl_ObjCmdProc CffiUnionObjCmd;
 Tcl_ObjCmdProc CffiTypeObjCmd;
 
 #ifdef CFFI_ENABLE_CALLBACKS

@@ -605,7 +605,7 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
  * Parameters:
  * ip - interpreter
  * nameObj - name of the struct
- * isUnion - if non-0, definition is a union
+ * baseType - CFFI_K_TYPE_STRUCT or CFFI_K_TYPE_UNION
  * structObj - structure definition
  * structPP - pointer to location to store pointer to internal form.
  *
@@ -619,13 +619,14 @@ static CffiResult
 CffiStructParse(CffiInterpCtx *ipCtxP,
                 Tcl_Obj *nameObj,
                 Tcl_Obj *structObj,
-                int isUnion,
+                CffiBaseType baseType,
                 CffiStruct **structPP)
 {
     Tcl_Obj **objs;
     Tcl_Size i, j, nobjs, nfields;
     CffiStruct *structP;
     Tcl_Interp *ip = ipCtxP->interp;
+    int isUnion = (baseType == CFFI_K_TYPE_UNION);
 
     if (Tcl_GetCharLength(nameObj) == 0) {
         return Tclh_ErrorInvalidValue(
@@ -2434,13 +2435,45 @@ CffiStructInstanceCmd(ClientData cdata,
 }
 
 static void
-CffiStructInstanceDeleter(ClientData cdata)
+CffiStructOrUnionInstanceDeleter(ClientData cdata)
 {
     CffiStructCmdCtx *ctxP = (CffiStructCmdCtx *)cdata;
     if (ctxP->structP)
         CffiStructUnref(ctxP->structP);
     /* Note ctxP->ipCtxP is interp-wide and not to be freed here */
     ckfree(ctxP);
+}
+
+/* Function: CffiUnionInstanceCmd
+ * Implements the script level command for struct instances.
+ *
+ * Parameters:
+ * cdata - not used
+ * ip - interpreter
+ * objc - argument count
+ * objv - argument array
+ *
+ * Returns:
+ * TCL_OK or TCL_ERROR, with result in interpreter.
+ */
+static CffiResult
+CffiUnionInstanceCmd(ClientData cdata,
+                     Tcl_Interp *ip,
+                     int objc,
+                     Tcl_Obj *const objv[])
+{
+    CffiStructCmdCtx *structCtxP = (CffiStructCmdCtx *)cdata;
+    static const Tclh_SubCommand subCommands[] = {
+        {"describe", 0, 0, "", CffiStructDescribeCmd},
+        {"destroy", 0, 0, "", CffiStructDestroyCmd},
+        {"info", 0, 0, "", CffiStructInfoCmd},
+        {"name", 0, 0, "", CffiStructNameCmd},
+        {NULL}
+    };
+    int cmdIndex;
+
+    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
+    return subCommands[cmdIndex].cmdFn(ip, objc, objv, structCtxP);
 }
 
 /* Function: CffiStructResolve
@@ -2470,41 +2503,39 @@ CffiStructResolve(Tcl_Interp *ip,
     int found;
 
     found = Tcl_GetCommandInfo(ip, nameP, &tci);
-    if (found && tci.objProc == CffiStructInstanceCmd) {
-        CffiStructCmdCtx *structCtxP;
-        CFFI_ASSERT(tci.clientData);
-        structCtxP = (CffiStructCmdCtx *)tci.objClientData;
-        CffiStruct *structP = structCtxP->structP;
-        if ((baseType == CFFI_K_TYPE_STRUCT
-             && !CffiStructIsUnion(structP))
-            || (baseType == CFFI_K_TYPE_UNION
-                && CffiStructIsUnion(structP))) {
-            *structPP = structP;
-            return TCL_OK;
-        }
+    if (!found)
+        goto notfound;
+    if (baseType == CFFI_K_TYPE_STRUCT && tci.objProc != CffiStructInstanceCmd)
+        goto notfound;
+    if (baseType == CFFI_K_TYPE_UNION && tci.objProc != CffiUnionInstanceCmd)
+        goto notfound;
+
+    CffiStructCmdCtx *structCtxP;
+    CFFI_ASSERT(tci.clientData);
+    structCtxP          = (CffiStructCmdCtx *)tci.objClientData;
+    CffiStruct *structP = structCtxP->structP;
+    if ((baseType == CFFI_K_TYPE_STRUCT && !CffiStructIsUnion(structP))
+        || (baseType == CFFI_K_TYPE_UNION && CffiStructIsUnion(structP))) {
+        *structPP = structP;
+        return TCL_OK;
     }
+
+notfound:
     nameObj = Tcl_NewStringObj(nameP, -1);
     Tcl_IncrRefCount(nameObj);
-    if (found) {
-        (void)Tclh_ErrorInvalidValue(ip,
-                                     nameObj,
-                                     baseType == CFFI_K_TYPE_UNION
-                                         ? "Not a cffi::Union."
-                                         : "Not a cffi::Struct.");
-    }
-    else {
-        (void)Tclh_ErrorNotFound(ip, "Struct or Union definition", nameObj, NULL);
-    }
+    (void)Tclh_ErrorNotFound(
+        ip, baseType == CFFI_K_TYPE_UNION ? "Union" : "Struct", nameObj, NULL);
     Tcl_DecrRefCount(nameObj);
     return TCL_ERROR;
 }
 
-
-CffiResult
-CffiStructObjCmd(ClientData cdata,
-                   Tcl_Interp *ip,
-                   int objc,
-                   Tcl_Obj *const objv[])
+static CffiResult
+CffiStructOrUnionObjCmd(ClientData cdata,
+                        Tcl_Interp *ip,
+                        int objc,
+                        Tcl_Obj *const objv[],
+                        CffiBaseType baseType
+                        )
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiStruct *structP;
@@ -2562,7 +2593,7 @@ CffiStructObjCmd(ClientData cdata,
     }
 
     ret = CffiStructParse(
-        ipCtxP, cmdNameObj, defObj, 0, &structP);
+        ipCtxP, cmdNameObj, defObj, baseType, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;
@@ -2573,12 +2604,32 @@ CffiStructObjCmd(ClientData cdata,
 
         Tcl_CreateObjCommand(ip,
                              Tcl_GetString(cmdNameObj),
-                             CffiStructInstanceCmd,
+                             baseType == CFFI_K_TYPE_STRUCT
+                                 ? CffiStructInstanceCmd
+                                 : CffiUnionInstanceCmd,
                              structCtxP,
-                             CffiStructInstanceDeleter);
+                             CffiStructOrUnionInstanceDeleter);
         Tcl_SetObjResult(ip, cmdNameObj);
     }
     Tcl_DecrRefCount(cmdNameObj);
     return ret;
+}
+
+CffiResult
+CffiStructObjCmd(ClientData cdata,
+                   Tcl_Interp *ip,
+                   int objc,
+                   Tcl_Obj *const objv[])
+{
+    return CffiStructOrUnionObjCmd(cdata, ip, objc, objv, CFFI_K_TYPE_STRUCT);
+}
+
+CffiResult
+CffiUnionObjCmd(ClientData cdata,
+                   Tcl_Interp *ip,
+                   int objc,
+                   Tcl_Obj *const objv[])
+{
+    return CffiStructOrUnionObjCmd(cdata, ip, objc, objv, CFFI_K_TYPE_UNION);
 }
 

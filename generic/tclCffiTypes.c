@@ -119,7 +119,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      sizeof(unsigned char)},
     {TOKENANDLEN(union),
      CFFI_K_TYPE_UNION,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK,
+     0,
      0},
 #ifdef _WIN32
     {TOKENANDLEN(winstring),
@@ -1135,7 +1135,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 
     switch (parseMode) {
     case CFFI_F_TYPE_PARSE_PARAM:
-        if (baseType == CFFI_K_TYPE_VOID) {
+        if (baseType == CFFI_K_TYPE_VOID
+            || ((baseType == CFFI_K_TYPE_STRUCT
+                 && CffiStructIsUnion(typeAttrP->dataType.u.structP)))) {
             message = typeInvalidForContextMsg;
             goto invalid_format;
         }
@@ -1243,6 +1245,11 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             message = typeInvalidForContextMsg;
             goto invalid_format;
         case CFFI_K_TYPE_STRUCT:
+            if (CffiStructIsUnion(typeAttrP->dataType.u.structP)) {
+                message = typeInvalidForContextMsg;
+                goto invalid_format;
+            }
+
 #ifdef CFFI_USE_DYNCALL
             if ((flags & CFFI_F_ATTR_BYREF) == 0) {
                 /* dyncall - return type not allowed unless byref */
