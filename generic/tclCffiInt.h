@@ -120,6 +120,7 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_CHAR_ARRAY,
     CFFI_K_TYPE_UNICHAR_ARRAY,
     CFFI_K_TYPE_BYTE_ARRAY,
+    CFFI_K_TYPE_UNION,
 #ifdef _WIN32
     CFFI_K_TYPE_WINSTRING,
     CFFI_K_TYPE_WINCHAR_ARRAY,
@@ -322,7 +323,7 @@ typedef enum CffiStructFlags {
 } CffiStructFlags;
 
 /* Struct: CffiStruct
- * Descriptor for a struct layout.
+ * Descriptor for a struct and union layout.
  *
  * Note this is not a fixed size structure. The *fields* array at the
  * end of the structure is variable sized.
@@ -581,8 +582,10 @@ CffiResult CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
                                      int vlaCount,
                                      int *sizeP,
                                      int *fixedSizeP);
-CffiResult
-CffiStructResolve(Tcl_Interp *ip, const char *nameP, CffiStruct **structPP);
+CffiResult CffiStructResolve(Tcl_Interp *ip,
+                             const char *nameP,
+                             CffiBaseType baseType,
+                             CffiStruct **structPP);
 CffiResult
 CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_Size toSize);
 CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,

@@ -2449,6 +2449,7 @@ CffiStructInstanceDeleter(ClientData cdata)
  * Parameters:
  * ip - interpreter
  * nameP - name of the struct
+ * baseType - CFFI_K_TYPE_STRUCT or CFFI_K_TYPE_UNION
  * structPP - location to hold pointer to resolved struct representation
  *
  * *NOTE:* The reference count on the returned structure is *not* incremented.
@@ -2458,7 +2459,11 @@ CffiStructInstanceDeleter(ClientData cdata)
  * *TCL_OK* on success with pointer to the <CffiStruct> stored in
  * *structPP*, or *TCL_ERROR* on error with message in interpreter.
  */
-CffiResult CffiStructResolve (Tcl_Interp *ip, const char *nameP, CffiStruct **structPP)
+CffiResult
+CffiStructResolve(Tcl_Interp *ip,
+                  const char *nameP,
+                  CffiBaseType baseType,
+                  CffiStruct **structPP)
 {
     Tcl_CmdInfo tci;
     Tcl_Obj *nameObj;
@@ -2469,16 +2474,26 @@ CffiResult CffiStructResolve (Tcl_Interp *ip, const char *nameP, CffiStruct **st
         CffiStructCmdCtx *structCtxP;
         CFFI_ASSERT(tci.clientData);
         structCtxP = (CffiStructCmdCtx *)tci.objClientData;
-        *structPP  = structCtxP->structP;
-        return TCL_OK;
+        CffiStruct *structP = structCtxP->structP;
+        if ((baseType == CFFI_K_TYPE_STRUCT
+             && !CffiStructIsUnion(structP))
+            || (baseType == CFFI_K_TYPE_UNION
+                && CffiStructIsUnion(structP))) {
+            *structPP = structP;
+            return TCL_OK;
+        }
     }
     nameObj = Tcl_NewStringObj(nameP, -1);
     Tcl_IncrRefCount(nameObj);
     if (found) {
-        (void)Tclh_ErrorInvalidValue(ip, nameObj, "Not a cffi::Struct.");
+        (void)Tclh_ErrorInvalidValue(ip,
+                                     nameObj,
+                                     baseType == CFFI_K_TYPE_UNION
+                                         ? "Not a cffi::Union."
+                                         : "Not a cffi::Struct.");
     }
     else {
-        (void)Tclh_ErrorNotFound(ip, "Struct definition", nameObj, NULL);
+        (void)Tclh_ErrorNotFound(ip, "Struct or Union definition", nameObj, NULL);
     }
     Tcl_DecrRefCount(nameObj);
     return TCL_ERROR;

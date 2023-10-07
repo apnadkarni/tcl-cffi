@@ -1088,7 +1088,7 @@ namespace eval cffi::test {
 
         test type-info-struct-$parse_mode-unknown-0 "type info struct unknown parse mode = $parse_mode" -body {
            cffi::type info struct.NOSUCHSTRUCT $parse_mode
-        } -result "Struct definition \"NOSUCHSTRUCT\" not found or inaccessible. " -returnCodes error
+        } -result "Struct or Union definition \"NOSUCHSTRUCT\" not found or inaccessible. " -returnCodes error
     }
 
     # Varsize struct tests

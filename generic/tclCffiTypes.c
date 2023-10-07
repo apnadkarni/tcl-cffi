@@ -117,6 +117,10 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_K_TYPE_BYTE_ARRAY,
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
      sizeof(unsigned char)},
+    {TOKENANDLEN(union),
+     CFFI_K_TYPE_UNION,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK,
+     0},
 #ifdef _WIN32
     {TOKENANDLEN(winstring),
      CFFI_K_TYPE_WINSTRING,
@@ -541,9 +545,10 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
     }
 
     switch (baseType) {
+    case CFFI_K_TYPE_UNION:
     case CFFI_K_TYPE_STRUCT:
         if (tagLen == 0) {
-            message = "Missing struct name.";
+            message = "Missing struct or union name.";
             goto invalid_type;
         }
         if (lbStr) {
@@ -552,17 +557,18 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
             memmove(structNameP, tagStr, tagLen);
             structNameP[tagLen] = '\0';
             ret = CffiStructResolve(
-                ipCtxP->interp, structNameP, &typeP->u.structP);
+                ipCtxP->interp, structNameP, baseType, &typeP->u.structP);
             ckfree(structNameP);
         }
         else {
-            ret = CffiStructResolve(ipCtxP->interp, tagStr, &typeP->u.structP);
+            ret = CffiStructResolve(
+                ipCtxP->interp, tagStr, baseType, &typeP->u.structP);
         }
         if (ret != TCL_OK)
             goto error_return;
 
         CffiStructRef(typeP->u.structP);
-        typeP->baseType = CFFI_K_TYPE_STRUCT;
+        typeP->baseType = CFFI_K_TYPE_STRUCT; /* EVEN FOR UNION!!! */
         typeP->baseTypeSize = typeP->u.structP->size;
         /*
          * Check AFTER init of typeP just above since typeP must be consistent
@@ -2846,12 +2852,8 @@ failed_requirements:
 Tcl_Obj *
 CffiTypeUnparse(const CffiType *typeP)
 {
-    Tcl_Obj *typeObj;
     const char *suffix = NULL;
-    int count = typeP->arraySize;
-
-
-    typeObj = Tcl_NewStringObj(cffiBaseTypes[typeP->baseType].token, -1);
+    const char *typeName = cffiBaseTypes[typeP->baseType].token;
 
     /* Note no need for IncrRefCount when adding to list */
     switch (typeP->baseType) {
@@ -2866,12 +2868,19 @@ CffiTypeUnparse(const CffiType *typeP)
         }
         break;
     case CFFI_K_TYPE_STRUCT:
+        if (CffiStructIsUnion(typeP->u.structP)) {
+            typeName = cffiBaseTypes[CFFI_K_TYPE_UNION].token;
+        }
         if (typeP->u.structP->name)
             suffix = Tcl_GetString(typeP->u.structP->name);
         break;
     default:
         break; /* Keep gcc happy about unlisted enum values */
     }
+    Tcl_Obj *typeObj;
+    typeObj = Tcl_NewStringObj(typeName, -1);
+
+    int count = typeP->arraySize;
 
     if (suffix)
         Tcl_AppendStringsToObj(typeObj, ".", suffix, NULL);
