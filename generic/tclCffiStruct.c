@@ -2444,7 +2444,7 @@ CffiStructOrUnionInstanceDeleter(ClientData cdata)
     ckfree(ctxP);
 }
 
-/* Function: CffiUnionUnmakeCmd
+/* Function: CffiUnionDecodeCmd
  * Returns a union field value from a binary
  *
  * Parameters:
@@ -2459,7 +2459,7 @@ CffiStructOrUnionInstanceDeleter(ClientData cdata)
  * TCL_OK on success, TCL_ERROR on failure
  */
 static CffiResult
-CffiUnionUnmakeCmd(Tcl_Interp *ip,
+CffiUnionDecodeCmd(Tcl_Interp *ip,
                    int objc,
                    Tcl_Obj *const objv[],
                    CffiStructCmdCtx *structCtxP)
@@ -2502,7 +2502,7 @@ CffiUnionUnmakeCmd(Tcl_Interp *ip,
     return ret;
 }
 
-/* Function: CffiUnionMakeCmd
+/* Function: CffiUnionEncodeCmd
  * Returns a binary for a union from a field value
  *
  * Parameters:
@@ -2516,7 +2516,7 @@ CffiUnionUnmakeCmd(Tcl_Interp *ip,
  * TCL_OK on success, TCL_ERROR on failure
  */
 static CffiResult
-CffiUnionMakeCmd(Tcl_Interp *ip,
+CffiUnionEncodeCmd(Tcl_Interp *ip,
                 int objc,
                 Tcl_Obj *const objv[],
                 CffiStructCmdCtx *structCtxP)
@@ -2587,12 +2587,12 @@ CffiUnionInstanceCmd(ClientData cdata,
 {
     CffiStructCmdCtx *structCtxP = (CffiStructCmdCtx *)cdata;
     static const Tclh_SubCommand subCommands[] = {
+        {"decode", 2, 2, "FIELD BINARY", CffiUnionDecodeCmd},
         {"describe", 0, 0, "", CffiStructDescribeCmd},
         {"destroy", 0, 0, "", CffiStructDestroyCmd},
-        {"unmake", 2, 2, "FIELD BINARY", CffiUnionUnmakeCmd},
+        {"encode", 2, 2, "FIELD VALUE", CffiUnionEncodeCmd},
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
-        {"make", 2, 2, "FIELD VALUE", CffiUnionMakeCmd},
         {NULL}
     };
     int cmdIndex;

@@ -1,0 +1,63 @@
+# (c) 2023 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+oo::class create ${NS}::Union {
+    constructor {definition args} {
+        # Constructs a script level object that maps to a C union definition.
+        #  definition - defines the layout and type of the C struct fields
+        #  args - options. Currently the only option is `-clear`
+        # The created object can be used to manipulate native C unions.
+        #
+        # The $definition argument is a dictionary mapping field names to the
+        # corresponding types. This has the same syntax as [Structs][::Concepts::Structs],
+        #
+        # The name of the created struct is the same as the name of the
+        # returned object without the initial `::` global namespace qualifier.
+        # This name can be retrieved with the [name] method and is used to
+        # identify the struct when tagging pointers and for typing function
+        # parameters and nested struct fields.
+        #
+        # If the `-clear` option is present, the memory of unions of this
+        # type is cleared before the field values are initialized.
+        #
+    }
+    method encode {field value} {
+        # Returns a union in native form with the specified field value.
+        #  field - the field within the union that should be set
+        #  value - the value of the field.
+        #
+        # See also: decode
+        #
+    }
+    method decode {field uvalue} {
+        # Returns a field from a native union.
+        #  field - the field within the union that should be retrieved
+        #  uvalue - the opaque union in native form
+        #
+        # See also: encode
+        #
+    }
+    method info {} {
+        # Returns a dictionary containing information about the info layout
+        #
+        # The returned dictionary has the following fields:
+        # Size - size of the struct
+        # Alignment - struct alignment
+        # Fields - dictionary of fields keyed by field name. The value is another
+        #   nested dictionary with keys *Size*, *Offset*, and *Definition*
+        #   containing the size, offset in struct, and type definition of the field.
+        #
+        # Other fields may be present and should be ignored.
+    }
+    method describe {} {
+        # Returns a human-readable description of the C union definition.
+        #
+        # This is primarily for debugging and troubleshooting purposes.
+    }
+    method name {} {
+        # Returns the name of the struct.
+        #
+        # Note the name of the struct may be different from the name of
+        # the object command.
+    }
+}

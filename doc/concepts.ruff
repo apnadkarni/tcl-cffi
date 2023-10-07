@@ -830,6 +830,79 @@ namespace eval Concepts {
         size changes. See the documentation for each [Struct] method for details
         about these limitations.
 
+        ### Unions
+
+        C unions are wrapped through the [::cffi::Union] class analogous to
+        the [::cffi::Struct] class for defining C structs. An example definition
+        of a union would be
+
+        ```
+        cffi::Union create U {
+            c uchar
+            d double
+        }
+        ```
+
+        The type is then refernced as `union.U`.
+
+        Unlike structs, the content of a union is not well defined and depends on
+        some discriminator outside of the union itself. Moreover, underlying
+        FFI libraries `libffi` and `dyncall` do not directly support passing of
+        unions to and from functions. Thus the union type has certain limitations:
+
+        * The `union` type can only be used as the type of a field in a struct
+        or another union. It cannot be used for function return types or
+        parameters.
+
+        * Unlike struct values which are dictionaries, the value of a union at
+        the script level is opaque. The `encode` and `decode` methods should
+        be used to convert to and from these opaque values.
+
+        Below is a usage example using the above union.
+
+        ```
+        % set ubin [U encode c 42]
+        % U decode c $ubin
+        42
+        % U decode d $ubin
+        3.91702106007e-312
+        ```
+
+        Note as above that garbage is returned if a field other than what was stored
+        is retrieved.
+
+        If a struct S is defined as
+
+        ```
+        cffi::Struct create S {
+            u union.U
+            i int
+        }
+        ```
+
+        allocating the struct and retrieving field values would be done as
+
+        ```
+        % set pStruct [S new [list i 1 u [U encode c 42]]]
+        0x000002868be5f3e0^::S
+        % U decode c [S getnative $pStruct u]
+        42
+        % S getnative $pStruct i
+        1
+        ```
+
+        Note the difference between how `i` is passed versus `u`. Modifying
+        the union and storing a different field would look like
+
+        ```
+        % S setnative $pStruct u [U encode d 3.14]
+        % U decode d [S getnative $pStruct u]
+        3.14
+        ```
+
+        As in C care must be taken that the same field is retrieved from a
+        union as was stored in it.
+
         ## Type aliases
 
         Type aliases provide a convenient way to bind data types and one or more
