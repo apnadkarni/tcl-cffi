@@ -266,7 +266,7 @@ namespace eval cffi::test {
     cffi::Union create ::TestUnion {
         i   int
         dbl double
-        uc3 uchar[3]
+        uc  uchar
     }
     variable testUnionSize 8
 }

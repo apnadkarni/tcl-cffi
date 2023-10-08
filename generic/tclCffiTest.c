@@ -1141,3 +1141,30 @@ DefineVarsizeStruct(int, int)
 DefineVarsizeStruct(char, double)
 DefineVarsizeStruct(int64_t, char)
 DefineVarsizeStruct(int, voidpointer)
+
+union TestUnion {
+    int i;
+    double dbl;
+    unsigned char uc;
+};
+struct StructWithUnion {
+    int tag;
+    union TestUnion u;
+};
+DLLEXPORT void incrStructWithUnion(struct StructWithUnion in, struct StructWithUnion *out) {
+    switch (in.tag) {
+    case 0:
+        out->u.i = in.u.i + 1;
+        break;
+    case 1:
+        out->u.dbl = in.u.dbl + 1;
+        break;
+    case 2:
+        out->u.uc = in.u.uc + 1;
+        break;
+    default:
+        memset(out, 0, sizeof(*out));
+        break;
+    }
+    out->tag = in.tag;
+}

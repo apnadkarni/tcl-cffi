@@ -1948,6 +1948,29 @@ namespace eval ${NS}::test {
         set out
     } -result {shrt 43 nested {count 0 values {}}}
 
+    # Unions
+    test function-union-0 "Pass struct containing a int in a union" -setup {
+        cffi::Struct create S {tag int u union.::TestUnion}
+        testDll function incrStructWithUnion void {in struct.S out {struct.S out}}
+    } -cleanup {
+        S destroy
+    } -body {
+        incrStructWithUnion [list tag 0 u [::TestUnion encode i 42]] result
+        list [dict get $result tag] [::TestUnion decode i [dict get $result u]]
+    } -result {0 43}
+    test function-union-1 "Pass struct containing a double in a union" -setup {
+        cffi::Struct create S {tag int u union.::TestUnion}
+        testDll function incrStructWithUnion void {in struct.S out {struct.S out}}
+    } -cleanup {
+        S destroy
+    } -body {
+        incrStructWithUnion [list tag 1 u [::TestUnion encode dbl 99.0]] result
+        list [dict get $result tag] [::TestUnion decode dbl [dict get $result u]]
+    } -result {1 100.0}
+    test function-union-error-0 "Pass union" -body {
+        testDll function incrStructWithUnion void {in union.::TestUnion out {union.::TestUnion out}}
+    } -result {Invalid value "union.::TestUnion". The specified type is not valid for the type declaration context. Error defining function incrStructWithUnion.} -returnCodes error
+
     # Note -  tests for invalid parameter attrs are done in type.test
 
     ###
@@ -2377,7 +2400,6 @@ namespace eval ${NS}::test {
     } -body {
         set s [returnTestStruct]
     } -result {The libffi backend does not support arrays by value. Define as struct with corresponding number of fields as a workaround.} -returnCodes error
-
 
     test function-struct-return-byref-0 "return struct byref" -body {
         testDll function returnTestStructByRef {struct.::TestStruct byref} {}
