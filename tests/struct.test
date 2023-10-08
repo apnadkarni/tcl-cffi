@@ -14,20 +14,27 @@ namespace eval cffi::test {
 
     test struct-error-1 {Empty struct definition} -body {
         list [catch {Struct new {}} result] $result $::errorCode
-    } -result [list 1 {Invalid value "". Empty struct or missing type definition for field.} {cffi INVALID_VALUE {Invalid value "". Empty struct or missing type definition for field.}}]
+    } -result [list 1 {Invalid value "". Empty definition or missing type for field.} {cffi INVALID_VALUE {Invalid value "". Empty definition or missing type for field.}}]
 
     test struct-error-2 {Empty struct name} -body {
         list [catch {uplevel #0 {cffi::Struct create "" {i int}}} result] $result $::errorCode
-    } -result {1 {Invalid value "". Empty string specified for structure name.} {cffi INVALID_VALUE {Invalid value "". Empty string specified for structure name.}}}
+    } -result {1 {Invalid value "". Empty string specified for name.} {cffi INVALID_VALUE {Invalid value "". Empty string specified for name.}}}
 
     test struct-error-3 {Duplicate field names} -body {
         list [catch {cffi::Struct new {i int i int}} result] $result $::errorCode
-    } -result {1 {Field "i" already exists. Field names in a struct must be unique.} {cffi EXISTS {Field "i" already exists. Field names in a struct must be unique.}}}
+    } -result {1 {Field "i" already exists. Field names must be unique.} {cffi EXISTS {Field "i" already exists. Field names must be unique.}}}
 
     test struct-error-4 {Bad option argument} -body {
         list [catch {Struct new {s int} -foo} result] $result
     } -result {1 {bad option "-foo": must be -clear}}
 
+    test struct-error-5 {Union mistaken for a struct} -setup {
+        cffi::Union create ::U {n int}
+    } -cleanup {
+        ::U destroy
+    } -body {
+        cffi::type info struct.::U
+    } -result {Struct "::U" not found or inaccessible. } -returnCodes error
 
     proc teststruct {type} {
         variable errorMessages

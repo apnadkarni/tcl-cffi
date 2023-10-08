@@ -630,14 +630,14 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
 
     if (Tcl_GetCharLength(nameObj) == 0) {
         return Tclh_ErrorInvalidValue(
-            ip, nameObj, "Empty string specified for structure name.");
+            ip, nameObj, "Empty string specified for name.");
     }
 
     CHECK(Tcl_ListObjGetElements(ip, structObj, &nobjs, &objs));
 
     if (nobjs == 0 || (nobjs & 1))
         return Tclh_ErrorInvalidValue(
-            ip, structObj, "Empty struct or missing type definition for field.");
+            ip, structObj, "Empty definition or missing type for field.");
     nfields = nobjs / 2; /* objs[] is alternating name, type list */
 
     structP = CffiStructCkalloc(nfields);
@@ -680,7 +680,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
                     ip,
                     "Field",
                     objs[i],
-                    "Field names in a struct must be unique.");
+                    "Field names must be unique.");
             }
         }
         Tcl_IncrRefCount(objs[i]);
@@ -1058,8 +1058,16 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
      * if we stick with treating unions as binaries.
      */
     if (CffiStructIsUnion(structP)) {
-        return CffiBytesFromObjSafe(
-            ipCtxP->interp, structValueObj, structResultP, structSize);
+        Tcl_Size len;
+        const char *p;
+        if ((p = Tclh_ObjGetBytesByRef(ip, structValueObj, &len)) == NULL)
+            return TCL_ERROR;
+        if (len != structSize) {
+            return Tclh_ErrorInvalidValue(
+                ip, NULL, "Binary value does not match size of union.");
+        }
+        memmove(structResultP, p, len);
+        return TCL_OK;
     }
 
     /*
@@ -2695,7 +2703,7 @@ CffiStructOrUnionObjCmd(ClientData cdata,
         /* create */
         if (Tcl_GetCharLength(objv[2]) == 0) {
             return Tclh_ErrorInvalidValue(
-                ip, objv[2], "Empty string specified for structure name.");
+                ip, objv[2], "Empty string specified for name.");
         }
         cmdNameObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
         Tcl_IncrRefCount(cmdNameObj);

@@ -1142,6 +1142,35 @@ namespace eval cffi::test {
     } -result [list {Size 32 Alignment 8 Flags 2 Fields {u {Size 1 Offset 0 Definition uchar} s {Size 24 Offset 8 Definition struct.::cffi::test::S}}}]
 
     ###
+    # union
+
+    test type-info-union-param-0 "Unions cannot be parameters" -body {
+        type info union.::TestUnion param
+    } -result {Invalid value "union.::TestUnion". The specified type is not valid for the type declaration context.} -returnCodes error
+    test type-info-union-param-1 "Unions cannot be parameters by reference" -body {
+        type info {union.::TestUnion byref} param
+    } -result {Invalid value "union.::TestUnion byref". The specified type is not valid for the type declaration context.} -returnCodes error
+    test type-info-union-return-0 "Unions cannot be returned" -body {
+        type info union.::TestUnion return
+    } -result {Invalid value "union.::TestUnion". The specified type is not valid for the type declaration context.} -returnCodes error
+
+    test type-info-union-field-0 "type info field union" -body {
+        cffi::type info union.::TestUnion field
+    } -result {Size 8 Count -1 Alignment 8 Definition union.::TestUnion BaseSize 8}
+
+    test type-info-union-field-1 "type info field union array" -body {
+        cffi::type info {union.::TestUnion[2]} field
+    } -result [list Size 16 Count 2 Alignment 8 Definition [list union.::TestUnion\[2\]] BaseSize 8]
+
+    test type-size-union-0 "Union size" -body {
+        type size union.::TestUnion
+    } -result 8
+
+    test type-size-union-1 "Union array size" -body {
+        type size {union.::TestUnion[2]}
+    } -result 16
+
+    ###
     # Verify commands work with aliases
     test type-info-alias-0 "type info alias " -setup {
         cffi::alias define type_info_test_alias_0 {int nonzero}

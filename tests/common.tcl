@@ -109,6 +109,11 @@ namespace eval cffi::test {
         c schar
         i int
     } -clear
+    cffi::Union create ::UnionValue {
+        c schar
+        i int
+    } -clear
+
     # Generic test values for all types
     variable testValues
     foreach type {schar short int long longlong} {
@@ -127,6 +132,7 @@ namespace eval cffi::test {
     set testValues(unistring) $testStrings(unicode)
     set testValues(binary) $testStrings(bytes)
     set testValues(struct.::StructValue) {c 42 i 4242}
+    set testValues(union.::UnionValue) \x01\x02\x03\x04
     if {$::tcl_platform(platform) eq "windows"} {
         set testValues(winstring) $testStrings(unicode)
         set testValues(winchars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
@@ -139,6 +145,7 @@ namespace eval cffi::test {
     }
     set badValues(pointer\ unsafe) 1
     set badValues(struct.::StructValue) {x}
+    set badValues(union.::UnionValue) \x01\x02\x03
 
 
     variable paramDirectionAttrs {in out inout}
@@ -255,6 +262,13 @@ namespace eval cffi::test {
         }
         return $mismatches
     }
+
+    cffi::Union create ::TestUnion {
+        i   int
+        dbl double
+        uc3 uchar[3]
+    }
+    variable testUnionSize 8
 }
 
 proc cffi::test::command_exists {cmd} {
