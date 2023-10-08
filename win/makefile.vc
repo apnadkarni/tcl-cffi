@@ -105,7 +105,11 @@ PRJ_DEFINES = $(PRJ_DEFINES) -DCFFI_USE_DYNCALL
 PRJ_LIBS = $(EXTDIR)\lib\dyncall_s.lib $(EXTDIR)\lib\dynload_s.lib $(EXTDIR)\lib\dyncallback_s.lib
 !else
 PRJ_DEFINES = $(PRJ_DEFINES) -DFFI_BUILDING -DCFFI_USE_LIBFFI
+!if exist($(EXTDIR)\lib\libffi.lib)
 PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
+!else
+PRJ_LIBS = $(EXTDIR)\lib\ffi.lib
+!endif
 !endif
 
 !if (($(TCL_MAJOR_VERSION) > 8) || (($(TCL_MAJOR_VERSION) == 8) && ($(TCL_MINOR_VERSION) >= 7)))
