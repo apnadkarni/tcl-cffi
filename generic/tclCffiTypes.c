@@ -1288,6 +1288,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             /* Struct/string/bytes return type not allowed even byref */
             message = typeInvalidForContextMsg;
             goto invalid_format;
+        case CFFI_K_TYPE_POINTER:
+            /* Pointers in structs are always unsafe */
+            flags &= ~(CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_DISPOSE
+                       | CFFI_F_ATTR_DISPOSEONSUCCESS);
+            flags |= CFFI_F_ATTR_UNSAFE;
+            break;
         case CFFI_K_TYPE_CHAR_ARRAY:
         case CFFI_K_TYPE_UNICHAR_ARRAY:
 #ifdef _WIN32

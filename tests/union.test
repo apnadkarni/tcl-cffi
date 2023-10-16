@@ -1,0 +1,202 @@
+# (c) 2023 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# Contains common definitions across test scripts
+
+source [file join [file dirname [info script]] common.tcl]
+
+namespace eval cffi::test {
+    testsubcmd ::cffi::Union
+
+    test union-error-0 {Missing argument} -body {
+        list [catch {Union new} result] $result $::errorCode
+    } -result {1 {wrong # args: should be "Union new STRUCTDEF ?-clear?"} {TCL WRONGARGS}}
+
+    test union-error-1 {Empty union definition} -body {
+        list [catch {Union new {}} result] $result $::errorCode
+    } -result [list 1 {Invalid value "". Empty definition or missing type for field.} {cffi INVALID_VALUE {Invalid value "". Empty definition or missing type for field.}}]
+
+    test union-error-2 {Empty union name} -body {
+        list [catch {uplevel #0 {cffi::Union create "" {i int}}} result] $result $::errorCode
+    } -result {1 {Invalid value "". Empty string specified for name.} {cffi INVALID_VALUE {Invalid value "". Empty string specified for name.}}}
+
+    test union-error-3 {Duplicate field names} -body {
+        list [catch {cffi::Union new {i int i int}} result] $result $::errorCode
+    } -result {1 {Field "i" already exists. Field names must be unique.} {cffi EXISTS {Field "i" already exists. Field names must be unique.}}}
+
+    test union-error-4 {Bad option argument} -body {
+        list [catch {Union new {s int} -foo} result] $result
+    } -result {1 {bad option "-foo": must be -clear}}
+
+    test union-error-5 {Struct mistaken for a union} -setup {
+        cffi::Struct create ::S {n int}
+    } -cleanup {
+        ::S destroy
+    } -body {
+        cffi::type info union.::S
+    } -result {Union "::S" not found or inaccessible. } -returnCodes error
+
+    proc testunion {type} {
+        variable errorMessages
+        variable unicharSize
+
+        set typeAndAttr $type
+        set arrType [list "$type\[2\]"]
+        # Skip scalar tests for these
+        if {$type in {chars bytes}} {
+            set Size 1
+            set Alignment 1
+        } elseif {$type eq "unichars"} {
+            set Size $unicharSize
+            set Alignment $unicharSize
+        } elseif {$type eq "winchars"} {
+            set Size 2
+            set Alignment 2
+        } else {
+            if {$type eq "pointer"} {
+                set typeAndAttr [list $type unsafe]
+                set arrType [list $type\[2\] unsafe]
+            }
+
+            set tinfo [cffi::type info $type]
+            dict with tinfo {}
+            test union-$type-0 "union new $type" -cleanup {
+                $s destroy
+            } -body {
+                set s [cffi::Union new "fld $type"]
+                $s info
+            } -result [list Size $Size Alignment $Alignment Flags 4 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr]]] -match dict
+
+            test union-$type-1 "union create {schar $type}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Union create S "c schar fld $type"
+                S info
+            } -result [list Size $Size Alignment $Alignment Flags 4 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset 0 Definition $typeAndAttr]]] -match dict
+
+            test union-$type-2 "union create {$type uchar}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Union create S "fld $type c uchar"
+                S info
+            } -result [list Size $Size Alignment $Alignment Flags 4 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr] c [list Size 1 Offset 0 Definition uchar] ]] -match dict
+        }
+        test union-$type-3 "union create {schar $type\[2\]}" -cleanup {
+            S destroy
+        } -body {
+            cffi::Union create S "c schar fld $type\[2\] c2 schar"
+            S info
+        } -result [list \
+                       Size [expr {2*$Size}] \
+                       Alignment $Alignment \
+                       Flags 4 Fields [list \
+                                           c [list Size 1 Offset 0 Definition schar] \
+                                           fld [list Size [expr {2*$Size}] Offset 0 Definition $arrType] \
+                                           c2 [list Size 1 Offset 0 Definition schar]]]
+
+    }
+    foreach type [array names testValues] {
+        if {$type ni {binary string unistring winstring}} {
+            test union-$type-encode-0 "Encode/decode type" -setup {
+                cffi::Union create U [list c schar fld $type]
+            } -cleanup {
+                U destroy
+            } -body {
+                set result [list]
+                lappend result [U decode c [U encode c 42]]
+                lappend result [U decode fld [U encode fld $testValues($type)]]
+            } -result [list 42 $testValues($type)]
+
+            test union-$type-encode-1 "Encode/decode in struct type" -setup {
+                unset -nocomplain pStruct
+                cffi::Union create U [list c schar fld $type]
+                cffi::Struct create S [list s short u union.U]
+            } -cleanup {
+                if {[info exists pStruct]} {
+                    S free $pStruct
+                }
+                S destroy
+                U destroy
+            } -body {
+                set pStruct [S new [list u [U encode fld $testValues($type)] s 99]]
+                list [S getnative $pStruct s] [U decode fld [S getnative $pStruct u]]
+            } -result [list 99 $testValues($type)]
+        }
+    }
+
+    test union-namespace-0 "Verify global union available in namespace" -cleanup {
+        rename ::S ""
+        namespace delete ::tempns
+    } -body {
+        ::cffi::Union create ::S {x int}
+        namespace eval ::tempns {cffi::type size union.S}
+    } -result 4
+
+    test union-namespace-1 "Verify global union available in namespace with :: prefix" -cleanup {
+        rename ::S ""
+        namespace delete ::tempns
+    } -body {
+        ::cffi::Union create ::S {x int}
+        namespace eval ::tempns {cffi::type size union.::S}
+    } -result 4
+
+    test union-namespace-2 "Verify union available in namespace" -cleanup {
+        namespace delete ::tempns
+    } -body {
+        list [namespace eval ::tempns {
+            ::cffi::Union create S {x int}
+            cffi::type size union.S
+        }] [::tempns::S name]
+    } -result [list 4 ::tempns::S]
+
+    test union-namespace-3 "Verify qualified union available in namespace" -cleanup {
+        namespace delete ::tempnsA
+        namespace delete ::tempnsB
+    } -body {
+        namespace eval ::tempnsA {::cffi::Union create S {x int}}
+        namespace eval ::tempnsB {cffi::type size union.tempnsA::S}
+    } -result 4
+
+    test union-namespace-4 "Verify qualified union available in namespace with ::" -cleanup {
+        namespace delete ::tempnsA
+        namespace delete ::tempnsB
+    } -body {
+        namespace eval ::tempnsA {::cffi::Union create S {x int}}
+        namespace eval ::tempnsB {cffi::type size union.::tempnsA::S}
+    } -result 4
+
+    test union-namespace-error-0 "Verify unqualified union fails" -cleanup {
+        namespace delete ::tempnsA
+        namespace delete ::tempnsB
+    } -body {
+        namespace eval ::tempnsA {::cffi::Union create S {x int}}
+        namespace eval ::tempnsB {cffi::type size union.S}
+    } -result "Union \"S\" not found or inaccessible. " -returnCodes error
+    # Union size, offset and alignment tests
+    foreach type $baseTypes {
+        if {$type in {void binary}} {
+            test union-$type-error-0 "union create $type" -body {
+                cffi::Union create S "fld $type"
+            } -returnCodes error -result "Invalid value \"$type\". $errorMessages(typeparsemode)"
+        } else {
+            testunion $type
+        }
+    }
+
+    test union-varsize-0 {Variable size array in union} -body {
+        cffi::Union create U {i int c uchar[i]}
+    } -result {Invalid value "uchar[i]". A union cannot have a field of variable size.} -returnCodes error
+
+    test union-varsize-1 {Variable size struct in union} -setup {
+        cffi::Struct create S {n int a int[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::Union create U {i int s struct.S}
+    } -result {Invalid value "struct.S". A union cannot have a field of variable size.} -returnCodes error
+
+}
+
+
+::tcltest::cleanupTests
+namespace delete cffi::test

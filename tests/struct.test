@@ -40,6 +40,8 @@ namespace eval cffi::test {
         variable errorMessages
         variable unicharSize
 
+        set typeAndAttr $type
+        set arrType [list "$type\[2\]"]
         # Skip scalar tests for these
         if {$type in {chars bytes}} {
             set Size 1
@@ -51,6 +53,11 @@ namespace eval cffi::test {
             set Size 2
             set Alignment 2
         } else {
+            if {$type eq "pointer"} {
+                set typeAndAttr [list $type unsafe]
+                set arrType [list $type\[2\] unsafe]
+            }
+
             set tinfo [cffi::type info $type]
             dict with tinfo {}
             test struct-$type-0 "struct new $type" -cleanup {
@@ -58,21 +65,21 @@ namespace eval cffi::test {
             } -body {
                 set s [cffi::Struct new "fld $type"]
                 $s info
-            } -result [list Size $Size Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $type]]] -match dict
+            } -result [list Size $Size Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr]]] -match dict
 
             test struct-$type-1 "struct create {schar $type}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "c schar fld $type"
                 S info
-            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset $Size Definition $type]]] -match dict
+            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset $Size Definition $typeAndAttr]]] -match dict
 
             test struct-$type-2 "struct create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "fld $type c uchar"
                 S info
-            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $type] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
+            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
         }
         test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
             S destroy
@@ -84,7 +91,7 @@ namespace eval cffi::test {
                        Alignment $Alignment \
                        Flags 0 Fields [list \
                                            c [list Size 1 Offset 0 Definition schar] \
-                                           fld [list Size [expr {2*$Size}] Offset $Size Definition [list "$type\[2\]"]] \
+                                           fld [list Size [expr {2*$Size}] Offset $Size Definition $arrType] \
                                            c2 [list Size 1 Offset [expr {3*$Size}] Definition schar]]]
     }
 
@@ -1229,18 +1236,17 @@ namespace eval cffi::test {
             [S getnative $p c] [S getnative $p d] \
             [S getnative $p c 1] [S getnative $p d 1]
     } -result {1 2.0 10 20.0}
-    test struct-getnative-3 "getnative pointer safety - safe" -setup {
+    test struct-getnative-3 "getnative pointer safety - struct pointer field always unsafe" -setup {
         ::cffi::Struct create S {p pointer}
         set p [S allocate]
         # Note no need to initialize allocation
     } -cleanup {
-        cffi::pointer dispose $ptrval
         S free $p
         S destroy
     } -body {
         set ptrval [S getnative $p p]
         cffi::pointer isvalid $ptrval
-    } -result 1
+    } -result 0
     test struct-getnative-4 "getnative pointer safety - unsafe" -setup {
         ::cffi::Struct create S {p {pointer unsafe}}
         set p [S allocate]

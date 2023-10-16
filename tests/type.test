@@ -696,15 +696,14 @@ namespace eval cffi::test {
 
         ### Parse mode = field
         # Scalar tests - success
-        testpointer $type field ""
-        foreach attr $pointerAttrs {
-            if {$attr ne "dispose"} {
-                testpointer "$type $attr" field $attr
-            }
-        }
+        testpointer $type field "unsafe"
+        testpointer "$type counted" field "unsafe" ;# counted overridden in fields
+        testpointer "$type unsafe" field "unsafe"
+        testpointer "$type nullok" field "unsafe nullok"
+
         # Error handling attributes should be ignored
         foreach attr [list {*}$pointer_valid_error_attrs [list {onerror handler}]] {
-            testpointer "$type $attr" field ""
+            testpointer "$type $attr" field "unsafe"
         }
 
         # Array tests - success
