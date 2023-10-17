@@ -216,8 +216,6 @@ CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
                           int *sizeP,
                           int *fixedSizeP)
 {
-    CFFI_ASSERT(!CffiStructIsUnion(structP));
-
     if (!CffiStructIsVariableSize(structP) || sizeP == NULL) {
         if (sizeP)
             *sizeP = structP->size;
