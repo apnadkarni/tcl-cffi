@@ -827,7 +827,7 @@ namespace eval Concepts {
         but is supported by some compilers.
         - Certain operations that modify variable length structs are not
         permitted. This is to prevent memory faults resulting from inadvertent
-        size changes. See the documentation for each [Struct] method for details
+        size changes. See the documentation for each [::cffi::Struct] method for details
         about these limitations.
 
         ### Unions
@@ -851,8 +851,8 @@ namespace eval Concepts {
         unions to and from functions. Thus the union type has certain limitations:
 
         * The `union` type can only be used as the type of a field in a struct
-        or another union. It cannot be used for function return types or
-        parameters.
+        or another union or parameters passed by reference. It cannot be used for
+        parameters passed by value or function return types.
 
         * Unlike struct values which are dictionaries, the value of a union at
         the script level is opaque. The `encode` and `decode` methods should

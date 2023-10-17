@@ -1967,9 +1967,24 @@ namespace eval ${NS}::test {
         incrStructWithUnion [list tag 1 u [::TestUnion encode dbl 99.0]] result
         list [dict get $result tag] [::TestUnion decode dbl [dict get $result u]]
     } -result {1 100.0}
+    test function-union-2 "Pass union by reference" -setup {
+        testDll function incrUnion void {tag int u {union.TestUnion inout}}
+    } -body {
+        set u [::TestUnion encode i 42]
+        incrUnion 0 u
+        ::TestUnion decode i $u
+    } -result 43
+    test function-union-3 "Pass union by reference" -setup {
+        testDll function incrUnion void {tag int u {union.TestUnion inout}}
+    } -body {
+        set u [::TestUnion encode dbl 99]
+        incrUnion 1 u
+        ::TestUnion decode dbl $u
+    } -result 100.0
+
     test function-union-error-0 "Pass union" -body {
         testDll function incrStructWithUnion void {in union.::TestUnion out {union.::TestUnion out}}
-    } -result {Invalid value "union.::TestUnion". The specified type is not valid for the type declaration context. Error defining function incrStructWithUnion.} -returnCodes error
+    } -result {Invalid value "union.::TestUnion". Unions cannot be passed by value. Error defining function incrStructWithUnion.} -returnCodes error
 
     # Note -  tests for invalid parameter attrs are done in type.test
 

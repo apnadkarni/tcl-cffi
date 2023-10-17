@@ -402,7 +402,7 @@ some common errors through multiple mechanisms:
 Pointers can be optionally tagged so a pointer to the wrong resource type is not inadvertently passed where a different one is expected\&.
 .TP
 \(bu
-Pointers are marked as \fIsafe\fP by default when returned from a function\&. Safe pointers are registered in an internal table which is checked whenever a pointer is accessed\&. It is sometimes necessary to bypass this check and the unsafe attribute is provided for the purpose\&.
+Pointers are marked as \fIsafe\fP by default when returned from a function\&. Safe pointers are registered in an internal table which is checked whenever a pointer is passed to a function or accessed via safe commands\&. It is sometimes necessary to bypass this check and the unsafe attribute is provided for the purpose\&. Pointer fields within structs are always unsafe and have to be accessed using unsafe commands\&.
 .TP
 \(bu
 Null pointers passed as parameters or returned from functions will raise a Tcl exception by default\&. The nullok annotation provides for cases where NULL pointers can be legitimately used\&.

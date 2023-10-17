@@ -1135,9 +1135,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 
     switch (parseMode) {
     case CFFI_F_TYPE_PARSE_PARAM:
-        if (baseType == CFFI_K_TYPE_VOID
-            || ((baseType == CFFI_K_TYPE_STRUCT
-                 && CffiStructIsUnion(typeAttrP->dataType.u.structP)))) {
+        if (baseType == CFFI_K_TYPE_VOID) {
             message = typeInvalidForContextMsg;
             goto invalid_format;
         }
@@ -1208,6 +1206,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                             goto invalid_format;
                         }
 #endif
+                        if (CffiStructIsUnion(typeAttrP->dataType.u.structP)) {
+                            message = "Unions cannot be passed by value.";
+                            goto invalid_format;
+                        }
                     }
                     break;
                 default:

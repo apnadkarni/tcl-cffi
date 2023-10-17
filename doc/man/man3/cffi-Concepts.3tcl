@@ -889,6 +889,136 @@ use raw pointers and explicitly manage their target memory\&.
 .PP
 The package provides other methods to access fields and otherwise
 manipulate native structs in memory\&. See \fI::cffi::Struct\fP\&.
+.PP
+\fBVariable sized structs\fR
+.PP
+C allows the definition of structs of variable size where the last field
+in the struct is a \fIVariable Length Array\fP (VLA), an array whose length
+is not fixed\&. Using C99's syntax, an example would be
+.PP
+.RS 4n
+.nf
+struct S {
+    int count;
+    double values[];
+};
+.fi
+.RE
+.PP
+The equivalent definition in CFFI is
+.PP
+.RS 4n
+.nf
+cffi::Struct define S {
+    count int
+    values double[count]
+}
+.fi
+.RE
+.PP
+When converting to native form, the actual size of the values array
+will be as contained in the count field\&.
+.PP
+Variable size structs have the following restrictions some of which
+parallel C99:
+.TP
+\(bu
+The VLA must be the last field in the struct (C99)
+.TP
+\(bu
+The VLA must not be the only field in the struct (C99)
+.TP
+\(bu
+Arrays of variable size structs are not supported (C99)
+.TP
+\(bu
+the length specifier for a VLA must be an field in the same struct\&.
+.TP
+\(bu
+Variable size structs can be nested provided the inner struct is the last field in the outer one\&. Nesting is not permitted in C99 but is supported by some compilers\&.
+.TP
+\(bu
+Certain operations that modify variable length structs are not permitted\&. This is to prevent memory faults resulting from inadvertent size changes\&. See the documentation for each \fI::cffi::Struct\fP method for details about these limitations\&.
+.SS UNIONS
+.PP
+C unions are wrapped through the \fI::cffi::Union\fP class analogous to
+the \fI::cffi::Struct\fP class for defining C structs\&. An example definition
+of a union would be
+.PP
+.RS 4n
+.nf
+cffi::Union create U {
+    c uchar
+    d double
+}
+.fi
+.RE
+.PP
+The type is then refernced as union\&.U\&.
+.PP
+Unlike structs, the content of a union is not well defined and depends on
+some discriminator outside of the union itself\&. Moreover, underlying
+FFI libraries libffi and dyncall do not directly support passing of
+unions to and from functions\&. Thus the union type has certain limitations:
+.TP
+\(bu
+The union type can only be used as the type of a field in a struct or another union\&. It cannot be used for function return types or parameters\&.
+.TP
+\(bu
+Unlike struct values which are dictionaries, the value of a union at the script level is opaque\&. The encode and decode methods should be used to convert to and from these opaque values\&.
+.PP
+Below is a usage example using the above union\&.
+.PP
+.RS 4n
+.nf
+% set ubin [U encode c 42]
+% U decode c $ubin
+42
+% U decode d $ubin
+3\&.91702106007e-312
+.fi
+.RE
+.PP
+Note as above that garbage is returned if a field other than what was stored
+is retrieved\&.
+.PP
+If a struct S is defined as
+.PP
+.RS 4n
+.nf
+cffi::Struct create S {
+    u union\&.U
+    i int
+}
+.fi
+.RE
+.PP
+allocating the struct and retrieving field values would be done as
+.PP
+.RS 4n
+.nf
+% set pStruct [S new [list i 1 u [U encode c 42]]]
+0x000002868be5f3e0^::S
+% U decode c [S getnative $pStruct u]
+42
+% S getnative $pStruct i
+1
+.fi
+.RE
+.PP
+Note the difference between how i is passed versus u\&. Modifying
+the union and storing a different field would look like
+.PP
+.RS 4n
+.nf
+% S setnative $pStruct u [U encode d 3\&.14]
+% U decode d [S getnative $pStruct u]
+3\&.14
+.fi
+.RE
+.PP
+As in C care must be taken that the same field is retrieved from a
+union as was stored in it\&.
 .SH "TYPE ALIASES"
 .PP
 Type aliases provide a convenient way to bind data types and one or more
@@ -1213,6 +1343,13 @@ results are returned as a dictionary of the same form\&.
 .PP
 Passing of structs by reference is supported by both the dyncall
 and libffi backends but only the latter supports passing by value\&.
+.PP
+Variable size structs have some restriction as function return types
+and parameters\&. They cannot be the return type for a function and
+cannot be passed by value\&. Additionally, when passed by reference they
+must be  in or inout parameters\&. They cannot be out parameters as
+the field containing the size of the VLA array is part of the struct
+and must be passed in to the function\&.
 .SS "ERROR HANDLING"
 .PP
 C functions generally indicate errors through their return value\&.

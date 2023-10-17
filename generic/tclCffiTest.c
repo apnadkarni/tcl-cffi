@@ -1168,3 +1168,20 @@ DLLEXPORT void incrStructWithUnion(struct StructWithUnion in, struct StructWithU
     }
     out->tag = in.tag;
 }
+DLLEXPORT void incrUnion(int tag, union TestUnion *inout) {
+    switch (tag) {
+    case 0:
+        inout->i += 1;
+        break;
+    case 1:
+        inout->dbl += 1;
+        break;
+    case 2:
+        inout->uc += 1;
+        break;
+    default:
+        memset(inout, 0, sizeof(*inout));
+        break;
+    }
+}
+

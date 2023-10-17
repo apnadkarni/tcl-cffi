@@ -1145,10 +1145,16 @@ namespace eval cffi::test {
 
     test type-info-union-param-0 "Unions cannot be parameters" -body {
         type info union.::TestUnion param
-    } -result {Invalid value "union.::TestUnion". The specified type is not valid for the type declaration context.} -returnCodes error
-    test type-info-union-param-1 "Unions cannot be parameters by reference" -body {
+    } -result {Invalid value "union.::TestUnion". Unions cannot be passed by value.} -returnCodes error
+    test type-info-union-param-1 "Unions by reference" -body {
         type info {union.::TestUnion byref} param
-    } -result {Invalid value "union.::TestUnion byref". The specified type is not valid for the type declaration context.} -returnCodes error
+    } -result {Size 8 Count -1 Alignment 8 Definition {union.::TestUnion in byref} BaseSize 8}
+    test type-info-union-param-2 "Unions out" -body {
+        type info {union.::TestUnion out} param
+    } -result {Size 8 Count -1 Alignment 8 Definition {union.::TestUnion out byref} BaseSize 8}
+    test type-info-union-param-3 "Unions inout" -body {
+        type info {union.::TestUnion inout} param
+    } -result {Size 8 Count -1 Alignment 8 Definition {union.::TestUnion inout byref} BaseSize 8}
     test type-info-union-return-0 "Unions cannot be returned" -body {
         type info union.::TestUnion return
     } -result {Invalid value "union.::TestUnion". The specified type is not valid for the type declaration context.} -returnCodes error

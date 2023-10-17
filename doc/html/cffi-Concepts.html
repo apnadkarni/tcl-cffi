@@ -446,6 +446,93 @@ x 42 y 1
 
 </figure><p class='ruff'><strong>NOTE</strong>: structs that are manipulated as raw structs in memory cannot contain fields of type <code>string</code>, <code>unistring</code> and <code>winstring</code>. They must use raw pointers and explicitly manage their target memory.</p>
 <p class='ruff'>The package provides other methods to access fields and otherwise manipulate native structs in memory. See <a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>.</p>
+<h4 class='ruff'><a name='::Concepts-Variable sized structs'></a>Variable sized structs<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>C allows the definition of structs of variable size where the last field in the struct is a <em>Variable Length Array</em> (VLA), an array whose length is not fixed. Using C99's syntax, an example would be</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+struct S {
+    int count;
+    double values[];
+};
+</pre>
+
+</figure><p class='ruff'>The equivalent definition in CFFI is</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::Struct define S {
+    count int
+    values double[count]
+}
+</pre>
+
+</figure><p class='ruff'>When converting to native form, the actual size of the <code>values</code> array will be as contained in the <code>count</code> field.</p>
+<p class='ruff'>Variable size structs have the following restrictions some of which parallel C99:</p>
+<ul class='ruff'>
+<li>The VLA must be the last field in the struct (C99)</li>
+<li>The VLA must not be the only field in the struct (C99)</li>
+<li>Arrays of variable size structs are not supported (C99)</li>
+<li>the length specifier for a VLA must be an field in the same struct.</li>
+<li>Variable size structs can be nested provided the inner struct is the last field in the outer one. Nesting is not permitted in C99 but is supported by some compilers.</li>
+<li>Certain operations that modify variable length structs are not permitted. This is to prevent memory faults resulting from inadvertent size changes. See the documentation for each <a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> method for details about these limitations.</li>
+</ul>
+<h3 class='ruff'><a name='::Concepts-Unions'></a>Unions<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>C unions are wrapped through the <a href="cffi-cffi.html#::cffi::Union" title="::cffi::Union" class='ruff_cmd'>::cffi::Union</a> class analogous to the <a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a> class for defining C structs. An example definition of a union would be</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::Union create U {
+    c uchar
+    d double
+}
+</pre>
+
+</figure><p class='ruff'>The type is then refernced as <code>union.U</code>.</p>
+<p class='ruff'>Unlike structs, the content of a union is not well defined and depends on some discriminator outside of the union itself. Moreover, underlying FFI libraries <code>libffi</code> and <code>dyncall</code> do not directly support passing of unions to and from functions. Thus the union type has certain limitations:</p>
+<ul class='ruff'>
+<li>The <code>union</code> type can only be used as the type of a field in a struct or another union. It cannot be used for function return types or parameters.</li>
+<li>Unlike struct values which are dictionaries, the value of a union at the script level is opaque. The <code>encode</code> and <code>decode</code> methods should be used to convert to and from these opaque values.</li>
+</ul>
+<p class='ruff'>Below is a usage example using the above union.</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+% set ubin [U encode c 42]
+% U decode c $ubin
+42
+% U decode d $ubin
+3.91702106007e-312
+</pre>
+
+</figure><p class='ruff'>Note as above that garbage is returned if a field other than what was stored is retrieved.</p>
+<p class='ruff'>If a struct S is defined as</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+cffi::Struct create S {
+    u union.U
+    i int
+}
+</pre>
+
+</figure><p class='ruff'>allocating the struct and retrieving field values would be done as</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+% set pStruct [S new [list i 1 u [U encode c 42]]]
+0x000002868be5f3e0^::S
+% U decode c [S getnative $pStruct u]
+42
+% S getnative $pStruct i
+1
+</pre>
+
+</figure><p class='ruff'>Note the difference between how <code>i</code> is passed versus <code>u</code>. Modifying the union and storing a different field would look like</p>
+
+<figure  class='ruff-snippet ruff-figure'><pre class='ruff'>
+% S setnative $pStruct u [U encode d 3.14]
+% U decode d [S getnative $pStruct u]
+3.14
+</pre>
+
+</figure><p class='ruff'>As in C care must be taken that the same field is retrieved from a union as was stored in it.</p>
 <h2 class='ruff'><a name='::Concepts-Type aliases'></a>Type aliases<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>Type aliases provide a convenient way to bind data types and one or more annotations. They can then be used in type declarations in the same manner as the built-in types.</p>
@@ -596,6 +683,7 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 <div style='clear:both;'></div>
 <p class='ruff'>In the case of parameters that are structs, the input argument for the parameter when the function is called should be a dictionary value. Conversely, output parameter results are returned as a dictionary of the same form.</p>
 <p class='ruff'>Passing of structs by reference is supported by both the <code>dyncall</code> and <code>libffi</code> backends but only the latter supports passing by value.</p>
+<p class='ruff'>Variable size structs have some restriction as function return types and parameters. They cannot be the return type for a function and cannot be passed by value. Additionally, when passed by reference they must be  <code>in</code> or <code>inout</code> parameters. They cannot be <code>out</code> parameters as the field containing the size of the VLA array is part of the struct and must be passed in to the function.</p>
 <h3 class='ruff'><a name='::Concepts-Error handling'></a>Error handling<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>C functions generally indicate errors through their return value. Details of the error are either in the return value itself or intended to be retrieved by some other mechanism such as <code>errno</code>.</p>
@@ -781,5 +869,5 @@ proc print_name {fpath pSb typeflag} {puts $fpath; return 0}
 <li class='ruff-toc1'><a class='ruff-highlight' href='cffi-Concepts.html'>Concepts</a></li>
 <li class='ruff-toc1'><a href='cffi-Cookbook.html'>Cookbook</a></li>
 <li class='ruff-toc1'><a href='cffi-cffi.html'>cffi</a></li>
-<hr><li class='ruff-toc2'><a href='#::Concepts-Scopes'>Scopes</a></li><li class='ruff-toc2'><a href='#::Concepts-Type declarations'>Type declarations</a></li><li class='ruff-toc2'><a href='#::Concepts-Type annotations'>Type annotations</a></li><li class='ruff-toc2'><a href='#::Concepts-Data types'>Data types</a></li><li class='ruff-toc3'><a href='#::Concepts-The void type'>The void type</a></li><li class='ruff-toc3'><a href='#::Concepts-Integer types'>Integer types</a></li><li class='ruff-toc3'><a href='#::Concepts-Floating point types'>Floating point types</a></li><li class='ruff-toc3'><a href='#::Concepts-Arrays'>Arrays</a></li><li class='ruff-toc4'><a href='#::Concepts-Dynamically sized arrays'>Dynamically sized arrays</a></li><li class='ruff-toc4'><a href='#::Concepts-Arrays as strings'>Arrays as strings</a></li><li class='ruff-toc3'><a href='#::Concepts-Pointers'>Pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Pointer tags'>Pointer tags</a></li><li class='ruff-toc4'><a href='#::Concepts-Casting pointers'>Casting pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Pointer safety'>Pointer safety</a></li><li class='ruff-toc4'><a href='#::Concepts-Null pointers'>Null pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Memory operations'>Memory operations</a></li><li class='ruff-toc3'><a href='#::Concepts-Strings'>Strings</a></li><li class='ruff-toc4'><a href='#::Concepts-Strings as NULL pointers'>Strings as NULL pointers</a></li><li class='ruff-toc3'><a href='#::Concepts-Binary strings'>Binary strings</a></li><li class='ruff-toc3'><a href='#::Concepts-Structs'>Structs</a></li><li class='ruff-toc2'><a href='#::Concepts-Type aliases'>Type aliases</a></li><li class='ruff-toc2'><a href='#::Concepts-Enumerations'>Enumerations</a></li><li class='ruff-toc2'><a href='#::Concepts-Functions'>Functions</a></li><li class='ruff-toc3'><a href='#::Concepts-Calling conventions'>Calling conventions</a></li><li class='ruff-toc3'><a href='#::Concepts-Function wrappers'>Function wrappers</a></li><li class='ruff-toc3'><a href='#::Concepts-Return types'>Return types</a></li><li class='ruff-toc4'><a href='#::Concepts-Return annotations'>Return annotations</a></li><li class='ruff-toc3'><a href='#::Concepts-Parameters'>Parameters</a></li><li class='ruff-toc4'><a href='#::Concepts-Input and output parameters'>Input and output parameters</a></li><li class='ruff-toc4'><a href='#::Concepts-Output parameters as function result'>Output parameters as function result</a></li><li class='ruff-toc4'><a href='#::Concepts-Parameter annotations'>Parameter annotations</a></li><li class='ruff-toc4'><a href='#::Concepts-Structs as parameters'>Structs as parameters</a></li><li class='ruff-toc3'><a href='#::Concepts-Error handling'>Error handling</a></li><li class='ruff-toc4'><a href='#::Concepts-Error annotations'>Error annotations</a></li><li class='ruff-toc4'><a href='#::Concepts-Errors and output parameters'>Errors and output parameters</a></li><li class='ruff-toc3'><a href='#::Concepts-Varargs functions'>Varargs functions</a></li><li class='ruff-toc3'><a href='#::Concepts-Prototypes and function pointers'>Prototypes and function pointers</a></li><li class='ruff-toc2'><a href='#::Concepts-Callbacks'>Callbacks</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
+<hr><li class='ruff-toc2'><a href='#::Concepts-Scopes'>Scopes</a></li><li class='ruff-toc2'><a href='#::Concepts-Type declarations'>Type declarations</a></li><li class='ruff-toc2'><a href='#::Concepts-Type annotations'>Type annotations</a></li><li class='ruff-toc2'><a href='#::Concepts-Data types'>Data types</a></li><li class='ruff-toc3'><a href='#::Concepts-The void type'>The void type</a></li><li class='ruff-toc3'><a href='#::Concepts-Integer types'>Integer types</a></li><li class='ruff-toc3'><a href='#::Concepts-Floating point types'>Floating point types</a></li><li class='ruff-toc3'><a href='#::Concepts-Arrays'>Arrays</a></li><li class='ruff-toc4'><a href='#::Concepts-Dynamically sized arrays'>Dynamically sized arrays</a></li><li class='ruff-toc4'><a href='#::Concepts-Arrays as strings'>Arrays as strings</a></li><li class='ruff-toc3'><a href='#::Concepts-Pointers'>Pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Pointer tags'>Pointer tags</a></li><li class='ruff-toc4'><a href='#::Concepts-Casting pointers'>Casting pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Pointer safety'>Pointer safety</a></li><li class='ruff-toc4'><a href='#::Concepts-Null pointers'>Null pointers</a></li><li class='ruff-toc4'><a href='#::Concepts-Memory operations'>Memory operations</a></li><li class='ruff-toc3'><a href='#::Concepts-Strings'>Strings</a></li><li class='ruff-toc4'><a href='#::Concepts-Strings as NULL pointers'>Strings as NULL pointers</a></li><li class='ruff-toc3'><a href='#::Concepts-Binary strings'>Binary strings</a></li><li class='ruff-toc3'><a href='#::Concepts-Structs'>Structs</a></li><li class='ruff-toc4'><a href='#::Concepts-Variable sized structs'>Variable sized structs</a></li><li class='ruff-toc3'><a href='#::Concepts-Unions'>Unions</a></li><li class='ruff-toc2'><a href='#::Concepts-Type aliases'>Type aliases</a></li><li class='ruff-toc2'><a href='#::Concepts-Enumerations'>Enumerations</a></li><li class='ruff-toc2'><a href='#::Concepts-Functions'>Functions</a></li><li class='ruff-toc3'><a href='#::Concepts-Calling conventions'>Calling conventions</a></li><li class='ruff-toc3'><a href='#::Concepts-Function wrappers'>Function wrappers</a></li><li class='ruff-toc3'><a href='#::Concepts-Return types'>Return types</a></li><li class='ruff-toc4'><a href='#::Concepts-Return annotations'>Return annotations</a></li><li class='ruff-toc3'><a href='#::Concepts-Parameters'>Parameters</a></li><li class='ruff-toc4'><a href='#::Concepts-Input and output parameters'>Input and output parameters</a></li><li class='ruff-toc4'><a href='#::Concepts-Output parameters as function result'>Output parameters as function result</a></li><li class='ruff-toc4'><a href='#::Concepts-Parameter annotations'>Parameter annotations</a></li><li class='ruff-toc4'><a href='#::Concepts-Structs as parameters'>Structs as parameters</a></li><li class='ruff-toc3'><a href='#::Concepts-Error handling'>Error handling</a></li><li class='ruff-toc4'><a href='#::Concepts-Error annotations'>Error annotations</a></li><li class='ruff-toc4'><a href='#::Concepts-Errors and output parameters'>Errors and output parameters</a></li><li class='ruff-toc3'><a href='#::Concepts-Varargs functions'>Varargs functions</a></li><li class='ruff-toc3'><a href='#::Concepts-Prototypes and function pointers'>Prototypes and function pointers</a></li><li class='ruff-toc2'><a href='#::Concepts-Callbacks'>Callbacks</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>

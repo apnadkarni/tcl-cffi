@@ -28,6 +28,7 @@ source pointer.ruff
 source prototype.ruff
 source callback.ruff
 source cookbook.ruff
+source union.ruff
 
 set title "Tcl CFFI package"
 

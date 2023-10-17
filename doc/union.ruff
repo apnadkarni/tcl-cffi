@@ -9,7 +9,7 @@ oo::class create ${NS}::Union {
         # The created object can be used to manipulate native C unions.
         #
         # The $definition argument is a dictionary mapping field names to the
-        # corresponding types. This has the same syntax as [Structs][::Concepts::Structs],
+        # corresponding types. This has the same syntax as [Structs][::Concepts::Structs].
         #
         # The name of the created struct is the same as the name of the
         # returned object without the initial `::` global namespace qualifier.
