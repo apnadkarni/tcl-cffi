@@ -5,6 +5,44 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/apnadkarni/bin/bin/tclsh9.0",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build-ubuntu-x64",
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "/home/apnadkarni/bin/bin:${workspaceFolder}/build-ubuntu-x64"
+                },
+                {
+                    "name": "TCLLIBPATH",
+                    "value": "${workspaceFolder}/build-ubuntu-x64"
+                },
+                {
+                    "name": "TCL_LIBRARY",
+                    "value": "${workspaceFolder}/library"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",

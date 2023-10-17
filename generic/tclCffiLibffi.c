@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Ashok P. Nadkarni
+ * Copyright (c) 2021-2023 Ashok P. Nadkarni
  * All rights reserved.
  *
  * See the file LICENSE for license
@@ -82,6 +82,17 @@ CffiLibffiTranslateStruct(Tcl_Interp *ip,
         }
     }
     libffiStructP->ffiFieldTypes[structP->nFields] = NULL; /* Terminator */
+    if (CffiStructIsUnion(structP)) {
+        /*
+         * Unions - init the type descriptor as described in libffi.pdf
+         * section 2.3.4.2. This stops libffi from precalculating the
+         * "struct" size (unions are passed as structs). I am not sure
+         * this suffices on all platforms no matter what the libffi docs
+         * claim but ...
+         */
+        libffiStructP->ffiType.size = structP->size;
+        libffiStructP->ffiType.alignment = structP->alignment;
+    }
 
     *ffiTypePP = &libffiStructP->ffiType;
     return TCL_OK;
