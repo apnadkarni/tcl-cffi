@@ -1298,18 +1298,10 @@ namespace eval Cookbook {
         convenient to access the referenced memory using the struct
         [methods][::cffi::Struct].
 
-        * The `counted` and `unsafe` annotations have their usual meaning
-        as described in [Pointer safety][::Concepts::Pointer safety].
-        By default, when a native C struct is constructed from its script
-        level dictionary representation, the pointer value for a field is
-        expected to have been registered as a safe pointer and an exception is
-        raised otherwise. Conversely, when a dictionary is constructed from a
-        native C struct, as output from a function for example, the extracted
-        pointer is registered as a safe pointer. This is often not the right
-        model for embedded pointers in structs unlike pointers directly returned
-        from functions with a clear resource allocation and freeing
-        semantics. Thus use of the `unsafe` annotation should be strongly
-        considered for field type declarations.
+        * Pointer fields in a struct are always treated as unsafe even
+        when the `unsafe` annotation is not specified. The
+        `counted` annotation may be present
+        (for sharing a type alias with parameter types) but is ignored.
 
         * The `nullok` annotation should be applied to any field that can
         validly hold a NULL pointer. In the absence of an annotation,
