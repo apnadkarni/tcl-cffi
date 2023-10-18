@@ -69,9 +69,9 @@ jobs:
       if: steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
-        curl https://dyncall.org/r1.2/dyncall-1.2.zip --output dyncall-1.2.zip
-        7z x dyncall-1.2.zip
-        cd dyncall-1.2
+        curl https://dyncall.org/r1.4/dyncall-1.4.zip --output dyncall-1.4.zip
+        7z x dyncall-1.4.zip
+        cd dyncall-1.4
         mkdir build-msvc-${{ matrix.arch }}
         cd build-msvc-${{ matrix.arch }}
         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..

@@ -76,9 +76,9 @@ jobs:
     - name: Install dyncall
       if: steps.dyncall-cache.outputs.cache-hit != 'true'
       run: |
-        wget https://dyncall.org/r1.2/dyncall-1.2.tar.gz
-        tar xf dyncall-1.2.tar.gz
-        cd dyncall-1.2
+        wget https://dyncall.org/r1.4/dyncall-1.4.tar.gz
+        tar xf dyncall-1.4.tar.gz
+        cd dyncall-1.4
         mkdir build
         cd build
         ../configure --prefix=/c/dyncall

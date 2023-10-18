@@ -22,7 +22,7 @@ jobs:
        sudo apt-get update
        sudo apt-get install libtommath-dev
 
-    - name: Checkout tcl-cffi  
+    - name: Checkout tcl-cffi
       uses: actions/checkout@v3
       with:
         submodules: true
@@ -54,9 +54,9 @@ jobs:
 
     - name: Install dyncall
       run: |
-        wget https://dyncall.org/r1.2/dyncall-1.2.tar.gz
-        tar xf dyncall-1.2.tar.gz
-        cd dyncall-1.2
+        wget https://dyncall.org/r1.4/dyncall-1.4.tar.gz
+        tar xf dyncall-1.4.tar.gz
+        cd dyncall-1.4
         mkdir build
         cd build
         ../configure --prefix=$GITHUB_WORKSPACE/external-libs/ubuntu/x64
