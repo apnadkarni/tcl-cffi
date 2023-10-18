@@ -2194,6 +2194,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
  *    callMode - a dyncall call mode that overrides one specified
  *               in the return type definition if anything other
  *               than default
+ *    flags - if low bit set, missing functions are ignored
  *
  * *paramsObj* is a list of alternating parameter name and
  * type definitions. The return and parameter type definitions are in the
@@ -2209,7 +2210,8 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                              Tcl_Obj *nameObj,
                              Tcl_Obj *returnTypeObj,
                              Tcl_Obj *paramsObj,
-                             CffiABIProtocol callMode)
+                             CffiABIProtocol callMode,
+                             int flags)
 {
     void *fn;
     Tcl_Obj *cmdNameObj;
@@ -2221,8 +2223,12 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
         return Tclh_ErrorInvalidValue(ip, nameObj, "Empty or invalid function name specification.");
 
     fn = CffiLibFindSymbol(ip, libCtxP->libH, nameObjs[0]);
-    if (fn == NULL)
-        return Tclh_ErrorNotFound(ip, "Symbol", nameObjs[0], NULL);
+    if (fn == NULL) {
+            /* flags & 1 -> No errors on missing functions */
+        return (flags & 1)
+                 ? TCL_OK
+                 : Tclh_ErrorNotFound(ip, "Symbol", nameObjs[0], NULL);
+    }
 
     if (nNames < 2 || ! strcmp("", Tcl_GetString(nameObjs[1])))
         cmdNameObj = nameObjs[0];

@@ -89,24 +89,34 @@ oo::class create ${NS}::Wrapper {
         #
         # Returns the name of the created Tcl command.
     }
-    method functions {fnlist} {
+    method functions {fnlist args} {
         # Creates Tcl commands for multiple C functions within the loaded library.
         #  fnlist - list of function definitions
+        #  -ignoremissing - do not raise an error if a function is not found
         # This is a wrapper around the [function] method that provides some
         # syntactic sugar for defining multiple functions. The $fnlist
         # argument is a flat (not nested) list of function name, return type and
         # parameter list in the same form as described for the [function]
         # method.
+        #
+        # If a function is not found, the command will raise an error but those
+        # functions that are found will be defined. The error can be completely
+        # suppressed with the `-ignoremissing` option.
     }
-    method stdcalls {fnlist} {
+    method stdcalls {fnlist args} {
         # Creates Tcl commands for multiple C functions within the loaded library
         # that all use the `__stdcall` calling convention.
         #  fnlist - list of function definitions
+        #  -ignoremissing - do not raise an error if a function is not found
         # This is a wrapper around the [stdcall] method that provides some
         # syntactic sugar for defining multiple functions. The $fnlist
         # argument is a flat (not nested) list of function name, return type and
         # parameter list in the same form as described for the [stdcall]
         # method.
+        #
+        # If a function is not found, the command will raise an error but those
+        # functions that are found will be defined. The error can be completely
+        # suppressed with the `-ignoremissing` option.
     }
 }
 

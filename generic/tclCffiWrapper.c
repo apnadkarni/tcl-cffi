@@ -36,7 +36,7 @@ CffiWrapperFunctionCmd(Tcl_Interp *ip,
     CFFI_ASSERT(objc == 5);
 
     return CffiDefineOneFunctionFromLib(
-        ip, ctxP, objv[2], objv[3], objv[4], CffiDefaultABI());
+        ip, ctxP, objv[2], objv[3], objv[4], CffiDefaultABI(), 0);
 }
 
 /* Function: CffiWrapperStdcallCmd
@@ -69,7 +69,7 @@ CffiWrapperStdcallCmd(Tcl_Interp *ip,
     CFFI_ASSERT(objc == 5);
 
     return CffiDefineOneFunctionFromLib(
-        ip, ctxP, objv[2], objv[3], objv[4], CffiStdcallABI());
+        ip, ctxP, objv[2], objv[3], objv[4], CffiStdcallABI(), 0);
 }
 
 
@@ -97,12 +97,20 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
                     CffiLibCtx *ctxP,
                     CffiABIProtocol callMode)
 {
+    Tcl_Obj *errorMessages = NULL;
     Tcl_Obj **objs;
     Tcl_Size i, nobjs;
     int ret;
-    Tcl_Obj *errorMessages = NULL;
+    int ignoreMissing = 0;
+    static const char * const opts[2] = {"-ignoremissing", NULL};
 
-    CFFI_ASSERT(objc == 3);
+    CFFI_ASSERT(objc == 3 || objc == 4);
+
+    if (objc == 4) {
+        /* Use this just to get the error message right */
+        CHECK(Tcl_GetIndexFromObj(ip, objv[3], opts, "option", 0, &i));
+        ignoreMissing = 1;
+    }
 
     CHECK(Tcl_ListObjGetElements(ip, objv[2], &nobjs, &objs));
     if (nobjs % 3) {
@@ -111,8 +119,13 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
     }
 
     for (i = 0; i < nobjs; i += 3) {
-        ret = CffiDefineOneFunctionFromLib(
-            ip, ctxP, objs[i], objs[i + 1], objs[i + 2], callMode);
+        ret = CffiDefineOneFunctionFromLib(ip,
+                                           ctxP,
+                                           objs[i],
+                                           objs[i + 1],
+                                           objs[i + 2],
+                                           callMode,
+                                           ignoreMissing);
         if (ret != TCL_OK) {
             if (errorMessages == NULL) {
                 errorMessages = Tcl_NewStringObj("Errors:", -1);
@@ -241,10 +254,10 @@ CffiWrapperInstanceCmd(ClientData cdata,
         {"addressof", 1, 1, "SYMBOL", CffiWrapperAddressOfCmd},
         {"destroy", 0, 0, "", CffiWrapperDestroyCmd},
         {"function", 3, 3, "NAME RETURNTYPE PARAMDEFS", CffiWrapperFunctionCmd},
-        {"functions", 1, 1, "FUNCTIONLIST", CffiWrapperFunctionsCmd},
+        {"functions", 1, 2, "FUNCTIONLIST ?-ignoremissing?", CffiWrapperFunctionsCmd},
         {"path", 0, 0, "", CffiWrapperPathCmd},
         {"stdcall", 3, 3, "NAME RETURNTYPE PARAMDEFS", CffiWrapperStdcallCmd},
-        {"stdcalls", 1, 1, "FUNCTIONLIST", CffiWrapperStdcallsCmd},
+        {"stdcalls", 1, 2, "FUNCTIONLIST ?-ignoremissing?", CffiWrapperStdcallsCmd},
         {NULL}};
     int cmdIndex;
 
