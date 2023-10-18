@@ -2525,8 +2525,11 @@ Constructs a script level object that maps to a C struct definition\&.
 definition
 Defines the layout and type of the C struct fields\&.
 .TP
-args
-Options\&. Currently the only option is -clear
+-clear
+Clears memory at initialization\&. See below\&.
+.TP
+-pack PACKVALUE
+Changes alignment and padding used for fields\&. See \fIStructs\fP\&.
 .RE
 .PP
 \fBDescription\fR
@@ -2536,7 +2539,7 @@ functions, allocate memory, encode and decode native C structs
 in memory etc\&.
 .PP
 The \fI$definition\fP argument is a dictionary mapping field names to the
-corresponding types\&. See \fIStructs\fP for more
+corresponding types\&. See \fIPacked structs\fP for more
 information\&.
 .PP
 The name of the created struct is the same as the name of the
@@ -3150,7 +3153,7 @@ Options\&. Currently the only option is -clear
 The created object can be used to manipulate native C unions\&.
 .PP
 The \fI$definition\fP argument is a dictionary mapping field names to the
-corresponding types\&. This has the same syntax as \fIStructs\fP,
+corresponding types\&. This has the same syntax as \fIStructs\fP\&.
 .PP
 The name of the created struct is the same as the name of the
 returned object without the initial :: global namespace qualifier\&.

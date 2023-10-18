@@ -604,6 +604,7 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
  * ip - interpreter
  * nameObj - name of the struct
  * baseType - CFFI_K_TYPE_STRUCT or CFFI_K_TYPE_UNION
+ * pack - packing (0 for natural alignment)
  * structObj - structure definition
  * structPP - pointer to location to store pointer to internal form.
  *
@@ -618,7 +619,8 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
                 Tcl_Obj *nameObj,
                 Tcl_Obj *structObj,
                 CffiBaseType baseType,
-                CffiStruct **structPP)
+                int pack,
+                CffiStruct * *structPP)
 {
     Tcl_Obj **objs;
     Tcl_Size i, j, nobjs, nfields;
@@ -640,7 +642,9 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
 
     structP = CffiStructCkalloc(nfields);
     structP->dynamicCountFieldIndex = -1;
-    structP->nFields = 0; /* Update as we go along */
+    structP->nFields = 0;     /* Update as we go along */
+    structP->pack    = pack;
+
     for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
         int k;
         if (CffiTypeAndAttrsParse(ipCtxP,
@@ -707,6 +711,10 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
          * do not know VLA size when defining type
          */
         CFFI_ASSERT(field_size > 0 || i == nfields - 1);
+
+        if (structP->pack && structP->pack < field_alignment) {
+            field_alignment = structP->pack;
+        }
 
         if (field_alignment > struct_alignment)
             struct_alignment = field_alignment;
@@ -2670,21 +2678,35 @@ CffiStructOrUnionObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     CffiStruct *structP;
     CffiStructCmdCtx *structCtxP;
-    static const Tclh_SubCommand subCommands[] = {
-        {"new", 1, 2, "STRUCTDEF ?-clear?", NULL},
-        {"create", 2, 3, "OBJNAME STRUCTDEF ?-clear?", NULL},
+    static const Tclh_SubCommand structCommands[] = {
+        {"new", 1, 4, "STRUCTDEF ?-clear? ?-pack N?", NULL},
+        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear? ?-pack N?", NULL},
+        {NULL}
+    };
+    static const Tclh_SubCommand unionCommands[] = {
+        {"new", 1, 4, "STRUCTDEF ?-clear?", NULL},
+        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear?", NULL},
         {NULL}
     };
     Tcl_Obj *cmdNameObj;
     Tcl_Obj *defObj;
     int cmdIndex;
-    int optIndex;
+    int optIndex, objIndex;
+    enum OPT { CLEAR, PACK };
+    static const char *const structOpts[] = {"-clear", "-pack", NULL};
+    static const char *const unionOpts[] = {"-clear", NULL};
+    int pack;
     int clear;
     int ret;
     static unsigned int name_generator; /* No worries about thread safety as
                                            generated names are interp-local */
 
-    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
+    CHECK(Tclh_SubCommandLookup(ip,
+                                baseType == CFFI_K_TYPE_STRUCT ? structCommands
+                                                               : unionCommands,
+                                objc,
+                                objv,
+                                &cmdIndex));
 
     if (cmdIndex == 0) {
         /* new */
@@ -2695,7 +2717,7 @@ CffiStructOrUnionObjCmd(ClientData cdata,
             "%s%scffiStruct%u", nsP->fullName, sep, ++name_generator);
         Tcl_IncrRefCount(cmdNameObj);
         defObj  = objv[2];
-        optIndex = 3;
+        objIndex = 3;
     }
     else {
         /* create */
@@ -2706,24 +2728,43 @@ CffiStructOrUnionObjCmd(ClientData cdata,
         cmdNameObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
         Tcl_IncrRefCount(cmdNameObj);
         defObj  = objv[3];
-        optIndex = 4;
+        objIndex = 4;
     }
 
     /* See if an option is specified */
     clear = 0;
-    if (optIndex < objc) {
-        const char *optStr = Tcl_GetString(objv[optIndex]);
-        if (strcmp("-clear", optStr)) {
-            Tcl_DecrRefCount(cmdNameObj);
-            Tcl_SetObjResult(
-                ip, Tcl_ObjPrintf("bad option \"%s\": must be -clear", optStr));
-            return TCL_ERROR;
+    pack  = 0;
+    for (; objIndex < objc; ++objIndex) {
+        CHECK(Tcl_GetIndexFromObj(ip,
+                                  objv[objIndex],
+                                  baseType == CFFI_K_TYPE_STRUCT ? structOpts
+                                                                 : unionOpts,
+                                  "option",
+                                  0,
+                                  &optIndex));
+        switch (optIndex) {
+        case CLEAR:
+            clear = 1;
+            break;
+        case PACK:
+            if (objIndex == objc-1)
+                return Tclh_ErrorOptionValueMissing(ip, objv[objIndex], NULL);
+            ++objIndex;
+            CHECK(Tclh_ObjToInt(ip, objv[objIndex], &pack));
+            switch (pack) {
+            case 0: case 1: case 2: case 4: case 8: case 16: break;
+            default:
+                return Tclh_ErrorInvalidValue(
+                    ip,
+                    objv[objIndex],
+                    "-pack option value must be 0, 1, 2, 4, 8 or 16.");
+            }
+            break;
         }
-        clear = 1;
     }
 
     ret = CffiStructParse(
-        ipCtxP, cmdNameObj, defObj, baseType, &structP);
+        ipCtxP, cmdNameObj, defObj, baseType, pack, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;

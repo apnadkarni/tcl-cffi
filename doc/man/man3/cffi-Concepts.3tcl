@@ -890,6 +890,37 @@ use raw pointers and explicitly manage their target memory\&.
 The package provides other methods to access fields and otherwise
 manipulate native structs in memory\&. See \fI::cffi::Struct\fP\&.
 .PP
+\fBPacked structs\fR
+.PP
+Compilers allow various means for changing the padding and alignment of
+fields in a struct; for example, the pack pragma in MSC\&. Correspondingly
+the -pack option may be used to define the equivalent structure in
+CFFI\&. The use and its effect is illustrated below\&.
+.PP
+.RS 4n
+.nf
+% cffi::Struct create S {uc uchar d double s short}
+::S
+% S describe
+Struct ::S nRefs=1 size=24 alignment=8 flags=0 nFields=3
+uchar uc offset=0 size=1
+double d offset=8 size=8
+short s offset=16 size=2
+% cffi::Struct create Spacked {uc uchar d double s short} -pack 1
+::Spacked
+% Spacked describe
+Struct ::Spacked nRefs=1 size=11 alignment=1 flags=0 nFields=3
+uchar uc offset=0 size=1
+double d offset=1 size=8
+short s offset=9 size=2
+.fi
+.RE
+.PP
+Note that packed structs cannot be passed by value to functions\&. This
+is a limitation of the underlying backends, libffi and dyncall\&. This
+combination of passing packed structs by value is very unlikely to
+happen in practice\&.
+.PP
 \fBVariable sized structs\fR
 .PP
 C allows the definition of structs of variable size where the last field
@@ -962,7 +993,10 @@ FFI libraries libffi and dyncall do not directly support passing of
 unions to and from functions\&. Thus the union type has certain limitations:
 .TP
 \(bu
-The union type can only be used as the type of a field in a struct or another union\&. It cannot be used for function return types or parameters\&.
+The union type can only be used as the type of a field in a struct or another union or parameters passed by reference\&. It cannot be used for parameters passed by value or function return types\&.
+.TP
+\(bu
+The -pack option is not available when defining a union\&.
 .TP
 \(bu
 Unlike struct values which are dictionaries, the value of a union at the script level is opaque\&. The encode and decode methods should be used to convert to and from these opaque values\&.

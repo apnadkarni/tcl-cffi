@@ -1210,6 +1210,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                             message = "Unions cannot be passed by value.";
                             goto invalid_format;
                         }
+                        if (typeAttrP->dataType.u.structP->pack) {
+                            message = "Packed structs cannot be passed by value.";
+                            goto invalid_format;
+                        }
                     }
                     break;
                 default:

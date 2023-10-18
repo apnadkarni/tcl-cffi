@@ -1273,7 +1273,7 @@ pointer\&.TAG |unsafe | +-    -+ +-              -+
 The TAG is optional but recommended wherever possible for additional \fItag-based\fP type checks\&. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command\&. This makes it convenient to access the referenced memory using the struct \fImethods\fP\&.
 .TP
 \(bu
-The counted and unsafe annotations have their usual meaning as described in \fIPointer safety\fP\&. By default, when a native C struct is constructed from its script level dictionary representation, the pointer value for a field is expected to have been registered as a safe pointer and an exception is raised otherwise\&. Conversely, when a dictionary is constructed from a native C struct, as output from a function for example, the extracted pointer is registered as a safe pointer\&. This is often not the right model for embedded pointers in structs unlike pointers directly returned from functions with a clear resource allocation and freeing semantics\&. Thus use of the unsafe annotation should be strongly considered for field type declarations\&.
+Pointer fields in a struct are always treated as unsafe even when the unsafe annotation is not specified\&. The counted annotation may be present (for sharing a type alias with parameter types) but is ignored\&.
 .TP
 \(bu
 The nullok annotation should be applied to any field that can validly hold a NULL pointer\&. In the absence of an annotation, an exception is raised if an attempt is made to assign the field in a native struct a NULL pointer value\&.
@@ -1369,9 +1369,9 @@ another struct\&.
 .PP
 .RS 4n
 .nf
-              +-         -+
+              +-            -+
 struct\&.STRUCT |{default DICT}|
-              +-         -+
+              +-            -+
 
 \fISyntax for nested struct fields\fP
 
@@ -1380,6 +1380,9 @@ struct\&.STRUCT |{default DICT}|
 .TP
 \(bu
 A nested STRUCT struct may have a default value specified as a dictionary mapping field names of STRUCT to field values\&.
+.TP
+\(bu
+A nested struct of variable size may only appear as the last field in its parent\&.
 .PP
 \fBArray fields\fR
 .PP
@@ -1390,13 +1393,17 @@ TYPE[N] type specific annotations \&.\&.\&.
 .RE
 .TP
 \(bu
-The array size N must be an positive integer constant and not dynamically sized as is permitted for array parameters\&.
+The array size N must be an positive integer constant or the name of another field in the struct which will hold the array size\&. In the latter case, the array must be the last field in the struct and its element type should not itself be a variable size type\&.
 .TP
 \(bu
 The annotations permitted on an array type declaration are those permitted for the base type\&. For example, integer array declarations may have the enum annotation\&.
 .TP
 \(bu
 At the script level, C arrays are represented as lists except for the special cases of as \fI`chars`\fP or \fI`bytes`\fP where they are character or byte arrays\&.
+.SH "DEFINING UNIONS"
+.PP
+Definition of unions follows the rules for defined for structs with
+except that unions may not contain variable sized fields\&.
 .SH "TIPS AND TRICKS"
 .PP
 \fBThis section to be written\fP

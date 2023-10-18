@@ -1948,6 +1948,33 @@ namespace eval ${NS}::test {
         set out
     } -result {shrt 43 nested {count 0 values {}}}
 
+    # Packed structs
+    if {[cffi::pkgconfig get compiler] in {vc++ gcc}} {
+        tcltest::testConstraint packsupport 1
+    }
+    proc testpacked {pack result} {
+        test function-struct-pack$pack-inout "Call struct inout -pack $pack" -setup {
+            cffi::Struct create S {uc uchar dbl double s short} -pack $pack
+            testDll function modifyStructPack$pack int {s {struct.S inout}}
+        } -cleanup {
+            S destroy
+        } -body {
+            set s {uc 42 dbl 99 s -42}
+            list [modifyStructPack$pack s] $s
+        } -result $result -constraints packsupport
+
+        test function-struct-pack$pack-byval "Cannot pass packed struct by value" -setup {
+            cffi::Struct create S {uc uchar dbl double s short} -pack $pack
+        } -cleanup {
+            S destroy
+        } -body {
+            testDll function modifyStructPack$pack int {s struct.S}
+        } -result "Invalid value \"struct.S\". Packed structs cannot be passed by value. Error defining function modifyStructPack$pack." -returnCodes error -constraints packsupport
+    }
+    testpacked 1 {11 {uc 42 dbl 100.0 s -33}}
+    testpacked 2 {12 {uc 42 dbl 101.0 s -32}}
+    testpacked 4 {16 {uc 42 dbl 103.0 s -30}}
+
     # Unions
     test function-union-0 "Pass struct containing a int in a union" -setup {
         cffi::Struct create S {tag int u union.::TestUnion}

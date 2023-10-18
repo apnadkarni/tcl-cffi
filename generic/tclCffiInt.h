@@ -336,7 +336,8 @@ struct CffiStruct {
     int nRefs;                /* Shared, so need ref count */
     unsigned int size;        /* Fixed size of struct not including VLA
                                  component if any. */
-    unsigned short alignment; /* Alignment required for struct */
+    unsigned char alignment; /* Alignment required for struct */
+    unsigned char pack;      /* Packing - 0 means natural alignment */
     CffiStructFlags flags;     /* Misc CFFI_F_STRUCT_ flags */
     int dynamicCountFieldIndex; /* Index into fields[] of field holding
                                    array size of variable-sized last field.

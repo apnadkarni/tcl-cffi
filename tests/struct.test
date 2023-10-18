@@ -10,7 +10,7 @@ namespace eval cffi::test {
 
     test struct-error-0 {Missing argument} -body {
         list [catch {Struct new} result] $result $::errorCode
-    } -result {1 {wrong # args: should be "Struct new STRUCTDEF ?-clear?"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "Struct new STRUCTDEF ?-clear? ?-pack N?"} {TCL WRONGARGS}}
 
     test struct-error-1 {Empty struct definition} -body {
         list [catch {Struct new {}} result] $result $::errorCode
@@ -26,9 +26,9 @@ namespace eval cffi::test {
 
     test struct-error-4 {Bad option argument} -body {
         list [catch {Struct new {s int} -foo} result] $result
-    } -result {1 {bad option "-foo": must be -clear}}
+    } -result {1 {bad option "-foo": must be -clear or -pack}}
 
-    test struct-error-5 {Union mistaken for a struct} -setup {
+    test struct-error-8 {Union mistaken for a struct} -setup {
         cffi::Union create ::U {n int}
     } -cleanup {
         ::U destroy
@@ -1899,6 +1899,43 @@ namespace eval cffi::test {
         cffi::type info {struct.Outer[2]}
     } -result {Invalid value "struct.Outer[2]". Array element types must be fixed size.} -returnCodes error
 
+    #
+    # Packed structs
+    proc testpackederror {pack} {
+        test struct-offsets-pack$pack "Struct -pack $pack" -cleanup {
+            catch {S destroy}
+        } -body {
+            cffi::Struct create S {uc uchar dbl double s ushort} -pack $pack
+            S info
+        } -result "Invalid value \"$pack\". -pack option value must be 0, 1, 2, 4, 8 or 16." -returnCodes error
+    }
+    proc testpacked {pack result} {
+        test struct-pack$pack-info "Struct info -pack $pack" -cleanup {
+            S destroy
+        } -body {
+            cffi::Struct create S {uc uchar dbl double s ushort} -pack $pack
+            S info
+        } -result $result
+
+        test struct-pack$pack "Struct get data -pack $pack" -setup {
+            cffi::Struct create S {uc uchar dbl double s short} -pack $pack
+        } -cleanup {
+            S free $pStruct
+            S destroy
+        } -body {
+            set pStruct [S new {uc 42 dbl 99 s -42}]
+            S fromnative $pStruct
+        } -result {uc 42 dbl 99.0 s -42}
+    }
+    testpackederror -1
+    testpackederror 3
+    testpackederror 32
+    testpacked 0 {Size 24 Alignment 8 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 8 Definition double} s {Size 2 Offset 16 Definition ushort}}}
+    testpacked 1 {Size 11 Alignment 1 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 1 Definition double} s {Size 2 Offset 9 Definition ushort}}}
+    testpacked 2 {Size 12 Alignment 2 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 2 Definition double} s {Size 2 Offset 10 Definition ushort}}}
+    testpacked 4 {Size 16 Alignment 4 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 4 Definition double} s {Size 2 Offset 12 Definition ushort}}}
+    testpacked 8 {Size 24 Alignment 8 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 8 Definition double} s {Size 2 Offset 16 Definition ushort}}}
+    testpacked 16 {Size 24 Alignment 8 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 8 Definition double} s {Size 2 Offset 16 Definition ushort}}}
 }
 
 

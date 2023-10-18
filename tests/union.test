@@ -28,7 +28,11 @@ namespace eval cffi::test {
         list [catch {Union new {s int} -foo} result] $result
     } -result {1 {bad option "-foo": must be -clear}}
 
-    test union-error-5 {Struct mistaken for a union} -setup {
+    test union-error-5 {Option valid only for struct} -body {
+        list [catch {Union new {s int} -pack 1} result] $result
+    } -result {1 {bad option "-pack": must be -clear}}
+
+    test union-error-6 {Struct mistaken for a union} -setup {
         cffi::Struct create ::S {n int}
     } -cleanup {
         ::S destroy

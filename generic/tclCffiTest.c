@@ -1185,3 +1185,38 @@ DLLEXPORT void incrUnion(int tag, union TestUnion *inout) {
     }
 }
 
+#if defined(_MSC_VER) || defined(__GNUC__)
+#define FNPACK(pack_)  \
+typedef struct StructPack ## pack_ { \
+    unsigned char uc; \
+    double dbl; \
+    short s; \
+} StructPack ## pack_; \
+DLLEXPORT int modifyStructPack ## pack_(struct StructPack ## pack_ *inout) \
+{ \
+    int off; \
+    /* \
+     * Use a temporary because either of the following causes MSVC to bugcheck \
+     * inout->uc += offsetof(StructPack1, uc); \
+     * inout->uc = inout->uc + offsetof(StructPack1, uc); \
+     */ \
+    off = offsetof(StructPack ## pack_, uc); \
+    inout->uc  = inout->uc + off; \
+    off = offsetof(StructPack ## pack_, dbl); \
+    inout->dbl = inout->dbl + off; \
+    off = offsetof(StructPack ## pack_, s); \
+    inout->s   = inout->s + off; \
+    return sizeof(*inout); \
+}
+
+#pragma pack(1)
+FNPACK(1)
+#pragma pack(2)
+FNPACK(2)
+#pragma pack(4)
+FNPACK(4)
+#pragma pack()
+
+#endif
+
+

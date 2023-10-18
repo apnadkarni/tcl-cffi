@@ -813,10 +813,11 @@ cffi::help functions ::libzip::*
 <div class='ruff_synopsis'><span class='ruff_cmd'>Struct create OBJNAME</span> <span class='ruff_arg'>definition ?args?</span><br><span class='ruff_cmd'>Struct new</span> <span class='ruff_arg'>definition ?args?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>definition</code></td><td>Defines the layout and type of the C struct fields.</td></tr>
-<tr><td><code>args</code></td><td>Options. Currently the only option is <code>-clear</code></td></tr>
+<tr><td><code>-clear</code></td><td>Clears memory at initialization. See below.</td></tr>
+<tr><td><code>-pack PACKVALUE</code></td><td>Changes alignment and padding used for fields. See <a href="cffi-Concepts.html#::Concepts-Structs" title="Structs" >Structs</a>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The created object can be used to pass arguments to and from functions, allocate memory, encode and decode native C structs in memory etc.</p>
-<p class='ruff'>The <code>$definition</code> argument is a dictionary mapping field names to the corresponding types. See <a href="cffi-Concepts.html#::Concepts-Structs" title="Structs" >Structs</a> for more information.</p>
+<p class='ruff'>The <code>$definition</code> argument is a dictionary mapping field names to the corresponding types. See <a href="cffi-Concepts.html#::Concepts-Packed structs" title="Packed structs" >Packed structs</a> for more information.</p>
 <p class='ruff'>The name of the created struct is the same as the name of the returned object without the initial <code>::</code> global namespace qualifier. This name can be retrieved with the <a href="cffi-cffi.html#::cffi::Struct::name" title="name" class='ruff_cmd'>name</a> method and is used to identify the struct when tagging pointers and for typing function parameters and nested struct fields.</p>
 <p class='ruff'>If the <code>-clear</code> option is present, the memory of structures of this type is cleared before the field values are initialized. In this case, missing field values in a struct value will not result in an error being raised even if no default annotation is included for the field. This also effectively provides a default zero value for all fields.</p>
 <h4 class='ruffmethod'><a name='::cffi::Struct::allocate'>allocate</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Struct" title="::cffi::Struct" class='ruff_cmd'>::cffi::Struct</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
@@ -1031,7 +1032,7 @@ cffi::help functions ::libzip::*
 <tr><td><code>args</code></td><td>Options. Currently the only option is <code>-clear</code></td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The created object can be used to manipulate native C unions.</p>
-<p class='ruff'>The <code>$definition</code> argument is a dictionary mapping field names to the corresponding types. This has the same syntax as <a href="cffi-Concepts.html#::Concepts-Structs" title="Structs" >Structs</a>,</p>
+<p class='ruff'>The <code>$definition</code> argument is a dictionary mapping field names to the corresponding types. This has the same syntax as <a href="cffi-Concepts.html#::Concepts-Structs" title="Structs" >Structs</a>.</p>
 <p class='ruff'>The name of the created struct is the same as the name of the returned object without the initial <code>::</code> global namespace qualifier. This name can be retrieved with the <a href="cffi-cffi.html#::cffi::Union::name" title="name" class='ruff_cmd'>name</a> method and is used to identify the struct when tagging pointers and for typing function parameters and nested struct fields.</p>
 <p class='ruff'>If the <code>-clear</code> option is present, the memory of unions of this type is cleared before the field values are initialized.</p>
 <h4 class='ruffmethod'><a name='::cffi::Union::decode'>decode</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Union" title="::cffi::Union" class='ruff_cmd'>::cffi::Union</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Union'>Union</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>

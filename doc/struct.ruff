@@ -5,13 +5,15 @@ oo::class create ${NS}::Struct {
     constructor {definition args} {
         # Constructs a script level object that maps to a C struct definition.
         #  definition - defines the layout and type of the C struct fields
-        #  args - options. Currently the only option is `-clear`
+        #  -clear - clears memory at initialization. See below.
+        #  -pack PACKVALUE - changes alignment and padding used for fields.
+        #    See [Structs][::Concepts::Structs].
         # The created object can be used to pass arguments to and from
         # functions, allocate memory, encode and decode native C structs
         # in memory etc.
         #
         # The $definition argument is a dictionary mapping field names to the
-        # corresponding types. See [Structs][::Concepts::Structs] for more
+        # corresponding types. See [Packed structs][::Concepts::Packed structs] for more
         # information.
         #
         # The name of the created struct is the same as the name of the
