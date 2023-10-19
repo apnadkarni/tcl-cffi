@@ -289,6 +289,41 @@ CffiErrorType(Tcl_Interp *ip, int type, const char *fileName, int lineNum)
     return TCL_ERROR;
 }
 
+CffiResult
+CffiCheckVarargType(Tcl_Interp *ip,
+                          CffiTypeAndAttrs *typeAttrsP,
+                          Tcl_Obj *typeObj)
+{
+    /* Out of caution and paranoia, only permit input varargs */
+    if ((typeAttrsP->flags & CFFI_F_ATTR_PARAM_DIRECTION_MASK)
+        != CFFI_F_ATTR_IN) {
+        return Tclh_ErrorInvalidValue(
+            ip, typeObj, "Only input parameters permitted for varargs.");
+    }
+
+    /*
+     * libffi prior to 3.4 does not check for type promotion so we do.
+     * Byref params always ok as they are passed as pointers. float
+     * and integer types smaller than int are not permitted.
+     * TODO - what about pointers, strings, binaries etc. ?
+     */
+    if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)
+        return TCL_OK;
+    switch (typeAttrsP->dataType.baseType) {
+    case CFFI_K_TYPE_SCHAR:
+    case CFFI_K_TYPE_UCHAR:
+    case CFFI_K_TYPE_SHORT:
+    case CFFI_K_TYPE_USHORT:
+    case CFFI_K_TYPE_STRUCT:
+    case CFFI_K_TYPE_FLOAT:
+        return Tclh_ErrorInvalidValue(
+            ip, typeObj, "Type not permitted for varargs.");
+    default:
+        return TCL_OK;
+    }
+}
+
+
 /* Function: CffiBaseTypeInfoGet
  * Returns pointer to type information for a basic type.
  *

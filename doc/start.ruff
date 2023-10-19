@@ -698,8 +698,6 @@ set start_page {
 
     The `dyncall` backend has the following limitations:
 
-    - Structs can only be passed by reference, not value.
     - Callbacks into Tcl from C functions are not implemented.
-    - Functions with variable number of arguments not implemented.
 }
 

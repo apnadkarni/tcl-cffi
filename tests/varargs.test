@@ -12,51 +12,45 @@ source [file join [file dirname [info script]] common.tcl]
 namespace eval ${NS}::test {
     variable invalidVarargTypes {uchar schar short ushort float}
 
-    if {![tcltest::testConstraint dyncall]} {
-        testDll function formatVarargs int {buf {chars[n] out} n int fmt string ...}
-    }
+    testDll function formatVarargs int {buf {chars[n] out} n int fmt string ...}
 
-    test varargs-error-dyncall-0 {formatVarargs no fixed params} -constraints dyncall -body {
-        testDll function formatVarargs int {buf {chars[n] out} n int fmt string ...}
-    } -returnCodes error -result {Varargs functions not supported by the dyncall backend. Error defining function formatVarargs.}
-
-    test varargs-error-0 {formatVarargs no fixed params} -constraints libffi -body {
+    test varargs-error-0 {formatVarargs no fixed params} -body {
         testDll function {formatVarargs xxx} int {...}
     } -returnCodes error -result {Invalid value. No fixed parameters present in varargs function definition. Error defining function xxx.}
 
-    test varargs-error-1 {formatVarargs single element vararg} -constraints libffi -body {
+    test varargs-error-1 {formatVarargs single element vararg} -body {
         formatVarargs buf 100 %s singleelementarg
     } -returnCodes error -result {Invalid value "singleelementarg". A vararg must be a type and value pair.}
-    test varargs-error-2 {formatVarargs three element vararg} -constraints libffi -body {
+    test varargs-error-2 {formatVarargs three element vararg} -body {
         formatVarargs buf 100 %d {int 42 x}
     } -returnCodes error -result {Invalid value "int 42 x". A vararg must be a type and value pair.}
-    test varargs-error-3 {formatVarargs bad type} -constraints libffi -body {
+    test varargs-error-3 {formatVarargs bad type} -body {
         formatVarargs buf 100 %s {nosuchtype 42}
     } -returnCodes error -result {Invalid value "nosuchtype". Invalid base type.}
-    test varargs-error-4 {formatVarargs output var} -constraints libffi -body {
+    test varargs-error-4 {formatVarargs output var} -body {
         formatVarargs buf 100 %s {{int out} 42}
     } -returnCodes error -result {Invalid value "int out". Only input parameters permitted for varargs.}
-    test varargs-error-5 {formatVarargs inout var} -constraints libffi -body {
+    test varargs-error-5 {formatVarargs inout var} -body {
         formatVarargs buf 100 %s {{int inout} 42}
     } -returnCodes error -result {Invalid value "int inout". Only input parameters permitted for varargs.}
-    test varargs-error-6 {formatVarargs retval var} -constraints libffi -body {
+    test varargs-error-6 {formatVarargs retval var} -body {
         formatVarargs buf 100 %s {{int retval} 42}
     } -returnCodes error -result {Invalid value "int retval". Only input parameters permitted for varargs.}
-    test varargs-error-7.0 {varargs - stdcall} -constraints libffi -body {
+    test varargs-error-7.0 {varargs - stdcall} -body {
         testDll stdcall {formatVarargs xxx} int {buf {chars[n] out} n int fmt string ...}
     } -constraints win32 -returnCodes error -result {Varargs not supported for this calling convention. Error defining function xxx.}
 
     foreach type $intTypes {
         if {$type in $invalidVarargTypes} {
-            test varargs-$type-0 "formatVarargs invalid type $type" -constraints libffi -body {
+            test varargs-$type-0 "formatVarargs invalid type $type" -body {
                 formatVarargs buf 100 %d [list $type 42]
             } -returnCodes error -result "Invalid value \"$type\". Type not permitted for varargs."
         } else {
-            test vararg-$type-0 "formatVarargs type $type" -constraints libffi -body {
+            test vararg-$type-0 "formatVarargs type $type" -body {
                 formatVarargs buf 100 %d [list $type 42]
                 set buf
             } -result 42
-            test vararg-$type-error-0 "formatVarargs type $type bad value" -constraints libffi -body {
+            test vararg-$type-error-0 "formatVarargs type $type bad value" -body {
                 formatVarargs buf 100 %d [list $type x]
                 set buf
             } -result {expected integer but got "x"} -returnCodes error
@@ -64,31 +58,31 @@ namespace eval ${NS}::test {
     }
     foreach type $realTypes {
         if {$type in $invalidVarargTypes} {
-            test varargs-$type-0 "formatVarargs invalid type $type" -constraints libffi -body {
+            test varargs-$type-0 "formatVarargs invalid type $type" -body {
                 formatVarargs buf 100 %g [list $type 42]
             } -returnCodes error -result "Invalid value \"$type\". Type not permitted for varargs."
         } else {
-            test vararg-$type-0 "formatVarargs type $type" -constraints libffi -body {
+            test vararg-$type-0 "formatVarargs type $type" -body {
                 formatVarargs buf 100 %g [list $type 42.5]
                 set buf
             } -result 42.5
-            test vararg-$type-error-0 "formatVarargs type $type bad value" -constraints libffi -body {
+            test vararg-$type-error-0 "formatVarargs type $type bad value" -body {
                 formatVarargs buf 100 %g [list $type x]
                 set buf
             } -result {expected floating-point number but got "x"} -returnCodes error
         }
     }
 
-    test vararg-string-0 "formatVarargs type string" -constraints libffi -body {
+    test vararg-string-0 "formatVarargs type string" -body {
         formatVarargs buf 100 %s {string Hello}
         set buf
     } -result Hello
-    test vararg-chars-0 "formatVarargs type chars[]" -constraints libffi -body {
+    test vararg-chars-0 "formatVarargs type chars[]" -body {
         formatVarargs buf 100 %s {chars[10] Hello}
         set buf
     } -result Hello
 
-    test vararg-stdcall-0 "formatVarargs type string" -constraints {notwin32 libffi} -body {
+    test vararg-stdcall-0 "formatVarargs type string" -constraints {notwin32} -body {
         testDll function {formatVarargs stdcallVarargs} int {buf {chars[n] out} n int fmt string ...}
         stdcallVarargs buf 100 %s {string Hello}
         set buf
@@ -103,7 +97,7 @@ namespace eval ${NS}::test {
         set addr [testDll addressof formatVarargs]
     } -cleanup {
         cffi::prototype clear
-    } -constraints libffi -body {
+    } -body {
         cffi::prototype function varargsProto int {buf {chars[bufSize] out} bufSize int fmt string ...}
         list [cffi::call [scoped_ptr $addr varargsProto] buf 100 "The %s is %d." {string answer} {int 42}] $buf
     } -result {17 {The answer is 42.}}

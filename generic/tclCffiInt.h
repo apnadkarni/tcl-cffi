@@ -40,11 +40,16 @@
 #  define CFFI_HAVE_STRUCT_BYVAL
 # endif
 
+# ifdef DC_CALL_C_ELLIPSIS_VARARGS
+#  define CFFI_HAVE_VARARGS
+# endif
+
 #endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
 
 # define CFFI_HAVE_STRUCT_BYVAL
+# define CFFI_HAVE_VARARGS
 
 /*
  * When statically linking libffi, we need to define FFI_BUILDING before
@@ -465,6 +470,9 @@ typedef struct CffiProto {
 CFFI_INLINE void CffiProtoRef(CffiProto *protoP) {
     protoP->nRefs += 1;
 }
+CFFI_INLINE int CffiProtoIsVarargs(CffiProto *protoP) {
+    return (protoP->flags & CFFI_F_PROTO_VARARGS);
+}
 
 /* Struct: CffiFunction
  * Descriptor for a callable function including its address, prototype
@@ -562,6 +570,10 @@ CffiResult CffiTypeParse(CffiInterpCtx *ipCtxP,
                          Tcl_Obj *typeObj,
                          CffiType *typeP);
 void CffiTypeCleanup(CffiType *);
+CffiResult CffiCheckVarargType(Tcl_Interp *ip,
+                               CffiTypeAndAttrs *typeAttrsP,
+                               Tcl_Obj *typeObj);
+
 int CffiGetCountFromNative (const void *valueP, CffiBaseType baseType);
 int CffiTypeActualSize(const CffiType *typeP);
 void CffiTypeLayoutInfo(CffiInterpCtx *ipCtxP,
@@ -814,6 +826,10 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
 }
 
 CffiResult CffiDyncallAggrInit(CffiInterpCtx *ipCtxP, CffiStruct *structP);
+CffiResult CffiDyncallVarargsInit(CffiInterpCtx *ipCtxP,
+                                  int numVarArgs,
+                                  Tcl_Obj *const *varArgObjs,
+                                  CffiTypeAndAttrs *varArgTypesP);
 
 #define CffiReloadArg CffiDyncallReloadArg
 void CffiDyncallReloadArg(CffiCall *callP,

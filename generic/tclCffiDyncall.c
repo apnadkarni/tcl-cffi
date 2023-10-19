@@ -220,11 +220,61 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
 {
     DCCallVM *vmP = callP->fnP->ipCtxP->vmP;
 
+    if (CffiProtoIsVarargs(callP->fnP->protoP)) {
+        /* If not default ABI, should have been caught at definition time */
+        CFFI_ASSERT(callP->fnP->protoP->abi == CffiDefaultABI());
+        dcMode(vmP, DC_CALL_C_ELLIPSIS);
+    }
+    else
+        dcMode(vmP, callP->fnP->protoP->abi);
     dcReset(vmP);
-    dcMode(vmP, callP->fnP->protoP->abi);
     return TCL_OK;
 }
 
+CffiResult
+CffiDyncallVarargsInit(CffiInterpCtx *ipCtxP,
+                       int numVarArgs,
+                       Tcl_Obj * const *varArgObjs,
+                       CffiTypeAndAttrs *varArgTypesP)
+{
+    CffiResult ret = TCL_OK;
+    Tcl_Interp *ip = ipCtxP->interp;
+    int i;
+
+    /*
+     * Finally, gather up the vararg types. Unlike the fixed parameters,
+     * here the types are specified at call time so need to parse those
+     */
+    int numVarArgTypesInited;
+    for (numVarArgTypesInited = 0, i = 0; i < numVarArgs; ++i) {
+        /* The varargs arguments are pairs consisting of type and value. */
+        Tcl_Obj **argObjs;
+        Tcl_Size n;
+        if (Tcl_ListObjGetElements(NULL, varArgObjs[i], &n, &argObjs) != TCL_OK
+            || n != 2) {
+            ret = Tclh_ErrorInvalidValue(
+                ip, varArgObjs[i], "A vararg must be a type and value pair.");
+            break;
+        }
+        ret = CffiTypeAndAttrsParse(
+            ipCtxP, argObjs[0], CFFI_F_TYPE_PARSE_PARAM, &varArgTypesP[i]);
+        if (ret != TCL_OK)
+            break;
+        ++numVarArgTypesInited; /* So correct number is cleaned on error */
+
+        ret = CffiCheckVarargType(ip, &varArgTypesP[i], argObjs[0]);
+        if (ret != TCL_OK)
+            break;
+    }
+
+    /* Error in vararg type conversion or cif prep. Clean any varargs types */
+    if (ret != TCL_OK) {
+        for (i = 0; i < numVarArgTypesInited; ++i) {
+            CffiTypeAndAttrsCleanup(&varArgTypesP[i]);
+        }
+    }
+    return ret;
+}
 
 /*
  *------------------------------------------------------------------------

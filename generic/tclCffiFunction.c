@@ -1455,6 +1455,12 @@ CffiFunctionSetupArgs(CffiCall *callP,
         else {
             /* Vararg. */
             CFFI_ASSERT(varArgTypesP);
+#if defined(CFFI_USE_DYNCALL)
+            /* Need to switch modes for varargs params */
+            if (i == protoP->nParams) {
+                dcMode(callP->fnP->ipCtxP->vmP, DC_CALL_C_ELLIPSIS_VARARGS);
+            }
+#endif
             typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
@@ -1492,6 +1498,12 @@ CffiFunctionSetupArgs(CffiCall *callP,
             typeAttrsP = &protoP->params[i].typeAttrs;
         }
         else {
+#if defined(CFFI_USE_DYNCALL)
+            /* Need to switch modes for varargs params */
+            if (i == protoP->nParams) {
+                dcMode(callP->fnP->ipCtxP->vmP, DC_CALL_C_ELLIPSIS_VARARGS);
+            }
+#endif
             typeAttrsP = &varArgTypesP[i - protoP->nParams];
         }
 
@@ -1631,6 +1643,14 @@ CffiFunctionCall(ClientData cdata,
         ipCtxP, protoP, nVarArgs, varArgObjs, varArgTypesP);
     if (ret != TCL_OK)
         goto pop_and_go;
+#endif
+#ifdef CFFI_USE_DYNCALL
+    if (nVarArgs) {
+        ret =
+            CffiDyncallVarargsInit(ipCtxP, nVarArgs, varArgObjs, varArgTypesP);
+        if (ret != TCL_OK)
+            goto pop_and_go;
+    }
 #endif
 
     callCtx.fnP = fnP;

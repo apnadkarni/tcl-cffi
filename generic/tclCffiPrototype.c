@@ -142,7 +142,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
             return Tclh_ErrorInvalidValue(
                 ip, paramsObj, "Parameter type missing.");
         }
-#ifdef CFFI_USE_LIBFFI
+#ifdef CFFI_HAVE_VARARGS
         if (abi != CffiDefaultABI()) {
             return Tclh_ErrorGeneric(
                 ip, NULL, "Varargs not supported for this calling convention.");
@@ -160,7 +160,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
         return Tclh_ErrorGeneric(
             ip,
             NULL,
-            "Varargs functions not supported by the dyncall backend.");
+            "Varargs functions not supported by the backend.");
 #endif
     }
     else
