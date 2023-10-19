@@ -1045,16 +1045,33 @@ store_value:
 static CffiResult
 CffiReturnPrepare(CffiCall *callP)
 {
+    CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
+
 #ifdef CFFI_USE_DYNCALL
     /*
-     * Nothing to do as no allocations needed.
-     *  arrays, struct, chars[], unichars[], bytes and anything that requires
-     * non-scalar storage is either not supported by C or by dyncall.
+     * Otherwise nothing to do except for structs returned by value as no
+     * allocations needed. arrays, struct, chars[], unichars[], bytes and
+     * anything that requires non-scalar storage is either not supported by
+     * C or by dyncall.
      */
+    if (retTypeAttrsP->dataType.baseType == CFFI_K_TYPE_STRUCT
+        && (retTypeAttrsP->flags & CFFI_F_ATTR_BYREF) == 0) {
+        if (retTypeAttrsP->dataType.u.structP->dcAggrP == NULL) {
+            CHECK(CffiDyncallAggrInit(callP->fnP->ipCtxP,
+                                      retTypeAttrsP->dataType.u.structP));
+        }
+        CFFI_ASSERT(retTypeAttrsP->dataType.u.structP->dcAggrP);
+        dcBeginCallAggr(callP->fnP->ipCtxP->vmP,
+                        retTypeAttrsP->dataType.u.structP->dcAggrP);
+        CFFI_ASSERT(!CffiTypeIsVariableSize(&retTypeAttrsP->dataType));
+        callP->retValueP = Tclh_LifoAlloc(
+            &callP->fnP->libCtxP->ipCtxP->memlifo,
+            CffiStructFixedSize(retTypeAttrsP->dataType.u.structP));
+    }
+
 #endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
-    CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
     /* Byref return values are basically pointers irrespective of base type */
     if (retTypeAttrsP->flags & CFFI_F_ATTR_BYREF) {
         callP->retValueP = &callP->retValue.u.ptr;
@@ -1103,7 +1120,7 @@ CffiReturnPrepare(CffiCall *callP)
         CFFI_ASSERT(!CffiTypeIsVariableSize(&retTypeAttrsP->dataType));
         callP->retValueP = Tclh_LifoAlloc(
             &callP->fnP->libCtxP->ipCtxP->memlifo,
-            retTypeAttrsP->dataType.u.structP->size);
+            CffiStructFixedSize(retTypeAttrsP->dataType.u.structP));
         break;
     default:
         Tcl_SetResult(callP->fnP->ipCtxP->interp,
@@ -1362,7 +1379,7 @@ CffiGetCountFromValue(Tcl_Interp *ip,
 }
 
 /* Function: CffiFunctionSetupArgs
- * Prepares the call stack needed for a function call.
+ * Prepares the arguments needed for a function call.
  *
  * Parameters:
  * callP - initialized call context.
@@ -1397,10 +1414,6 @@ CffiFunctionSetupArgs(CffiCall *callP,
     protoP = callP->fnP->protoP;
     ipCtxP = callP->fnP->ipCtxP;
     ip     = ipCtxP->interp;
-
-    /* Resets the context for the call */
-    if (CffiResetCall(ip, callP) != TCL_OK)
-        goto cleanup_and_error;
 
     /*
      * We need temporary storage of unknown size for parameter values.
@@ -1467,6 +1480,8 @@ CffiFunctionSetupArgs(CffiCall *callP,
      * already been loaded.
      */
     if (CffiResetCall(ip, callP) != TCL_OK)
+        goto cleanup_and_error;
+    if (CffiReturnPrepare(callP) != TCL_OK)
         goto cleanup_and_error;
 
     for (i = 0; i < callP->nArgs; ++i) {
@@ -1626,6 +1641,18 @@ CffiFunctionCall(ClientData cdata,
     callCtx.retValueP   = NULL;
 #endif
 
+    /* Prepare for the call. */
+    if (CffiResetCall(ip, &callCtx) != TCL_OK)
+        goto pop_and_error;
+
+    /* 
+     * Set up the return value. For dyncall must be done BEFORE setting
+     * up args to handle return values that are structs.
+     */
+    if (CffiReturnPrepare(&callCtx) != TCL_OK)
+        goto pop_and_error;
+
+
     /*
      * Set up arguments if any. Remember
      * - for normal functions, there may be fewer arguments than params
@@ -1720,15 +1747,6 @@ CffiFunctionCall(ClientData cdata,
         varArgsInited = 1;
         CFFI_ASSERT(callCtx.nArgs == nActualArgs);
     }
-    else {
-        /* Prepare for the call. */
-        if (CffiResetCall(ip, &callCtx) != TCL_OK)
-            goto pop_and_error;
-    }
-
-    /* Set up the return value */
-    if (CffiReturnPrepare(&callCtx) != TCL_OK)
-        goto pop_and_error;
 
     /*
      * A note on pointer disposal - pointers must be disposed of AFTER the
@@ -1902,12 +1920,20 @@ CffiFunctionCall(ClientData cdata,
             CFFI_ASSERT(fnCheckRet == TCL_OK); /* Else pointer would be NULL */
         }
         else {
-#ifdef CFFI_USE_LIBFFI
+#ifdef CFFI_HAVE_STRUCT_BYVAL
+# ifdef CFFI_USE_LIBFFI
             CffiLibffiCall(&callCtx);
+# endif
+# ifdef CFFI_USE_DYNCALL
+            CFFI_ASSERT(
+                protoP->returnType.typeAttrs.dataType.u.structP->dcAggrP);
+            dcCallAggr(callCtx.fnP->ipCtxP->vmP,
+                       callCtx.fnP->fnAddr,
+                       protoP->returnType.typeAttrs.dataType.u.structP->dcAggrP,
+                       callCtx.retValueP);
+# endif
             pointer = callCtx.retValueP;
-#endif
-#ifdef CFFI_USE_DYNCALL
-            /* Should not really happen as checks made at definition time */
+#else
             (void)Tclh_ErrorInvalidValue(
                 ipCtxP->interp, NULL, "Unsupported type for return.");
             ret = TCL_ERROR;

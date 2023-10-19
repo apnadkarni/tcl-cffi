@@ -512,9 +512,9 @@ typedef struct CffiCall {
 #ifdef CFFI_USE_LIBFFI
     void **argValuesPP; /* Array of pointers into the actual value fields within
                            argsP[] elements */
-    void *retValueP;    /* Points to storage to use for return value */
     CffiValue retValue; /* Holds return value */
 #endif
+    void *retValueP;    /* Points to storage to use for return value */
     int nArgs;             /* Size of argsP. */
     CffiArgument *argsP;   /* Arguments */
 } CffiCall;

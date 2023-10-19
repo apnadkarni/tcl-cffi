@@ -1267,7 +1267,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 goto invalid_format;
             }
 
-#ifdef CFFI_USE_DYNCALL
+#ifndef CFFI_HAVE_STRUCT_BYVAL
             if ((flags & CFFI_F_ATTR_BYREF) == 0) {
                 /* dyncall - return type not allowed unless byref */
                 message = typeInvalidForContextMsg;

@@ -1029,11 +1029,10 @@ namespace eval cffi::test {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrparsemode)
             }
             if {$parse_mode eq "return"} {
-                testinvalidattr "struct.TestStruct" $parse_mode $errorMessages(typeparsemode) -constraints dyncall
-                teststruct "struct.::TestStruct" $parse_mode "" 0 -constraints libffi
+                teststruct "struct.::TestStruct" $parse_mode "" 0
                 teststruct "struct.::TestStruct byref" $parse_mode "byref" 0
                 teststruct "struct.::TestStruct nullok byref" $parse_mode "byref nullok" 0
-                testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints libffi
+                testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.}
             } else {
                 teststruct "struct.::TestStruct" $parse_mode ""
                 testinvalidattr "struct.TestStruct byref" $parse_mode $errorMessages(attrparsemode)
@@ -1066,13 +1065,8 @@ namespace eval cffi::test {
         }
         if {$parse_mode eq "return"} {
             testinvalidattr "struct.TestStruct nullifempty" $parse_mode $errorMessages(attrparsemode)
-            if {[cffi::pkgconfig get backend] eq "libffi"} {
-                set msgindex arrayreturn
-            } else {
-                set msgindex typeparsemode
-            }
-            testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages($msgindex)
-            testinvalidattr "struct.TestStruct\[2\]" $parse_mode $errorMessages($msgindex)
+            testinvalidattr "struct.TestStruct\[NUMELEMS\]" $parse_mode $errorMessages(arrayreturn)
+            testinvalidattr "struct.TestStruct\[2\]" $parse_mode $errorMessages(arrayreturn)
         }
 
         # array invalid count spec failure

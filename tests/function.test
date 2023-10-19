@@ -2468,9 +2468,7 @@ namespace eval ${NS}::test {
     } -result ""
 
     # Return type - struct
-    test function-struct-return-0 "Return struct with input struct" -constraints {
-        libffi
-    } -setup {
+    test function-struct-return-0 "Return struct with input struct" -constraints libffi -setup {
         cffi::Struct create ::Inner {c schar ll longlong s short}
         cffi::Struct create ::Outer {f float s struct.::Inner p {pointer unsafe}}
         testDll function {incrSimpleOuterStructByVal f} struct.::Outer {s struct.::Outer}
@@ -2481,18 +2479,10 @@ namespace eval ${NS}::test {
     } -result [list f 11.0 s [list c 1 ll 2 s 3] p [makeptr 2]]
 
 
-    test function-struct-return-1 "return struct with strings" -constraints libffi -body {
+    test function-struct-return-1 "return struct with strings" -body {
         testDll function returnStructWithStrings struct.StructWithStrings {}
         returnStructWithStrings
     } -result [makeStructWithStrings]
-
-    test function-struct-return-error-0 "Return type struct - error " -constraints {
-        dyncall
-    } -body {
-        # Prototype does not match C. Does not have to!
-        testDll function getTestStruct struct.TestStruct {}
-    } -result "Invalid value \"struct.TestStruct\". $errorMessages(typeparsemode) Error defining function getTestStruct." -returnCodes error
-
 
     test function-struct-return-error-1 "Return struct containing array" -constraints {
         libffi
