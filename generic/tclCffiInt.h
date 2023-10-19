@@ -36,9 +36,15 @@
 # include "dynload.h"
 # include "dyncall.h"
 
+# ifdef DC__Feature_AggrByVal
+#  define CFFI_HAVE_STRUCT_BYVAL
+# endif
+
 #endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
+
+# define CFFI_HAVE_STRUCT_BYVAL
 
 /*
  * When statically linking libffi, we need to define FFI_BUILDING before
@@ -333,6 +339,9 @@ struct CffiStruct {
 #ifdef CFFI_USE_LIBFFI
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
+#if defined(CFFI_USE_DYNCALL) && defined(CFFI_HAVE_STRUCT_BYVAL)
+    DCaggr *dcAggrP;           /* Dyncall struct descriptor */
+#endif
     int nRefs;                /* Shared, so need ref count */
     unsigned int size;        /* Fixed size of struct not including VLA
                                  component if any. */
@@ -355,6 +364,9 @@ CFFI_INLINE int CffiStructIsVariableSize(const CffiStruct *structP) {
 }
 CFFI_INLINE int CffiStructIsUnion(const CffiStruct *structP) {
     return (structP->flags & CFFI_F_STRUCT_UNION) != 0;
+}
+CFFI_INLINE Tcl_Size CffiStructFixedSize(const CffiStruct *structP) {
+    return structP->size;
 }
 
 /* Struct: CffiScope
@@ -537,6 +549,8 @@ typedef enum CffiFlags {
 /*
  * Prototypes
  */
+CffiResult
+CffiErrorType(Tcl_Interp *ip, int type, const char *fileName, int lineNum);
 CffiResult CffiNameSyntaxCheck(Tcl_Interp *ip, Tcl_Obj *nameObj);
 CffiResult
 CffiTagSyntaxCheck(Tcl_Interp *interp, const char *tagStr, Tcl_Size tagLen);
@@ -799,6 +813,8 @@ CFFI_INLINE CffiABIProtocol CffiStdcallABI() {
 #endif
 }
 
+CffiResult CffiDyncallAggrInit(CffiInterpCtx *ipCtxP, CffiStruct *structP);
+
 #define CffiReloadArg CffiDyncallReloadArg
 void CffiDyncallReloadArg(CffiCall *callP,
                         CffiArgument *argP,
@@ -851,7 +867,7 @@ STOREARGFN_(Double, double, dcArgDouble)
 
 #undef STOREARGFN_
 
-#endif
+#endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
 
@@ -936,7 +952,7 @@ CFFI_INLINE double CffiCallDoubleFunc(CffiCall *callP) {
 #undef DEFINEFN_
 
 
-#endif /* CFFI_USE_DYNCALL */
+#endif /* CFFI_USE_LIBFFI */
 
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,

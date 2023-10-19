@@ -225,6 +225,150 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
     return TCL_OK;
 }
 
+
+/*
+ *------------------------------------------------------------------------
+ *
+ * CffiDyncallAggrInit --
+ *
+ *    Constructs a struct descriptor for dyncall. This is used to pass
+ *    structs by value.
+ *
+ * Parameters:
+ * ipCtxP - interp context
+ * structP - struct descriptor
+ *
+ * Results:
+ *    TCL_OK on success and TCL_ERROR on failure.
+ *
+ * Side effects:
+ *    On success stores the dyncall struct descriptor in structP
+ *
+ *------------------------------------------------------------------------
+ */
+CffiResult CffiDyncallAggrInit(CffiInterpCtx *ipCtxP, CffiStruct *structP)
+{
+
+    if (structP->dcAggrP)
+        return TCL_OK;
+
+    if (CffiStructIsVariableSize(structP)) {
+        Tclh_ErrorInvalidValue(
+            ipCtxP->interp,
+            NULL,
+            "Variable size struct cannot be passed by value.");
+        return TCL_ERROR;
+    }
+    if (structP->pack != 0) {
+        Tclh_ErrorInvalidValue(
+            ipCtxP->interp,
+            NULL,
+            "Packed struct cannot be passed by value.");
+        return TCL_ERROR;
+    }
+
+    int fldIndex;
+    DCaggr *dcAggrP;
+
+    dcAggrP = dcNewAggr(structP->nFields, CffiStructFixedSize(structP));
+    for (fldIndex = 0; fldIndex < structP->nFields; ++fldIndex) {
+        int elemCount;
+        CffiField *fldP = &structP->fields[fldIndex];
+        elemCount       = fldP->fieldType.dataType.arraySize;
+        CFFI_ASSERT(elemCount != 0); /* Else varsize check above would fail */
+        if (elemCount < 0)
+            elemCount = 1; /* Scalar */
+        switch (fldP->fieldType.dataType.baseType) {
+        case CFFI_K_TYPE_CHAR_ARRAY: /* FALLTHRU */
+        case CFFI_K_TYPE_SCHAR:
+            dcAggrField(dcAggrP, DC_SIGCHAR_CHAR, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_BYTE_ARRAY: /* FALLTHRU */
+        case CFFI_K_TYPE_UCHAR:
+            dcAggrField(dcAggrP, DC_SIGCHAR_UCHAR, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_SHORT:
+            dcAggrField(dcAggrP, DC_SIGCHAR_SHORT, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_USHORT:
+            dcAggrField(dcAggrP, DC_SIGCHAR_USHORT, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_INT:
+            dcAggrField(dcAggrP, DC_SIGCHAR_INT, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_UINT:
+            dcAggrField(dcAggrP, DC_SIGCHAR_UINT, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_LONG:
+            dcAggrField(dcAggrP, DC_SIGCHAR_LONG, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_ULONG:
+            dcAggrField(dcAggrP, DC_SIGCHAR_ULONG, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_LONGLONG:
+            dcAggrField(dcAggrP, DC_SIGCHAR_LONGLONG, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_ULONGLONG:
+            dcAggrField(dcAggrP, DC_SIGCHAR_ULONGLONG, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_FLOAT:
+            dcAggrField(dcAggrP, DC_SIGCHAR_FLOAT, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_DOUBLE:
+            dcAggrField(dcAggrP, DC_SIGCHAR_DOUBLE, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_ASTRING: /* FALLTHRU */
+        case CFFI_K_TYPE_UNISTRING:
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINSTRING:
+#endif
+        case CFFI_K_TYPE_POINTER:
+            dcAggrField(dcAggrP, DC_SIGCHAR_POINTER, fldP->offset, elemCount);
+            break;
+        case CFFI_K_TYPE_UNICHAR_ARRAY:
+            if (sizeof(Tcl_UniChar) == sizeof(unsigned short))
+                dcAggrField(
+                    dcAggrP, DC_SIGCHAR_USHORT, fldP->offset, elemCount);
+            else {
+                CFFI_ASSERT(sizeof(Tcl_UniChar) == sizeof(unsigned int));
+                dcAggrField(dcAggrP, DC_SIGCHAR_UINT, fldP->offset, elemCount);
+            }
+            break;
+#ifdef _WIN32
+        case CFFI_K_TYPE_WINCHAR_ARRAY:
+            dcAggrField(dcAggrP, DC_SIGCHAR_USHORT, fldP->offset, elemCount);
+            break;
+#endif
+        case CFFI_K_TYPE_STRUCT:
+            if (CffiDyncallAggrInit(ipCtxP, fldP->fieldType.dataType.u.structP)
+                != TCL_OK) {
+                dcCloseAggr(dcAggrP);
+                dcFreeAggr(dcAggrP);
+                return TCL_ERROR;
+            }
+            CFFI_ASSERT(fldP->fieldType.dataType.u.structP->dcAggrP);
+            dcAggrField(dcAggrP,
+                        DC_SIGCHAR_AGGREGATE,
+                        fldP->offset,
+                        elemCount,
+                        fldP->fieldType.dataType.u.structP->dcAggrP);
+            break;
+        case CFFI_K_TYPE_BINARY: /* FALLTHRU */
+        default:
+            CffiErrorType(ipCtxP->interp,
+                          fldP->fieldType.dataType.baseType,
+                          __FILE__,
+                          __LINE__);
+            dcFreeAggr(dcAggrP);
+            return TCL_ERROR;
+        }
+    }
+
+    dcCloseAggr(dcAggrP);
+    structP->dcAggrP = dcAggrP;
+    return TCL_OK;
+}
+
 /* Function: CffiDyncallReloadArg
  * Loads an argument value into the dyncall argument context.
  *
@@ -237,40 +381,68 @@ CffiResult CffiDyncallResetCall(Tcl_Interp *ip, CffiCall *callP)
  * argP - argument value to load
  * typeAttrsP - argument type descriptor
  */
-void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs *typeAttrsP)
+void
+CffiDyncallReloadArg(CffiCall *callP,
+                     CffiArgument *argP,
+                     CffiTypeAndAttrs *typeAttrsP)
 {
     DCCallVM *vmP = callP->fnP->ipCtxP->vmP;
 
     CFFI_ASSERT(argP->flags & CFFI_F_ARG_INITIALIZED);
 
-#define STORE_(dcfn_, fld_)                                             \
-    do {                                                                \
-        if (argP->arraySize < 0) {                                      \
-            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)                  \
-                dcArgPointer(vmP, (DCpointer)&argP->value.u.fld_);      \
-            else                                                        \
-                dcfn_(vmP, argP->value.u.fld_);                         \
-        }                                                               \
-        else {                                                          \
-            CFFI_ASSERT(typeAttrsP->flags &CFFI_F_ATTR_BYREF);          \
-            dcArgPointer(vmP, (DCpointer)argP->value.u.ptr);            \
-        }                                                               \
+#define STORE_(dcfn_, fld_)                                        \
+    do {                                                           \
+        if (argP->arraySize < 0) {                                 \
+            if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)             \
+                dcArgPointer(vmP, (DCpointer)&argP->value.u.fld_); \
+            else                                                   \
+                dcfn_(vmP, argP->value.u.fld_);                    \
+        }                                                          \
+        else {                                                     \
+            CFFI_ASSERT(typeAttrsP->flags &CFFI_F_ATTR_BYREF);     \
+            dcArgPointer(vmP, (DCpointer)argP->value.u.ptr);       \
+        }                                                          \
     } while (0)
     switch (typeAttrsP->dataType.baseType) {
-    case CFFI_K_TYPE_SCHAR: STORE_(dcArgChar, schar); break;
-    case CFFI_K_TYPE_UCHAR: STORE_(dcArgChar, uchar); break;
-    case CFFI_K_TYPE_SHORT: STORE_(dcArgShort, sshort); break;
-    case CFFI_K_TYPE_USHORT: STORE_(dcArgShort, ushort); break;
-    case CFFI_K_TYPE_INT: STORE_(dcArgInt, sint); break;
-    case CFFI_K_TYPE_UINT: STORE_(dcArgInt, uint); break;
-    case CFFI_K_TYPE_LONG: STORE_(dcArgLong, slong); break;
-    case CFFI_K_TYPE_ULONG: STORE_(dcArgLong, ulong); break;
-    case CFFI_K_TYPE_LONGLONG: STORE_(dcArgLongLong, slonglong); break;
-    case CFFI_K_TYPE_ULONGLONG: STORE_(dcArgLongLong, ulonglong); break;
-    case CFFI_K_TYPE_FLOAT: STORE_(dcArgFloat, flt); break;
-    case CFFI_K_TYPE_DOUBLE: STORE_(dcArgDouble, dbl); break;
-    case CFFI_K_TYPE_POINTER: STORE_(dcArgDouble, dbl); break;
-    case CFFI_K_TYPE_STRUCT: /* FALLTHRU */
+    case CFFI_K_TYPE_SCHAR:
+        STORE_(dcArgChar, schar);
+        break;
+    case CFFI_K_TYPE_UCHAR:
+        STORE_(dcArgChar, uchar);
+        break;
+    case CFFI_K_TYPE_SHORT:
+        STORE_(dcArgShort, sshort);
+        break;
+    case CFFI_K_TYPE_USHORT:
+        STORE_(dcArgShort, ushort);
+        break;
+    case CFFI_K_TYPE_INT:
+        STORE_(dcArgInt, sint);
+        break;
+    case CFFI_K_TYPE_UINT:
+        STORE_(dcArgInt, uint);
+        break;
+    case CFFI_K_TYPE_LONG:
+        STORE_(dcArgLong, slong);
+        break;
+    case CFFI_K_TYPE_ULONG:
+        STORE_(dcArgLong, ulong);
+        break;
+    case CFFI_K_TYPE_LONGLONG:
+        STORE_(dcArgLongLong, slonglong);
+        break;
+    case CFFI_K_TYPE_ULONGLONG:
+        STORE_(dcArgLongLong, ulonglong);
+        break;
+    case CFFI_K_TYPE_FLOAT:
+        STORE_(dcArgFloat, flt);
+        break;
+    case CFFI_K_TYPE_DOUBLE:
+        STORE_(dcArgDouble, dbl);
+        break;
+    case CFFI_K_TYPE_POINTER:
+        STORE_(dcArgDouble, dbl);
+        break;
     case CFFI_K_TYPE_CHAR_ARRAY: /* FALLTHRU */
     case CFFI_K_TYPE_BYTE_ARRAY: /* FALLTHRU */
     case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -279,7 +451,7 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
 #endif
         dcArgPointer(vmP, argP->value.u.ptr);
         break;
-    case CFFI_K_TYPE_ASTRING:/* FALLTHRU */
+    case CFFI_K_TYPE_ASTRING:   /* FALLTHRU */
     case CFFI_K_TYPE_UNISTRING: /* FALLTHRU */
 #ifdef _WIN32
     case CFFI_K_TYPE_WINSTRING:
@@ -289,6 +461,18 @@ void CffiDyncallReloadArg(CffiCall *callP, CffiArgument *argP, CffiTypeAndAttrs 
             dcArgPointer(vmP, &argP->value.u.ptr);
         else
             dcArgPointer(vmP, argP->value.u.ptr);
+        break;
+    case CFFI_K_TYPE_STRUCT:
+        if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)
+            dcArgPointer(vmP, argP->value.u.ptr);
+        else {
+            /* Since reload, dcAggrP should already have been init'ed */
+            CFFI_ASSERT(typeAttrsP->dataType.u.structP->dcAggrP);
+            CFFI_ASSERT(argP->value.u.ptr);
+            dcArgAggr(callP->fnP->ipCtxP->vmP,
+                      typeAttrsP->dataType.u.structP->dcAggrP,
+                      argP->value.u.ptr);
+        }
         break;
     default:
         CFFI_PANIC("CffiLoadArg: unknown typei %d",

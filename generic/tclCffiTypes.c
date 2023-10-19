@@ -275,6 +275,19 @@ static CffiAttrs cffiAttrs[] = {
      1},
     {NULL}};
 
+CffiResult
+CffiErrorType(Tcl_Interp *ip, int type, const char *fileName, int lineNum)
+{
+    if (ip) {
+        Tcl_SetObjResult(
+            ip,
+            Tcl_ObjPrintf("Internal error: type %d not handled at %s line %d",
+                          type,
+                          fileName,
+                          lineNum));
+    }
+    return TCL_ERROR;
+}
 
 /* Function: CffiBaseTypeInfoGet
  * Returns pointer to type information for a basic type.
@@ -1192,20 +1205,18 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     break;
                 case CFFI_K_TYPE_STRUCT:
                     if ((flags & CFFI_F_ATTR_BYREF) == 0) {
-#ifdef CFFI_USE_DYNCALL
+#ifndef CFFI_HAVE_STRUCT_BYVAL
                         message = "Passing of structs by value is not "
                                   "supported. Annotate with \"byref\" to pass by "
                                   "reference if function expects a pointer.";
                         goto invalid_format;
 #endif
-#ifdef CFFI_USE_LIBFFI
                         if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
                             message =
                                 "Structs cannot have nullifempty attribute "
                                 "when passed as an argument by value.";
                             goto invalid_format;
                         }
-#endif
                         if (CffiStructIsUnion(typeAttrP->dataType.u.structP)) {
                             message = "Unions cannot be passed by value.";
                             goto invalid_format;

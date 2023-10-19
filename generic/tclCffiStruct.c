@@ -38,6 +38,10 @@ CffiStructUnref(CffiStruct *structP)
             }
         }
 #endif
+#if defined(CFFI_USE_DYNCALL) && defined(CFFI_HAVE_STRUCT_BYVAL)
+        if (structP->dcAggrP)
+            dcFreeAggr(structP->dcAggrP);
+#endif
         if (structP->name)
             Tcl_DecrRefCount(structP->name);
         for (i = 0; i < structP->nFields; ++i) {

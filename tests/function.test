@@ -1405,17 +1405,17 @@ namespace eval ${NS}::test {
         getTestStruct s
         checkTestStruct $s
     } -result [list ]
-    test function-struct-out-1 "Param out - struct with strings" -constraints libffi -body {
+    test function-struct-out-1 "Param out - struct with strings" -body {
         testDll function getStructWithStrings void {s {struct.StructWithStrings out}}
         getStructWithStrings s
         set s
     } -result [makeStructWithStrings]
-    test function-struct-out-2.win "Param out - struct with null strings" -constraints libffi -body {
+    test function-struct-out-2.win "Param out - struct with null strings" -body {
         testDll function getStructWithNullStrings void {s {struct.StructWithStrings out}}
         getStructWithNullStrings s
         set s
     } -constraints win -result {s {} utf8 {} jis {} uni {} win {}}
-    test function-struct-out-2.notwin "Param out - struct with null strings" -constraints libffi -body {
+    test function-struct-out-2.notwin "Param out - struct with null strings" -body {
         testDll function getStructWithNullStrings void {s {struct.StructWithStrings out}}
         getStructWithNullStrings s
         set s
@@ -1438,7 +1438,7 @@ namespace eval ${NS}::test {
         checkTestStruct [getTestStruct]
     } -result [list ]
 
-    test function-struct-in-0 "Param struct in" -constraints libffi -setup {
+    test function-struct-in-0 "Param struct in" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheckByVal int {s struct.::S c uchar ll longlong s short}
     } -body {
@@ -1446,21 +1446,14 @@ namespace eval ${NS}::test {
         structCheckByVal [list c 1 ll $ll s 2] 1 $ll 2
     } -result 1
 
-    test function-struct-in-1 "Param in byref - struct with strings" -constraints libffi -body {
+    test function-struct-in-1 "Param in byref - struct with strings" -body {
         testDll function checkStructWithStrings int {s {struct.StructWithStrings byref}}
         checkStructWithStrings [makeStructWithStrings]
     } -result 0
-    test function-struct-in-2 "Param in - struct with strings" -constraints libffi -body {
+    test function-struct-in-2 "Param in - struct with strings" -body {
         testDll function checkStructWithStringsByVal int {s struct.StructWithStrings}
         checkStructWithStringsByVal [makeStructWithStrings]
     } -result 0
-
-    test function-struct-in-error-0 "Param struct by value - error" -constraints {
-        dyncall
-    } -body {
-        testDll function getTestStruct int {s struct.TestStruct}
-    } -result "Invalid value \"struct.TestStruct\". $errorMessages(structbyref) Error defining function getTestStruct." -returnCodes error
-
 
     test function-struct-in-byref-0 "Param struct in byref" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}

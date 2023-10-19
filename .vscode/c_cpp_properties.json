@@ -16,7 +16,7 @@
                 "PACKAGE_VERSION=\"0.1\"",
                 "TCLH_IMPL",
                 "TCLH_EMBEDDER=\"CFFI\"",
-                "CFFI_USE_LIBFFI",
+                "CFFI_USE_DYNCALL",
                 "CFFI_USE_TCLLOAD"
             ],
             "windowsSdkVersion": "10.0.17763.0",

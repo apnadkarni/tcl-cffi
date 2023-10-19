@@ -1006,13 +1006,10 @@ namespace eval cffi::test {
             test $testlabel-0 "type size $typedecl" -body {
                 cffi::type size $typedecl
             } -result [expr {$count ? ($count * $testStructSize) : $testStructSize}] {*}$args
-            
         }
     }
     foreach parse_mode {param return field} {
         if {$parse_mode eq "param"} {
-            testinvalidattr "struct.TestStruct" param $errorMessages(structbyref) -constraints dyncall
-            testinvalidattr "struct.TestStruct in" param $errorMessages(structbyref) -constraints dyncall
             # Scalar tests - success
             foreach {attrs expected} {
                 "out" "out byref" "inout" "inout byref" "byref" "in byref"
@@ -1025,10 +1022,8 @@ namespace eval cffi::test {
             } {
                 teststruct "struct.::TestStruct $attrs" param $expected
             }
-            testinvalidattr "struct.TestStruct in nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints libffi
-            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.} -constraints libffi
-            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode $errorMessages(structbyref) -constraints dyncall
-            testinvalidattr "struct.TestStruct in nullok" $parse_mode $errorMessages(structbyref) -constraints dyncall
+            testinvalidattr "struct.TestStruct in nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.}
+            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.}
         } else {
             foreach attr {in out inout} {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrparsemode)

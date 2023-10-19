@@ -406,7 +406,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      */
 
     /* Non-scalars need to be passed byref. Parsing should have checked */
-#ifdef CFFI_USE_LIBFFI
+#ifdef CFFI_HAVE_STRUCT_BYVAL
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
@@ -530,8 +530,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             case CFFI_K_TYPE_WINSTRING: PUSHARG(CffiStoreArgPointer, ptr); break;
 #endif
             default:
-                return Tclh_ErrorGeneric(
-                    ip, NULL, "Internal error: type not handled.");
+                return CffiErrorType(
+                    ipCtxP->interp, baseType, __FILE__, __LINE__);
             }
         }
         else if (argP->arraySize == 0) {
@@ -603,8 +603,19 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
                 STOREARGBYVAL(CffiStoreArgPointer, ptr);
             } else {
+#ifndef CFFI_HAVE_STRUCT_BYVAL
+                CFFI_ASSERT(0); /* Should not reach here if no by val support */
+#endif
 #ifdef CFFI_USE_DYNCALL
-                CFFI_ASSERT(0); /* Should not reach here for dyncall */
+                if (typeAttrsP->dataType.u.structP->dcAggrP == NULL) {
+                    CHECK(CffiDyncallAggrInit(ipCtxP,
+                                              typeAttrsP->dataType.u.structP));
+                }
+                CFFI_ASSERT(typeAttrsP->dataType.u.structP->dcAggrP);
+                dcArgAggr(callP->fnP->ipCtxP->vmP,
+                          typeAttrsP->dataType.u.structP->dcAggrP,
+                          structValueP);
+                argP->value.u.ptr = structValueP;
 #endif
 #ifdef CFFI_USE_LIBFFI
                 argP->value.u.ptr             = NULL;/* Not used */
@@ -1031,7 +1042,7 @@ store_value:
  * Returns TCL_OK on success and TCL_ERROR on failure with error message
  * in the interpreter.
  */
-CffiResult
+static CffiResult
 CffiReturnPrepare(CffiCall *callP)
 {
 #ifdef CFFI_USE_DYNCALL
@@ -1106,7 +1117,8 @@ CffiReturnPrepare(CffiCall *callP)
     return TCL_OK;
 }
 
-CffiResult CffiReturnCleanup(CffiCall *callP)
+static CffiResult
+CffiReturnCleanup(CffiCall *callP)
 {
     /*
      * No clean up needed for any types. Any type that needs non-scalar
