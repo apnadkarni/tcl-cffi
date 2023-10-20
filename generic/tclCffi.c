@@ -205,6 +205,18 @@ CffiSandboxObjCmd(ClientData cdata,
     return TCL_OK;
 }
 
+static int
+CffiClosureDeleteEntry(Tcl_HashTable *htP, Tcl_HashEntry *heP, ClientData unused)
+{
+    CffiCallback *cbP = Tcl_GetHashValue(heP);
+    if (cbP) {
+        if (cbP->depth != 0)
+            return 0; /* Cannot delete while active */
+        CffiCallbackCleanupAndFree(cbP);
+    }
+    return 1;
+}
+
 static void
 CffiInterpCtxCleanupAndFree(CffiInterpCtx *ipCtxP)
 {
@@ -217,6 +229,10 @@ CffiInterpCtxCleanupAndFree(CffiInterpCtx *ipCtxP)
         CffiAliasesCleanup(ipCtxP);
         CffiEnumsCleanup(ipCtxP);
         CffiPrototypesCleanup(ipCtxP);
+
+        Tclh_HashIterate(
+            &ipCtxP->callbackClosures, CffiClosureDeleteEntry, NULL);
+        Tcl_DeleteHashTable(&ipCtxP->callbackClosures);
 
         Tclh_LifoClose(&ipCtxP->memlifo);
         ckfree(ipCtxP);
@@ -246,6 +262,9 @@ CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
     CffiNameTableInit(&ipCtxP->scope.enums);
     CffiNameTableInit(&ipCtxP->scope.aliases);
     CffiNameTableInit(&ipCtxP->scope.prototypes);
+
+    /* Table mapping callback closure function addresses to CffiCallback */
+    Tcl_InitHashTable(&ipCtxP->callbackClosures, TCL_ONE_WORD_KEYS);
 
 #ifdef CFFI_USE_DYNCALL
     ret = CffiDyncallInit(ipCtxP);
@@ -316,7 +335,7 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::Union", CffiUnionObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::call", CffiCallObjCmd, ipCtxP, NULL);
-#ifdef CFFI_USE_LIBFFI
+#ifdef CFFI_HAVE_CALLBACKS
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::callback", CffiCallbackObjCmd, ipCtxP, NULL);
 #endif

@@ -52,8 +52,7 @@ set start_page {
     - [`dyncall`](https://dyncall.org)
 
     The selection of the back end library to use is made at build time as described
-    in the build instructions. Note the `dyncall` backend has some
-    [limitations][Limitations] compared to `libffi`.
+    in the build instructions.
 
     ## Quick start
 
@@ -693,11 +692,5 @@ set start_page {
     % cffi::help functions Heap*
     HeapCreate HeapDestroy
     ````
-
-    ### Limitations
-
-    The `dyncall` backend has the following limitations:
-
-    - Callbacks into Tcl from C functions are not implemented.
 }
 

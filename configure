@@ -8099,7 +8099,7 @@ $as_echo "#define CFFI_USE_DYNCALL 1" >>confdefs.h
 
 
 
-    vars="-ldynload_s -ldyncall_s"
+    vars="-ldynload_s -ldyncall_s -ldyncallback_s"
     for i in $vars; do
 	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
 	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib

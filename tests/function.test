@@ -1672,8 +1672,6 @@ namespace eval ${NS}::test {
         cffi::Struct create OuterWithDefaults {f {float {default 3}} s {struct.SimpleWithDefaults {default {}}} p {pointer unsafe nullok {default NULL}}}
         testDll function {incrSimpleOuterStructByVal fn} struct.OuterWithDefaults {s {struct.OuterWithDefaults {default {}}}}
         fn
-    } -constraints {
-        libffi
     } -cleanup {
         rename fn {}
         SimpleWithDefaults destroy
@@ -2468,7 +2466,7 @@ namespace eval ${NS}::test {
     } -result ""
 
     # Return type - struct
-    test function-struct-return-0 "Return struct with input struct" -constraints libffi -setup {
+    test function-struct-return-0 "Return struct with input struct" -setup {
         cffi::Struct create ::Inner {c schar ll longlong s short}
         cffi::Struct create ::Outer {f float s struct.::Inner p {pointer unsafe}}
         testDll function {incrSimpleOuterStructByVal f} struct.::Outer {s struct.::Outer}
@@ -2483,6 +2481,14 @@ namespace eval ${NS}::test {
         testDll function returnStructWithStrings struct.StructWithStrings {}
         returnStructWithStrings
     } -result [makeStructWithStrings]
+
+    test function-struct-return-2 "Return struct containing array" -constraints {
+        dyncall
+    } -setup {
+        testDll function returnTestStruct struct.TestStruct {}
+    } -body {
+        checkTestStruct [returnTestStruct]
+    } -result {}
 
     test function-struct-return-error-1 "Return struct containing array" -constraints {
         libffi

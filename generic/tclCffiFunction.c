@@ -1144,8 +1144,6 @@ CffiReturnCleanup(CffiCall *callP)
     return TCL_OK;
 }
 
-
-
 /* Function: CffiFunctionCleanup
  * Releases resources associated with a function definition.
  *

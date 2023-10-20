@@ -1052,7 +1052,7 @@ namespace eval cffi::test {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
             }
         }
-        testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints libffi
+        testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.}
         testinvalidattr "struct.TestStruct nullok" $parse_mode {*} -constraints dyncall -match glob
 
         # Array tests

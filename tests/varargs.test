@@ -109,7 +109,7 @@ namespace eval ${NS}::test {
         set addr [testDll addressof formatVarargs]
     } -cleanup {
         cffi::prototype clear
-    } -constraints libffi -body {
+    } -body {
         cffi::prototype function varargsProto int {buf {chars[bufSize] out} bufSize int fmt string ...}
         set fnptr [cffi::callback new [namespace current]::varargsProto my_callback -1]
     } -result {Callbacks cannot have a variable number of parameters.} -returnCodes error

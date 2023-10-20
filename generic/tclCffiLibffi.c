@@ -301,6 +301,13 @@ error_handler:
     return TCL_ERROR;
 }
 
+void
+CffiLibffiCallbackCleanup(CffiCallback *cbP)
+{
+    if (cbP->ffiClosureP)
+        ffi_closure_free(cbP->ffiClosureP);
+}
+
 static CffiResult
 CffiLibffiCallbackArgToObj(CffiCallback *cbP,
                            ffi_cif *cifP,
@@ -313,6 +320,12 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
 
     CFFI_ASSERT(CffiTypeIsNotArray(&typeAttrsP->dataType));
 
+    /*
+     * Note even for integer values, we call CffiNativeScalarToObj since
+     * integers may need to be mapped to enum names etc.
+     */
+
+    /* TODO - why the type_ and fld_ parameters? */
 #define EXTRACT_(type_, fld_)                                                  \
     do {                                                                       \
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \
@@ -382,7 +395,6 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         cbP->ipCtxP, typeAttrsP, valueP, 0, argObjP);
 
 #undef EXTRACT_
-#undef EXTRACT_INT_
 }
 
 
@@ -505,7 +517,10 @@ CffiLibffiCallbackInit(CffiInterpCtx *ipCtxP,
         }
         if (ipCtxP->interp) {
             Tcl_SetObjResult(
-                ipCtxP->interp, Tcl_ObjPrintf("Internal error: ffi_prep_closure_loc returned error %d", ffiStatus));
+                ipCtxP->interp,
+                Tcl_ObjPrintf(
+                    "Internal error: ffi_prep_closure_loc returned error %d",
+                    ffiStatus));
         }
     }
     if (closureP)
@@ -629,30 +644,13 @@ vamoose:
         Tclh_LifoPopMark(mark);
 }
 
-static int
-CffiLibffiClosureDeleteEntry(Tcl_HashTable *htP, Tcl_HashEntry *heP, ClientData unused)
-{
-    CffiCallback *cbP = Tcl_GetHashValue(heP);
-    if (cbP) {
-        if (cbP->depth != 0)
-            return 0; /* Cannot delete while active */
-        CffiCallbackCleanupAndFree(cbP);
-    }
-    return 1;
-}
-
 void
 CffiLibffiFinit(CffiInterpCtx *ipCtxP)
 {
-    Tclh_HashIterate(
-        &ipCtxP->callbackClosures, CffiLibffiClosureDeleteEntry, NULL);
-    Tcl_DeleteHashTable(&ipCtxP->callbackClosures);
 }
 
 CffiResult
 CffiLibffiInit(CffiInterpCtx *ipCtxP)
 {
-    /* Table mapping callback closure function addresses to CffiCallback */
-    Tcl_InitHashTable(&ipCtxP->callbackClosures, TCL_ONE_WORD_KEYS);
     return TCL_OK;
 }

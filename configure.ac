@@ -221,7 +221,7 @@ AS_VAR_IF([with_dyncall], [yes],
      TEA_ADD_CFLAGS([-DCFFI_USE_DYNCALL])
      TEA_ADD_INCLUDES([$DYNCALL_CFLAGS])
      TEA_ADD_SOURCES([generic/tclCffiDyncall.c])
-     TEA_ADD_LIBS([-ldynload_s -ldyncall_s])])
+     TEA_ADD_LIBS([-ldynload_s -ldyncall_s -ldyncallback_s])])
 
 
 

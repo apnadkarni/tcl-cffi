@@ -166,9 +166,10 @@ typedef struct CffiStruct CffiStruct;
  * Data type representation
  */
 typedef struct CffiBaseTypeInfo {
-    const char *token;/* Script level type identifier string token */
-    int token_len;    /* Length of token */
-    CffiBaseType baseType;/* C level type identifier */
+    const char *token;     /* Script level type identifier string token */
+    short token_len;       /* Length of token */
+    char dcSigChar;        /* Corresponding dyncall sigchar, 0 for libffi */
+    CffiBaseType baseType; /* C level type identifier */
     int validAttrFlags;    /* Mask type attribute flags valid for this type */
     int size;              /* Size of type - only for scalars */
 } CffiBaseTypeInfo;
@@ -546,6 +547,7 @@ typedef struct CffiCallback {
 #endif
 #ifdef CFFI_USE_DYNCALL
     DCCallback *dcCallbackP;
+    char *dcCallbackSig; /* Callback signature string */
 #endif
     int depth;
 } CffiCallback;
@@ -821,6 +823,13 @@ CffiResult CffiNameDeleteNames(Tcl_Interp *ip,
 CffiResult CffiDyncallInit(CffiInterpCtx *ipCtxP);
 void CffiDyncallFinit(CffiInterpCtx *ipCtxP);
 
+#ifdef CFFI_HAVE_CALLBACKS
+CffiResult CffiDyncallCallbackInit(CffiInterpCtx *ipCtxP,
+                                   CffiProto *protoP,
+                                   CffiCallback *cbP);
+void CffiDyncallCallbackCleanup(CffiCallback *cbP);
+#endif
+
 CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
     return DC_CALL_C_DEFAULT;
 }
@@ -908,6 +917,7 @@ void CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata);
 CffiResult CffiLibffiCallbackInit(CffiInterpCtx *ipCtxP,
                                   CffiProto *protoP,
                                   CffiCallback *cbP);
+void CffiLibffiCallbackCleanup(CffiCallback *cbP);
 # endif
 
 CFFI_INLINE CffiABIProtocol CffiDefaultABI() {

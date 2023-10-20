@@ -9,6 +9,13 @@
 
 #ifdef CFFI_HAVE_CALLBACKS
 
+#ifdef CFFI_USE_LIBFFI
+# define EXEFLD ffiExecutableAddress
+#endif
+#ifdef CFFI_USE_DYNCALL
+# define EXEFLD dcCallbackP
+#endif
+
 static void
 CffiCallbackCleanup(CffiCallback *cbP)
 {
@@ -19,16 +26,20 @@ CffiCallbackCleanup(CffiCallback *cbP)
             Tcl_DecrRefCount(cbP->cmdObj);
         if (cbP->errorResultObj)
             Tcl_DecrRefCount(cbP->errorResultObj);
-        if (cbP->ffiExecutableAddress) {
+        if (cbP->EXEFLD) {
             Tcl_HashEntry *heP;
             heP = Tcl_FindHashEntry(&cbP->ipCtxP->callbackClosures,
-                                    cbP->ffiExecutableAddress);
+                                    cbP->EXEFLD);
             CFFI_ASSERT(Tcl_GetHashValue(heP) == cbP);
             if (heP)
                 Tcl_DeleteHashEntry(heP);
         }
-        if (cbP->ffiClosureP)
-            ffi_closure_free(cbP->ffiClosureP);
+#ifdef CFFI_USE_LIBFFI
+        CffiLibffiCallbackCleanup(cbP);
+#endif
+#ifdef CFFI_USE_DYNCALL
+        CffiDyncallCallbackCleanup(cbP);
+#endif
     }
 }
 
@@ -55,6 +66,10 @@ CffiCallbackAllocAndInit(CffiInterpCtx *ipCtxP,
 #ifdef CFFI_USE_LIBFFI
     cbP->ffiClosureP = NULL;
     cbP->ffiExecutableAddress = NULL;
+#endif
+#ifdef CFFI_USE_DYNCALL
+    cbP->dcCallbackP = NULL;
+    cbP->dcCallbackSig = NULL;
 #endif
     cbP->errorResultObj = errorResultObj;
     if (errorResultObj)
@@ -236,13 +251,6 @@ CffiCallbackFind(CffiInterpCtx *ipCtxP,
                  void *executableAddress,
                  CffiCallback **cbPP)
 {
-#ifdef CFFI_USE_DYNCALL
-    Tcl_SetResult(
-        ip, "Callbacks not supported by the dyncall back end.", TCL_STATIC);
-    return TCL_ERROR;
-#endif
-
-#ifdef CFFI_USE_LIBFFI
     Tcl_HashEntry *heP;
     heP = Tcl_FindHashEntry(&ipCtxP->callbackClosures, executableAddress);
     if (heP) {
@@ -252,9 +260,7 @@ CffiCallbackFind(CffiInterpCtx *ipCtxP,
     else
         return Tclh_ErrorNotFound(
             ipCtxP->interp, "Callback", NULL, "Callback entry not found.");
-#endif
 }
-
 
 static CffiResult
 CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
@@ -275,7 +281,12 @@ CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
 
     /* Map the function trampoline address to our callback structure */
     CHECK(CffiCallbackFind(ipCtxP, pv, &cbP));
+#ifdef CFFI_USE_LIBFFI
     CFFI_ASSERT(cbP->ffiExecutableAddress == pv);
+#endif
+#ifdef CFFI_USE_DYNCALL
+    CFFI_ASSERT(cbP->dcCallbackP == pv);
+#endif
 
     if (cbP->depth != 0) {
         return Tclh_ErrorGeneric(
@@ -305,6 +316,7 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
     Tcl_Size nCmdObjs;
     Tcl_Obj *cbObj;
     CffiResult ret;
+    void *executableAddr;
 
     CFFI_ASSERT(objc == 4 || objc == 5);
 
@@ -335,19 +347,25 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
 #ifdef CFFI_USE_LIBFFI
     if (CffiLibffiCallbackInit(ipCtxP, protoP, cbP) != TCL_OK)
         goto error_handler;
-
+    executableAddr = cbP->ffiExecutableAddress;
+#endif
+#ifdef CFFI_USE_DYNCALL
+    if (CffiDyncallCallbackInit(ipCtxP, protoP, cbP) != TCL_OK)
+        goto error_handler;
+    executableAddr = cbP->dcCallbackP;
+#endif
     /*
      * Construct return function pointer value. This pointer is passed
      * as the callback function address.
      */
     ret = Tclh_PointerRegister(
-        ip, ipCtxP->tclhCtxP, cbP->ffiExecutableAddress, protoFqnObj, &cbObj);
+        ip, ipCtxP->tclhCtxP, executableAddr, protoFqnObj, &cbObj);
     if (ret == TCL_OK) {
         /* We need to map from the function pointer to callback context */
         Tcl_HashEntry *heP;
         int isNew;
         heP = Tcl_CreateHashEntry(
-            &ipCtxP->callbackClosures, cbP->ffiExecutableAddress, &isNew);
+            &ipCtxP->callbackClosures, executableAddr, &isNew);
         if (isNew) {
             Tcl_SetHashValue(heP, cbP);
             Tcl_SetObjResult(ip, cbObj);
@@ -358,7 +376,6 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
         Tcl_SetResult(
             ip, "Internal error: callback entry already exists.", TCL_STATIC);
     }
-#endif
 
 error_handler:
     if (protoFqnObj)
