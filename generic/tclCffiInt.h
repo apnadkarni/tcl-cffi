@@ -35,6 +35,7 @@
 
 # include "dynload.h"
 # include "dyncall.h"
+# include "dyncall_callback.h"
 
 # ifdef DC__Feature_AggrByVal
 #  define CFFI_HAVE_STRUCT_BYVAL
@@ -43,6 +44,8 @@
 # ifdef DC_CALL_C_ELLIPSIS_VARARGS
 #  define CFFI_HAVE_VARARGS
 # endif
+
+# define CFFI_HAVE_CALLBACKS
 
 #endif /* CFFI_USE_DYNCALL */
 
@@ -71,11 +74,12 @@
 #  pragma warning(pop)
 # endif
 
+# if defined(FFI_CLOSURES)
+#  define CFFI_HAVE_CALLBACKS
+# endif
+
 #endif /* CFFI_USE_LIBFFI */
 
-#if defined(CFFI_USE_LIBFFI) && defined(FFI_CLOSURES)
-#define CFFI_ENABLE_CALLBACKS
-#endif
 
 /*
  * Libffi does not have its own load. For consistency, always use Tcl_Load even for
@@ -401,7 +405,7 @@ typedef struct CffiInterpCtx {
                                  deletion as contexts are unregistered before
                                  interp deletion */
     CffiScope scope;
-#ifdef CFFI_USE_LIBFFI
+#ifdef CFFI_HAVE_CALLBACKS
     Tcl_HashTable callbackClosures;   /* Maps FFI callback function pointers
                                          to CffiCallback */
 #endif
@@ -527,7 +531,7 @@ typedef struct CffiCall {
     CffiArgument *argsP;   /* Arguments */
 } CffiCall;
 
-#ifdef CFFI_ENABLE_CALLBACKS
+#ifdef CFFI_HAVE_CALLBACKS
 /* Struct: CffiCallback
  * Contains context needed for processing callbacks.
  */
@@ -539,6 +543,9 @@ typedef struct CffiCallback {
 #ifdef CFFI_USE_LIBFFI
     ffi_closure *ffiClosureP;
     void *ffiExecutableAddress;
+#endif
+#ifdef CFFI_USE_DYNCALL
+    DCCallback *dcCallbackP;
 #endif
     int depth;
 } CffiCallback;
@@ -896,8 +903,11 @@ CffiResult CffiLibffiInitProtoCif(CffiInterpCtx *ipCtxP,
                                   Tcl_Obj * const *varArgObjs,
                                   CffiTypeAndAttrs *typeAttrsP);
 
-# ifdef CFFI_ENABLE_CALLBACKS
+# ifdef CFFI_HAVE_CALLBACKS
 void CffiLibffiCallback(ffi_cif *cifP, void *retP, void **args, void *userdata);
+CffiResult CffiLibffiCallbackInit(CffiInterpCtx *ipCtxP,
+                                  CffiProto *protoP,
+                                  CffiCallback *cbP);
 # endif
 
 CFFI_INLINE CffiABIProtocol CffiDefaultABI() {
@@ -1000,7 +1010,7 @@ Tcl_ObjCmdProc CffiStructObjCmd;
 Tcl_ObjCmdProc CffiUnionObjCmd;
 Tcl_ObjCmdProc CffiTypeObjCmd;
 
-#ifdef CFFI_ENABLE_CALLBACKS
+#ifdef CFFI_HAVE_CALLBACKS
 Tcl_ObjCmdProc CffiCallbackObjCmd;
 #endif
 

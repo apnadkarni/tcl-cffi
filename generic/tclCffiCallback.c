@@ -7,7 +7,7 @@
 
 #include "tclCffiInt.h"
 
-#ifdef CFFI_ENABLE_CALLBACKS
+#ifdef CFFI_HAVE_CALLBACKS
 
 static void
 CffiCallbackCleanup(CffiCallback *cbP)
@@ -52,8 +52,10 @@ CffiCallbackAllocAndInit(CffiInterpCtx *ipCtxP,
     protoP->nRefs += 1;
     cbP->cmdObj = cmdObj;
     Tcl_IncrRefCount(cmdObj);
+#ifdef CFFI_USE_LIBFFI
     cbP->ffiClosureP = NULL;
     cbP->ffiExecutableAddress = NULL;
+#endif
     cbP->errorResultObj = errorResultObj;
     if (errorResultObj)
         Tcl_IncrRefCount(errorResultObj);
@@ -303,16 +305,6 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
     Tcl_Size nCmdObjs;
     Tcl_Obj *cbObj;
     CffiResult ret;
-    void *closureP;
-    void *executableAddr;
-
-#ifdef CFFI_USE_DYNCALL
-    Tcl_SetResult(
-        ip, "Callbacks not supported by the dyncall back end.", TCL_STATIC);
-    return TCL_ERROR;
-#endif
-
-#ifdef CFFI_USE_LIBFFI
 
     CFFI_ASSERT(objc == 4 || objc == 5);
 
@@ -335,60 +327,38 @@ CffiCallbackNewCmd(CffiInterpCtx *ipCtxP,
             != TCL_OK)
         goto error_handler;
 
-    /* Translate Cffi definition to libffi definiiotn */
-    if (CffiLibffiInitProtoCif(ipCtxP, protoP, 0, NULL, NULL) != TCL_OK)
-        goto error_handler;
-
     cbP = CffiCallbackAllocAndInit(
         ipCtxP, protoP, objv[3], objc < 5 ? NULL : objv[4]);
     if (cbP == NULL)
         goto error_handler;
 
-    /* Allocate the libffi closure */
-    closureP = ffi_closure_alloc(sizeof(ffi_closure), &executableAddr);
-    if (closureP == NULL)
-        Tclh_ErrorAllocation(ip, "ffi_closure", NULL);
-    else {
-        ffi_status ffiStatus;
+#ifdef CFFI_USE_LIBFFI
+    if (CffiLibffiCallbackInit(ipCtxP, protoP, cbP) != TCL_OK)
+        goto error_handler;
 
-        cbP->ffiClosureP = closureP;
-
-        ffiStatus = ffi_prep_closure_loc(
-            closureP, protoP->cifP, CffiLibffiCallback, cbP, executableAddr);
-        if (ffiStatus == FFI_OK) {
-            cbP->ffiExecutableAddress = executableAddr;
-            /*
-             * Construct return function pointer value. This pointer is passed
-             * as the callback function address.
-             */
-            ret = Tclh_PointerRegister(ip,
-                                       ipCtxP->tclhCtxP,
-                                       executableAddr,
-                                       protoFqnObj,
-                                       &cbObj);
-            if (ret == TCL_OK) {
-                /* We need to map from the function pointer to callback context */
-                Tcl_HashEntry *heP;
-                int isNew;
-                heP = Tcl_CreateHashEntry(
-                    &ipCtxP->callbackClosures, executableAddr, &isNew);
-                if (isNew) {
-                    Tcl_SetHashValue(heP, cbP);
-                    Tcl_SetObjResult(ip, cbObj);
-                    Tcl_DecrRefCount(protoFqnObj);
-                    return TCL_OK;
-                }
-                /* Entry exists? Something wrong */
-                Tcl_SetResult(ip,
-                              "Internal error: callback entry already exists.",
-                              TCL_STATIC);
-            }
+    /*
+     * Construct return function pointer value. This pointer is passed
+     * as the callback function address.
+     */
+    ret = Tclh_PointerRegister(
+        ip, ipCtxP->tclhCtxP, cbP->ffiExecutableAddress, protoFqnObj, &cbObj);
+    if (ret == TCL_OK) {
+        /* We need to map from the function pointer to callback context */
+        Tcl_HashEntry *heP;
+        int isNew;
+        heP = Tcl_CreateHashEntry(
+            &ipCtxP->callbackClosures, cbP->ffiExecutableAddress, &isNew);
+        if (isNew) {
+            Tcl_SetHashValue(heP, cbP);
+            Tcl_SetObjResult(ip, cbObj);
+            Tcl_DecrRefCount(protoFqnObj);
+            return TCL_OK;
         }
-        else {
-            Tcl_SetObjResult(
-                ip, Tcl_ObjPrintf("libffi returned error %d", ffiStatus));
-        }
+        /* Entry exists? Something wrong */
+        Tcl_SetResult(
+            ip, "Internal error: callback entry already exists.", TCL_STATIC);
     }
+#endif
 
 error_handler:
     if (protoFqnObj)
@@ -397,7 +367,6 @@ error_handler:
         CffiCallbackCleanupAndFree(cbP);
     return TCL_ERROR;
 
-#endif /* CFFI_USE_LIBFFI */
 }
 
 CffiResult
@@ -406,14 +375,6 @@ CffiCallbackObjCmd(ClientData cdata,
                     int objc,
                     Tcl_Obj *const objv[])
 {
-#ifdef CFFI_USE_DYNCALL
-    Tcl_SetResult(
-        ip, "Callbacks not supported by the dyncall back end.", TCL_STATIC);
-    return TCL_ERROR;
-#endif
-
-#ifdef CFFI_USE_LIBFFI
-
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     /* The flags field CFFI_F_ALLOW_UNSAFE is set for unsafe pointer operation */
     static const Tclh_SubCommand subCommands[] = {
@@ -425,8 +386,6 @@ CffiCallbackObjCmd(ClientData cdata,
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
     return subCommands[cmdIndex].cmdFn(ipCtxP, ip, objc, objv);
-
-#endif /* CFFI_USE_LIBFFI */
 }
 
-#endif /* CFFI_ENABLE_CALLBACKS */
+#endif /* CFFI_HAVE_CALLBACKS */

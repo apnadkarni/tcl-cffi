@@ -8,7 +8,7 @@ namespace eval ${NS}::callback {
         #    [prototype function] or [prototype stdcall] commands
         #  cmdprefix - the command prefix that should be invoked when the created
         #    C function is called
-        #  error_result - the value that should be returned if the command prefix
+        #  error_value - the value that should be returned if the command prefix
         #    raises an exception. This is optional if the function prototype
         #    specifies the `void` return type.
         #

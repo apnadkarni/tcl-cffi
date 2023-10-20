@@ -466,6 +466,52 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
 #undef RETURNINT_
 }
 
+/*
+ *------------------------------------------------------------------------
+ *
+ * CffiLibffiCallbackInit --
+ *
+ *    Initializes the libffi-specific components of the callback structure
+ *
+ * Results:
+ *    TCL_OK on success, TCL_ERROR on failure.
+ *
+ * Side effects:
+ *    Store libffi data in the cbP location
+ *
+ *------------------------------------------------------------------------
+ */
+CffiResult
+CffiLibffiCallbackInit(CffiInterpCtx *ipCtxP,
+                       CffiProto *protoP,
+                       CffiCallback *cbP)
+{
+    CHECK(CffiLibffiInitProtoCif(ipCtxP, protoP, 0, NULL, NULL));
+
+    void *closureP = NULL;
+    void *executableAddr;
+
+    closureP = ffi_closure_alloc(sizeof(ffi_closure), &executableAddr);
+    if (closureP == NULL)
+        return Tclh_ErrorAllocation(ipCtxP->interp, "ffi_closure", NULL);
+    else {
+        ffi_status ffiStatus;
+        ffiStatus = ffi_prep_closure_loc(
+            closureP, protoP->cifP, CffiLibffiCallback, cbP, executableAddr);
+        if (ffiStatus == FFI_OK) {
+            cbP->ffiClosureP          = closureP;
+            cbP->ffiExecutableAddress = executableAddr;
+            return TCL_OK;
+        }
+        if (ipCtxP->interp) {
+            Tcl_SetObjResult(
+                ipCtxP->interp, Tcl_ObjPrintf("Internal error: ffi_prep_closure_loc returned error %d", ffiStatus));
+        }
+    }
+    if (closureP)
+        ffi_closure_free(closureP);
+    return TCL_ERROR;
+}
 /* Function: CffiLibffiCallback
  * Called from libffi to invoke callback functions
  *
