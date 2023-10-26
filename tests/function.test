@@ -1460,6 +1460,20 @@ namespace eval ${NS}::test {
         checkStructWithStringsByVal [makeStructWithStrings]
     } -constraints structbyval -result 0
 
+    if {$::tcl_platform(platform) eq "windows"} {
+        set result [list c -127 i -2147483647 shrt -32767 uint 0 ushrt 0 l [expr {$intMin(long)+1}] uc 0 ul 0 chars CHARS ll -9223372036854775807 unic UNIC ull 0 b \x01\x02\x03 f 0.75 s {c INNER} d 1.125 wchars WCHARS]
+    } else {
+        set result [list c -127 i -2147483647 shrt -32767 uint 0 ushrt 0 l [expr {$intMin(long)+1}] uc 0 ul 0 chars CHARS ll -9223372036854775807 unic UNIC ull 0 b \x01\x02\x03 f 0.75 s {c INNER} d 1.125]
+    }
+    test function-struct-with-array-byval-1 "Pass struct byval" -setup {
+        testDll function getTestStruct int {s {struct.TestStruct out}}
+        testDll function incrTestStructByVal void {s struct.TestStruct ret {struct.TestStruct out}}
+    } -constraints {dyncall structbyval} -body {
+        getTestStruct s
+        incrTestStructByVal $s ret
+        set ret
+    } -result $result
+
     test function-struct-in-byref-0 "Param struct in byref" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheck int {s {struct.::S byref} c uchar ll longlong s short}
@@ -1525,7 +1539,6 @@ namespace eval ${NS}::test {
     } -body {
         getTestStruct s
         incrTestStruct s
-        # TBD - fix this result check for all platforms, including 32-bits
         set s
     } -result $result
 
@@ -2502,7 +2515,7 @@ namespace eval ${NS}::test {
     } -result {Invalid value "struct.StructWithStrings". The specified type is not valid for the type declaration context. Error defining function returnStructWithStrings.} -returnCodes error
 
     test function-struct-return-2 "Return struct containing array" -constraints {
-        structbyval
+        structbyval dyncall
     } -setup {
         testDll function returnTestStruct struct.TestStruct {}
     } -body {

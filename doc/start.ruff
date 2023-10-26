@@ -52,7 +52,7 @@ set start_page {
     - [`dyncall`](https://dyncall.org)
 
     The selection of the back end library to use is made at build time as described
-    in the build instructions.
+    in the build instructions. Also see [Limitations].
 
     ## Quick start
 
@@ -692,5 +692,15 @@ set start_page {
     % cffi::help functions Heap*
     HeapCreate HeapDestroy
     ````
+
+    ### Introspection
+
+    Each backend has some limitations in terms of passing of structs by value.
+
+    * The `libffi` backend cannot pass or return structs by value if they or
+    a nested field contains arrays.
+
+    * The `dyncall` backend only supports passing and return of structs by
+    value on x64 platforms.
 }
 

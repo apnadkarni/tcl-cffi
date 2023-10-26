@@ -739,6 +739,38 @@ EXTERN void incrTestStruct(TestStruct *tsP)
     SET(ull);
     SET(f);
     SET(d);
+#undef SET
+}
+
+/* Increments every numeric field value by 1 */
+EXTERN void incrTestStructByVal(TestStruct from, TestStruct *tsP)
+{
+#define SET(fld)                 \
+    do {                         \
+        tsP->fld = from.fld + 1; \
+    } while (0)
+
+    SET(c);
+    SET(i);
+    SET(shrt);
+    SET(uint);
+    SET(ushrt);
+    SET(l);
+    SET(uc);
+    SET(ul);
+    SET(ll);
+    SET(ull);
+    SET(f);
+    SET(d);
+
+    memmove(tsP->s.c, from.s.c, sizeof(tsP->s.c));
+    memmove(tsP->b, from.b, sizeof(tsP->b));
+    memmove(tsP->chars, from.chars, sizeof(tsP->chars));
+    memmove(tsP->unic, from.unic, sizeof(tsP->unic));
+#ifdef _WIN32
+    memmove(tsP->wchars, from.wchars, sizeof(tsP->wchars));
+#endif
+#undef SET
 }
 
 struct SimpleStruct {
