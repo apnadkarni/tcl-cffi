@@ -381,12 +381,12 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             CFFI_ASSERT(0);                                   \
     } while (0)
 
-#define ADDTYPEINDEX(alias_, existingIndex_)                                \
-    do {                                                                      \
-        if (CffiAliasAddStr(                                                  \
+#define ADDTYPEINDEX(alias_, existingIndex_)                               \
+    do {                                                                   \
+        if (CffiAliasAddStr(                                               \
                 ipCtxP, alias_, cffiBaseTypes[existingIndex_].token, NULL) \
-            != TCL_OK)                                                        \
-            return TCL_ERROR;                                                 \
+            != TCL_OK)                                                     \
+            return TCL_ERROR;                                              \
     } while (0)
 
 #define ADDINTTYPE(type_, alias_)          \
@@ -408,7 +408,7 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
             UNSIGNEDTYPEINDEX(_Bool);
             ADDTYPEINDEX("::cffi::_Bool", typeIndex);
         }
-        CffiAliasAddStr(ipCtxP, "::cffi::bool", "_Bool", NULL);
+        CffiAliasAddStr(ipCtxP, "::cffi::bool", "::cffi::_Bool", NULL);
         ADDINTTYPE(size_t, "::cffi::size_t");
 #ifdef _WIN32
         if (sizeof(SSIZE_T) == sizeof(int)) {
@@ -460,9 +460,9 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         ADDINTTYPE(USHORT, "::cffi::USHORT");
         ADDINTTYPE(WPARAM, "::cffi::WPARAM");
 
-        if (CffiAliasAddStr(ipCtxP, "::cffi::LPVOID", "pointer", NULL) != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, "::cffi::LPVOID", "pointer unsafe", NULL) != TCL_OK)
             return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, "::cffi::HANDLE", "pointer.HANDLE", NULL) != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, "::cffi::HANDLE", "pointer.::cffi::HANDLE", NULL) != TCL_OK)
             return TCL_ERROR;
     }
 #endif
