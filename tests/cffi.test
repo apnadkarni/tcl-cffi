@@ -14,7 +14,7 @@ namespace eval ${NS}::test {
     # pkgconfig
     test pkgconfig-list-0 {pkgconfig list} -body {
         lsort [cffi::pkgconfig list]
-    } -result {backend compiler version}
+    } -result {backend compiler structbyval version}
     test pkgconfig-get-0 {pkgconfig get version} -body {
         cffi::pkgconfig get version
     } -result [uplevel #0 package require cffi]
@@ -24,6 +24,9 @@ namespace eval ${NS}::test {
     test pkgconfig-get-2 {pkgconfig get backend} -body {
         expr {[cffi::pkgconfig get backend] in {libffi dyncall}}
     } -result 1
+    test pkgconfig-get-3 {pkgconfig get structbyval} -body {
+        pkgconfig get structbyval
+    } -result [testConstraint structbyval]; # self testing!
 
     # limits
     testnumargs limits cffi::limits TYPE

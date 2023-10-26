@@ -575,8 +575,15 @@ char *CffiDyncallCallbackSig(CffiInterpCtx *ipCtxP, CffiProto *protoP)
 {
     int paramIndex;
     int nParams = protoP->nParams;
-    char *sigP  = ckalloc(nParams + 3);/* Params, ")", return, \0 */
+    char *sigP  = ckalloc(2 + nParams + 3);/* Params, ")", return, \0 */
     char *p     = sigP;
+
+#if defined(_WIN32) && !defined(_WIN64)
+    if (protoP->abi == CffiStdcallABI()) {
+        *p++ = '_';
+        *p++ = 's';
+    }
+#endif
 
     for (paramIndex = 0; paramIndex < nParams; ++p, ++paramIndex) {
         CffiTypeAndAttrs *typeAttrsP = &protoP->params[paramIndex].typeAttrs;
