@@ -15,7 +15,9 @@ static Tcl_Config cffiConfig[] = {
 #else
 # error Back end library not defined.
 #endif
+
     {"version", PACKAGE_VERSION},
+
 #if defined(_MSC_VER)
     {"compiler", "vc++"},
 #elif defined(__GNUC__)
@@ -25,6 +27,13 @@ static Tcl_Config cffiConfig[] = {
 #else
     {"compiler", "unknown"},
 #endif
+
+#ifdef CFFI_HAVE_STRUCT_BYVAL
+    {"structbyval", "1"},
+#else
+    {"structbyval", "0"},
+#endif
+
     {NULL, NULL}
 };
 

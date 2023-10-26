@@ -276,6 +276,7 @@ CffiDyncallVarargsInit(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+#ifdef CFFI_HAVE_STRUCT_BYVAL
 /*
  *------------------------------------------------------------------------
  *
@@ -418,6 +419,7 @@ CffiResult CffiDyncallAggrInit(CffiInterpCtx *ipCtxP, CffiStruct *structP)
     structP->dcAggrP = dcAggrP;
     return TCL_OK;
 }
+#endif /* CFFI_HAVE_STRUCT_BYVAL */
 
 /* Function: CffiDyncallReloadArg
  * Loads an argument value into the dyncall argument context.
@@ -516,12 +518,16 @@ CffiDyncallReloadArg(CffiCall *callP,
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)
             dcArgPointer(vmP, argP->value.u.ptr);
         else {
+#ifdef CFFI_HAVE_STRUCT_BYVAL
             /* Since reload, dcAggrP should already have been init'ed */
             CFFI_ASSERT(typeAttrsP->dataType.u.structP->dcAggrP);
             CFFI_ASSERT(argP->value.u.ptr);
             dcArgAggr(callP->fnP->ipCtxP->vmP,
                       typeAttrsP->dataType.u.structP->dcAggrP,
                       argP->value.u.ptr);
+#else
+            CFFI_ASSERT(0); /* Should not have reached here */
+#endif
         }
         break;
     default:

@@ -1441,10 +1441,15 @@ namespace eval ${NS}::test {
     test function-struct-in-0 "Param struct in" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
         testDll function structCheckByVal int {s struct.::S c uchar ll longlong s short}
-    } -body {
+    } -constraints structbyval -body {
         set ll 0x7fffffffffff
         structCheckByVal [list c 1 ll $ll s 2] 1 $ll 2
     } -result 1
+    test function-struct-in-0.a "Param struct in" -setup {
+        cffi::Struct create ::S {c uchar ll longlong s short}
+    } -constraints !structbyval -body {
+        testDll function structCheckByVal int {s struct.::S c uchar ll longlong s short}
+    } -result {Invalid value "struct.::S". Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer. Error defining function structCheckByVal.} -returnCodes error
 
     test function-struct-in-1 "Param in byref - struct with strings" -body {
         testDll function checkStructWithStrings int {s {struct.StructWithStrings byref}}
@@ -1453,7 +1458,7 @@ namespace eval ${NS}::test {
     test function-struct-in-2 "Param in - struct with strings" -body {
         testDll function checkStructWithStringsByVal int {s struct.StructWithStrings}
         checkStructWithStringsByVal [makeStructWithStrings]
-    } -result 0
+    } -constraints structbyval -result 0
 
     test function-struct-in-byref-0 "Param struct in byref" -setup {
         cffi::Struct create ::S {c uchar ll longlong s short}
@@ -1667,7 +1672,7 @@ namespace eval ${NS}::test {
     } -result [list p [makeptr 0]]
 
     # Tests for default field values in structs passed
-    test function-struct-field-defaults-0 "field defaults in passed struct" -body {
+    test function-struct-field-defaults-0 "field defaults in passed struct" -constraints structbyval -body {
         cffi::Struct create SimpleWithDefaults {c {uchar {default 0}} ll {longlong {default 1}} s {short {default 2}}}
         cffi::Struct create OuterWithDefaults {f {float {default 3}} s {struct.SimpleWithDefaults {default {}}} p {pointer unsafe nullok {default NULL}}}
         testDll function {incrSimpleOuterStructByVal fn} struct.OuterWithDefaults {s {struct.OuterWithDefaults {default {}}}}
@@ -1761,7 +1766,7 @@ namespace eval ${NS}::test {
         S destroy
     } -body {
         testDll function copyVarSizeStructintint void {from struct.S to {struct.S inout}}
-    } -result {Invalid value "struct.S". Variable sized types are not allowed in this type declaration context. Error defining function copyVarSizeStructintint.} -returnCodes error
+    } -result {Invalid value "struct.S". *. Error defining function copyVarSizeStructintint.} -match glob -returnCodes error
 
     test function-struct-varsize-return {Return of varsize not allowed} -setup {
         Struct create S {count int values int[count]} -clear
@@ -1885,7 +1890,7 @@ namespace eval ${NS}::test {
         S destroy
     } -body {
         testDll function copyNestedVarSizeStructintint void {from struct.T to {struct.T inout}}
-    } -result {Invalid value "struct.T". Variable sized types are not allowed in this type declaration context. Error defining function copyNestedVarSizeStructintint.} -returnCodes error
+    } -result {Invalid value "struct.T". *. Error defining function copyNestedVarSizeStructintint.} -match glob -returnCodes error
 
     test function-struct-varsize-nested-pass-return {Return of nested varsize not allowed} -setup {
         Struct create S {count int values int[count]} -clear
@@ -2024,9 +2029,17 @@ namespace eval ${NS}::test {
             cffi::Struct create S {uc uchar dbl double s short} -pack $pack
         } -cleanup {
             S destroy
-        } -body {
+        } -constraints {structbyval packsupport} -body {
             testDll function modifyStructPack$pack int {s struct.S}
-        } -result "Invalid value \"struct.S\". Packed structs cannot be passed by value. Error defining function modifyStructPack$pack." -returnCodes error -constraints packsupport
+        } -result "Invalid value \"struct.S\". Packed structs cannot be passed by value. Error defining function modifyStructPack$pack." -returnCodes error
+        test function-struct-pack$pack-byval.a "Cannot pass packed struct by value" -setup {
+            cffi::Struct create S {uc uchar dbl double s short} -pack $pack
+        } -cleanup {
+            S destroy
+        } -constraints {!structbyval packsupport} -body {
+            testDll function modifyStructPack$pack int {s struct.S}
+        } -result "Invalid value \"struct.S\". Passing of structs by value is not supported. Annotate with \"byref\" to pass by reference if function expects a pointer. Error defining function modifyStructPack$pack." -returnCodes error
+
     }
     testpacked 1 {11 {uc 42 dbl 100.0 s -33}}
     testpacked 2 {12 {uc 42 dbl 101.0 s -32}}
@@ -2038,7 +2051,7 @@ namespace eval ${NS}::test {
         testDll function incrStructWithUnion void {in struct.S out {struct.S out}}
     } -cleanup {
         S destroy
-    } -body {
+    } -constraints structbyval -body {
         incrStructWithUnion [list tag 0 u [::TestUnion encode i 42]] result
         list [dict get $result tag] [::TestUnion decode i [dict get $result u]]
     } -result {0 43}
@@ -2047,7 +2060,7 @@ namespace eval ${NS}::test {
         testDll function incrStructWithUnion void {in struct.S out {struct.S out}}
     } -cleanup {
         S destroy
-    } -body {
+    } -constraints structbyval -body {
         incrStructWithUnion [list tag 1 u [::TestUnion encode dbl 99.0]] result
         list [dict get $result tag] [::TestUnion decode dbl [dict get $result u]]
     } -result {1 100.0}
@@ -2066,9 +2079,12 @@ namespace eval ${NS}::test {
         ::TestUnion decode dbl $u
     } -result 100.0
 
-    test function-union-error-0 "Pass union" -body {
+    test function-union-error-0 "Pass union" -constraints structbyval -body {
         testDll function incrStructWithUnion void {in union.::TestUnion out {union.::TestUnion out}}
     } -result {Invalid value "union.::TestUnion". Unions cannot be passed by value. Error defining function incrStructWithUnion.} -returnCodes error
+    test function-union-error-0.a "Pass union" -constraints !structbyval -body {
+        testDll function incrStructWithUnion void {in union.::TestUnion out {union.::TestUnion out}}
+    } -result {Invalid value "union.::TestUnion". Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer. Error defining function incrStructWithUnion.} -returnCodes error
 
     # Note -  tests for invalid parameter attrs are done in type.test
 
@@ -2466,7 +2482,7 @@ namespace eval ${NS}::test {
     } -result ""
 
     # Return type - struct
-    test function-struct-return-0 "Return struct with input struct" -setup {
+    test function-struct-return-0 "Return struct with input struct" -constraints structbyval -setup {
         cffi::Struct create ::Inner {c schar ll longlong s short}
         cffi::Struct create ::Outer {f float s struct.::Inner p {pointer unsafe}}
         testDll function {incrSimpleOuterStructByVal f} struct.::Outer {s struct.::Outer}
@@ -2477,13 +2493,16 @@ namespace eval ${NS}::test {
     } -result [list f 11.0 s [list c 1 ll 2 s 3] p [makeptr 2]]
 
 
-    test function-struct-return-1 "return struct with strings" -body {
+    test function-struct-return-1 "return struct with strings" -constraints structbyval -body {
         testDll function returnStructWithStrings struct.StructWithStrings {}
         returnStructWithStrings
     } -result [makeStructWithStrings]
+    test function-struct-return-1.a "return struct with strings" -constraints !structbyval -body {
+        testDll function returnStructWithStrings struct.StructWithStrings {}
+    } -result {Invalid value "struct.StructWithStrings". The specified type is not valid for the type declaration context. Error defining function returnStructWithStrings.} -returnCodes error
 
     test function-struct-return-2 "Return struct containing array" -constraints {
-        dyncall
+        structbyval
     } -setup {
         testDll function returnTestStruct struct.TestStruct {}
     } -body {

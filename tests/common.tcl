@@ -22,7 +22,10 @@ if {[catch {package require $NS}]} {
 }
 
 namespace eval cffi::test {
-    namespace import ::tcltest::test
+    namespace import ::tcltest::test ::tcltest::testConstraint
+
+    testConstraint structbyval [cffi::pkgconfig get structbyval]
+
     variable testDllPath [file normalize [file join [file dirname $::cffi::dll_path] cffitest[info sharedlibextension]]]
     variable unicharSize [expr {[package vsatisfies [info tclversion] 9] ? 4 : 2}]
     cffi::Wrapper create testDll $testDllPath

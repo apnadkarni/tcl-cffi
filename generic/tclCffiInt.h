@@ -324,7 +324,6 @@ typedef struct CffiLibffiStruct {
 /* Struct: CffiField
  * Descriptor for fields within a struct definition.
  */
-typedef struct CffiStruct CffiStruct;
 typedef struct CffiField {
     Tcl_Obj *nameObj;           /* Field name */
     CffiTypeAndAttrs fieldType; /* base type, cardinality, tag etc. */

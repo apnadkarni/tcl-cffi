@@ -605,8 +605,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             } else {
 #ifndef CFFI_HAVE_STRUCT_BYVAL
                 CFFI_ASSERT(0); /* Should not reach here if no by val support */
-#endif
-#ifdef CFFI_USE_DYNCALL
+#else
+# ifdef CFFI_USE_DYNCALL
                 if (typeAttrsP->dataType.u.structP->dcAggrP == NULL) {
                     CHECK(CffiDyncallAggrInit(ipCtxP,
                                               typeAttrsP->dataType.u.structP));
@@ -616,11 +616,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                           typeAttrsP->dataType.u.structP->dcAggrP,
                           structValueP);
                 argP->value.u.ptr = structValueP;
-#endif
-#ifdef CFFI_USE_LIBFFI
+# endif
+# ifdef CFFI_USE_LIBFFI
                 argP->value.u.ptr             = NULL;/* Not used */
                 callP->argValuesPP[arg_index] = structValueP;
-#endif
+# endif
+#endif /* CFFI_HAVE_STRUCT_BYVAL */
             }
         }
         else {
@@ -1048,8 +1049,9 @@ CffiReturnPrepare(CffiCall *callP)
     CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
 
 #ifdef CFFI_USE_DYNCALL
+# ifdef CFFI_HAVE_STRUCT_BYVAL
     /*
-     * Otherwise nothing to do except for structs returned by value as no
+     * nothing to do except for structs returned by value as no
      * allocations needed. arrays, struct, chars[], unichars[], bytes and
      * anything that requires non-scalar storage is either not supported by
      * C or by dyncall.
@@ -1068,7 +1070,7 @@ CffiReturnPrepare(CffiCall *callP)
             &callP->fnP->libCtxP->ipCtxP->memlifo,
             CffiStructFixedSize(retTypeAttrsP->dataType.u.structP));
     }
-
+# endif
 #endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
