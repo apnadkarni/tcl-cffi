@@ -235,6 +235,23 @@ CffiArgPrepareWinChars(CffiCall *callP,
     CFFI_ASSERT(argP->arraySize > 0);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_WINCHAR_ARRAY);
 
+    if (typeAttrsP->flags & CFFI_F_ATTR_NULNUL) {
+        void *wsP;
+        Tcl_Size nBytes;
+        wsP = Tclh_ObjToWinCharsMultiLifo(
+            ipCtxP->tclhCtxP, &ipCtxP->memlifo, valueObj, NULL, &nBytes);
+        if (wsP == NULL)
+            return TCL_ERROR;
+        if (nBytes > argP->arraySize) {
+            return Tclh_ErrorInvalidValue(ipCtxP->interp,
+                                          valueObj,
+                                          "String length is greater than "
+                                          "specified maximum buffer size.");
+        }
+        valueP->u.ptr = (void *)wsP;
+        return TCL_OK;
+    }
+
     valueP->u.ptr =
         Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(WCHAR));
 

@@ -607,6 +607,17 @@ EXTERN int winstring_array_out (WCHAR *strings[], int n)
         strings[i] = strs[i%2];
     return n;
 }
+EXTERN int winstring_multisz(WCHAR *multiSzP) {
+    int count = 0;
+    WCHAR *next;
+    size_t len;
+    while ((len = wcslen(multiSzP)) != 0) {
+        ++count;
+        multiSzP += len+1;
+    }
+    return count;
+}
+
 #endif
 
 FNSTRINGS(binary, unsigned char)

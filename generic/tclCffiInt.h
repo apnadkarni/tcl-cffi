@@ -237,6 +237,7 @@ typedef enum CffiAttrFlags {
     CFFI_F_ATTR_NULLIFEMPTY = 0x00400000,  /* Empty -> null pointer */
     CFFI_F_ATTR_NULLOK      = 0x00800000,  /* Null pointers allowed */
     CFFI_F_ATTR_STRUCTSIZE  = 0x01000000,  /* Field contains struct size */
+    CFFI_F_ATTR_NULNUL      = 0x02000000, /* String list terminated by double nul */
 } CffiAttrFlags;
 
 /*

@@ -151,12 +151,12 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(winstring),
      DCSIG(STRING),
      CFFI_K_TYPE_WINSTRING,
-     CFFI_VALID_STRING_ATTRS,
+     CFFI_VALID_STRING_ATTRS | CFFI_F_ATTR_NULNUL,
      sizeof(void *)},
     {TOKENANDLEN(winchars),
      DCSIG(POINTER),
      CFFI_K_TYPE_WINCHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_NULNUL,
      sizeof(WCHAR)},
 #endif
     {NULL}};
@@ -187,11 +187,12 @@ enum cffiTypeAttrOpt {
     ONERROR,
     NULLOK,
     STRUCTSIZE,
+    NULNUL,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
     enum cffiTypeAttrOpt attr;    /* Integral id. Cannot use attrFlag for this since
-                             some tokens are not attributes */
+                                     some tokens are not attributes */
     int attrFlag;    /* Corresponding CFFI_F_ATTR flag / -1 if not attribute */
     char parseModes; /* Parse modes in which the attribute is valid */
     char nAttrArgs;  /* Attribute arguments including itself */
@@ -300,6 +301,12 @@ static CffiAttrs cffiAttrs[] = {
      STRUCTSIZE,
      CFFI_F_ATTR_STRUCTSIZE,
      CFFI_F_TYPE_PARSE_FIELD,
+     1},
+    {"nulnul",
+     NULNUL,
+     CFFI_F_ATTR_NULNUL,
+     CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM
+         | CFFI_F_TYPE_PARSE_FIELD,
      1},
     {NULL}};
 
@@ -1175,6 +1182,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             }
             flags |= CFFI_F_ATTR_STRUCTSIZE;
             break;
+        case NULNUL:
+            flags |= CFFI_F_ATTR_NULNUL;
+            break;
         }
     }
 
@@ -1698,65 +1708,6 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             CHECK(CffiPointerFromObj(ipCtxP, typeAttrsP, valueObj, &value.u.ptr));
             *(indx + (void **)valueBaseP) = value.u.ptr;
             break;
-#ifdef OBSOLETE
-        Not used. Also note the code seems wrong in terms of the calculation
-        of target location using indx.
-        case CFFI_K_TYPE_CHAR_ARRAY:
-            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-            if (flags & CFFI_F_PRESERVE_ON_ERROR) {
-                CHECK(
-                    CffiCharsFromObjSafe(ip,
-                                         typeAttrsP->dataType.u.encoding,
-                                         valueObj,
-                                         (indx * typeAttrsP->dataType.arraySize)
-                                             + (char *)valueBaseP,
-                                         typeAttrsP->dataType.arraySize));
-            }
-            else {
-                /* This is more efficient if no promise to preserve on error */
-                CHECK(CffiCharsFromObj(ip,
-                                       typeAttrsP->dataType.u.encoding,
-                                       valueObj,
-                                       (indx * typeAttrsP->dataType.arraySize)
-                                           + (char *)valueBaseP,
-                                       typeAttrsP->dataType.arraySize));
-            }
-            break;
-        case CFFI_K_TYPE_UNICHAR_ARRAY:
-            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-            CHECK(
-                CffiUniCharsFromObjSafe(ip,
-                                        valueObj,
-                                        (indx * typeAttrsP->dataType.arraySize)
-                                            + (Tcl_UniChar *)valueBaseP,
-                                        typeAttrsP->dataType.arraySize));
-            break;
-#ifdef _WIN32
-        case CFFI_K_TYPE_WINCHAR_ARRAY:
-            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-            tempP = Tcl_GetStringFromObj(valueObj, &len);
-            int encStatus = Tclh_UtfToWinChars(
-                ipCtxP->tclhCtxP,
-                tempP,
-                len,
-                (indx * typeAttrsP->dataType.arraySize) + (WCHAR *)valueBaseP,
-                typeAttrsP->dataType.arraySize,
-                NULL);
-            if (encStatus != TCL_OK) {
-                return Tclh_ErrorEncodingFromUtf8(
-                    ipCtxP->interp, encStatus, tempP, len);
-            }
-            break;
-#endif
-        case CFFI_K_TYPE_BYTE_ARRAY:
-            CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-            CHECK(CffiBytesFromObjSafe(ip,
-                                   valueObj,
-                                   (indx * typeAttrsP->dataType.arraySize)
-                                       + (unsigned char *)valueBaseP,
-                                   typeAttrsP->dataType.arraySize));
-            break;
-#endif /* OBSOLETE */
         case CFFI_K_TYPE_ASTRING:
             if (memlifoP == NULL) {
                 return Tclh_ErrorInvalidValue(
@@ -1808,22 +1759,31 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             }
             else {
                 WCHAR *wsP;
-                Tcl_Size numChars;
-                wsP = Tclh_ObjToWinCharsLifo(
-                    ipCtxP->tclhCtxP, &ipCtxP->memlifo, valueObj, &numChars);
-                CFFI_ASSERT(wsP);
+                WCHAR **wsPP = indx + (WCHAR **)valueBaseP;
+                Tcl_Size num;
+                if (typeAttrsP->flags & CFFI_F_ATTR_NULNUL) {
+                    wsP = Tclh_ObjToWinCharsMultiLifo(ipCtxP->tclhCtxP,
+                                                      &ipCtxP->memlifo,
+                                                      valueObj,
+                                                      &num,
+                                                      NULL);
+                }
+                else {
+                    wsP = Tclh_ObjToWinCharsLifo(ipCtxP->tclhCtxP,
+                                                 &ipCtxP->memlifo,
+                                                 valueObj,
+                                                 &num);
+                    CFFI_ASSERT(wsP);
+                }
                 if (wsP == NULL) {
                     return Tclh_ErrorInvalidValue(
                         ip, valueObj, "could not convert to WCHARS.");
                 }
-                WCHAR **wsPP = indx + (WCHAR **)valueBaseP;
-                if (numChars == 0
+                if (num == 0
                     && (typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY)) {
-                    *wsPP = NULL;
+                    wsP = NULL;
                 }
-                else {
-                    *wsPP = wsP;
-                }
+                *wsPP = wsP;
             }
             break;
 #endif
@@ -1920,34 +1880,50 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
         if (count > 0) {
             switch (typeAttrsP->dataType.baseType) {
             case CFFI_K_TYPE_CHAR_ARRAY:
-                    if (flags & CFFI_F_PRESERVE_ON_ERROR) {
+                if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                     CHECK(CffiCharsFromObjSafe(ip,
                                                typeAttrsP->dataType.u.encoding,
                                                valueObj,
                                                (char *)valueP,
                                                count));
-                    }
-                    else {
+                }
+                else {
                     /* More efficient if no preservation on error */
                     CHECK(CffiCharsFromObj(ip,
                                            typeAttrsP->dataType.u.encoding,
                                            valueObj,
                                            (char *)valueP,
                                            count));
-                    }
-                    break;
+                }
+                break;
             case CFFI_K_TYPE_UNICHAR_ARRAY:
-                    CHECK(CffiUniCharsFromObjSafe(
-                        ip, valueObj, (Tcl_UniChar *)valueP, count));
-                    break;
+                CHECK(CffiUniCharsFromObjSafe(
+                    ip, valueObj, (Tcl_UniChar *)valueP, count));
+                break;
 #ifdef _WIN32
             case CFFI_K_TYPE_WINCHAR_ARRAY:
-                    CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-                    if (flags & CFFI_F_PRESERVE_ON_ERROR) {
+                CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
+                if (typeAttrsP->flags & CFFI_F_ATTR_NULNUL) {
+                    void *wsP;
+                    Tcl_Size nBytes;
+                    wsP = Tclh_ObjToWinCharsMultiLifo(
+                        ipCtxP->tclhCtxP, memlifoP, valueObj, NULL, &nBytes);
+                    if (wsP == NULL)
+                        return TCL_ERROR;
+                    if (nBytes > count) {
+                        return Tclh_ErrorInvalidValue(
+                            ip,
+                            valueObj,
+                            "String length is greater than "
+                            "specified maximum buffer size.");
+                    }
+                    memmove(valueP, wsP, nBytes);
+                }
+                else if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                     CHECK(CffiWinCharsFromObjSafe(
                         ipCtxP, valueObj, (WCHAR *)valueP, count));
-                    }
-                    else {
+                }
+                else {
                     Tcl_Size srcLen;
                     const char *srcP = Tcl_GetStringFromObj(valueObj, &srcLen);
                     int encStatus    = Tclh_UtfToWinChars(ipCtxP->tclhCtxP,
@@ -1960,27 +1936,27 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                         return Tclh_ErrorEncodingFromUtf8(
                             ipCtxP->interp, encStatus, srcP, srcLen);
                     }
-                    }
+                }
 
-                    break;
+                break;
 #endif
             case CFFI_K_TYPE_BYTE_ARRAY:
-                    CHECK(CffiBytesFromObjSafe(ip, valueObj, valueP, count));
-                    break;
+                CHECK(CffiBytesFromObjSafe(ip, valueObj, valueP, count));
+                break;
             default:
-                    /* Store each contained element */
-                    if (Tcl_ListObjGetElements(
-                            ip, valueObj, &nvalues, &valueObjList)
-                        != TCL_OK)
+                /* Store each contained element */
+                if (Tcl_ListObjGetElements(
+                        ip, valueObj, &nvalues, &valueObjList)
+                    != TCL_OK)
                     return TCL_ERROR; /* Note - if caller has specified too
                                        * few values, it's ok         \
                                        * because perhaps the actual count is
                                        * specified in another       \
                                        * parameter. If too many, only up to
                                        * array size */
-                    if (nvalues > count)
+                if (nvalues > count)
                     nvalues = count;
-                    if (!(flags & CFFI_F_PRESERVE_ON_ERROR)) {
+                if (!(flags & CFFI_F_PRESERVE_ON_ERROR)) {
                     for (indx = 0; indx < nvalues; ++indx) {
                         CHECK(CffiNativeScalarFromObj(ipCtxP,
                                                       typeAttrsP,
@@ -1990,8 +1966,8 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                                                       indx,
                                                       memlifoP));
                     }
-                    }
-                    else {
+                }
+                else {
                     /* Need temporary space so output not modified on error */
                     Tcl_DString ds;
                     CffiResult ret;
@@ -2022,16 +1998,16 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                     Tcl_DStringFree(&ds);
                     if (ret != TCL_OK)
                         return ret;
-                    }
-                    /* Fill additional unspecified elements with 0 */
-                    CFFI_ASSERT(indx == nvalues);
-                    if (indx < count) {
+                }
+                /* Fill additional unspecified elements with 0 */
+                CFFI_ASSERT(indx == nvalues);
+                if (indx < count) {
                     memset((baseSize * indx) + (char *)valueP,
                            0,
                            baseSize * (count - indx));
-                    }
+                }
 
-                    break;
+                break;
             }
         } /* if count > 0 */
     }
