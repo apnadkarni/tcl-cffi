@@ -337,9 +337,9 @@ strings, the implicit dereference syntax is
 .PP
 .RS 4n
 .nf
-      +-      -+
-STRING| nullok |
-      +-      -+
+      +-      -+ +-       -+
+STRING| nullok | | multisz |
+      +-      -+ +-       -+
 
 \fISyntax for character string return types\fP
 
@@ -354,6 +354,10 @@ to be mapped to the empty string instead of generating an exception\&.
 .PP
 Note that if STRING is string, an encoding identifier may be
 optionally attached, e\&.g\&. string\&.utf-8\&.
+.PP
+The multisz may only be used when STRING is winstring\&. The value
+is interpreted as holding a Windows MULTI_SZ string type and returned
+as a list\&.
 .PP
 \fBExamples\fP
 .PP
@@ -437,13 +441,12 @@ not the value itself\&.
 .PP
 .RS 4n
 .nf
-          +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
-schar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
-uchar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
-short                                                      |errno            |
-ushort                                                     |{onerror HANDLER}|
-int                                                        +-               -+
-uint
+schar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
+uchar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
+short     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
+ushort                                                     |errno            |
+int                                                        |{onerror HANDLER}|
+uint                                                       +-               -+
 long
 ulong
 longlong
@@ -499,13 +502,12 @@ KERNEL32 stdcall SetHandleInformation {int nonzero lasterror} {
 .PP
 .RS 4n
 .nf
-                +-      -+ +-     -+ +-          -+ +-               -+
-schar     out   |{enum E}| |bitmask| |storeonerror| |lasterror        |
-uchar     inout +-      -+ +-     -+ |storealways | |winerror         |
-short     retval                     +-          -+ |errno            |
-ushort                                              |{onerror HANDLER}|
-int                                                 +-               -+
-uint
+schar     +-    -+ +-      -+ +-     -+ +-          -+ +-               -+
+uchar     |out   | |{enum E}| |bitmask| |storeonerror| |lasterror        |
+short     |inout | +-      -+ +-     -+ |storealways | |winerror         |
+ushort    |retval|                      +-          -+ |errno            |
+int       +-    -+                                     |{onerror HANDLER}|
+uint                                                   +-               -+
 long
 ulong
 longlong
@@ -878,10 +880,9 @@ LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct\&.RECT out}}
 .PP
 .RS 4n
 .nf
-                +- -+ +-   -+ +-         -+
-string          |in | |byref| |nullifempty|
-string\&.ENCODING +- -+ +-   -+ +-         -+
-unistring
+string           +- -+ +-   -+ +-         -+ +-       -+
+string\&.ENCODING  |in | |byref| |nullifempty| | multisz |
+unistring        +- -+ +-   -+ +-         -+ +-       -+
 winstring
 
 \fISyntax for input character string parameters\fP
@@ -903,6 +904,9 @@ The byref annotation should be specified iff the value is being passed by refere
 .TP
 \(bu
 Some C functions accept a NULL pointer for optional parameters\&. The nullifempty annotation identifies such parameters\&. In this case, passing an empty string as the script level argument will result in a NULL pointer being passed to the function\&.
+.TP
+\(bu
+The multisz may only be used for winstring\&. The passed value is list of strings and is mapped to a Windows MULTI_SZ string type\&.
 .PP
 \fBExamples\fP
 .PP
@@ -938,9 +942,9 @@ The two are handled differently in CFFI as described below\&.
 .PP
 .RS 4n
 .nf
-                  +-    -+ +-          -+
-chars[N]          |out   | |storealways |
-chars\&.ENCODING[N] |inout | |storeonerror|
+                  +-    -+ +-          -+  +-       -+
+chars[N]          |out   | |storealways |  | multisz |
+chars\&.ENCODING[N] |inout | |storeonerror|  +-       -+
 unichars[N]       |retval| +-          -+
 winchars[N]       +-    -+
 
@@ -968,6 +972,9 @@ If ENCODING is not specified, it defaults to the system encoding\&.
 .TP
 \(bu
 If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.TP
+\(bu
+The multisz may only be used for winchars\&. The output is interpreted as holding a Windows MULTI_SZ string type and stored as a Tcl list\&.
 .PP
 \fBExamples\fP
 .PP
@@ -1005,11 +1012,10 @@ implicitly declare it as an output parameter of
 .PP
 .RS 4n
 .nf
-                +-    -+ +-    -+ +-          -+
-string          |out   | |nullok| |storealways |
-string\&.ENCODING |retval| +-    -+ |storeonerror|
-unistring       +-    -+          +-          -+
-winstring
+string          +-    -+ +-    -+ +-          -+ +-       -+
+string\&.ENCODING |out   | |nullok| |storealways | | multisz |
+unistring       |retval| +-    -+ |storeonerror| +-       -+
+winstring       +-    -+          +-          -+
 
 \fISyntax for output character string parameters\fP
 
@@ -1027,6 +1033,9 @@ Use the retval annotation for output parameters where you want the output parame
 .TP
 \(bu
 If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&. These annotations are rarely applicable to struct output parameters\&.
+.TP
+\(bu
+The multisz annotation may only be used for winstring\&. The pointer stored in the output parameter is interpreted as pointing to a Windows MULTI_SZ string type and stored in the Tcl variable as a list\&.
 .PP
 \fBBinary string parameters\fR
 .PP
@@ -1285,10 +1294,9 @@ Pointer fields that hold pointers to character strings may be alternatively decl
 .PP
 .RS 4n
 .nf
-                +-         -+
-string          |nullifempty|
-string\&.ENCODING +-         -+
-unistring
+string          +-         -+ +-       -+
+string\&.ENCODING |nullifempty| | multisz |
+unistring       +-         -+ +-       -+
 winstring
 
 \fISyntax for string pointer fields\fP
@@ -1298,11 +1306,14 @@ winstring
 .TP
 \(bu
 The nullifempty annotation may be used in cases where an empty string at the script level should be stored as a NULL pointer in the struct field\&.
+.TP
+\(bu
+The multisz may only be used for winstring\&. The referenced value is interpreted as holding a Windows MULTI_SZ string type and returned at the script level as a list\&.
 .PP
 As for function parameters, fields that hold pointers to character
 strings can be more conveniently declared as one of the CFFI
 string types if the raw pointer is not required for freeing of resources
-or other purposes\&. There are is a restriction imposed when a struct
+or other purposes\&. There is a restriction imposed when a struct
 field is declared as a string type\&. The struct definition may be used
 to pass and return parameters from functions but cannot be used
 with the \fI::cffi::Struct\&.new\fP or \fI::cffi::Struct\&.allocate\fP methods
@@ -1312,10 +1323,9 @@ to allocate a native struct in memory\&.
 .PP
 .RS 4n
 .nf
-
-chars[N]          +-               -+
-chars\&.ENCODING[N] |{default DEFAULT}|
-unichars[N]       +-               -+
+chars[N]          +-               -+  +-       -+
+chars\&.ENCODING[N] |{default DEFAULT}|  | multisz |
+unichars[N]       +-               -+  +-       -+
 winchars[N]
 
 \fISyntax for character array fields\fP
@@ -1334,12 +1344,14 @@ The default annotation may be used to supply a default value to be stored in the
 .TP
 \(bu
 The array size N must be an positive integer constant and not dynamically sized as is permitted for array parameters\&.
+.TP
+\(bu
+The multisz may only be used for winchars\&. The character array is interpreted as holding a Windows MULTI_SZ string type and is a list at the script level\&.
 .PP
 \fBByte array fields\fR
 .PP
 .RS 4n
 .nf
-
          +-               -+
 bytes[N] |{default DEFAULT}|
          +-               -+

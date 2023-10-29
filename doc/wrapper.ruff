@@ -54,12 +54,14 @@ oo::class create ${NS}::Wrapper {
         #
         # The return type of the C function is specified through the $fntype
         # argument which should be a [type declaration][::Concepts::Return types].
+        # See [syntax][::Cookbook::Return type declaration].
         #
         # The $parameters argument is a list of alternating parameter names and
-        # type declarations that describe the parameters of the C
-        # function. The parameter name is only used to construct error messages
-        # while the latter determines how arguments are converted and passed to
-        # the C function.
+        # type declarations that describe the
+        # [parameters][::Concepts::Parameters] of the C function. The parameter
+        # name is only used to construct error messages while the latter
+        # determines how arguments are converted and passed to the C function.
+        # See [syntax][::Cookbook::Parameter declaration].
         #
         # The return type as well as parameter type declarations may have
         # annotations that control semantics and behavior with respect to

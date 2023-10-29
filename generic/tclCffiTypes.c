@@ -151,12 +151,12 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(winstring),
      DCSIG(STRING),
      CFFI_K_TYPE_WINSTRING,
-     CFFI_VALID_STRING_ATTRS | CFFI_F_ATTR_NULNUL,
+     CFFI_VALID_STRING_ATTRS | CFFI_F_ATTR_MULTISZ,
      sizeof(void *)},
     {TOKENANDLEN(winchars),
      DCSIG(POINTER),
      CFFI_K_TYPE_WINCHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_NULNUL,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_MULTISZ,
      sizeof(WCHAR)},
 #endif
     {NULL}};
@@ -187,7 +187,7 @@ enum cffiTypeAttrOpt {
     ONERROR,
     NULLOK,
     STRUCTSIZE,
-    NULNUL,
+    MULTISZ,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -302,9 +302,9 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_ATTR_STRUCTSIZE,
      CFFI_F_TYPE_PARSE_FIELD,
      1},
-    {"nulnul",
-     NULNUL,
-     CFFI_F_ATTR_NULNUL,
+    {"multisz",
+     MULTISZ,
+     CFFI_F_ATTR_MULTISZ,
      CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM
          | CFFI_F_TYPE_PARSE_FIELD,
      1},
@@ -1182,8 +1182,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             }
             flags |= CFFI_F_ATTR_STRUCTSIZE;
             break;
-        case NULNUL:
-            flags |= CFFI_F_ATTR_NULNUL;
+        case MULTISZ:
+            flags |= CFFI_F_ATTR_MULTISZ;
             break;
         }
     }
@@ -1761,7 +1761,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                 WCHAR *wsP;
                 WCHAR **wsPP = indx + (WCHAR **)valueBaseP;
                 Tcl_Size num;
-                if (typeAttrsP->flags & CFFI_F_ATTR_NULNUL) {
+                if (typeAttrsP->flags & CFFI_F_ATTR_MULTISZ) {
                     wsP = Tclh_ObjToWinCharsMultiLifo(ipCtxP->tclhCtxP,
                                                       &ipCtxP->memlifo,
                                                       valueObj,
@@ -1903,21 +1903,28 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
 #ifdef _WIN32
             case CFFI_K_TYPE_WINCHAR_ARRAY:
                 CFFI_ASSERT(typeAttrsP->dataType.arraySize > 0);
-                if (typeAttrsP->flags & CFFI_F_ATTR_NULNUL) {
+                if (typeAttrsP->flags & CFFI_F_ATTR_MULTISZ) {
                     void *wsP;
                     Tcl_Size nBytes;
+                    /* memlifo may be null, however we only need this for
+                       temporary storage so we can just use ipCtxP->memlifo
+                       and then reset */
+                    Tclh_LifoMark mark = Tclh_LifoPushMark(&ipCtxP->memlifo);
                     wsP = Tclh_ObjToWinCharsMultiLifo(
-                        ipCtxP->tclhCtxP, memlifoP, valueObj, NULL, &nBytes);
-                    if (wsP == NULL)
+                        ipCtxP->tclhCtxP, &ipCtxP->memlifo, valueObj, NULL, &nBytes);
+                    if (wsP == NULL || nBytes > ((Tcl_Size)sizeof(WCHAR)*count)) {
+                        Tclh_LifoPopMark(mark);
+                        if (wsP) {
+                            Tclh_ErrorInvalidValue(
+                                ip,
+                                valueObj,
+                                "String length is greater than "
+                                "specified maximum buffer size.");
+                        }
                         return TCL_ERROR;
-                    if (nBytes > count) {
-                        return Tclh_ErrorInvalidValue(
-                            ip,
-                            valueObj,
-                            "String length is greater than "
-                            "specified maximum buffer size.");
                     }
                     memmove(valueP, wsP, nBytes);
+                    Tclh_LifoPopMark(mark);
                 }
                 else if (flags & CFFI_F_PRESERVE_ON_ERROR) {
                     CHECK(CffiWinCharsFromObjSafe(
@@ -2114,7 +2121,14 @@ CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
         break;
 #ifdef _WIN32
     case CFFI_K_TYPE_WINSTRING:
-        valueObj = Tclh_ObjFromWinChars(ipCtxP->tclhCtxP, *(indx + (WCHAR **)valueBaseP), -1);
+        if (typeAttrsP->flags & CFFI_F_ATTR_MULTISZ) {
+            valueObj = Tclh_ObjFromWinCharsMulti(
+                ipCtxP->tclhCtxP, *(indx + (WCHAR **)valueBaseP), -1);
+        }
+        else {
+            valueObj = Tclh_ObjFromWinChars(
+                ipCtxP->tclhCtxP, *(indx + (WCHAR **)valueBaseP), -1);
+        }
         break;
 #endif
     case CFFI_K_TYPE_STRUCT:
@@ -2240,8 +2254,12 @@ CffiNativeValueToObj(CffiInterpCtx *ipCtxP,
 #ifdef _WIN32
     case CFFI_K_TYPE_WINCHAR_ARRAY:
         CFFI_ASSERT(count > 0);
-        *valueObjP =
-            Tclh_ObjFromWinChars(ipCtxP->tclhCtxP, (WCHAR *)valueP, -1);
+        if (typeAttrsP->flags & CFFI_F_ATTR_MULTISZ)
+            *valueObjP =
+                Tclh_ObjFromWinCharsMulti(ipCtxP->tclhCtxP, (WCHAR *)valueP, count);
+        else
+            *valueObjP =
+                Tclh_ObjFromWinChars(ipCtxP->tclhCtxP, (WCHAR *)valueP, -1);
         return TCL_OK;
 #endif
     case CFFI_K_TYPE_BYTE_ARRAY:

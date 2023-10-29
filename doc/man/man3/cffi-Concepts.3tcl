@@ -120,6 +120,9 @@ Marks a parameter passed to a function as both input and output\&. See \fIInput 
 lasterror
 If the function return value indicates an error condition, the error code is available via the Windows GetLastError API\&.
 .TP
+multisz
+The value is a concatenation of multiple nul-terminated strings with an empty string indicating the end\&. (Windows MULTI_SZ format)
+.TP
 nonnegative
 Raise an exception if the function return value is negative\&.
 .TP
@@ -728,6 +731,30 @@ Usage is also straightforward\&.
 0
 % getcwd dir 512
 /tmp
+.fi
+.RE
+.PP
+\fBMULTI_SZ strings\fR
+.PP
+Some Windows API's make use of the MULTI_SZ string type which is a
+string consisting of a sequence of nul-terminated strings in memory
+followed by an additional nul (i\&.e\&. an empty string indicates the end)\&.
+This can be mapped to the winstring and winchars type by annotating
+the declaration with the multisz attribute\&. At the script level, these
+are represented as a list of strings\&.
+.PP
+.RS 4n
+.nf
+% kernel32 stdcall GetPrivateProfileSectionNamesW uint {
+    buf {winchars[bufSize] multisz out}
+    bufSize uint
+    filename {winstring nullifempty}
+}
+::GetPrivateProfileSectionNamesW
+% GetPrivateProfileSectionNamesW buf 1000 ""
+306
+% set buf
+AeDebug CLOCK COLORS CONSOLE CURSORS DESKTOP \&.\&.\&.
 .fi
 .RE
 .PP
@@ -1370,13 +1397,10 @@ The storeonerror and storealways annotations are only applicable when either out
 .PP
 \fBStructs as parameters\fR
 .PP
-In the case of parameters that are structs,
-the input argument for the parameter when the function is
-called should be a dictionary value\&. Conversely, output parameter
-results are returned as a dictionary of the same form\&.
-.PP
-Passing of structs by reference is supported by both the dyncall
-and libffi backends but only the latter supports passing by value\&.
+In the case of parameters that are structs, the input argument for the
+parameter when the function is called should be a dictionary value\&.
+Conversely, output parameter results are returned as a dictionary of the
+same form\&.
 .PP
 Variable size structs have some restriction as function return types
 and parameters\&. They cannot be the return type for a function and

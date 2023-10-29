@@ -62,8 +62,7 @@ back end libraries that implement FFI functionality:
 \fIdyncall\fP [URL: https://dyncall\&.org]
 .PP
 The selection of the back end library to use is made at build time as described
-in the build instructions\&. Note the dyncall backend has some
-\fIlimitations\fP compared to libffi\&.
+in the build instructions\&. Also see \fILimitations\fP\&.
 .SH "QUICK START"
 .PP
 The following examples illustrate basic usage of the package\&. Most examples
@@ -767,14 +766,11 @@ HeapCreate HeapDestroy
 .RE
 .SS LIMITATIONS
 .PP
-The dyncall backend has the following limitations:
+Each backend has some limitations in terms of passing of structs by value\&.
 .TP
 \(bu
-Structs can only be passed by reference, not value\&.
+The libffi backend cannot pass or return structs by value if they or a nested field contains arrays\&.
 .TP
 \(bu
-Callbacks into Tcl from C functions are not implemented\&.
-.TP
-\(bu
-Functions with variable number of arguments not implemented\&.
+The dyncall backend only supports passing and return of structs by value on x64 platforms\&.
 

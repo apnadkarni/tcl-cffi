@@ -43,7 +43,7 @@
 <li><a href="http://sourceware.org/libffi/" ><code>libffi</code></a></li>
 <li><a href="https://dyncall.org" ><code>dyncall</code></a></li>
 </ul>
-<p class='ruff'>The selection of the back end library to use is made at build time as described in the build instructions. Note the <code>dyncall</code> backend has some <a href="cffi.html#Limitations" title="limitations" >limitations</a> compared to <code>libffi</code>.</p>
+<p class='ruff'>The selection of the back end library to use is made at build time as described in the build instructions. Also see <a href="cffi.html#Limitations" title="Limitations" >Limitations</a>.</p>
 <h2 class='ruff'><a name='Quick start'></a>Quick start<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>The following examples illustrate basic usage of the package. Most examples use Windows as they have standard system libraries in known locations. The usage is identical on other platforms.</p>
@@ -457,11 +457,10 @@ HeapCreate HeapDestroy
 
 </figure><h3 class='ruff'><a name='Limitations'></a>Limitations<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>The <code>dyncall</code> backend has the following limitations:</p>
+<p class='ruff'>Each backend has some limitations in terms of passing of structs by value.</p>
 <ul class='ruff'>
-<li>Structs can only be passed by reference, not value.</li>
-<li>Callbacks into Tcl from C functions are not implemented.</li>
-<li>Functions with variable number of arguments not implemented.</li>
+<li>The <code>libffi</code> backend cannot pass or return structs by value if they or a nested field contains arrays.</li>
+<li>The <code>dyncall</code> backend only supports passing and return of structs by value on x64 platforms.</li>
 </ul>
 </main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a class='ruff-highlight' style='padding-top:2px;' href='cffi.html'>Start page</a></li>
 <li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>

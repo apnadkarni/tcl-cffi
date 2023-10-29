@@ -312,9 +312,9 @@ namespace eval Cookbook {
         strings, the implicit dereference syntax is
 
         ``` -caption "Syntax for character string return types" diagram
-              +-      -+
-        STRING| nullok |
-              +-      -+
+              +-      -+ +-       -+
+        STRING| nullok | | multisz |
+              +-      -+ +-       -+
         ```
 
         The `byref` is not present because `string`, `unistring` and `winstring`
@@ -325,6 +325,10 @@ namespace eval Cookbook {
 
         Note that if `STRING` is `string`, an encoding identifier may be
         optionally attached, e.g. `string.utf-8`.
+
+        The `multisz` may only be used when `STRING` is `winstring`. The value
+        is interpreted as holding a Windows `MULTI_SZ` string type and returned
+        as a list.
 
         **Examples**
 
@@ -397,13 +401,12 @@ namespace eval Cookbook {
         ##### Integer input parameters
 
         ``` -caption "Syntax for integer input parameters" diagram
-                  +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
-        schar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
-        uchar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
-        short                                                      |errno            |
-        ushort                                                     |{onerror HANDLER}|
-        int                                                        +-               -+
-        uint
+        schar     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ +-               -+
+        uchar     |in | |byref| |{enum E}| |bitmask| |{default N}| |lasterror        |
+        short     +- -+ +-   -+ +-      -+ +-     -+ +-         -+ |winerror         |
+        ushort                                                     |errno            |
+        int                                                        |{onerror HANDLER}|
+        uint                                                       +-               -+
         long
         ulong
         longlong
@@ -462,13 +465,12 @@ namespace eval Cookbook {
         ##### Output and input-output integer parameters
 
         ``` -caption "Syntax for integer output and input-output parameters" diagram
-                        +-      -+ +-     -+ +-          -+ +-               -+
-        schar     out   |{enum E}| |bitmask| |storeonerror| |lasterror        |
-        uchar     inout +-      -+ +-     -+ |storealways | |winerror         |
-        short     retval                     +-          -+ |errno            |
-        ushort                                              |{onerror HANDLER}|
-        int                                                 +-               -+
-        uint
+        schar     +-    -+ +-      -+ +-     -+ +-          -+ +-               -+
+        uchar     |out   | |{enum E}| |bitmask| |storeonerror| |lasterror        |
+        short     |inout | +-      -+ +-     -+ |storealways | |winerror         |
+        ushort    |retval|                      +-          -+ |errno            |
+        int       +-    -+                                     |{onerror HANDLER}|
+        uint                                                   +-               -+
         long
         ulong
         longlong
@@ -882,10 +884,9 @@ namespace eval Cookbook {
         ##### Input string parameters
 
         ``` -caption "Syntax for input character string parameters" diagram
-                        +- -+ +-   -+ +-         -+
-        string          |in | |byref| |nullifempty|
-        string.ENCODING +- -+ +-   -+ +-         -+
-        unistring
+        string           +- -+ +-   -+ +-         -+ +-       -+
+        string.ENCODING  |in | |byref| |nullifempty| | multisz |
+        unistring        +- -+ +-   -+ +-         -+ +-       -+
         winstring
         ```
 
@@ -913,6 +914,10 @@ namespace eval Cookbook {
         The `nullifempty` annotation identifies such parameters. In this case,
         passing an empty string as the script level argument will result
         in a NULL pointer being passed to the function.
+
+        * The `multisz` may only be used for `winstring`. The passed value is
+        list of strings and is mapped to a Windows `MULTI_SZ` string type.
+
 
         **Examples**
 
@@ -948,9 +953,9 @@ namespace eval Cookbook {
         **Output character arrays**
 
         ``` -caption "Syntax for character array output parameters" diagram
-                          +-    -+ +-          -+
-        chars[N]          |out   | |storealways |
-        chars.ENCODING[N] |inout | |storeonerror|
+                          +-    -+ +-          -+  +-       -+
+        chars[N]          |out   | |storealways |  | multisz |
+        chars.ENCODING[N] |inout | |storeonerror|  +-       -+
         unichars[N]       |retval| +-          -+
         winchars[N]       +-    -+
         ```
@@ -985,6 +990,9 @@ namespace eval Cookbook {
         (for example an error code). See
         [Errors and output parameters][::Concepts::Errors and output parameters].
 
+        * The `multisz` may only be used for `winchars`. The output
+        is interpreted as holding a Windows `MULTI_SZ` string type and stored
+        as a Tcl list.
 
         **Examples**
 
@@ -1017,11 +1025,10 @@ namespace eval Cookbook {
         implicitly declare it as an output parameter of
 
         ``` -caption "Syntax for output character string parameters" diagram
-                        +-    -+ +-    -+ +-          -+
-        string          |out   | |nullok| |storealways |
-        string.ENCODING |retval| +-    -+ |storeonerror|
-        unistring       +-    -+          +-          -+
-        winstring
+        string          +-    -+ +-    -+ +-          -+ +-       -+
+        string.ENCODING |out   | |nullok| |storealways | | multisz |
+        unistring       |retval| +-    -+ |storeonerror| +-       -+
+        winstring       +-    -+          +-          -+
         ```
         * Output parameters in C are always passed as pointers
         to the location where output value is to be stored. Thus `out`
@@ -1045,6 +1052,9 @@ namespace eval Cookbook {
         [Errors and output parameters][::Concepts::Errors and output parameters].
         These annotations are rarely applicable to struct output parameters.
 
+        * The `multisz` annotation may only be used for `winstring`. The pointer
+        stored in the output parameter is interpreted as pointing to a Windows
+        `MULTI_SZ` string type and stored in the Tcl variable as a list.
 
         #### Binary string parameters
 
@@ -1314,10 +1324,9 @@ namespace eval Cookbook {
         #### String pointer fields
 
         ``` -caption "Syntax for string pointer fields" diagram
-                        +-         -+
-        string          |nullifempty|
-        string.ENCODING +-         -+
-        unistring
+        string          +-         -+ +-       -+
+        string.ENCODING |nullifempty| | multisz |
+        unistring       +-         -+ +-       -+
         winstring
         ```
 
@@ -1325,10 +1334,14 @@ namespace eval Cookbook {
         string at the script level should be stored as a NULL pointer in the
         struct field.
 
+        * The `multisz` may only be used for `winstring`. The referenced value
+        is interpreted as holding a Windows `MULTI_SZ` string type and returned
+        at the script level as a list.
+
         As for function parameters, fields that hold pointers to character
         strings can be more conveniently declared as one of the CFFI
         string types if the raw pointer is not required for freeing of resources
-        or other purposes. There are is a restriction imposed when a struct
+        or other purposes. There is a restriction imposed when a struct
         field is declared as a string type. The struct definition may be used
         to pass and return parameters from functions but cannot be used
         with the [::cffi::Struct.new] or [::cffi::Struct.allocate] methods
@@ -1337,10 +1350,9 @@ namespace eval Cookbook {
         #### Character array fields
 
         ``` -caption "Syntax for character array fields" diagram
-
-        chars[N]          +-               -+
-        chars.ENCODING[N] |{default DEFAULT}|
-        unichars[N]       +-               -+
+        chars[N]          +-               -+  +-       -+
+        chars.ENCODING[N] |{default DEFAULT}|  | multisz |
+        unichars[N]       +-               -+  +-       -+
         winchars[N]
         ```
 
@@ -1357,10 +1369,13 @@ namespace eval Cookbook {
         * The array size `N` must be an positive integer constant and
         not dynamically sized as is permitted for array parameters.
 
+        * The `multisz` may only be used for `winchars`. The character array
+        is interpreted as holding a Windows `MULTI_SZ` string type and
+        is a list at the script level.
+
         #### Byte array fields
 
         ``` -caption "Syntax for byte array fields" diagram
-
                  +-               -+
         bytes[N] |{default DEFAULT}|
                  +-               -+

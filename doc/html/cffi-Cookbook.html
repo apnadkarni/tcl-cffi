@@ -192,6 +192,7 @@ LIBGIT function git_tree_oid {struct.git_oid byref} {pTree pointer.git_tree}
 <figcaption class='ruff-caption'>Figure 8. Syntax for character string return types</figcaption>
 </figure><p class='ruff'>The <code>byref</code> is not present because <code>string</code>, <code>unistring</code> and <code>winstring</code> are already implicit pointers, (<code>string byref</code> would correspond to <code>char **</code>, not <code>char *</code>). An optional <code>nullok</code> annotation will cause a NULL pointer return to be mapped to the empty string instead of generating an exception.</p>
 <p class='ruff'>Note that if <code>STRING</code> is <code>string</code>, an encoding identifier may be optionally attached, e.g. <code>string.utf-8</code>.</p>
+<p class='ruff'>The <code>multisz</code> may only be used when <code>STRING</code> is <code>winstring</code>. The value is interpreted as holding a Windows <code>MULTI_SZ</code> string type and returned as a list.</p>
 <p class='ruff'><strong>Examples</strong></p>
 <p class='ruff'>C</p>
 
@@ -473,6 +474,7 @@ LIBUSER32 stdcall GetWindowRect int {hwnd pointer rect {struct.RECT out}}
 <li>For the <code>string</code> type an optional encoding may be specified and defaults to the system encoding. If a library API uses a specific encoding (commonly UTF-8), it may be convenient to define a type alias.</li>
 <li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the pointer to the character string (double indirection). This is rare for passing character string values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
 <li>Some C functions accept a NULL pointer for optional parameters. The <code>nullifempty</code> annotation identifies such parameters. In this case, passing an empty string as the script level argument will result in a NULL pointer being passed to the function.</li>
+<li>The <code>multisz</code> may only be used for <code>winstring</code>. The passed value is list of strings and is mapped to a Windows <code>MULTI_SZ</code> string type.</li>
 </ul>
 <p class='ruff'><strong>Examples</strong></p>
 <p class='ruff'>C</p>
@@ -505,6 +507,7 @@ LIBC function chdir {int zero errno} {path string}
 <li>The array size <code>N</code> in the declaration may either be an integer constant or the name of a integer type parameter in the same function declaration. See <a href="cffi-Concepts.html#::Concepts-Dynamically sized arrays" title="Dynamically sized arrays" >Dynamically sized arrays</a>.</li>
 <li>If <code>ENCODING</code> is not specified, it defaults to the system encoding.</li>
 <li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</li>
+<li>The <code>multisz</code> may only be used for <code>winchars</code>. The output is interpreted as holding a Windows <code>MULTI_SZ</code> string type and stored as a Tcl list.</li>
 </ul>
 <p class='ruff'><strong>Examples</strong></p>
 <p class='ruff'>C</p>
@@ -532,6 +535,7 @@ LIBC function getcwd {string errno} {buf {chars[size] out} size size_t}
 <li>The script level argument corresponding to an <code>out</code> parameter is the name of the variable to which the output value is to be assigned.</li>
 <li>Use the <code>retval</code> annotation for output parameters where you want the output parameter value from the function to be returned as the function result in lieu of the actual function return value. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</li>
 <li>If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values. The <code>storealways</code> annotation indicates the output value is valid regardless of function failure. The <code>storeonerror</code> annotation indicates the output value is valid <strong>only</strong> on function failure (for example an error code). See <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>. These annotations are rarely applicable to struct output parameters.</li>
+<li>The <code>multisz</code> annotation may only be used for <code>winstring</code>. The pointer stored in the output parameter is interpreted as pointing to a Windows <code>MULTI_SZ</code> string type and stored in the Tcl variable as a list.</li>
 </ul>
 <h4 class='ruff'><a name='::Cookbook-Binary string parameters'></a>Binary string parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
@@ -671,8 +675,9 @@ double +-         -+
 <figcaption class='ruff-caption'>Figure 26. Syntax for string pointer fields</figcaption>
 </figure><ul class='ruff'>
 <li>The <code>nullifempty</code> annotation may be used in cases where an empty string at the script level should be stored as a NULL pointer in the struct field.</li>
+<li>The <code>multisz</code> may only be used for <code>winstring</code>. The referenced value is interpreted as holding a Windows <code>MULTI_SZ</code> string type and returned at the script level as a list.</li>
 </ul>
-<p class='ruff'>As for function parameters, fields that hold pointers to character strings can be more conveniently declared as one of the CFFI string types if the raw pointer is not required for freeing of resources or other purposes. There are is a restriction imposed when a struct field is declared as a string type. The struct definition may be used to pass and return parameters from functions but cannot be used with the <a href="cffi-cffi.html#::cffi::Struct::new" title="::cffi::Struct.new" class='ruff_cmd'>::cffi::Struct.new</a> or <a href="cffi-cffi.html#::cffi::Struct::allocate" title="::cffi::Struct.allocate" class='ruff_cmd'>::cffi::Struct.allocate</a> methods to allocate a native struct in memory.</p>
+<p class='ruff'>As for function parameters, fields that hold pointers to character strings can be more conveniently declared as one of the CFFI string types if the raw pointer is not required for freeing of resources or other purposes. There is a restriction imposed when a struct field is declared as a string type. The struct definition may be used to pass and return parameters from functions but cannot be used with the <a href="cffi-cffi.html#::cffi::Struct::new" title="::cffi::Struct.new" class='ruff_cmd'>::cffi::Struct.new</a> or <a href="cffi-cffi.html#::cffi::Struct::allocate" title="::cffi::Struct.allocate" class='ruff_cmd'>::cffi::Struct.allocate</a> methods to allocate a native struct in memory.</p>
 <h4 class='ruff'><a name='::Cookbook-Character array fields'></a>Character array fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 
@@ -683,6 +688,7 @@ double +-         -+
 <ul class='ruff'>
 <li>The <code>default</code> annotation may be used to supply a default value to be stored in the native C struct if the dictionary representation does not have a key matching the field.</li>
 <li>The array size <code>N</code> must be an positive integer constant and not dynamically sized as is permitted for array parameters.</li>
+<li>The <code>multisz</code> may only be used for <code>winchars</code>. The character array is interpreted as holding a Windows <code>MULTI_SZ</code> string type and is a list at the script level.</li>
 </ul>
 <h4 class='ruff'><a name='::Cookbook-Byte array fields'></a>Byte array fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>

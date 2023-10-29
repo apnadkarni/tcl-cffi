@@ -693,7 +693,7 @@ set start_page {
     HeapCreate HeapDestroy
     ````
 
-    ### Introspection
+    ### Limitations
 
     Each backend has some limitations in terms of passing of structs by value.
 

@@ -513,6 +513,8 @@ static Tcl_UniChar unichar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
 #ifdef _WIN32
 static WCHAR winchar_test_string[] = {0xe0, 0xe1, 0xe2, 0};
 static WCHAR winchar_test_string2[] = {0xe3, 0xe4, 0xe5, 0};
+static WCHAR winchar_multisz_test_string[] = {
+    'a', ' ', 'b', 0, 0xe0, 0xe1, 0, 'z', 0, 0};
 #endif
 
 FNSTRINGS(string, char)
@@ -607,16 +609,39 @@ EXTERN int winstring_array_out (WCHAR *strings[], int n)
         strings[i] = strs[i%2];
     return n;
 }
-EXTERN int winstring_multisz(WCHAR *multiSzP) {
+EXTERN int winstring_multisz(WCHAR *in, int nout, WCHAR *out) {
     int count = 0;
-    WCHAR *next;
+    size_t totalLen = 0;
     size_t len;
-    while ((len = wcslen(multiSzP)) != 0) {
+    WCHAR *from = in;
+    while ((len = wcslen(from)) != 0) {
         ++count;
-        multiSzP += len+1;
+        totalLen += len + 1;
+        from += len+1;
+    }
+    if (totalLen <= nout) {
+        memmove(out, in, sizeof(WCHAR) * (totalLen+1));
+    } else {
+       if (nout) {
+           *out = 0;
+       }
     }
     return count;
 }
+EXTERN void winstring_multisz_param_out(WCHAR **out) {
+    *out =  winchar_multisz_test_string;
+}
+EXTERN const WCHAR *winstring_multisz_return(WCHAR **out) {
+    return winchar_multisz_test_string;
+}
+EXTERN const WCHAR *winstring_multisz_reflect(WCHAR *p) {
+    return p;
+}
+EXTERN const WCHAR **winstring_multisz_return_byref(WCHAR **out) {
+    static WCHAR *s = winchar_multisz_test_string;
+    return &s;
+}
+
 
 #endif
 

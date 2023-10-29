@@ -97,6 +97,8 @@ namespace eval Concepts {
           See [Input and output parameters].
         `lasterror` - If the function return value indicates an error condition, the
           error code is available via the Windows `GetLastError` API.
+        `multisz` - The value is a concatenation of multiple nul-terminated strings
+        with an empty string indicating the end. (Windows MULTI_SZ format)
         `nonnegative` - Raise an exception if the function return value is negative.
         `nonzero` - Raise an exception if the function return values is zero.
         `nullifempty` - Treat the empty string or struct dictionary in a parameter
@@ -641,6 +643,28 @@ namespace eval Concepts {
         % getcwd dir 512
         /tmp
         ````
+
+        #### MULTI_SZ strings
+
+        Some Windows API's make use of the `MULTI_SZ` string type which is a
+        string consisting of a sequence of nul-terminated strings in memory
+        followed by an additional nul (i.e. an empty string indicates the end).
+        This can be mapped to the `winstring` and `winchars` type by annotating
+        the declaration with the `multisz` attribute. At the script level, these
+        are represented as a list of strings.
+
+        ```
+        % kernel32 stdcall GetPrivateProfileSectionNamesW uint {
+            buf {winchars[bufSize] multisz out}
+            bufSize uint
+            filename {winstring nullifempty}
+        }
+        ::GetPrivateProfileSectionNamesW
+        % GetPrivateProfileSectionNamesW buf 1000 ""
+        306
+        % set buf
+        AeDebug CLOCK COLORS CONSOLE CURSORS DESKTOP ...
+        ```
 
         #### Strings as NULL pointers
 

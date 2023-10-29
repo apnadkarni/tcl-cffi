@@ -209,13 +209,13 @@ cffi - Commands in namespace cffi
 .br
 \fBOBJECT function\fP \fIfnname fntype parameters\fP
 .br
-\fBOBJECT functions\fP \fIfnlist\fP
+\fBOBJECT functions\fP \fIfnlist ?args?\fP
 .br
 \fBOBJECT path\fP
 .br
 \fBOBJECT stdcall\fP \fIfnname fntype parameters\fP
 .br
-\fBOBJECT stdcalls\fP \fIfnlist\fP
+\fBOBJECT stdcalls\fP \fIfnlist ?args?\fP
 .br
 .SH ::CFFI
 .PP
@@ -557,9 +557,6 @@ cmdprefix
 The command prefix that should be invoked when the created C function is called\&.
 .TP
 error_value
-Not documented\&.
-.TP
-error_result
 The value that should be returned if the command prefix raises an exception\&. This is optional if the function prototype specifies the void return type\&.
 .RE
 .PP
@@ -3422,12 +3419,14 @@ namespace from which it is called\&.
 .PP
 The return type of the C function is specified through the \fI$fntype\fP
 argument which should be a \fItype declaration\fP\&.
+See \fIsyntax\fP\&.
 .PP
 The \fI$parameters\fP argument is a list of alternating parameter names and
-type declarations that describe the parameters of the C
-function\&. The parameter name is only used to construct error messages
-while the latter determines how arguments are converted and passed to
-the C function\&.
+type declarations that describe the
+\fIparameters\fP of the C function\&. The parameter
+name is only used to construct error messages while the latter
+determines how arguments are converted and passed to the C function\&.
+See \fIsyntax\fP\&.
 .PP
 The return type as well as parameter type declarations may have
 annotations that control semantics and behavior with respect to
@@ -3446,7 +3445,7 @@ Returns the name of the created Tcl command\&.
 .RE
 .PP
 Creates Tcl commands for multiple C functions within the loaded library\&.
-.RS 4n\fBOBJECT functions\fP \fIfnlist\fP
+.RS 4n\fBOBJECT functions\fP \fIfnlist ?args?\fP
 .br
 .RE
 .PP
@@ -3455,6 +3454,9 @@ Creates Tcl commands for multiple C functions within the loaded library\&.
 .TP
 fnlist
 List of function definitions\&.
+.TP
+-ignoremissing
+Do not raise an error if a function is not found\&.
 .RE
 .PP
 \fBDescription\fR
@@ -3464,6 +3466,10 @@ syntactic sugar for defining multiple functions\&. The \fI$fnlist\fP
 argument is a flat (not nested) list of function name, return type and
 parameter list in the same form as described for the \fIfunction\fP
 method\&.
+.PP
+If a function is not found, the command will raise an error but those
+functions that are found will be defined\&. The error can be completely
+suppressed with the -ignoremissing option\&.
 .PP
 .RS -4n
 \fBpath\fR (::cffi::Wrapper)
@@ -3531,7 +3537,7 @@ Returns the name of the created Tcl command\&.
 .PP
 Creates Tcl commands for multiple C functions within the loaded library
 that all use the __stdcall calling convention\&.
-.RS 4n\fBOBJECT stdcalls\fP \fIfnlist\fP
+.RS 4n\fBOBJECT stdcalls\fP \fIfnlist ?args?\fP
 .br
 .RE
 .PP
@@ -3540,6 +3546,9 @@ that all use the __stdcall calling convention\&.
 .TP
 fnlist
 List of function definitions\&.
+.TP
+-ignoremissing
+Do not raise an error if a function is not found\&.
 .RE
 .PP
 \fBDescription\fR
@@ -3549,4 +3558,8 @@ syntactic sugar for defining multiple functions\&. The \fI$fnlist\fP
 argument is a flat (not nested) list of function name, return type and
 parameter list in the same form as described for the \fIstdcall\fP
 method\&.
+.PP
+If a function is not found, the command will raise an error but those
+functions that are found will be defined\&. The error can be completely
+suppressed with the -ignoremissing option\&.
 

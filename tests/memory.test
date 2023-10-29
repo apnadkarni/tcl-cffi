@@ -771,8 +771,9 @@ namespace eval cffi::test {
 
     if {$::tcl_platform(platform) eq "windows"} {
         test memory-get-winstring-0 "get winstring" -setup {
-            set s [cffi::memory fromstring $testValues(winstring) [expr {[package vsatisfies [info tclversion] 9] ? "utf-16le" : "unicode"}]]
+            unset -nocomplain s
             unset -nocomplain p
+            set s [cffi::memory fromstring $testValues(winstring) [expr {[package vsatisfies [info tclversion] 9] ? "utf-16le" : "unicode"}]]
             set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
             cffi::memory set $p pointer $s
         } -cleanup {
@@ -781,6 +782,17 @@ namespace eval cffi::test {
         } -constraints win -body {
             cffi::memory get $p winstring
         } -result $testValues(winstring)
+
+        test memory-get-winchars-multisz-0 "Get a multisz list" -setup {
+            set s [cffi::memory new {bytes[100]} "A\x00 \x00B\x00\x00\x00C\x00\x00\x00D\x00E\x00\x00\x00\x00\x00"]
+            set p [cffi::memory allocate [dict get [cffi::type info pointer field] Size]]
+            cffi::memory set $p pointer $s
+        } -cleanup {
+            if {[info exists s]} {cffi::memory free $s}
+            if {[info exists p]} {cffi::memory free $p}
+        } -constraints win -body {
+            cffi::memory get $p {winstring multisz}
+        } -result [list {A B} C DE]
     }
 
     test memory-get-binary-0 "set $type" -setup {
@@ -922,6 +934,28 @@ namespace eval cffi::test {
             } -result {expected.*but got|Invalid value|missing.*key} -returnCodes error -match regexp
         }
     }
+
+    test memory-get-winchars-multisz-0 "Get a multisz list" -setup {
+        set p [cffi::memory new {bytes[100]} "A\x00 \x00B\x00\x00\x00C\x00\x00\x00D\x00E\x00\x00\x00\x00\x00"]
+    } -cleanup {
+        cffi::memory free $p
+    } -constraints win -body {
+        cffi::memory get $p {winchars[100] multisz}
+    } -result [list {A B} C DE]
+
+    test memory-get-winchars-multisz-1 "Store a multisz list" -cleanup {
+        cffi::memory free $p
+    } -constraints win -body {
+        set p [cffi::memory new {winchars[10] multisz} {{A B} C DE}]
+        cffi::memory get $p {winchars[10] multisz}
+    } -result [list {A B} C DE]
+
+    test memory-get-winchars-multisz-2 "Store a multisz list - insufficient space" \
+        -constraints win \
+        -body {
+        set p [cffi::memory new {winchars[9] multisz} {{A B} C DE}]
+        } -result {Invalid value "{A B} C DE". String length is greater than specified maximum buffer size.} -returnCodes error
+
     set type struct.::StructValue
     set val $testValues($type)
     test memory-new-$type-array-0 "new $type array" -cleanup {

@@ -135,8 +135,7 @@ package require cffi
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>protoname</code></td><td>The name of a prototype created through the <a href="cffi-cffi.html#::cffi::prototype function" title="prototype function" class='ruff_cmd'>prototype function</a> or <a href="cffi-cffi.html#::cffi::prototype stdcall" title="prototype stdcall" class='ruff_cmd'>prototype stdcall</a> commands.</td></tr>
 <tr><td><code>cmdprefix</code></td><td>The command prefix that should be invoked when the created C function is called.</td></tr>
-<tr><td><code>error_value</code></td><td>Not documented.</td></tr>
-<tr><td><code>error_result</code></td><td>The value that should be returned if the command prefix raises an exception. This is optional if the function prototype specifies the <code>void</code> return type.</td></tr>
+<tr><td><code>error_value</code></td><td>The value that should be returned if the command prefix raises an exception. This is optional if the function prototype specifies the <code>void</code> return type.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned function pointer can be invoked through the <a href="cffi-cffi.html#::cffi::call" title="call" class='ruff_cmd'>call</a> command but the common usage is for it to be passed to a C function that takes a callback function as an argument.</p>
 <p class='ruff'>Invoking the function pointer will result in <code>$cmdprefix</code> being called with the additional arguments passed in the invocation. These must match the parameter types of the prototype specified in the callback definition.</p>
@@ -1126,19 +1125,21 @@ cffi::help functions ::libzip::*
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The command creates a Tcl command corresponding to a C function contained in the library. The function must be one that follows the default C calling convention (See <a href="cffi-Concepts.html#::Concepts-Calling conventions" title="Calling conventions" >Calling conventions</a>).</p>
 <p class='ruff'>The <code>$fnname</code> argument is a one or two element list, the first being the name of the C function and the second, if present, being the name of the corresponding Tcl command. The latter defaults to the former if unspecified. Unless fully qualified, the command is created in the namespace from which it is called.</p>
-<p class='ruff'>The return type of the C function is specified through the <code>$fntype</code> argument which should be a <a href="cffi-Concepts.html#::Concepts-Return types" title="type declaration" >type declaration</a>.</p>
-<p class='ruff'>The <code>$parameters</code> argument is a list of alternating parameter names and type declarations that describe the parameters of the C function. The parameter name is only used to construct error messages while the latter determines how arguments are converted and passed to the C function.</p>
+<p class='ruff'>The return type of the C function is specified through the <code>$fntype</code> argument which should be a <a href="cffi-Concepts.html#::Concepts-Return types" title="type declaration" >type declaration</a>. See <a href="cffi-Cookbook.html#::Cookbook-Return type declaration" title="syntax" >syntax</a>.</p>
+<p class='ruff'>The <code>$parameters</code> argument is a list of alternating parameter names and type declarations that describe the <a href="cffi-Concepts.html#::Concepts-Parameters" title="parameters" >parameters</a> of the C function. The parameter name is only used to construct error messages while the latter determines how arguments are converted and passed to the C function. See <a href="cffi-Cookbook.html#::Cookbook-Parameter declaration" title="syntax" >syntax</a>.</p>
 <p class='ruff'>The return type as well as parameter type declarations may have annotations that control semantics and behavior with respect to how values are passed and converted between Tcl and C. See <a href="cffi-Concepts.html#::Concepts-Functions" title="Functions" >Functions</a> for details of these.</p>
 <p class='ruff'>The command will raise an error if the function identified by <code>$cname</code> is not found in the loaded DLL.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the name of the created Tcl command.</p>
 <h4 class='ruffmethod'><a name='::cffi::Wrapper::functions'>functions</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Wrapper" title="::cffi::Wrapper" class='ruff_cmd'>::cffi::Wrapper</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Wrapper'>Wrapper</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Creates Tcl commands for multiple C functions within the loaded library.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT functions</span> <span class='ruff_arg'>fnlist</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT functions</span> <span class='ruff_arg'>fnlist ?args?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>fnlist</code></td><td>List of function definitions.</td></tr>
+<tr><td><code>-ignoremissing</code></td><td>Do not raise an error if a function is not found.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>This is a wrapper around the <a href="cffi-cffi.html#::cffi::Wrapper::function" title="function" class='ruff_cmd'>function</a> method that provides some syntactic sugar for defining multiple functions. The <code>$fnlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi-cffi.html#::cffi::Wrapper::function" title="function" class='ruff_cmd'>function</a> method.</p>
+<p class='ruff'>If a function is not found, the command will raise an error but those functions that are found will be defined. The error can be completely suppressed with the <code>-ignoremissing</code> option.</p>
 <h4 class='ruffmethod'><a name='::cffi::Wrapper::path'>path</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Wrapper" title="::cffi::Wrapper" class='ruff_cmd'>::cffi::Wrapper</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Wrapper'>Wrapper</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Returns the file system path for the wrapped library or image wrapped by the object.</p>
@@ -1160,11 +1161,13 @@ cffi::help functions ::libzip::*
 <h4 class='ruffmethod'><a name='::cffi::Wrapper::stdcalls'>stdcalls</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Wrapper" title="::cffi::Wrapper" class='ruff_cmd'>::cffi::Wrapper</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Wrapper'>Wrapper</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdcalls</span> <span class='ruff_arg'>fnlist</span></div>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdcalls</span> <span class='ruff_arg'>fnlist ?args?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>fnlist</code></td><td>List of function definitions.</td></tr>
+<tr><td><code>-ignoremissing</code></td><td>Do not raise an error if a function is not found.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>This is a wrapper around the <a href="cffi-cffi.html#::cffi::Wrapper::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> method that provides some syntactic sugar for defining multiple functions. The <code>$fnlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi-cffi.html#::cffi::Wrapper::stdcall" title="stdcall" class='ruff_cmd'>stdcall</a> method.</p>
+<p class='ruff'>If a function is not found, the command will raise an error but those functions that are found will be defined. The error can be completely suppressed with the <code>-ignoremissing</code> option.</p>
 </main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
 <li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>
 <hr>
@@ -1273,9 +1276,9 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::destructor'>destructor</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT destroy</span> </pre>Destroys the object and releases internal resources.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::addressof'>addressof</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT addressof</span> <span class='ruff_arg'>symbol</span></pre>Returns the address of a symbol from the loaded library.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::function'>function</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT function</span> <span class='ruff_arg'>fnname fntype parameters</span></pre>Creates a Tcl command to invoke a C function in the loaded library.
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::functions'>functions</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT functions</span> <span class='ruff_arg'>fnlist</span></pre>Creates Tcl commands for multiple C functions within the loaded library.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::functions'>functions</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT functions</span> <span class='ruff_arg'>fnlist ?args?</span></pre>Creates Tcl commands for multiple C functions within the loaded library.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::path'>path</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT path</span> </pre>Returns the file system path for the wrapped library or image wrapped by the object.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcall'>stdcall</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT stdcall</span> <span class='ruff_arg'>fnname fntype parameters</span></pre>Creates a Tcl command to invoke a C function that uses the <code>__stdcall</code> calling convention from the loaded library..
-</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcalls'>stdcalls</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT stdcalls</span> <span class='ruff_arg'>fnlist</span></pre>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Wrapper::stdcalls'>stdcalls</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT stdcalls</span> <span class='ruff_arg'>fnlist ?args?</span></pre>Creates Tcl commands for multiple C functions within the loaded library that all use the <code>__stdcall</code> calling convention.
 </span></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
 </div></body></html>

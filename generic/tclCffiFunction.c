@@ -235,14 +235,28 @@ CffiArgPrepareWinChars(CffiCall *callP,
     CFFI_ASSERT(argP->arraySize > 0);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_WINCHAR_ARRAY);
 
-    if (typeAttrsP->flags & CFFI_F_ATTR_NULNUL) {
+    if (typeAttrsP->flags & CFFI_F_ATTR_OUT) {
+        valueP->u.ptr =
+            Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(WCHAR));
+        /*
+         * To protect against the called C function leaving the output
+         * argument unmodified on error which would result in our
+         * processing garbage in CffiArgPostProcess, set null terminator.
+         */
+        *(WCHAR *)valueP->u.ptr = 0;
+        return TCL_OK;
+    }
+
+    /* in or inout parameter */
+
+    if (typeAttrsP->flags & CFFI_F_ATTR_MULTISZ) {
         void *wsP;
         Tcl_Size nBytes;
         wsP = Tclh_ObjToWinCharsMultiLifo(
             ipCtxP->tclhCtxP, &ipCtxP->memlifo, valueObj, NULL, &nBytes);
         if (wsP == NULL)
             return TCL_ERROR;
-        if (nBytes > argP->arraySize) {
+        if (nBytes > (Tcl_Size)sizeof(WCHAR)*argP->arraySize) {
             return Tclh_ErrorInvalidValue(ipCtxP->interp,
                                           valueObj,
                                           "String length is greater than "
@@ -255,28 +269,17 @@ CffiArgPrepareWinChars(CffiCall *callP,
     valueP->u.ptr =
         Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(WCHAR));
 
-    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
-        int encResult;
-        Tcl_Size len;
-        const char *p = Tcl_GetStringFromObj(valueObj, &len);
+    int encResult;
+    Tcl_Size len;
+    const char *p = Tcl_GetStringFromObj(valueObj, &len);
 
-        encResult = Tclh_UtfToWinChars(
-            ipCtxP->tclhCtxP, p, len, valueP->u.ptr, argP->arraySize, NULL);
-        if (encResult == TCL_OK)
-            return TCL_OK;
-        else {
-            return Tclh_ErrorEncodingFromUtf8(
-                ipCtxP->interp, encResult, Tcl_GetString(valueObj), len);
-        }
-    }
-    else {
-        /*
-         * To protect against the called C function leaving the output
-         * argument unmodified on error which would result in our
-         * processing garbage in CffiArgPostProcess, set null terminator.
-         */
-        *(WCHAR *)valueP->u.ptr = 0;
+    encResult = Tclh_UtfToWinChars(
+        ipCtxP->tclhCtxP, p, len, valueP->u.ptr, argP->arraySize, NULL);
+    if (encResult == TCL_OK)
         return TCL_OK;
+    else {
+        return Tclh_ErrorEncodingFromUtf8(
+            ipCtxP->interp, encResult, Tcl_GetString(valueObj), len);
     }
 }
 #endif
@@ -1918,9 +1921,17 @@ CffiFunctionCall(ClientData cdata,
                 break;
 #ifdef _WIN32
             case CFFI_K_TYPE_WINSTRING:
-                if (pointer)
-                    resultObj = Tclh_ObjFromWinChars(
-                        ipCtxP->tclhCtxP, (WCHAR *)pointer, -1);
+                if (pointer) {
+                    if (protoP->returnType.typeAttrs.flags
+                        & CFFI_F_ATTR_MULTISZ) {
+                        resultObj = Tclh_ObjFromWinCharsMulti(
+                            ipCtxP->tclhCtxP, (WCHAR *)pointer, -1);
+                    }
+                    else {
+                        resultObj = Tclh_ObjFromWinChars(
+                            ipCtxP->tclhCtxP, (WCHAR *)pointer, -1);
+                    }
+                }
                 else
                     resultObj = Tcl_NewObj();
                 break;

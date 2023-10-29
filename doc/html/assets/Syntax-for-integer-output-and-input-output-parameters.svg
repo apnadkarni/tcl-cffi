@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8' standalone='no'?>
 <svg 
     xmlns='http://www.w3.org/2000/svg'
-    width='730'
-    height='182'
+    width='760'
+    height='168'
     shape-rendering='geometricPrecision'
     version='1.0'>
   <defs>
@@ -13,35 +13,37 @@
     </filter>
   </defs>
   <g stroke-width='1' stroke-linecap='square' stroke-linejoin='round'>
-    <rect x='0' y='0' width='730' height='182' style='fill: #ffffff'/>
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M545.0 91.0 L535.0 91.0 L535.0 21.0 L545.0 21.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M705.0 91.0 L715.0 91.0 L715.0 21.0 L705.0 21.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M395.0 63.0 L385.0 63.0 L385.0 21.0 L395.0 21.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M505.0 21.0 L515.0 21.0 L515.0 63.0 L505.0 63.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M185.0 49.0 L175.0 49.0 L175.0 21.0 L185.0 21.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M255.0 21.0 L265.0 21.0 L265.0 49.0 L255.0 49.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M295.0 21.0 L285.0 21.0 L285.0 49.0 L295.0 49.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M355.0 49.0 L365.0 49.0 L365.0 21.0 L355.0 21.0 ' />
-    <text x='10' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[schar]]></text>
-    <text x='10' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[uchar]]></text>
-    <text x='10' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[short]]></text>
-    <text x='10' y='82' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[ushort]]></text>
-    <text x='10' y='96' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[int]]></text>
-    <text x='10' y='110' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[uint]]></text>
-    <text x='10' y='124' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[long]]></text>
-    <text x='10' y='138' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[ulong]]></text>
-    <text x='10' y='152' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[longlong]]></text>
-    <text x='10' y='166' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[ulonglong]]></text>
-    <text x='110' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[out]]></text>
-    <text x='110' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[inout]]></text>
-    <text x='110' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[retval]]></text>
-    <text x='189' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[{enum E}]]></text>
-    <text x='298' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[bitmask]]></text>
-    <text x='390' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[storeonerror]]></text>
-    <text x='390' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[storealways]]></text>
-    <text x='540' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[lasterror]]></text>
-    <text x='540' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[winerror]]></text>
-    <text x='540' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[errno]]></text>
-    <text x='540' y='82' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[{onerror HANDLER}]]></text>
+    <rect x='0' y='0' width='760' height='168' style='fill: #ffffff'/>
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M575.0 21.0 L565.0 21.0 L565.0 91.0 L575.0 91.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M735.0 21.0 L745.0 21.0 L745.0 91.0 L735.0 91.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M125.0 77.0 L115.0 77.0 L115.0 21.0 L125.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M175.0 21.0 L185.0 21.0 L185.0 77.0 L175.0 77.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M425.0 21.0 L415.0 21.0 L415.0 63.0 L425.0 63.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M535.0 63.0 L545.0 63.0 L545.0 21.0 L535.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M215.0 21.0 L205.0 21.0 L205.0 49.0 L215.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M285.0 21.0 L295.0 21.0 L295.0 49.0 L285.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M325.0 21.0 L315.0 21.0 L315.0 49.0 L325.0 49.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M385.0 49.0 L395.0 49.0 L395.0 21.0 L385.0 21.0 ' />
+    <text x='10' y='26' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[schar]]></text>
+    <text x='10' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[uchar]]></text>
+    <text x='10' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[short]]></text>
+    <text x='10' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[ushort]]></text>
+    <text x='10' y='82' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[int]]></text>
+    <text x='10' y='96' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[uint]]></text>
+    <text x='10' y='110' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[long]]></text>
+    <text x='10' y='124' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[ulong]]></text>
+    <text x='10' y='138' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[longlong]]></text>
+    <text x='10' y='152' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[ulonglong]]></text>
+    <text x='120' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[out]]></text>
+    <text x='120' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[inout]]></text>
+    <text x='120' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[retval]]></text>
+    <text x='219' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[{enum E}]]></text>
+    <text x='328' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[bitmask]]></text>
+    <text x='420' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[storeonerror]]></text>
+    <text x='420' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[storealways]]></text>
+    <text x='570' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[lasterror]]></text>
+    <text x='570' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[winerror]]></text>
+    <text x='570' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[errno]]></text>
+    <text x='570' y='82' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[{onerror HANDLER}]]></text>
   </g>
 </svg>

@@ -662,6 +662,48 @@ namespace eval ${NS}::test {
         } -result 0
     }
 
+    test function-winstring-multisz-0 "pass winstring in" -setup {
+        testDll function winstring_multisz int {inp {winstring multisz} bufSize int buf {winchars[bufSize] multisz out}}
+    } -constraints win -body {
+        list [winstring_multisz [list {a b} \xe0\xe1 d] 20 buf] $buf
+    } -result [list 3 [list {a b} \xe0\xe1 d]]
+
+    test function-winstring-multisz-1 "pass winstring in" -setup {
+        testDll function winstring_multisz int {inp {winstring multisz} bufSize int buf {winchars[bufSize] multisz out}}
+    } -constraints win -body {
+        list [winstring_multisz [lrepeat 10000 {a b} \xe0\xe1 d] 90001 buf] $buf
+    } -result [list 30000 [lrepeat 10000 {a b} \xe0\xe1 d]]
+
+    test function-winstring-multisz-2 "pass winstring out" -setup {
+        testDll function winstring_multisz_param_out void {s {winstring out multisz}}
+    } -constraints win -body {
+        winstring_multisz_param_out s
+        set s
+    } -result [list {a b} \xe0\xe1 z]
+
+    test function-winstring-multisz-3 "multisz winstring return" -setup {
+        testDll function winstring_multisz_return {winstring multisz} {}
+    } -constraints win -body {
+        winstring_multisz_return
+    } -result [list {a b} \xe0\xe1 z]
+
+    test function-winstring-multisz-4 "multisz winstring return byref" -setup {
+        testDll function winstring_multisz_return_byref {winstring multisz byref} {}
+    } -constraints win -body {
+        winstring_multisz_return_byref
+    } -result [list {a b} \xe0\xe1 z]
+
+    test function-winstring-multisz-5 "multisz winstring NULL" -setup {
+        testDll function pointer_to_pointer {winstring multisz} {p {pointer unsafe nullok}}
+    } -constraints win -body {
+        pointer_to_pointer 0^
+    } -result {Invalid value "". Function returned an error value.} -returnCodes error
+
+    test function-winstring-multisz-6 "multisz winstring nullok" -setup {
+        testDll function pointer_to_pointer {winstring multisz nullok} {p {pointer unsafe nullok}}
+    } -constraints win -body {
+        pointer_to_pointer 0^
+    } -result {}
 
     # string.encoding
     # Note: do not include ascii for jis0208 encoding tests.
@@ -932,6 +974,26 @@ namespace eval ${NS}::test {
             } -result "Invalid value \"{$type\\\[2\\\]} $attr\". $msg* Error defining function *" -match glob -returnCodes error
         }
     }
+
+    # winchars multisz
+
+    test function-winchars-multisz-0 "pass winchars in" -setup {
+        testDll function winstring_multisz int {inp {winchars[bufSize] multisz} bufSize int buf {winchars[bufSize] multisz out}}
+    } -constraints win -body {
+        list [winstring_multisz [list {a b} \xe0\xe1 d] 10 buf] $buf
+    } -result [list 3 [list {a b} \xe0\xe1 d]]
+
+    test function-winchars-multisz-1 "pass winchars in large" -setup {
+        testDll function winstring_multisz int {inp {winchars[bufSize] multisz} bufSize int buf {winchars[bufSize] multisz out}}
+    } -constraints win -body {
+        list [winstring_multisz [lrepeat 10000 {a b} \xe0\xe1 d] 90001 buf] $buf
+    } -result [list 30000 [lrepeat 10000 {a b} \xe0\xe1 d]]
+
+    test function-winchars-multisz-2 "pass winchars in - buffer too small" -setup {
+        testDll function winstring_multisz int {inp {winchars[bufSize] multisz} bufSize int buf {winchars[bufSize] multisz out}}
+    } -constraints win -body {
+        list [winstring_multisz [list {a b} \xe0\xe1 d] 9 buf] $buf
+    } -result "Invalid value \"{a b} \xE0\xE1 d\". String length is greater than specified maximum buffer size." -returnCodes error
 
     # chars.encoding
     set val $testStrings(jis0208)
