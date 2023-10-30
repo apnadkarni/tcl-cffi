@@ -555,7 +555,28 @@ namespace eval cffi::test {
         S tonative $p {i 2 s 3 c 1}
         S fromnative $p 0
     } -result {c 1 i 2 s 3}
-    
+
+    test struct-tonative-4 "struct with winchars multisz" -setup {
+        cffi::Struct create S {w {winchars[10] multisz}}
+        set p [S allocate]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -constraints win -body {
+        S tonative $p [list w [list {a b} cd e]]
+        S fromnative $p
+    } -result [list w [list {a b} cd e]]
+
+    test struct-tonative-4.a "struct with winchars multisz - error" -setup {
+        cffi::Struct create S {w {winchars[9] multisz}}
+        set p [S allocate]
+    } -cleanup {
+        S free $p
+        S destroy
+    } -constraints win -body {
+        S tonative $p [list w [list {a b} cd e]]
+    } -result {Invalid value "{a b} cd e". String length is greater than specified maximum buffer size. Error converting field ::cffi::test::S.w to a native value.} -returnCodes error
+
     test struct-tonative-error-0 "struct tonative bad value" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
         set p [::S new {c 0 i 1 s 2}]
@@ -786,6 +807,21 @@ namespace eval cffi::test {
         set bin [S tobinary [list ptrs [make_unsafe_pointers 1 2 3]]]
         S frombinary $bin
     } -result [list ptrs [make_unsafe_pointers 1 2 3]]
+
+    test struct-tobinary-3 "struct with winchars multisz" -cleanup {
+        S destroy
+    } -constraints win -body {
+        cffi::Struct create S {w {winchars[10] multisz}}
+        set bin [S tobinary [list w [list {a b} cd e]]]
+        S frombinary $bin
+    } -result [list w [list {a b} cd e]]
+
+    test struct-tobinary-3.a "struct with winchars multisz - error" -cleanup {
+        S destroy
+    } -constraints win -body {
+        cffi::Struct create S {w {winchars[9] multisz}}
+        set bin [S tobinary [list w [list {a b} cd e]]]
+    } -result {Invalid value "{a b} cd e". String length is greater than specified maximum buffer size. Error converting field ::cffi::test::S.w to a native value.} -returnCodes error
 
     test struct-tobinary-error-0 "struct tobinary missing field" -setup {
         cffi::Struct create ::S {x int y int}
@@ -1744,6 +1780,25 @@ namespace eval cffi::test {
         set p [S new]
         list [::cffi::pointer tag $p] [::cffi::pointer isvalid $p] [S fromnative $p] [S free $p]
     } -result [list ::S 1 {i 42 b 24.0} {}]
+
+    test struct-new-4 "struct with winchars multisz" -setup {
+        cffi::Struct create S {w {winchars[10] multisz}}
+    } -cleanup {
+        S free $p
+        S destroy
+    } -constraints win -body {
+        set p [S new [list w [list {a b} cd e]]]
+        S fromnative $p
+    } -result [list w [list {a b} cd e]]
+
+    test struct-new-4.a "struct with winchars multisz - error" -setup {
+        cffi::Struct create S {w {winchars[9] multisz}}
+    } -cleanup {
+        S destroy
+    } -constraints win -body {
+        S new [list w [list {a b} cd e]]
+    } -result {Invalid value "{a b} cd e". String length is greater than specified maximum buffer size. Error converting field ::cffi::test::S.w to a native value.} -returnCodes error
+
 
     test struct-new-error-0 "struct new bad value" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
