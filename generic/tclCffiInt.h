@@ -353,7 +353,7 @@ struct CffiStruct {
     DCaggr *dcAggrP;           /* Dyncall struct descriptor */
 #endif
     int nRefs;                /* Shared, so need ref count */
-    unsigned int size;        /* Fixed size of struct not including VLA
+    int size;        /* Fixed size of struct not including VLA
                                  component if any. */
     unsigned char alignment; /* Alignment required for struct */
     unsigned char pack;      /* Packing - 0 means natural alignment */

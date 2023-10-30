@@ -2341,7 +2341,7 @@ CffiStructFromBinaryCmd(Tcl_Interp *ip,
         offset = 0;
 
     /* First ensure binary is minimal size. */
-    if (len < (int) structP->size || (len - structP->size) < offset) {
+    if (len < structP->size || (len - structP->size) < (int) offset) {
         goto truncation;
     }
     /* Now ensure get the actual size in case it is varsize struct */
