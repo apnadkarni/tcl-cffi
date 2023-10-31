@@ -61,7 +61,7 @@ namespace eval ${NS}::alias {
         # Loads predefined type aliases.
         #  alias_set - the alias set to load.
         #
-        # The aliases are loaded into the `::cffi` scope. Since this scope
+        # The aliases are loaded into the `::cffi::c` scope. Since this scope
         # is also searched when looking up aliases, the aliases defined by
         # this command is available in all namespace without explicit
         # qualification.

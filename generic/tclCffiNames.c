@@ -152,7 +152,7 @@ CffiNameLookup(Tcl_Interp *ip,
     }
     const char *searchPaths[] = {
         "::",
-        "::cffi",
+        "::cffi::c",
     };
     while (pathIndex < sizeof(searchPaths)/sizeof(searchPaths[0])) {
         /* Look up the platform specific namespace */

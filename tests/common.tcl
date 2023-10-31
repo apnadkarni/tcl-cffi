@@ -313,6 +313,12 @@ proc cffi::test::lprefixcffi {args} {
     }]
 }
 
+proc cffi::test::lprefixcffic {args} {
+    return [lmap e $args {
+        nsqualify $e ::cffi::c
+    }]
+}
+
 
 # step better be > 0
 proc seq {start count {step 1}} {
