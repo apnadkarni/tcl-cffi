@@ -214,17 +214,19 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                     "The \"retval\" annotation must not be placed on more than "
                     "one parameter definition.");
             }
-            if (!CffiTypeIsInteger(
-                    protoP->returnType.typeAttrs.dataType.baseType)
-                || !(protoP->returnType.typeAttrs.flags
-                     & (CFFI_F_ATTR_REQUIREMENT_MASK))) {
-                CffiProtoUnref(protoP);
-                return Tclh_ErrorGeneric(
-                    ip,
-                    NULL,
-                    "The \"retval\" annotation can only be used "
-                    "in a parameter definition in functions with integer "
-                    "return types with error checking annotations.");
+            if (protoP->returnType.typeAttrs.dataType.baseType != CFFI_K_TYPE_VOID) {
+                if (!CffiTypeIsInteger(
+                        protoP->returnType.typeAttrs.dataType.baseType)
+                    || !(protoP->returnType.typeAttrs.flags
+                         & (CFFI_F_ATTR_REQUIREMENT_MASK))) {
+                    CffiProtoUnref(protoP);
+                    return Tclh_ErrorGeneric(
+                        ip,
+                        NULL,
+                        "The \"retval\" annotation can only be used "
+                        "in a parameter definition in functions with integer "
+                        "return types with error checking annotations.");
+                }
             }
             /* Mark that return value is through a parameter */
             protoP->returnType.typeAttrs.flags |= CFFI_F_ATTR_RETVAL;
