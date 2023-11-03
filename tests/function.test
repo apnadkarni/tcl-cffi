@@ -2239,13 +2239,13 @@ namespace eval ${NS}::test {
     }
 
     # errno, lasterror, winerror
-    foreach {attr val} {
-        zero 1
-        zero -1
-        nonzero 0
-        nonnegative -1
-        positive 0
-        positive -1
+    foreach {attr val expected} {
+        zero 0xd {1 {The data is invalid.}}
+        zero -2147024809 {1 {The parameter is incorrect.}}
+        nonzero 0 {1 {The operation completed successfully.}}
+        nonnegative -2147024809 {1 {The parameter is incorrect.}}
+        positive 0 {1 {The operation completed successfully.}}
+        positive -2147024809 {1 {The parameter is incorrect.}}
     } {
         test function-return-errno-$attr-$val-0 "return errno" -setup {
             testDll function setErrno [list int $attr errno] {val int}
@@ -2259,17 +2259,11 @@ namespace eval ${NS}::test {
             list [catch {setWinError $val} result] $result
         } -result [list 1 "The data is invalid."]
 
-        if {$attr eq "zero"} {
-            test function-return-winerror-zero-$val-0 "return zero winerror" -setup {
-                testDll function {int_to_int getWinError} [list int zero winerror] {val int}
-            } -constraints win -body {
-                list [catch {getWinError 0xd} result] $result
-            } -result [list 1 "The data is invalid."]
-        } else {
-            test function-return-winerror-$attr-$val-0 "return $attr winerror" -constraints win -body {
-                testDll function {int_to_int getWinError} [list int $attr winerror] {val int}
-            } -result "Invalid value \"int $attr winerror\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
-        }
+        test function-return-winerror-zero-$val-0 "return zero winerror" -setup {
+            testDll function {int_to_int getWinError} [list int $attr winerror] {val int}
+        } -constraints win -body {
+            list [catch {getWinError $val} result] $result
+        } -result $expected
     }
 
     # Attributes not permitted for real types

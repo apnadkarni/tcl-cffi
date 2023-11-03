@@ -1212,13 +1212,6 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         goto invalid_format;
     }
 
-    /* winerror only makes sense for the zero requirement */
-    if (flags & CFFI_F_ATTR_WINERROR) {
-        int requirements_flags = flags & CFFI_F_ATTR_REQUIREMENT_MASK;
-        if (requirements_flags && requirements_flags != CFFI_F_ATTR_ZERO)
-            goto invalid_format;
-    }
-
     switch (parseMode) {
     case CFFI_F_TYPE_PARSE_PARAM:
         if (baseType == CFFI_K_TYPE_VOID) {

@@ -270,7 +270,7 @@ namespace eval cffi::test {
         uplevel #0 cffi::alias delete *
     } -constraints !win -body {
         cffi::alias load posix
-        list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::*]]
+        list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::c::*]]
     } -result [list [list] [list ] [lprefixcffic blkcnt_t blksize_t clock_t dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t time_t uid_t]]
 
     test alias-load-error-0 "alias load - unknown set" -body {
