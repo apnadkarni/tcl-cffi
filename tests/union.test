@@ -38,7 +38,7 @@ namespace eval cffi::test {
         ::S destroy
     } -body {
         cffi::type info union.::S
-    } -result {Union "::S" not found or inaccessible. } -returnCodes error
+    } -result {Union "::S" not found or inaccessible.} -returnCodes error
 
     proc testunion {type} {
         variable errorMessages
@@ -175,7 +175,7 @@ namespace eval cffi::test {
     } -body {
         namespace eval ::tempnsA {::cffi::Union create S {x int}}
         namespace eval ::tempnsB {cffi::type size union.S}
-    } -result "Union \"S\" not found or inaccessible. " -returnCodes error
+    } -result "Union \"S\" not found or inaccessible." -returnCodes error
     # Union size, offset and alignment tests
     foreach type $baseTypes {
         if {$type in {void binary}} {

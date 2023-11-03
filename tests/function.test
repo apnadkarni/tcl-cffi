@@ -1,4 +1,4 @@
-# (c) 2021 Ashok P. Nadkarni
+# (c) 2021-2024 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
 # This file contains tests for cffi::Wrapper pertaining to definition and
@@ -101,7 +101,7 @@ namespace eval ${NS}::test {
 
     test function-error-0 {Missing function} -body {
         list [catch {testDll function nosuchfunction int {}} result] $result $::errorCode
-    } -result {1 {Symbol "nosuchfunction" not found or inaccessible. } {cffi NOT_FOUND {Symbol "nosuchfunction" not found or inaccessible. }}}
+    } -result {1 {Symbol "nosuchfunction" not found or inaccessible.} {cffi NOT_FOUND {Symbol "nosuchfunction" not found or inaccessible.}}}
 
     test stdcall-0 {stdcall} -body {
 
@@ -171,7 +171,7 @@ namespace eval ${NS}::test {
             nosuchfunction int {}
             double_to_double double {param double}
         }} message] $message [int_to_int 42] [double_to_double 99]
-    } -result [list 1 "Errors:\nSymbol \"nosuchfunction\" not found or inaccessible. " 42 99.0]
+    } -result [list 1 "Errors:\nSymbol \"nosuchfunction\" not found or inaccessible." 42 99.0]
 
     test functions-error-0 {Multiple functions - invalid count} -body {
         testDll functions {onearg}
@@ -241,7 +241,7 @@ namespace eval ${NS}::test {
                         nosuchfn int {} \
                         $fn double {a double b double}]
         list [catch {testDll stdcalls $fnlist} message] $message [$fn 1.0 2]
-    } -result [list 1 "Errors:\nSymbol \"nosuchfn\" not found or inaccessible. " 0.5]
+    } -result [list 1 "Errors:\nSymbol \"nosuchfn\" not found or inaccessible." 0.5]
 
     # Basic type conversion to test input parameters and return types
 
@@ -2257,14 +2257,14 @@ namespace eval ${NS}::test {
             testDll function setWinError [list int $attr lasterror] {val int}
         } -constraints win -body {
             list [catch {setWinError $val} result] $result
-        } -result [list 1 "The data is invalid. "]
+        } -result [list 1 "The data is invalid."]
 
         if {$attr eq "zero"} {
             test function-return-winerror-zero-$val-0 "return zero winerror" -setup {
                 testDll function {int_to_int getWinError} [list int zero winerror] {val int}
             } -constraints win -body {
                 list [catch {getWinError 0xd} result] $result
-            } -result [list 1 "The data is invalid. "]
+            } -result [list 1 "The data is invalid."]
         } else {
             test function-return-winerror-$attr-$val-0 "return $attr winerror" -constraints win -body {
                 testDll function {int_to_int getWinError} [list int $attr winerror] {val int}
@@ -2378,7 +2378,7 @@ namespace eval ${NS}::test {
         test function-return-$type-lasterror-0 "return type $type - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type lasterror] {p {pointer unsafe nullok}}
             list [catch {pointer_lasterror 0^} result] $result
-        } -result {1 {The data is invalid. }}
+        } -result {1 {The data is invalid.}}
 
         # counted
         test function-return-$type-counted-nullok-0 "return type $type counted" -body {
@@ -2401,7 +2401,7 @@ namespace eval ${NS}::test {
         test function-return-$type-counted-lasterror-0 "return type $type counted - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type counted lasterror] {p {pointer nullok unsafe}}
             list [catch {pointer_lasterror 0^} result] $result
-        } -result {1 {The data is invalid. }}
+        } -result {1 {The data is invalid.}}
 
         # unsafe
         test function-return-$type-unsafe-nullok-0 "return type $type unsafe nullok" -body {
@@ -2424,7 +2424,7 @@ namespace eval ${NS}::test {
         test function-return-$type-unsafe-lasterror-0 "return type $type unsafe - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type unsafe lasterror] {p {pointer nullok unsafe}}
             list [catch {pointer_lasterror 0^} result] $result
-        } -result {1 {The data is invalid. }}
+        } -result {1 {The data is invalid.}}
 
         # checks that are not valid for pointers
         foreach attr {nonzero zero nonnegative positive nullifempty} {

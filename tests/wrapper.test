@@ -109,7 +109,7 @@ namespace eval ${::NS}::test {
         list [catch {
             dll addressof nosuchsym
         } result] $result $::errorCode
-    } -result {1 {Symbol "nosuchsym" not found or inaccessible. } {cffi NOT_FOUND {Symbol "nosuchsym" not found or inaccessible. }}}
+    } -result {1 {Symbol "nosuchsym" not found or inaccessible.} {cffi NOT_FOUND {Symbol "nosuchsym" not found or inaccessible.}}}
 
     test Wrapper-addressof-error-1 {Wrapper addressof (no args)} -setup {
         $libraryClass create dll $testDllPath

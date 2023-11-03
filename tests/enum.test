@@ -1,4 +1,4 @@
-# (c) 2021 Ashok P. Nadkarni
+# (c) 2021-2023 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
 # Tests for the cffi::type command
@@ -202,10 +202,10 @@ namespace eval cffi::test {
         cffi::enum define E {A 1 B 2 C 3}
     } -body {
         cffi::enum value E D
-    } -result "Enum member name \"D\" not found or inaccessible. " -returnCodes error
+    } -result "Enum member name \"D\" not found or inaccessible." -returnCodes error
     test enum-value-error-1 "Non-existing enum" -body {
         cffi::enum value X A
-    } -result {Enum "X" not found or inaccessible. } -returnCodes error
+    } -result {Enum "X" not found or inaccessible.} -returnCodes error
 
     test enum-name-0 "Get first enum member name" -setup {
         reset_enums
@@ -233,11 +233,11 @@ namespace eval cffi::test {
         cffi::enum define E {A 1 B 2 C 3}
     } -body {
         cffi::enum name E 4
-    } -result "Enum member value not found. " -returnCodes error
+    } -result "Enum member value not found." -returnCodes error
 
     test enum-name-error-1 "Non-existing enum" -body {
         cffi::enum name X 1
-    } -result {Enum "X" not found or inaccessible. } -returnCodes error
+    } -result {Enum "X" not found or inaccessible.} -returnCodes error
 
     ###
     # Scope based tests
@@ -251,7 +251,7 @@ namespace eval cffi::test {
         setup_enums
     } -body {
         namespace eval ::ns {cffi::enum value E a}
-    } -result {Enum member name "a" not found or inaccessible. } -returnCodes error
+    } -result {Enum member name "a" not found or inaccessible.} -returnCodes error
 
     test enum-value-scope-2 "Fallback to global" -setup {
         setup_enums
@@ -281,7 +281,7 @@ namespace eval cffi::test {
         setup_enums
     } -body {
         namespace eval ::ns {cffi::enum name E 1}
-    } -result {Enum member value not found. } -returnCodes error
+    } -result {Enum member value not found.} -returnCodes error
 
     test enum-name-scope-2 "scope falls back to global" -setup { setup_enums } -body {
         namespace eval ::ns {cffi::enum name X 2}

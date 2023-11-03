@@ -33,7 +33,7 @@ namespace eval cffi::test {
 
     test alias-define-error-3 "Invalid alias - built in type" -body {
         cffi::alias define schar int
-    } -result "Type or alias \"schar\" already exists. " -returnCodes error
+    } -result "Type or alias \"schar\" already exists." -returnCodes error
 
     test alias-define-error-4 "Invalid alias - existing" -setup {
         cffi::alias delete *

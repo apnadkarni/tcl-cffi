@@ -221,6 +221,7 @@ CffiNameAdd(Tcl_Interp *ip,
     }
     else {
         Tcl_AppendResult(ip,
+                         " ",
                          nameTypeP ? nameTypeP : "Entry",
                          " with name \"",
                          nameP,
