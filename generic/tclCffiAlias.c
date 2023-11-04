@@ -462,9 +462,9 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         ADDINTTYPE(USHORT, NS "USHORT");
         ADDINTTYPE(WPARAM, NS "WPARAM");
 
-        if (CffiAliasAddStr(ipCtxP, NS "LPVOID", "pointer unsafe", NULL) != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, NS "LPVOID", "pointer unsafe lasterror", NULL) != TCL_OK)
             return TCL_ERROR;
-        if (CffiAliasAddStr(ipCtxP, NS "HANDLE", "pointer." NS "HANDLE", NULL) != TCL_OK)
+        if (CffiAliasAddStr(ipCtxP, NS "HANDLE", "pointer." NS "HANDLE lasterror", NULL) != TCL_OK)
             return TCL_ERROR;
     }
 #endif
