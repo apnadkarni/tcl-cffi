@@ -232,10 +232,11 @@ CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 
     if (CffiNameObjAdd(
             ip, &ipCtxP->scope.enums, objv[2], "Enum", objv[3], &fqnObj)
-        == TCL_OK) {
-        Tcl_IncrRefCount(objv[3]);
-        Tcl_SetObjResult(ip, fqnObj);
+        != TCL_OK) {
+        return TCL_ERROR;
     }
+    Tcl_IncrRefCount(objv[3]);
+    Tcl_SetObjResult(ip, fqnObj);
     return TCL_OK;
 }
 

@@ -119,6 +119,8 @@ namespace eval cffi::test {
 
     test enum-9 "Define flags" -setup {
         reset_enums
+    } -cleanup {
+        cffi::enum delete E
     } -body {
         cffi::enum flags E {a b c}
         cffi::enum members E
@@ -175,6 +177,13 @@ namespace eval cffi::test {
     test enum-error-5 "Invalid member value in sequence" -body {
         cffi::enum sequence X {{a 1 2} 2}
     } -result {Invalid value "a 1 2". Invalid enum sequence member definition.} -returnCodes error
+
+    test enum-error-6 "Existing defintion" -setup {
+        reset_enums
+        cffi::enum define E {a 1}
+    } -body {
+        cffi::enum define E {a 1}
+    } -result {Name already exists. Enum with name "::cffi::test::E" already exists.} -returnCodes error
 
     test enum-value-0 "Get first enum member value" -setup {
         reset_enums

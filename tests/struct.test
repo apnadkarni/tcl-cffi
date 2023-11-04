@@ -1054,11 +1054,9 @@ namespace eval cffi::test {
     ###
     # enum and bitmask
     test struct-enum-0 "struct field enum" -setup {
-        catch {S destroy}
-        puts C:[cffi::enum define E {A 1 B 42}]
+        cffi::enum define E {A 1 B 42}
     } -body {
         cffi::Struct create S {i {int {enum E}}}
-        puts [cffi::enum members E]:[namespace current]
         S frombinary [S tobinary {i B}]
     } -cleanup {
         cffi::enum delete E
