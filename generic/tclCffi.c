@@ -96,18 +96,10 @@ CffiCallObjCmd(ClientData cdata,
             ip, "Prototype", objv[1], "Function prototype not found.");
     }
 
-    fnP = ckalloc(sizeof(*fnP));
-    fnP->fnAddr = fnAddr;
-    fnP->ipCtxP = ipCtxP;
-    fnP->libCtxP = NULL;
-    fnP->cmdNameObj = NULL;
-    CffiProtoRef(protoP);
-    fnP->protoP = protoP;
-
+    fnP             = CffiFunctionNew(ipCtxP, protoP, NULL, NULL, fnAddr);
+    CffiFunctionRef(fnP); /* Protect against deallocation in callbacks */
     ret = CffiFunctionCall(fnP, ip, 2, objc, objv);
-
-    CffiFunctionCleanup(fnP);
-    ckfree(fnP);
+    CffiFunctionUnref(fnP);
 
     return ret;
 }

@@ -430,7 +430,7 @@ The alias set to load\&.
 .PP
 \fBDescription\fR
 .PP
-The aliases are loaded into the ::cffi scope\&. Since this scope
+The aliases are loaded into the ::cffi::c scope\&. Since this scope
 is also searched when looking up aliases, the aliases defined by
 this command is available in all namespace without explicit
 qualification\&.

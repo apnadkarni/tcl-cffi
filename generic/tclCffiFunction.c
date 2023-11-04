@@ -414,8 +414,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     ip,
                     *varNameObjP,
                     "Variable specified as inout argument does not exist.");
-        /* TBD - check if existing variable is an array and error out? */
             }
+            /* TBD - check if existing variable is an array and error out? */
         }
     }
 
@@ -425,7 +425,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * their array size is required to be specified.
      */
 
-    /* Non-scalars need to be passed byref. Parsing should have checked */
+    /* Arrays need to be passed byref. Parsing should have checked */
 #ifdef CFFI_HAVE_STRUCT_BYVAL
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
@@ -529,7 +529,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             }
             else {
                 /* Set pure OUT to 0. Not necessary but may catch some pointer errors */
-                memset(&argP->value, 0, sizeof(argP->value));
+                /* memset(&argP->value, 0, sizeof(argP->value)); */
             }
             switch (baseType) {
             case CFFI_K_TYPE_SCHAR: PUSHARG(CffiStoreArgSChar, schar); break;
@@ -2168,6 +2168,30 @@ pop_and_error:
 
 }
 
+CffiFunction *
+CffiFunctionNew(CffiInterpCtx *ipCtxP,
+                CffiProto *protoP,
+                CffiLibCtx *libCtxP,
+                Tcl_Obj *cmdNameObj,
+                void *fnAddr)
+{
+    CffiFunction *fnP = ckalloc(sizeof(*fnP));
+
+    fnP->nRefs   = 0;
+    fnP->fnAddr  = fnAddr;
+    fnP->ipCtxP  = ipCtxP;
+    fnP->libCtxP = libCtxP;
+    if (libCtxP)
+        CffiLibCtxRef(libCtxP);
+    CFFI_ASSERT(protoP);
+    CffiProtoRef(protoP);
+    fnP->protoP = protoP;
+    if (cmdNameObj)
+        Tcl_IncrRefCount(cmdNameObj);
+    fnP->cmdNameObj = cmdNameObj;
+    return fnP;
+}
+
 /* Function: CffiFunctionInstanceDeleter
  * Called by Tcl to cleanup resources associated with a ffi function
  * definition when the corresponding command is deleted.
@@ -2178,9 +2202,7 @@ pop_and_error:
 void
 CffiFunctionInstanceDeleter(ClientData cdata)
 {
-    CffiFunction *fnP = (CffiFunction *)cdata;
-    CffiFunctionCleanup(fnP);
-    ckfree(fnP);
+    CffiFunctionUnref((CffiFunction *)cdata);
 }
 
 CffiResult
@@ -2189,7 +2211,11 @@ CffiFunctionInstanceCmd(ClientData cdata,
                         int objc,
                         Tcl_Obj *const objv[])
 {
-    return CffiFunctionCall(cdata, ip, 1, objc, objv);
+    CffiFunction *fnP = (CffiFunction *)cdata;
+    CffiFunctionRef(fnP); /* So a callback does not delete it! Bug #175 */
+    CffiResult ret = CffiFunctionCall(cdata, ip, 1, objc, objv);
+    CffiFunctionUnref(fnP);
+    return ret;
 }
 
 /* Function: CffiDefineOneFunction
@@ -2247,18 +2273,9 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     protoP->cifP = NULL;
 #endif
 
-    fnP = ckalloc(sizeof(*fnP));
-    fnP->fnAddr = fnAddr;
-    fnP->ipCtxP = ipCtxP;
-    fnP->libCtxP = libCtxP;
-    if (libCtxP)
-        CffiLibCtxRef(libCtxP);
-    CffiProtoRef(protoP);
-    fnP->protoP = protoP;
     fqnObj = Tclh_NsQualifyNameObj(ip, cmdNameObj, NULL);
-
-    Tcl_IncrRefCount(fqnObj);
-    fnP->cmdNameObj = fqnObj;
+    fnP    = CffiFunctionNew(ipCtxP, protoP, libCtxP, fqnObj, fnAddr);
+    CffiFunctionRef(fnP); /* Will be unref-ed on command deletion */
 
     Tcl_CreateObjCommand(ip,
                          Tcl_GetString(fqnObj),

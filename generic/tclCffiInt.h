@@ -490,6 +490,7 @@ typedef struct CffiFunction {
     CffiLibCtx *libCtxP;   /* Containing library for bound functions or
                               NULL for free standing functions */
     Tcl_Obj *cmdNameObj;   /* Name of Tcl command. May be NULL */
+    int nRefs;             /* Reference count */
 } CffiFunction;
 
 /* Struct: CffiArgument
@@ -990,6 +991,11 @@ CFFI_INLINE double CffiCallDoubleFunc(CffiCall *callP) {
 
 #endif /* CFFI_USE_LIBFFI */
 
+CffiFunction *CffiFunctionNew(CffiInterpCtx *ipCtxP,
+                              CffiProto *protoP,
+                              CffiLibCtx *libCtxP,
+                              Tcl_Obj *cmdNameObj,
+                              void *fnAddr);
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,
                             int objArgIndex, /* Where in objv[] args start */
@@ -1000,6 +1006,17 @@ CffiResult CffiFunctionInstanceCmd(ClientData cdata,
                                    int objc,
                                    Tcl_Obj *const objv[]);
 void CffiFunctionCleanup(CffiFunction *fnP);
+CFFI_INLINE CffiFunctionRef(CffiFunction *fnP) {
+    fnP->nRefs += 1;
+}
+CFFI_INLINE CffiFunctionUnref(CffiFunction *fnP) {
+    if (fnP->nRefs > 1) {
+        fnP->nRefs -= 1;
+    } else {
+        CffiFunctionCleanup(fnP);
+        ckfree(fnP);
+    }
+}
 CffiResult CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                                         CffiLibCtx *libCtxP,
                                         Tcl_Obj *nameObj,
