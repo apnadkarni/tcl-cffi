@@ -1618,8 +1618,10 @@ CffiFunctionCall(ClientData cdata,
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
 
     mark = Tclh_LifoPushMark(&ipCtxP->memlifo);
+    CffiFunctionRef(fnP); /* So it cannot get deallocated in callbacks */
 
     /* IMPORTANT - mark has to be popped even on errors before returning */
+    /* Ditto for deref-ing fnP */
 
     /* Check number of arguments passed */
     if (protoP->flags & CFFI_F_PROTO_VARARGS) {
@@ -2138,6 +2140,7 @@ pop_and_go:
         }
     }
 
+    CffiFunctionUnref(fnP);
     Tclh_LifoPopMark(mark);
     return ret;
 
@@ -2212,9 +2215,7 @@ CffiFunctionInstanceCmd(ClientData cdata,
                         Tcl_Obj *const objv[])
 {
     CffiFunction *fnP = (CffiFunction *)cdata;
-    CffiFunctionRef(fnP); /* So a callback does not delete it! Bug #175 */
     CffiResult ret = CffiFunctionCall(cdata, ip, 1, objc, objv);
-    CffiFunctionUnref(fnP);
     return ret;
 }
 
