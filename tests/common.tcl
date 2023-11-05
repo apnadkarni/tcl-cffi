@@ -7,6 +7,10 @@ package require tcltest
 eval tcltest::configure $argv
 
 set NS cffi
+if {[namespace exists ${NS}::test]} {
+    return
+}
+
 if {[catch {package require $NS}]} {
     if {$::tcl_platform(platform) eq "windows"} {
         if {$tcl_platform(pointerSize) == 8} {

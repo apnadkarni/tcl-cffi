@@ -353,6 +353,9 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     CffiAttrFlags flags;
     int len;
     char *p;
+    int valueObjNeedsDecr = 0;
+
+    CFFI_ASSERT(valueObj);
 
     /* Expected initialization to virgin state */
     CFFI_ASSERT(argP->flags == 0);
@@ -410,13 +413,20 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             *varNameObjP = valueObj;
             valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
             if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
-                return ErrorInvalidValue(
-                    ip,
-                    *varNameObjP,
-                    "Variable specified as inout argument does not exist.");
+                if (typeAttrsP->dataType.baseType != CFFI_K_TYPE_STRUCT) {
+                    return ErrorInvalidValue(
+                        ip,
+                        *varNameObjP,
+                        "Variable specified as inout argument does not exist.");
+                }
+                valueObj = Tcl_NewObj();
             }
             /* TBD - check if existing variable is an array and error out? */
         }
+    }
+    if (valueObj) {
+        Tcl_IncrRefCount(valueObj);
+        valueObjNeedsDecr = 1;
     }
 
     /*
@@ -463,8 +473,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
      * conversion functions from cffiBaseTypes as it is more efficient
      * (compile time function binding)
      */
-
-    /* May the programming gods forgive me for these macro */
 
 #ifdef CFFI_USE_DYNCALL
 #define STOREARGBYVAL(storefn_, fld_)                   \
@@ -527,10 +535,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                               0,
                                               &ipCtxP->memlifo));
             }
-            else {
-                /* Set pure OUT to 0. Not necessary but may catch some pointer errors */
-                /* memset(&argP->value, 0, sizeof(argP->value)); */
-            }
             switch (baseType) {
             case CFFI_K_TYPE_SCHAR: PUSHARG(CffiStoreArgSChar, schar); break;
             case CFFI_K_TYPE_UCHAR: PUSHARG(CffiStoreArgUChar, uchar); break;
@@ -550,6 +554,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             case CFFI_K_TYPE_WINSTRING: PUSHARG(CffiStoreArgPointer, ptr); break;
 #endif
             default:
+                if (valueObjNeedsDecr)
+                    Tcl_DecrRefCount(valueObj);
                 return CffiErrorType(
                     ipCtxP->interp, baseType, __FILE__, __LINE__);
             }
@@ -578,6 +584,11 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 Tclh_LifoUSizeT nCopy =
                     argP->arraySize * typeAttrsP->dataType.baseTypeSize;
                 valuesP = Tclh_LifoAlloc(&ipCtxP->memlifo, nCopy);
+                /* TODO - why is this necessary for out params. It does protect
+                 * to some extent against called function not initializing output
+                 * but this protection is limited and could be expensive for large
+                 * arrays.
+                 */
                 memset(valuesP, 0, nCopy);
             }
             argP->value.u.ptr = valuesP;
@@ -795,10 +806,14 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         break;
 
     default:
+        if (valueObjNeedsDecr)
+            Tcl_DecrRefCount(valueObj);
         return ErrorInvalidValue( ip, NULL, "Unsupported type.");
     }
 
 success:
+    if (valueObjNeedsDecr)
+        Tcl_DecrRefCount(valueObj);
     callP->argsP[arg_index].flags |= CFFI_F_ARG_INITIALIZED;
     return TCL_OK;
 
@@ -807,6 +822,8 @@ pass_null_array:
     CFFI_ASSERT(argP->arraySize == 0);
     CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
     if ((flags & CFFI_F_ATTR_NULLOK) == 0) {
+        if (valueObjNeedsDecr)
+            Tcl_DecrRefCount(valueObj);
         return Tclh_ErrorGeneric(ip,
                                  NULL,
                                  "Passing a zero size array requires "
