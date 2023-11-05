@@ -1243,9 +1243,9 @@ namespace eval Concepts {
         - implies the `out` and `byref` annotations and cannot be combined
         with the `in` or `inout` annotations.
         - can be placed on at most one parameter declaration for a function
-        - the function return value must be an integral type
-        - the function return type must have one of the
-        [error checking annotation][Error annotations] for integer types.
+        - the function return value must be `void` or an integral type
+        - for integral return types, one of the [error checking
+        annotation][Error annotations] for integer types must also be present.
         These are used for checking the original return value from the C
         function as always, and not the parameter output value.
 

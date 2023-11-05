@@ -369,7 +369,7 @@ namespace eval ${NS}::test {
             set fn ${type}_retval
         } -body {
             testDll function $fn int [list inparam [list $type in] outparam [list $type retval]]
-        } -result {The "retval" annotation can only be used in a parameter definition in functions with integer return types with error checking annotations.* Error defining function *} -match glob -returnCodes error
+        } -result $errorMessages(retvaluse) -match glob -returnCodes error
 
         test function-param-retval-$type-error-2 "$type retval in" -setup {
             set fn ${type}_retval

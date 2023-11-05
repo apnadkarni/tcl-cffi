@@ -224,7 +224,7 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                         ip,
                         NULL,
                         "The \"retval\" annotation can only be used "
-                        "in a parameter definition in functions with integer "
+                        "in parameter definitions in functions with void or integer "
                         "return types with error checking annotations.");
                 }
             }
