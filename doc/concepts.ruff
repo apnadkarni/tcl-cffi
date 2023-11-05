@@ -84,6 +84,8 @@ namespace eval Concepts {
         `counted` - The parameter, function return or field value is a reference
           counted pointer whose validity is checked. See [Pointer safety].
         `default` - Specifies a default value to use for a parameter or field.
+        `discard` - Specifies that an function return value be discarded and
+          empty result returned.
         `dispose` - The parameter is a pointer that is unregistered irrespective of
           function return status. See [Pointer safety].
         `disposeonsuccess` - The parameter is a pointer that is disposed only if
@@ -1179,6 +1181,13 @@ namespace eval Concepts {
         returned is not accessible at the script level and so this should only
         be used when that is acceptable, e.g. the pointer is to static or
         internal storage that does not need to be freed.
+
+        - The `discard` annotation indicates the result of a function be
+        discarded. An empty string is returned instead. This is convenient in
+        the case of functions that return a boolean value indicating success or
+        failure. The `discard` annotation can then be used with the error
+        checking annotations to either raise an exception in the case of failures
+        or discard the result in case of success.
 
         ### Parameters
 

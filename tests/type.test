@@ -172,6 +172,16 @@ namespace eval cffi::test {
         test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -body {
             cffi::type info $typedecl $parse_mode
         } -result [list Size $size Count -1 Alignment $alignment Definition [list $type {*}$expected_typeattrs] BaseSize $size] -match dict {*}$args
+
+        if {$parse_mode eq "return"} {
+            test $testlabel-$parse_mode-discard-0 "type info $parse_mode, discard $typedecl" -body {
+                cffi::type info "$typedecl discard" $parse_mode
+            } -result [list Size $size Count -1 Alignment $alignment Definition [list $type {*}$expected_typeattrs discard] BaseSize $size] -match dict {*}$args
+        } else {
+            test $testlabel-$parse_mode-discard-0 "type info $parse_mode, discard $typedecl" -body {
+               cffi::type info "$typedecl discard" $parse_mode
+            } -result {Invalid value "* discard". A type annotation is not valid for the declaration context.} -match glob -returnCodes error {*}$args
+        }
     }
 
     proc testnumericarray {typedecl count parse_mode expected_typeattrs args} {

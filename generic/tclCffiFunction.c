@@ -355,7 +355,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     char *p;
     int valueObjNeedsDecr = 0;
 
-    CFFI_ASSERT(valueObj);
+    /* Note valueObj can be NULL, e.g. in the case of retval parameters */
 
     /* Expected initialization to virgin state */
     CFFI_ASSERT(argP->flags == 0);
@@ -1607,16 +1607,17 @@ CffiFunctionCall(ClientData cdata,
     CffiFunction *fnP     = (CffiFunction *)cdata;
     CffiProto *protoP     = fnP->protoP;
     CffiInterpCtx *ipCtxP = fnP->ipCtxP;
-    Tcl_Obj *resultObj = NULL;
-    Tcl_Obj **argObjs = NULL;
-    Tcl_Obj * const *varArgObjs = NULL;
+    Tcl_Obj *resultObj             = NULL;
+    Tcl_Obj **argObjs              = NULL;
+    Tcl_Obj *const *varArgObjs     = NULL;
     CffiTypeAndAttrs *varArgTypesP = NULL;
     int nArgObjs;
     int nVarArgs;
     int nActualArgs;
     int varArgsInited = 0;
-    int i;
+    int discardResult;
     int argResultIndex; /* If >=0, index of output argument as function result */
+    int i;
     void *pointer;
     CffiCall callCtx;
     Tclh_LifoMark mark;
@@ -1634,11 +1635,12 @@ CffiFunctionCall(ClientData cdata,
     if ((uintptr_t) fnP->fnAddr < 0xffff)
         return Tclh_ErrorInvalidValue(ip, NULL, "Function pointer not in executable page.");
 
+    /* IMPORTANT - mark has to be popped even on errors before returning */
+    /* Ditto for deref-ing fnP */
     mark = Tclh_LifoPushMark(&ipCtxP->memlifo);
     CffiFunctionRef(fnP); /* So it cannot get deallocated in callbacks */
 
-    /* IMPORTANT - mark has to be popped even on errors before returning */
-    /* Ditto for deref-ing fnP */
+    discardResult = (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_DISCARD);
 
     /* Check number of arguments passed */
     if (protoP->flags & CFFI_F_PROTO_VARARGS) {
@@ -1841,11 +1843,12 @@ CffiFunctionCall(ClientData cdata,
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &cretval, &sysError);       \
-        CffiPointerArgsDispose(ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
+        CffiPointerArgsDispose(                                                \
+            ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);                 \
         if (fnCheckRet == TCL_OK) {                                            \
             /* Wrap function return value unless an output argument is */      \
-            /* to be returned as the function result */                        \
-            if (argResultIndex < 0) {                                          \
+            /* to be returned as the result or result to be discarded */       \
+            if (argResultIndex < 0 && !discardResult) {                        \
                 /* First try converting function result as enums, bitmasks */  \
                 resultObj = CffiIntValueToObj(&protoP->returnType.typeAttrs,   \
                                               (Tcl_WideInt)cretval.u.fld_);    \
@@ -1855,16 +1858,19 @@ CffiFunctionCall(ClientData cdata,
             }                                                                  \
         }                                                                      \
         else {                                                                 \
+            /* fnCheckRet != TCL_OK */                                         \
             resultObj = objfn_(cretval.u.fld_);                                \
         }                                                                      \
     } while (0)
 
+    CFFI_ASSERT(ret == TCL_OK);
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
         CffiCallVoidFunc(&callCtx);
         CffiPointerArgsDispose(
             ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);
-        resultObj = Tcl_NewObj();
+        if (!discardResult)
+            resultObj = Tcl_NewObj();
         break;
     case CFFI_K_TYPE_SCHAR:
         CALLFN(Tcl_NewIntObj, CffiCallSCharFunc, schar, signed char);
@@ -1924,22 +1930,27 @@ CffiFunctionCall(ClientData cdata,
             ip, &protoP->returnType.typeAttrs, pointer, &sysError);
         CffiPointerArgsDispose(ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);         \
         switch (protoP->returnType.typeAttrs.dataType.baseType) {
-            case CFFI_K_TYPE_POINTER:
+        case CFFI_K_TYPE_POINTER:
+            if (!discardResult)
                 ret = CffiPointerToObj(
                     ipCtxP, &protoP->returnType.typeAttrs, pointer, &resultObj);
-                break;
-            case CFFI_K_TYPE_ASTRING:
+            break;
+        case CFFI_K_TYPE_ASTRING:
+            if (!discardResult)
                 ret = CffiCharsToObj(
                     ip, &protoP->returnType.typeAttrs, pointer, &resultObj);
-                break;
-            case CFFI_K_TYPE_UNISTRING:
+            break;
+        case CFFI_K_TYPE_UNISTRING:
+            if (!discardResult) {
                 if (pointer)
                     resultObj = Tcl_NewUnicodeObj((Tcl_UniChar *)pointer, -1);
                 else
                     resultObj = Tcl_NewObj();
-                break;
+            }
+            break;
 #ifdef _WIN32
-            case CFFI_K_TYPE_WINSTRING:
+        case CFFI_K_TYPE_WINSTRING:
+            if (!discardResult) {
                 if (pointer) {
                     if (protoP->returnType.typeAttrs.flags
                         & CFFI_F_ATTR_MULTISZ) {
@@ -1953,12 +1964,13 @@ CffiFunctionCall(ClientData cdata,
                 }
                 else
                     resultObj = Tcl_NewObj();
-                break;
+            }
+            break;
 #endif
-            default:
-                /* Just to keep gcc happy */
-                CFFI_PANIC("UNEXPECTED BASE TYPE");
-                break;
+        default:
+            /* Just to keep gcc happy */
+            CFFI_PANIC("UNEXPECTED BASE TYPE");
+            break;
         }
         break;
     case CFFI_K_TYPE_STRUCT:
@@ -2007,10 +2019,13 @@ CffiFunctionCall(ClientData cdata,
             break;
 #endif
         }
-        ret = CffiStructToObj(ipCtxP,
-                              protoP->returnType.typeAttrs.dataType.u.structP,
-                              pointer,
-                              &resultObj);
+        if (!discardResult) {
+            ret =
+                CffiStructToObj(ipCtxP,
+                                protoP->returnType.typeAttrs.dataType.u.structP,
+                                pointer,
+                                &resultObj);
+        }
         break;
     case CFFI_K_TYPE_BINARY:
     case CFFI_K_TYPE_CHAR_ARRAY:
@@ -2049,12 +2064,13 @@ CffiFunctionCall(ClientData cdata,
      * fnCheckRet - TCL_OK/TCL_ERROR -> call and conversion above succeeded
      *   but return value check annotations failed
      * resultObj - if ret is TCL_OK, holds wrapped value irrespective of
-     *   value of fnCheckRet. Reference count should be 0.
+     *   value of fnCheckRet unless function return value is not of interest.
+     *   Reference count should be 0.
      */
 
     /* resultObj must not be NULL unless ret is not TCL_OK or an arg value is to
      * be returned as the result */
-    CFFI_ASSERT(resultObj || ret != TCL_OK || argResultIndex >= 0);
+    CFFI_ASSERT(resultObj || ret != TCL_OK || argResultIndex >= 0 || discardResult);
     /* resultObj must be NULL unless ret is TCL_OK */
     CFFI_ASSERT(resultObj == NULL || ret == TCL_OK);
 
@@ -2065,7 +2081,7 @@ CffiFunctionCall(ClientData cdata,
      * (TCL_OK, TCL_OK) - store out and inout parameters that are unmarked or
      * marked as storealways. Return resultObj as the command result unless
      * useArgResult specifies that an output argument is returned
-     * as the result.
+     * as the result or result is to be discarded (resultObj will be NULL)
      *
      * (TCL_OK, TCL_ERROR) - no errors at the Tcl level, but the function
      * return value conditions not met indicating an error. Only store output
@@ -2112,19 +2128,25 @@ CffiFunctionCall(ClientData cdata,
     }
     /* Parameters stored away. Note ret might have changed to error */
 
-    /* See if a parameter output value is to be returned as function result */
+    /* 
+     * See if a parameter output value is to be returned as function result
+     * Note this will overrided the discard annotation.
+     */
     if (ret == TCL_OK && fnCheckRet == TCL_OK && argResultIndex >= 0) {
         if (resultObj)
             Tclh_ObjClearPtr(&resultObj);
         ret = CffiArgPostProcess(&callCtx, argResultIndex, &resultObj);
         if (ret == TCL_OK && resultObj)
             Tcl_IncrRefCount(resultObj);
+        discardResult = 0;
     }
 
     if (ret == TCL_OK) {
-        CFFI_ASSERT(resultObj != NULL);
         if (fnCheckRet == TCL_OK) {
-            Tcl_SetObjResult(ip, resultObj);
+            if (!discardResult) {
+                CFFI_ASSERT(resultObj);
+                Tcl_SetObjResult(ip, resultObj);
+            }
         }
         else {
             /* Call error handler if specified, otherwise default handler */
@@ -2143,7 +2165,8 @@ CffiFunctionCall(ClientData cdata,
             }
         }
     }
-    Tclh_ObjClearPtr(&resultObj);
+    if (resultObj)
+        Tclh_ObjClearPtr(&resultObj);
 
     CffiReturnCleanup(&callCtx);
     for (i = 0; i < callCtx.nArgs; ++i)
@@ -2231,7 +2254,6 @@ CffiFunctionInstanceCmd(ClientData cdata,
                         int objc,
                         Tcl_Obj *const objv[])
 {
-    CffiFunction *fnP = (CffiFunction *)cdata;
     CffiResult ret = CffiFunctionCall(cdata, ip, 1, objc, objv);
     return ret;
 }

@@ -2182,8 +2182,7 @@ namespace eval ${NS}::test {
             set fn ${type}_to_$type
             testDll function $fn [list $type $attr] [list param $type]
             if {$val < 0 && $type in $unsignedIntTypes} continue
-            test function-return-$type-$attr-$val-[incr testnum] "return $type $attr - $val" -setup {
-            } -body {
+            test function-return-$type-$attr-$val-[incr testnum] "return $type $attr - $val" -body {
                 $fn $val
             } -result $val
         }
@@ -2192,12 +2191,17 @@ namespace eval ${NS}::test {
             testDll function $fn [list $type byref] [list param $type]
             $fn 42
         } -result 43
+        test function-return-$type-discard-0 "return $type discard" -body {
+            set fn ${type}_to_$type
+            testDll function $fn [list $type discard] [list param $type]
+            $fn 42
+        } -result {}
     }
     # Error cases
     foreach type $intTypes {
         foreach {attr val} {
-            zero 1 
-            zero -1 
+            zero 1
+            zero -1
             nonzero 0
             nonnegative -1
             positive 0
@@ -2209,6 +2213,10 @@ namespace eval ${NS}::test {
             testDll function $fn [list $type $attr] [list param $type]
             if {$val < 0 && $type in $unsignedIntTypes} continue
             test function-return-$type-$attr-$val-error-[incr testnum] "return $type $attr - $val" -body {
+                $fn $val
+            } -result "Invalid value \"$val\". $message" -returnCodes error
+            testDll function $fn [list $type $attr discard] [list param $type]
+            test function-return-$type-$attr-$val-error-[incr testnum] "return $type $attr discard - $val" -body {
                 $fn $val
             } -result "Invalid value \"$val\". $message" -returnCodes error
         }
@@ -2333,6 +2341,18 @@ namespace eval ${NS}::test {
             set p [pointer_ret_byref 1^]
             list $p [cffi::pointer isvalid $p]
         } -result [list [makeptr 1 $tag] 0]
+
+        # discard return
+        test function-return-$type-discard-0 "return $type discard" -setup {
+            testDll function pointer_to_pointer [list $type unsafe discard] {p {pointer unsafe}}
+        } -body {
+            pointer_to_pointer 1^
+        } -result {}
+        test function-return-$type-discard-1 "return $type discard - error" -setup {
+            testDll function pointer_to_pointer [list $type unsafe discard] {p {pointer nullok unsafe}}
+        } -body {
+            pointer_to_pointer 0^
+        } -result {Invalid value. Function returned an error value.} -returnCodes error
 
         # Pointer error attributes
         # safe
@@ -2467,11 +2487,21 @@ namespace eval ${NS}::test {
     } -body {
         ascii_return
     } -result "abc"
+    test function-return-string-discard-1 "return string ascii - discard" -setup {
+        testDll function ascii_return {string discard} {}
+    } -body {
+        ascii_return
+    } -result ""
     test function-return-string-byref-1 "return string ascii byref" -setup {
         testDll function ascii_return_byref {string byref} {}
     } -body {
         ascii_return_byref
     } -result "abc"
+    test function-return-string-byref-discard-1 "return string ascii byref discard" -setup {
+        testDll function ascii_return_byref {string byref discard} {}
+    } -body {
+        ascii_return_byref
+    } -result ""
     test function-return-string-2 "return string utf-8" -setup {
         testDll function utf8_return string.utf-8 {}
     } -body {
@@ -2502,6 +2532,11 @@ namespace eval ${NS}::test {
     } -body {
         unistring_return
     } -result "\xe0\xe1\xe2"
+    test function-return-unistring-discard-1 "return unistring discard-" -setup {
+        testDll function unistring_return {unistring discard} {}
+    } -body {
+        unistring_return
+    } -result ""
     test function-return-unistring-byref-1 "return unistring byref" -setup {
         testDll function unistring_return_byref {unistring byref} {}
     } -body {
@@ -2520,6 +2555,13 @@ namespace eval ${NS}::test {
     } -constraints {
         win
     } -result "\xe0\xe1\xe2"
+    test function-return-winstring-discard-1 "return winstring discard" -setup {
+        testDll function winstring_return {winstring discard} {}
+    } -body {
+        winstring_return
+    } -constraints {
+        win
+    } -result ""
     test function-return-winstring-byref-1 "return winstring byref" -setup {
         testDll function winstring_return_byref {winstring byref} {}
     } -body {
@@ -2561,6 +2603,15 @@ namespace eval ${NS}::test {
         f $outer
     } -result [list f 11.0 s [list c 1 ll 2 s 3] p [makeptr 2]]
 
+    test function-struct-return-discard-0 "Return struct with input struct - discard" -constraints structbyval -setup {
+        cffi::Struct create ::Inner {c schar ll longlong s short}
+        cffi::Struct create ::Outer {f float s struct.::Inner p {pointer unsafe}}
+        testDll function {incrSimpleOuterStructByVal f} {struct.::Outer discard} {s struct.::Outer}
+    } -body {
+        set inner {c 0 ll 1 s 2}
+        set outer [list f 10 s $inner p [makeptr 1]]
+        f $outer
+    } -result {}
 
     test function-struct-return-1 "return struct with strings" -constraints structbyval -body {
         testDll function returnStructWithStrings struct.StructWithStrings {}

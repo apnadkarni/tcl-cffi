@@ -88,13 +88,13 @@ namespace eval Cookbook {
         #### Integer returns
 
         ``` -caption "Syntax for integer return types" diagram
-                   +-         +-      -+ -+ +-           +-                 -+ -+
-        schar      | {enum E} | bitmask|  | | zero       | lasterror         |  |
-        uchar      +-         +-      -+ -+ | nonzero    | winerror          |  |
-        short                               | positive   | errno             |  |
-        ushort                              | nonnegative| {onerror HANDLER} |  |
-        int                                 +-           +-                 -+ -+
-        uint
+                   +-       +-      -+ -+ +-     -+ +-          -+ +-                 -+ -+
+        schar      |{enum E}|bitmask|   | |discard| | zero       | | lasterror         |  |
+        uchar      |        +-      -+  | +-     -+ | nonzero    | | winerror          |  |
+        short      +-                  -+           | positive   | | errno             |  |
+        ushort                                      | nonnegative| | {onerror HANDLER} |  |
+        int                                         |           -+ +-                 -+  |
+        uint                                        +-                                   -+
         long
         ulong
         longlong
@@ -119,6 +119,9 @@ namespace eval Cookbook {
         API, add the `onerror` handler. This may also be used to filter errors
         or convert error conditions to success.
 
+        * If the return value is simply a boolean indicating success or failure,
+        include the `discard` annotation to have an empty string returned on success.
+        Note this does not affect exceptions raised on error.
 
         **Examples**
 
@@ -145,8 +148,9 @@ namespace eval Cookbook {
         #### Floating point returns
 
         ``` -caption "Syntax for floating point return types" diagram
-        float
-        double
+        float  +-     -+
+        double |discard|
+               +-     -+
         ```
 
         Floating point types `float` and `double` do not permit any annotations

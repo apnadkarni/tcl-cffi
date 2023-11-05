@@ -155,6 +155,7 @@ typedef enum CffiTypeParseMode {
     CFFI_F_TYPE_PARSE_PARAM  = 1, /* Function parameter */
     CFFI_F_TYPE_PARSE_RETURN = 2, /* Function return type */
     CFFI_F_TYPE_PARSE_FIELD  = 4, /* Structure field */
+    CFFI_F_TYPE_PARSE_ALL    = 7, /* All of the above */
 } CffiTypeParseMode;
 
 /*
@@ -211,33 +212,32 @@ CFFI_INLINE int CffiTypeIsVariableSize(const CffiType *typeP) {
 }
 
 typedef enum CffiAttrFlags {
-    CFFI_F_ATTR_IN      = 0x00000001, /* In parameter */
-    CFFI_F_ATTR_OUT     = 0x00000002, /* Out parameter */
-    CFFI_F_ATTR_INOUT   = 0x00000004, /* Out parameter */
-    CFFI_F_ATTR_BYREF   = 0x00000008, /* Parameter is a reference */
-    CFFI_F_ATTR_DISPOSE = 0x00000010, /* Unregister the pointer */
-    CFFI_F_ATTR_COUNTED = 0x00000020, /* Counted safe pointer */
-    CFFI_F_ATTR_UNSAFE  = 0x00000040, /* Pointers need not be checked */
+    CFFI_F_ATTR_IN               = 0x00000001, /* In parameter */
+    CFFI_F_ATTR_OUT              = 0x00000002, /* Out parameter */
+    CFFI_F_ATTR_INOUT            = 0x00000004, /* Out parameter */
+    CFFI_F_ATTR_BYREF            = 0x00000008, /* Parameter is a reference */
+    CFFI_F_ATTR_DISPOSE          = 0x00000010, /* Unregister the pointer */
+    CFFI_F_ATTR_COUNTED          = 0x00000020, /* Counted safe pointer */
+    CFFI_F_ATTR_UNSAFE           = 0x00000040, /* Pointers need not be checked */
     CFFI_F_ATTR_DISPOSEONSUCCESS = 0x00000080, /* Unregister on success */
     CFFI_F_ATTR_ZERO             = 0x00000100, /* Must be zero/null */
     CFFI_F_ATTR_NONZERO          = 0x00000200, /* Must be nonzero/nonnull */
     CFFI_F_ATTR_NONNEGATIVE      = 0x00000400, /* Must be >= 0 */
     CFFI_F_ATTR_POSITIVE         = 0x00000800, /* Must be >= 0 */
-    CFFI_F_ATTR_LASTERROR    = 0x00001000, /* Windows GetLastError handler */
-    CFFI_F_ATTR_ERRNO        = 0x00002000, /* Error in errno */
-    CFFI_F_ATTR_WINERROR     = 0x00004000, /* Windows error code */
-    CFFI_F_ATTR_ONERROR      = 0x00008000, /* Error handler */
-    CFFI_F_ATTR_STOREONERROR = 0x00010000, /* Store only on error */
-    CFFI_F_ATTR_STOREALWAYS  = 0x00020000, /* Store on success and error */
-    CFFI_F_ATTR_RETVAL       = 0x00040000, /* if param - treat as return value
-                                              if return - a parameter is
-                                              the return value */
-    CFFI_F_ATTR_ENUM        = 0x00100000,  /* Use enum names */
-    CFFI_F_ATTR_BITMASK     = 0x00200000,  /* Treat as a bitmask */
-    CFFI_F_ATTR_NULLIFEMPTY = 0x00400000,  /* Empty -> null pointer */
-    CFFI_F_ATTR_NULLOK      = 0x00800000,  /* Null pointers allowed */
-    CFFI_F_ATTR_STRUCTSIZE  = 0x01000000,  /* Field contains struct size */
-    CFFI_F_ATTR_MULTISZ      = 0x02000000, /* String list terminated by double nul */
+    CFFI_F_ATTR_LASTERROR        = 0x00001000, /* Windows GetLastError handler */
+    CFFI_F_ATTR_ERRNO            = 0x00002000, /* Error in errno */
+    CFFI_F_ATTR_WINERROR         = 0x00004000, /* Windows error code */
+    CFFI_F_ATTR_ONERROR          = 0x00008000, /* Error handler */
+    CFFI_F_ATTR_STOREONERROR     = 0x00010000, /* Store only on error */
+    CFFI_F_ATTR_STOREALWAYS      = 0x00020000, /* Store on success and error */
+    CFFI_F_ATTR_RETVAL           = 0x00040000, /* A param is the return value */
+    CFFI_F_ATTR_DISCARD          = 0x00080000, /* Drop the return value */
+    CFFI_F_ATTR_ENUM             = 0x00100000, /* Use enum names */
+    CFFI_F_ATTR_BITMASK          = 0x00200000, /* Treat as a bitmask */
+    CFFI_F_ATTR_NULLIFEMPTY      = 0x00400000, /* Empty -> null pointer */
+    CFFI_F_ATTR_NULLOK           = 0x00800000, /* Null pointers allowed */
+    CFFI_F_ATTR_STRUCTSIZE       = 0x01000000, /* Field contains struct size */
+    CFFI_F_ATTR_MULTISZ          = 0x02000000, /* Windows multisz */
 } CffiAttrFlags;
 
 /*
@@ -1006,10 +1006,10 @@ CffiResult CffiFunctionInstanceCmd(ClientData cdata,
                                    int objc,
                                    Tcl_Obj *const objv[]);
 void CffiFunctionCleanup(CffiFunction *fnP);
-CFFI_INLINE CffiFunctionRef(CffiFunction *fnP) {
+CFFI_INLINE void CffiFunctionRef(CffiFunction *fnP) {
     fnP->nRefs += 1;
 }
-CFFI_INLINE CffiFunctionUnref(CffiFunction *fnP) {
+CFFI_INLINE void CffiFunctionUnref(CffiFunction *fnP) {
     if (fnP->nRefs > 1) {
         fnP->nRefs -= 1;
     } else {

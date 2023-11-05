@@ -187,6 +187,7 @@ namespace eval cffi::test {
         structbyref {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.}
         store {Annotations "storeonerror" and "storealways" not allowed for "in" parameters.}
         fieldvararray {Fields cannot be arrays of variable size.}
+        retvaluse {The "retval" annotation can only be used in parameter definitions in functions with void or integer return types with error checking annotations. Error defining function *}
     }
 
     set structDef {

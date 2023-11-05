@@ -12,13 +12,13 @@
 #define CFFI_VALID_INTEGER_ATTRS                                       \
     (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK             \
      | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
-     | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NULLOK)
+     | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD)
 
 /* Note string cannot be INOUT parameter */
 #define CFFI_VALID_STRING_ATTRS                                                \
     (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF \
      | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR    \
-     | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR)
+     | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR | CFFI_F_ATTR_DISCARD)
 
 /*
  * Basic type meta information. The order *MUST* match the order in
@@ -89,19 +89,20 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_K_TYPE_FLOAT,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
      sizeof(float)},
     {TOKENANDLEN(double),
      DCSIG(DOUBLE),
      CFFI_K_TYPE_DOUBLE,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
      sizeof(double)},
     {TOKENANDLEN(struct),
      DCSIG(AGGREGATE),
      CFFI_K_TYPE_STRUCT,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK
+         | CFFI_F_ATTR_DISCARD,
      0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
     /*  */
@@ -109,7 +110,8 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      DCSIG(POINTER),
      CFFI_K_TYPE_POINTER,
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NULLOK
-         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR,
+         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR
+         | CFFI_F_ATTR_DISCARD,
      sizeof(void *)},
     {TOKENANDLEN(string),
      DCSIG(STRING),
@@ -125,38 +127,36 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      DCSIG(POINTER),
      CFFI_K_TYPE_BINARY,
      /* Note binary cannot be OUT or INOUT parameters */
-     CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY,
+     CFFI_F_ATTR_IN | CFFI_F_ATTR_BYREF | CFFI_F_ATTR_NULLIFEMPTY
+         | CFFI_F_ATTR_DISCARD,
      sizeof(unsigned char *)},
     {TOKENANDLEN(chars),
      DCSIG(POINTER),
      CFFI_K_TYPE_CHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
      sizeof(char)},
     {TOKENANDLEN(unichars),
      DCSIG(POINTER),
      CFFI_K_TYPE_UNICHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
      sizeof(Tcl_UniChar)},
     {TOKENANDLEN(bytes),
      DCSIG(POINTER),
      CFFI_K_TYPE_BYTE_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
      sizeof(unsigned char)},
-    {TOKENANDLEN(union),
-     0,
-     CFFI_K_TYPE_UNION,
-     0,
-     0},
+    {TOKENANDLEN(union), 0, CFFI_K_TYPE_UNION, 0, 0},
 #ifdef _WIN32
     {TOKENANDLEN(winstring),
      DCSIG(STRING),
      CFFI_K_TYPE_WINSTRING,
-     CFFI_VALID_STRING_ATTRS | CFFI_F_ATTR_MULTISZ,
+     CFFI_VALID_STRING_ATTRS | CFFI_F_ATTR_MULTISZ | CFFI_F_ATTR_DISCARD,
      sizeof(void *)},
     {TOKENANDLEN(winchars),
      DCSIG(POINTER),
      CFFI_K_TYPE_WINCHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_MULTISZ,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_MULTISZ
+         | CFFI_F_ATTR_DISCARD,
      sizeof(WCHAR)},
 #endif
     {NULL}};
@@ -188,6 +188,7 @@ enum cffiTypeAttrOpt {
     NULLOK,
     STRUCTSIZE,
     MULTISZ,
+    DISCARD,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -207,18 +208,8 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_ATTR_BYREF,
      CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN,
      1},
-    {"counted",
-     COUNTED,
-     CFFI_F_ATTR_COUNTED,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN
-         | CFFI_F_TYPE_PARSE_FIELD,
-     1},
-    {"unsafe",
-     UNSAFE,
-     CFFI_F_ATTR_UNSAFE,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_RETURN
-         | CFFI_F_TYPE_PARSE_FIELD,
-     1},
+    {"counted", COUNTED, CFFI_F_ATTR_COUNTED, CFFI_F_TYPE_PARSE_ALL, 1},
+    {"unsafe", UNSAFE, CFFI_F_ATTR_UNSAFE, CFFI_F_TYPE_PARSE_ALL, 1},
     {"dispose", DISPOSE, CFFI_F_ATTR_DISPOSE, CFFI_F_TYPE_PARSE_PARAM, 1},
     {"disposeonsuccess",
      DISPOSEONSUCCESS,
@@ -233,25 +224,10 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_TYPE_PARSE_RETURN,
      1},
     {"positive", POSITIVE, CFFI_F_ATTR_POSITIVE, CFFI_F_TYPE_PARSE_RETURN, 1},
-    {"errno",
-     ERRNO,
-     CFFI_F_ATTR_ERRNO,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
-         | CFFI_F_TYPE_PARSE_RETURN,
-     1},
+    {"errno", ERRNO, CFFI_F_ATTR_ERRNO, CFFI_F_TYPE_PARSE_ALL, 1},
 #ifdef _WIN32
-    {"lasterror",
-     LASTERROR,
-     CFFI_F_ATTR_LASTERROR,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
-         | CFFI_F_TYPE_PARSE_RETURN,
-     1},
-    {"winerror",
-     WINERROR,
-     CFFI_F_ATTR_WINERROR,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
-         | CFFI_F_TYPE_PARSE_RETURN,
-     1},
+    {"lasterror", LASTERROR, CFFI_F_ATTR_LASTERROR, CFFI_F_TYPE_PARSE_ALL, 1},
+    {"winerror", WINERROR, CFFI_F_ATTR_WINERROR, CFFI_F_TYPE_PARSE_ALL, 1},
 #endif
     {"default",
      DEFAULT,
@@ -273,41 +249,17 @@ static CffiAttrs cffiAttrs[] = {
      CFFI_F_ATTR_STOREALWAYS,
      CFFI_F_TYPE_PARSE_PARAM,
      1},
-    {"enum",
-     ENUM,
-     CFFI_F_ATTR_ENUM,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
-         | CFFI_F_TYPE_PARSE_RETURN,
-     2},
-    {"bitmask",
-     BITMASK,
-     CFFI_F_ATTR_BITMASK,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
-         | CFFI_F_TYPE_PARSE_RETURN,
-     1},
-    {"onerror",
-     ONERROR,
-     CFFI_F_ATTR_ONERROR,
-     CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD
-         | CFFI_F_TYPE_PARSE_RETURN,
-     2},
-    {"nullok",
-     NULLOK,
-     CFFI_F_ATTR_NULLOK,
-     CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM
-         | CFFI_F_TYPE_PARSE_FIELD,
-     1},
+    {"enum", ENUM, CFFI_F_ATTR_ENUM, CFFI_F_TYPE_PARSE_ALL, 2},
+    {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_ALL, 1},
+    {"onerror", ONERROR, CFFI_F_ATTR_ONERROR, CFFI_F_TYPE_PARSE_ALL, 2},
+    {"nullok", NULLOK, CFFI_F_ATTR_NULLOK, CFFI_F_TYPE_PARSE_ALL, 1},
     {"structsize",
      STRUCTSIZE,
      CFFI_F_ATTR_STRUCTSIZE,
      CFFI_F_TYPE_PARSE_FIELD,
      1},
-    {"multisz",
-     MULTISZ,
-     CFFI_F_ATTR_MULTISZ,
-     CFFI_F_TYPE_PARSE_RETURN | CFFI_F_TYPE_PARSE_PARAM
-         | CFFI_F_TYPE_PARSE_FIELD,
-     1},
+    {"multisz", MULTISZ, CFFI_F_ATTR_MULTISZ, CFFI_F_TYPE_PARSE_ALL, 1},
+    {"discard", DISCARD, CFFI_F_ATTR_DISCARD, CFFI_F_TYPE_PARSE_RETURN, 1},
     {NULL}};
 
 CffiResult
@@ -1184,6 +1136,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             break;
         case MULTISZ:
             flags |= CFFI_F_ATTR_MULTISZ;
+            break;
+        case DISCARD:
+            flags |= CFFI_F_ATTR_DISCARD;
             break;
         }
     }
