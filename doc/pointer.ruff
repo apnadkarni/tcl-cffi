@@ -52,6 +52,13 @@ namespace eval ${NS}::pointer {
         # Returns a list of tags that have been marked as castable with the
         # [pointer castable] command..
     }
+    proc compare {ptr1 ptr2} {
+        # Compares if two pointers are the same
+        # ptr1 - the first pointer to compare
+        # ptr2 - the second pointer to compare
+        # Returns 1 if both address and tag components match, -1 if
+        # address matches but tags are different and 0 otherwise.
+    }
     proc counted {pointer} {
         # Registers a pointer as a counted pointer
         #  pointer - pointer to be registered
@@ -126,6 +133,12 @@ namespace eval ${NS}::pointer {
         # An empty string is returned if the pointer is not tagged.
         #
         # See [Pointers][::Concepts::Pointers] for more on pointer tags.
+    }
+    proc uncastable tag {
+        # Makes pointers with the specified tag uncastable to another type
+        # tag - a pointer tag
+        # Pointers tagged with $tag will no longer be castable to other
+        # tags that were configured with the [pointer castables] command.
     }
     namespace export *
     namespace ensemble create

@@ -443,6 +443,7 @@ namespace eval ${NS}::test {
 
     ###
     # castable tests
+    testnumargs pointer-castable "pointer castable" "SUBTAG SUPERTAG" ""
     test pointer-castable-0 "Pointer argument castable" -setup {
         testDll function {pointer_to_pointer upcast} {pointer unsafe} {p {pointer.T unsafe}}
         testDll function {pointer_to_pointer downcast} {pointer unsafe} {p {pointer.T2 unsafe}}
@@ -503,6 +504,34 @@ namespace eval ${NS}::test {
     } -body {
         S new [list p [makeptr 1]]
     } -result "Value*has the wrong type. Pointer type mismatch.*" -match glob -returnCodes error
+
+    ###
+    # pointer compare
+    testnumargs pointer-compare "pointer compare" "POINTER POINTER" ""
+    test pointer-compare-0 "Compare equal - no tags" -body {
+        cffi::pointer compare [makeptr 1] [makeptr 1]
+    } -result 1
+    test pointer-compare-1 "Compare equal - tags" -body {
+        cffi::pointer compare [makeptr 1 TAG] [makeptr 1 TAG]
+    } -result 1
+    test pointer-compare-2 "Compare equal addresses" -body {
+        cffi::pointer compare [makeptr 1 TAG] [makeptr 1 TAG2]
+    } -result -1
+    test pointer-compare-3 "Compare equal addresses" -body {
+        cffi::pointer compare [makeptr 1] [makeptr 1 TAG]
+    } -result -1
+    test pointer-compare-4 "Compare unequal addresses" -body {
+        cffi::pointer compare [makeptr 1] [makeptr 2]
+    } -result 0
+    test pointer-compare-5 "Compare unequal addresses - same tag" -body {
+        cffi::pointer compare [makeptr 1 TAG] [makeptr 2 TAG]
+    } -result 0
+    test pointer-compare-6 "Compare NULL" -body {
+        cffi::pointer compare NULL NULL
+    } -result 1
+    test pointer-compare-7 "Compare NULL with non-NULL" -body {
+        cffi::pointer compare [makeptr 1] NULL
+    } -result 0
 }
 
 ::tcltest::cleanupTests

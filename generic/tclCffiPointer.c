@@ -65,6 +65,15 @@ CffiPointerCastCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *ptrObj, Tcl_Obj *newTagObj)
     return ret;
 }
 
+static CffiResult
+CffiPointerCompareCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *ptr1Obj, Tcl_Obj *ptr2Obj)
+{
+    int cmp;
+    CHECK(Tclh_PointerObjCompare(ipCtxP->interp, ptr1Obj, ptr2Obj, &cmp));
+    Tcl_SetObjResult(ipCtxP->interp, Tcl_NewIntObj(cmp));
+    return TCL_OK;
+}
+
 CffiResult
 CffiPointerObjCmd(ClientData cdata,
                   Tcl_Interp *ip,
@@ -79,36 +88,38 @@ CffiPointerObjCmd(ClientData cdata,
 
     static const Tclh_SubCommand subCommands[] = {
         {"address", 1, 1, "POINTER", NULL},
-        {"list", 0, 1, "?TAG?", NULL},
+        {"cast", 1, 2, "POINTER ?TAG?", NULL},
+        {"castable", 2, 2, "SUBTAG SUPERTAG", NULL},
+        {"castables", 0, 0, ""},
         {"check", 1, 1, "POINTER", NULL},
-        {"isvalid", 1, 1, "POINTER", NULL},
-        {"tag", 1, 1, "POINTER", NULL},
-        {"safe", 1, 1, "POINTER", NULL},
+        {"compare", 2, 2, "POINTER POINTER", NULL},
         {"counted", 1, 1, "POINTER", NULL},
         {"dispose", 1, 1, "POINTER", NULL},
         {"isnull", 1, 1, "POINTER", NULL},
+        {"isvalid", 1, 1, "POINTER", NULL},
+        {"list", 0, 1, "?TAG?", NULL},
         {"make", 1, 2, "ADDRESS ?TAG?", NULL},
-        {"cast", 1, 2, "POINTER ?TAG?", NULL},
-        {"castable", 2, 2, "SUBTAG SUPERTAG", NULL},
+        {"safe", 1, 1, "POINTER", NULL},
+        {"tag", 1, 1, "POINTER", NULL},
         {"uncastable", 1, 1, "TAG"},
-        {"castables", 0, 0, ""},
         {NULL}
     };
     enum cmdIndex {
         ADDRESS,
-        LIST,
+        CAST,
+        CASTABLE,
+        CASTABLES,
         CHECK,
-        ISVALID,
-        TAG,
-        SAFE,
+        COMPARE,
         COUNTED,
         DISPOSE,
         ISNULL,
+        ISVALID,
+        LIST,
         MAKE,
-        CAST,
-        CASTABLE,
+        SAFE,
+        TAG,
         UNCASTABLE,
-        CASTABLES
     };
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
@@ -137,8 +148,8 @@ CffiPointerObjCmd(ClientData cdata,
         return CffiPointerCastableCmd(ipCtxP, objv[2], objv[3]);
     case CAST:
         return CffiPointerCastCmd(ipCtxP, objv[2], objc > 3 ? objv[3] : NULL);
-    case UNCASTABLE:
-        return CffiPointerUncastableCmd(ipCtxP, objv[2]);
+    case COMPARE:
+        return CffiPointerCompareCmd(ipCtxP, objv[2], objv[3]);
     case CASTABLES:
         objP = Tclh_PointerSubtags(ip, ipCtxP->tclhCtxP);
         if (objP) {
@@ -146,6 +157,8 @@ CffiPointerObjCmd(ClientData cdata,
             return TCL_OK;
         }
         return TCL_ERROR;/* Tclh_PointerSubtags should have set error */
+    case UNCASTABLE:
+        return CffiPointerUncastableCmd(ipCtxP, objv[2]);
     default:
         break;
     }
