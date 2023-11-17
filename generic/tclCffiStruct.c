@@ -2328,7 +2328,7 @@ CffiStructFromBinaryCmd(Tcl_Interp *ip,
                          CffiStructCmdCtx *structCtxP)
 {
     unsigned char *valueP;
-    int len;
+    Tcl_Size len;
     unsigned int offset;
     CffiResult ret;
     Tcl_Obj *resultObj;

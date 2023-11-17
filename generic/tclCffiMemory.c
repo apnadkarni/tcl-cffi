@@ -243,7 +243,7 @@ CffiMemoryFromBinaryCmd(CffiInterpCtx *ipCtxP,
     unsigned char *bytes;
     Tcl_Obj *tagObj;
     void *p;
-    int len;
+    Tcl_Size len;
 
     bytes = Tcl_GetByteArrayFromObj(objv[2], &len);
     p = ckalloc(len);

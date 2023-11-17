@@ -351,7 +351,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     Tcl_Obj **varNameObjP = &argP->varNameObj;
     enum CffiBaseType baseType;
     CffiAttrFlags flags;
-    int len;
+    Tcl_Size len;
     char *p;
     int valueObjNeedsDecr = 0;
 
