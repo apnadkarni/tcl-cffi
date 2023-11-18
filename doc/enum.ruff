@@ -85,7 +85,6 @@ namespace eval ${NS}::enum {
     proc unmask {enumname mask} {
         # Returns a list of enumeration member names corresponding to the
         # bits set in $mask.
-        # enumeration members
         #  enumname - name of the enumeration
         #  mask - Integer bit mask value
         # The last element of the returned list is $mask itself.

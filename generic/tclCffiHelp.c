@@ -40,8 +40,61 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     }
     if (protoP->flags & CFFI_F_PROTO_VARARGS)
         Tcl_AppendStringsToObj(resultObj, " ?...?", NULL);
+
+    for (i = 0; i < protoP->nParams; ++i) {
+        Tcl_Obj *typeObj = CffiTypeAndAttrsUnparse(&protoP->params[i].typeAttrs);
+        Tcl_AppendStringsToObj(resultObj,
+                               "\n  ",
+                               Tcl_GetString(protoP->params[i].nameObj),
+                               ": ",
+                               Tcl_GetString(typeObj),
+                               NULL);
+        Tcl_DecrRefCount(typeObj);
+    }
+
     Tcl_SetObjResult(ipCtxP->interp, resultObj);
     return TCL_OK;
+}
+
+static CffiResult
+CffiHelpStructOrUnionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], CffiBaseType baseType)
+{
+    CffiStruct *structP;
+    Tcl_Obj *resultObj;
+    int i;
+
+    CFFI_ASSERT(objc == 3);
+    CHECK(CffiStructResolve(
+        ipCtxP->interp, Tcl_GetString(objv[2]), baseType, &structP));
+    resultObj = Tcl_NewStringObj(
+        baseType == CFFI_K_TYPE_STRUCT ? "struct " : "union ", -1);
+    Tcl_AppendObjToObj(resultObj, objv[2]);
+    for (i = 0; i < structP->nFields; ++i) {
+        CffiField *fieldP = &structP->fields[i];
+        Tcl_Obj *typeObj = CffiTypeAndAttrsUnparse(&fieldP->fieldType);
+        Tcl_AppendStringsToObj(resultObj,
+                               "\n  ",
+                               Tcl_GetString(fieldP->nameObj),
+                               ": ",
+                               Tcl_GetString(typeObj),
+                               NULL);
+        Tcl_DecrRefCount(typeObj);
+    }
+
+    Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    return TCL_OK;
+}
+
+static CffiResult
+CffiHelpUnionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    return CffiHelpStructOrUnionCmd(ipCtxP, objc, objv, CFFI_K_TYPE_UNION);
+}
+
+static CffiResult
+CffiHelpStructCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    return CffiHelpStructOrUnionCmd(ipCtxP, objc, objv, CFFI_K_TYPE_STRUCT);
 }
 
 static CffiResult
@@ -109,8 +162,10 @@ CffiHelpObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
-        {"function", 1, 1, "FUNCTION", CffiHelpFunctionCmd},
+        {"function", 1, 1, "NAME", CffiHelpFunctionCmd},
         {"functions", 0, 1, "?PATTERN?", CffiHelpFunctionsCmd},
+        {"struct", 1, 1, "NAME", CffiHelpStructCmd},
+        {"union", 1, 1, "NAME", CffiHelpUnionCmd},
 	{NULL}};
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));

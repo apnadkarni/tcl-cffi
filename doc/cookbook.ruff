@@ -1452,6 +1452,6 @@ namespace eval Cookbook {
         - use memory get command to decode native memory in type-specific
         manner
         - use defaults, -clear, structsize for structs
+        - use help interactively
     }
-
 }

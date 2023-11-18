@@ -58,14 +58,14 @@ namespace eval ${NS}::pkgconfig {
 }
 
 namespace eval ${NS}::help {
-    proc function {FUNCNAME} {
-        # Returns a string describing the syntax for a CFFI wrapped function
-        #   FUNCNAME - name of a wrapped function
+    proc function {NAME} {
+        # Returns a string describing the syntax and parameter definitions
+        # for a CFFI wrapped function
+        #   NAME - name of a wrapped function
     }
-
-    proc functions {{FUNCPATTERN *}} {
-        # Returns a list of CFFI-wrapped functions matching the pattern `FUNCPATTERN`
-        #   FUNCPATTERN - glob pattern to match
+    proc functions {{PATTERN *}} {
+        # Returns a list of CFFI-wrapped functions matching the pattern `PATTERN`
+        #   PATTERN - glob pattern to match
         #
         # Note that like Tcl's `info commands` the pattern is interpreted relative
         # to the current namespace. So for example, to obtain the list of
@@ -75,6 +75,14 @@ namespace eval ${NS}::help {
         # ````
         # cffi::help functions ::libzip::*
         # ````
+    }
+    proc struct {NAME} {
+        # Returns a string describing field types in a struct
+        #   NAME - name of a Struct
+    }
+    proc union {NAME} {
+        # Returns a string describing field types in a union
+        #   NAME - name of a Union
     }
 
     namespace export *
