@@ -434,7 +434,7 @@ CFFI_INLINE void CffiLibCtxRef(CffiLibCtx *libCtxP) {
     libCtxP->nRefs += 1;
 }
 
-/* Struct: CffiStrutCmdCtx
+/* Struct: CffiStructCmdCtx
  * Holds the context for a *Struct* command.
  */
 typedef struct CffiStructCmdCtx {

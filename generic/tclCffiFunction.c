@@ -441,18 +441,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
-#ifdef _WIN32
-                    && baseType != CFFI_K_TYPE_WINCHAR_ARRAY
-#endif
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 #else
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
-#ifdef _WIN32
-                    && baseType != CFFI_K_TYPE_WINCHAR_ARRAY
-#endif
                     && baseType != CFFI_K_TYPE_STRUCT
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 #endif

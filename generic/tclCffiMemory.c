@@ -80,6 +80,13 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
     ret = CffiTypeAndAttrsParse(
         ipCtxP, objv[2], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs);
     if (ret == TCL_OK) {
+        if (CffiTypeIsVariableSize(&typeAttrs.dataType)) {
+            CffiTypeAndAttrsCleanup(&typeAttrs);
+            return Tclh_ErrorGeneric(
+                ip,
+                "VARSIZE",
+                "Allocation of variable size type not permitted.");
+        }
         p = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
         CffiTypeAndAttrsCleanup(&typeAttrs);
     }
@@ -148,6 +155,12 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
     CHECK(CffiTypeAndAttrsParse(
         ipCtxP, objv[2], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
     /* Note typeAttrs needs to be cleaned up beyond this point */
+
+    if (CffiTypeIsVariableSize(&typeAttrs.dataType)) {
+        CffiTypeAndAttrsCleanup(&typeAttrs);
+        return Tclh_ErrorGeneric(
+            ip, "VARSIZE", "Allocation of variable size type not permitted.");
+    }
 
     pv = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
 

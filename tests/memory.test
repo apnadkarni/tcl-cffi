@@ -66,6 +66,22 @@ namespace eval cffi::test {
         list [catch {cffi::memory allocate 0 TAG extra} result] $result $::errorCode
     } -result {1 {wrong # args: should be "cffi::memory allocate SIZE ?TAG?"} {TCL WRONGARGS}}
 
+    test memory-allocate-badtype-0 "allocate bad type" -body {
+        cffi::memory allocate badtype
+    } -result {Invalid value "badtype". Allocation size argument must be a positive 32-bit integer or a type specification.} -returnCodes error
+
+    test memory-allocate-badtype-1 "allocate bad type - void" -body {
+        cffi::memory allocate void
+    } -result {Invalid value "void". Allocation size argument must be a positive 32-bit integer or a type specification.} -returnCodes error
+
+    test memory-allocate-badtype-2 "allocate varsize" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::memory allocate struct.S
+    } -result {Allocation of variable size type not permitted.} -returnCodes error
+
     ###
 
     testnumargs memory-free "cffi::memory free" "POINTER"
@@ -984,6 +1000,14 @@ namespace eval cffi::test {
     test memory-new-badtype-1 "new bad type - void" -body {
         cffi::memory new void 0
     } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
+
+    test memory-new-badtype-2 "new varsize" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::memory new struct.S {n 2 a {1 2}}
+    } -result {Allocation of variable size type not permitted.} -returnCodes error
 }
 
 ::tcltest::cleanupTests

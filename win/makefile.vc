@@ -40,15 +40,16 @@ USE_DYNCALL = 0
 KEYFILE = ffi.h
 !endif
 
+!if [nmakehlp -f $(OPTS) "cffiassert"]
+CFFI_ASSERT_LEVEL=1
+!endif
+
 # Override shared library installation directory
 !if "$(ARCH)" == "AMD64"
 DLLSUBDIR = win32-x86_64
 !else
 DLLSUBDIR = win32-ix86
 !endif
-
-
-PRJ_DEFINES = $(PRJ_DEFINES)
 
 !ifndef EXTDIR
 EXTDIR = $(ROOT)\external-libs\win\$(BUILDDIRTOP)
@@ -110,6 +111,10 @@ PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
 !else
 PRJ_LIBS = $(EXTDIR)\lib\ffi.lib
 !endif
+!endif
+
+!ifdef CFFI_ASSERT_LEVEL
+PRJ_DEFINES = $(PRJ_DEFINES) -DTCLH_ASSERT_LEVEL=$(CFFI_ASSERT_LEVEL)
 !endif
 
 !if (($(TCL_MAJOR_VERSION) > 8) || (($(TCL_MAJOR_VERSION) == 8) && ($(TCL_MINOR_VERSION) >= 7)))
