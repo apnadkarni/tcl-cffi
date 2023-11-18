@@ -148,6 +148,7 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
     Tcl_Interp *ip = ipCtxP->interp;
     CffiTypeAndAttrs typeAttrs;
     CffiResult ret;
+    int size;
     void *pv;
 
     CFFI_ASSERT(objc >= 4);
@@ -157,12 +158,24 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
     /* Note typeAttrs needs to be cleaned up beyond this point */
 
     if (CffiTypeIsVariableSize(&typeAttrs.dataType)) {
-        CffiTypeAndAttrsCleanup(&typeAttrs);
-        return Tclh_ErrorGeneric(
-            ip, "VARSIZE", "Allocation of variable size type not permitted.");
+        if (typeAttrs.dataType.baseType != CFFI_K_TYPE_STRUCT) {
+            CffiTypeAndAttrsCleanup(&typeAttrs);
+            return Tclh_ErrorGeneric(
+                ip,
+                "VARSIZE",
+                "Allocation of variable size type not permitted.");
+        }
+        ret = CffiStructSizeForObj(
+            ipCtxP, typeAttrs.dataType.u.structP, objv[3], &size, NULL);
+        if (ret != TCL_OK) {
+            CffiTypeAndAttrsCleanup(&typeAttrs);
+            return TCL_ERROR;
+        }
+    } else {
+        size = CffiTypeActualSize(&typeAttrs.dataType);
     }
 
-    pv = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
+    pv = ckalloc(size);
 
     ret = CffiNativeValueFromObj(ipCtxP, &typeAttrs, 0, objv[3], 0, pv, 0, NULL);
     if (ret == TCL_OK) {

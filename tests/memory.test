@@ -950,6 +950,15 @@ namespace eval cffi::test {
             } -result {expected.*but got|Invalid value|missing.*key} -returnCodes error -match regexp
         }
     }
+    test memory-new-varsize-0 "new varsize" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        cffi::memory free $p
+        S destroy
+    } -body {
+        set p [cffi::memory new struct.S {n 2 a {1 2}} S]
+        S fromnative $p
+    } -result {n 2 a {1 2}}
 
     test memory-get-winchars-multisz-0 "Get a multisz list" -setup {
         set p [cffi::memory new {bytes[100]} "A\x00 \x00B\x00\x00\x00C\x00\x00\x00D\x00E\x00\x00\x00\x00\x00"]
@@ -1001,13 +1010,6 @@ namespace eval cffi::test {
         cffi::memory new void 0
     } -result {Invalid value "void". The specified type is not valid for the type declaration context.} -returnCodes error
 
-    test memory-new-badtype-2 "new varsize" -setup {
-        cffi::Struct create S {n int a uchar[n]}
-    } -cleanup {
-        S destroy
-    } -body {
-        cffi::memory new struct.S {n 2 a {1 2}}
-    } -result {Allocation of variable size type not permitted.} -returnCodes error
 }
 
 ::tcltest::cleanupTests
