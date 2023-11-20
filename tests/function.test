@@ -2248,18 +2248,18 @@ namespace eval ${NS}::test {
 
     # errno, lasterror, winerror
     foreach {attr val expected} {
-        zero 0xd {1 {The data is invalid.}}
-        zero -2147024809 {1 {The parameter is incorrect.}}
-        nonzero 0 {1 {The operation completed successfully.}}
-        nonnegative -2147024809 {1 {The parameter is incorrect.}}
-        positive 0 {1 {The operation completed successfully.}}
-        positive -2147024809 {1 {The parameter is incorrect.}}
+        zero 0xd {The data is invalid.}
+        zero -2147024809 {The parameter is incorrect.}
+        nonzero 0 {The operation completed successfully.}
+        nonnegative -2147024809 {The parameter is incorrect.}
+        positive 0 {The operation completed successfully.}
+        positive -2147024809 {The parameter is incorrect.}
     } {
         test function-return-errno-$attr-$val-0 "return errno" -setup {
             testDll function setErrno [list int $attr errno] {val int}
         } -body {
-            list [catch {setErrno $val} result] [string equal $result $einvalMessage]
-        } -result {1 1}
+            list [catch {setErrno $val} result] $result $::errorCode
+        } -result [list 1 $einvalMessage [list CFFI ERRNO 22 $einvalMessage]]
 
         test function-return-lasterror-$attr-$val-0 "return lasterror" -setup {
             testDll function setWinError [list int $attr lasterror] {val int}
@@ -2270,8 +2270,8 @@ namespace eval ${NS}::test {
         test function-return-winerror-zero-$val-0 "return zero winerror" -setup {
             testDll function {int_to_int getWinError} [list int $attr winerror] {val int}
         } -constraints win -body {
-            list [catch {getWinError $val} result] $result
-        } -result $expected
+            list [catch {getWinError $val} result] $result $::errorCode
+        } -result [list 1 $expected [list CFFI WIN32 [format %u $val] $expected]]
     }
 
     # Attributes not permitted for real types

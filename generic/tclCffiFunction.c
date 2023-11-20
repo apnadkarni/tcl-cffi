@@ -1223,6 +1223,9 @@ CffiDefaultErrorHandler(Tcl_Interp *ip,
 #endif
 
     if (flags & CFFI_F_ATTR_ERRNO) {
+        return Tclh_ErrorErrnoError(ip, (int)sysError, NULL);
+
+#ifdef OBSOLETE
         char buf[256];
         char *bufP;
         buf[0] = 0;             /* Safety check against misconfig */
@@ -1245,7 +1248,9 @@ CffiDefaultErrorHandler(Tcl_Interp *ip,
 #endif
 #endif
         Tcl_SetResult(ip, bufP, TCL_VOLATILE);
+
         return TCL_ERROR;
+#endif
     }
 
     /* Generic error */

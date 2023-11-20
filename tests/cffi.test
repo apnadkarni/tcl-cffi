@@ -106,17 +106,7 @@ namespace eval ${NS}::test {
         [namespace eval :: {lsort [cffi::help functions u*]}] \
         [lsort [cffi::help functions u*]]
     } -result {{} {uchar_to_uchar uint_to_uint}}
-    test help-functions-3 {help functions no args} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function uint_to_uint int {}
-    } -cleanup {
-        rename uint_to_uint {}
-    } -body {
-        lsort [cffi::help functions]
-    } -result {getTestStructSize uint_to_uint}
-    test help-struct-0 {help struct} -body {
-        cffi::help struct ::TestStruct
-    } -result {struct ::TestStruct
+    set desc {struct ::TestStruct
   c: schar
   i: int
   shrt: short
@@ -132,8 +122,22 @@ namespace eval ${NS}::test {
   b: {bytes[3]}
   f: float
   s: struct.::cffi::test::InnerTestStruct
-  d: double
-  wchars: {winchars[13]}}
+  d: double}
+    if {$::tcl_platform(platform) eq "windows"} {
+        append desc \n {  wchars: {winchars[13]}}
+    }
+
+    test help-functions-3 {help functions no args} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function uint_to_uint int {}
+    } -cleanup {
+        rename uint_to_uint {}
+    } -body {
+        lsort [cffi::help functions]
+    } -result {getTestStructSize uint_to_uint}
+    test help-struct-0 {help struct} -body {
+        cffi::help struct ::TestStruct
+    } -result $desc
 
     test help-union-0 {help union} -body {
         cffi::help union ::TestUnion

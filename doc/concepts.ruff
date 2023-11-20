@@ -1415,23 +1415,32 @@ namespace eval Concepts {
         `errno` - The POSIX error is stored in `errno`. The error message is
         generated using the C runtime `strerror` function. **Note:** This
         annotation should only be used if the wrapped function uses the same
-        C runtime as the `cffi` extension.
+        C runtime as the `cffi` extension. The Tcl `errorCode` variable
+        is set to a list comprising of `CFFI`, `ERRNO`, the numeric error code,
+        and the error message.
         `lasterror` - (Windows only). The error code and message is retrieved
         using the Windows `GetLastError` and `FormatMessage` functions.
+        The Tcl `errorCode` variable is set to a list comprising of `CFFI`,
+        `WIN32`, the numeric error code, and the error message.
+
         `winerror` - (Windows only). The numeric return value is itself the
         Windows error code and the error message is generated with
-        `FormatMessage`. This annotation can only be used with the `zero` error
-        checking annotation.
+        `FormatMessage`. The Tcl `errorCode` variable is set to a list
+        comprising of `CFFI`, `WIN32`, the numeric error code, and the error
+        message. This annotation can only be used with the `zero` error checking
+        annotation.
 
-        Any of these annotations can be applied to integer types while the
-        `errno` and `lasterror` can be used with pointer types as well.
+        These annotations can be applied only to integer types except that the
+        `errno` and `lasterror` annotations can be used with pointer types as
+        well.
 
-        In addition, the `onerror` annotation provides a means for customizing
-        error handling when the error is from a library and not a system error.
-        The annotation takes an additional argument which is a command prefix to
-        be invoked when an error checking annotation is triggered.
-        When this command prefix is invoked, a dictionary with the call information
-        is passed. The dictionary contains the following keys:
+        In addition to the above built-in error handlers, the `onerror`
+        annotation provides a means for customizing error handling when the
+        error is from a library and not a system error. The annotation takes an
+        additional argument which is a command prefix to be invoked when an
+        error checking annotation is triggered. When this command prefix is
+        invoked, a dictionary with the call information is passed. The
+        dictionary contains the following keys:
 
         `Result` - The return value from the function that triggered the error
         handler.
