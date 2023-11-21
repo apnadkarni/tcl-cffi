@@ -1416,8 +1416,8 @@ namespace eval Concepts {
         generated using the C runtime `strerror` function. **Note:** This
         annotation should only be used if the wrapped function uses the same
         C runtime as the `cffi` extension. The Tcl `errorCode` variable
-        is set to a list comprising of `CFFI`, `ERRNO`, the numeric error code,
-        and the error message.
+        is set to a list comprising of `CFFI`, `ERRNO`, the POSIX name for
+        the error (e.g. `ENOENT`), the numeric error code, and the error message.
         `lasterror` - (Windows only). The error code and message is retrieved
         using the Windows `GetLastError` and `FormatMessage` functions.
         The Tcl `errorCode` variable is set to a list comprising of `CFFI`,

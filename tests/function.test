@@ -2259,7 +2259,7 @@ namespace eval ${NS}::test {
             testDll function setErrno [list int $attr errno] {val int}
         } -body {
             list [catch {setErrno $val} result] $result $::errorCode
-        } -result [list 1 $einvalMessage [list CFFI ERRNO 22 $einvalMessage]]
+        } -result [list 1 $einvalMessage [list CFFI ERRNO EINVAL 22 $einvalMessage]]
 
         test function-return-lasterror-$attr-$val-0 "return lasterror" -setup {
             testDll function setWinError [list int $attr lasterror] {val int}
