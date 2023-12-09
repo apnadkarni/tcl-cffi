@@ -69,37 +69,31 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
                       CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
-    CffiTypeAndAttrs typeAttrs;
-    Tcl_WideInt size;
+    Tcl_WideInt wide;
+    Tcl_Size size;
     CffiResult ret;
     Tcl_Obj *ptrObj;
     Tcl_Obj *tagObj;
     void *p;
 
-    /* Check first if it is a type specification. */
-    ret = CffiTypeAndAttrsParse(
-        ipCtxP, objv[2], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs);
-    if (ret == TCL_OK) {
-        if (CffiTypeIsVariableSize(&typeAttrs.dataType)) {
-            CffiTypeAndAttrsCleanup(&typeAttrs);
-            return Tclh_ErrorGeneric(
-                ip,
-                "VARSIZE",
-                "Allocation of variable size type not permitted.");
-        }
-        p = ckalloc(CffiTypeActualSize(&typeAttrs.dataType));
-        CffiTypeAndAttrsCleanup(&typeAttrs);
-    }
+    ret = Tclh_ObjToRangedInt(NULL, objv[2], 1, INT_MAX, &wide);
+    if (ret == TCL_OK)
+        size = (Tcl_Size)wide;
     else {
-        ret = Tclh_ObjToRangedInt(ip, objv[2], 1, INT_MAX, &size);
-        if (ret != TCL_OK)
-            return Tclh_ErrorInvalidValue(
-                ip,
-                objv[2],
-                "Allocation size argument must be a positive 32-bit integer or "
-                "a type specification.");
-        p = ckalloc((int)size);
+        /* Check first if it is a type specification. */
+        ret = CffiTypeSizeForValue(ipCtxP, objv[2], NULL, NULL, &size);
     }
+
+    if (ret != TCL_OK) {
+        return Tclh_ErrorInvalidValue(
+            ip,
+            objv[2],
+            "Allocation size argument must be a positive 32-bit integer or "
+            "a fixed size type specification.");
+    }
+
+    p = Tcl_Alloc(size);
+
     if (objc == 4) {
         tagObj = CffiMakePointerTagFromObj(ipCtxP, objv[3]);
         Tcl_IncrRefCount(tagObj);
@@ -148,32 +142,14 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
     Tcl_Interp *ip = ipCtxP->interp;
     CffiTypeAndAttrs typeAttrs;
     CffiResult ret;
-    int size;
+    Tcl_Size size;
     void *pv;
 
     CFFI_ASSERT(objc >= 4);
 
-    CHECK(CffiTypeAndAttrsParse(
-        ipCtxP, objv[2], CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
+    CHECK(CffiTypeSizeForValue(
+        ipCtxP, objv[2], objv[3], &typeAttrs, &size));
     /* Note typeAttrs needs to be cleaned up beyond this point */
-
-    if (CffiTypeIsVariableSize(&typeAttrs.dataType)) {
-        if (typeAttrs.dataType.baseType != CFFI_K_TYPE_STRUCT) {
-            CffiTypeAndAttrsCleanup(&typeAttrs);
-            return Tclh_ErrorGeneric(
-                ip,
-                "VARSIZE",
-                "Allocation of variable size type not permitted.");
-        }
-        ret = CffiStructSizeForObj(
-            ipCtxP, typeAttrs.dataType.u.structP, objv[3], &size, NULL);
-        if (ret != TCL_OK) {
-            CffiTypeAndAttrsCleanup(&typeAttrs);
-            return TCL_ERROR;
-        }
-    } else {
-        size = CffiTypeActualSize(&typeAttrs.dataType);
-    }
 
     pv = ckalloc(size);
 

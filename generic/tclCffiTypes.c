@@ -777,6 +777,61 @@ CffiTypeActualSize(const CffiType *typeP)
         return typeP->baseTypeSize;
 }
 
+/* Function: CffiTypeSizeForValue
+ * Computes the size of the native representation of a Tcl value
+ *
+ * Parameters:
+ * ipCtxP - interpreter context
+ * typeObj - the type declaration
+ * valueObj - the value. May be NULL.
+ * typeAttrsP - location to store parsed type information. May be NULL.
+ * sizeP - the location where the computed size is to be stored
+ *
+ * Returns:
+ * TCL_OK on success. Caller must call CffiTypeAndAttrsCleanup on typeAttrsP
+ * TCL_ERROR on failure with error message in interpreter
+ */
+CffiResult
+CffiTypeSizeForValue(CffiInterpCtx *ipCtxP,
+                     Tcl_Obj *typeObj,
+                     Tcl_Obj *valueObj,
+                     CffiTypeAndAttrs *typeAttrsP,
+                     Tcl_Size *sizeP)
+{
+    int size;
+    CffiTypeAndAttrs typeAttrs;
+    if (typeAttrsP == NULL)
+        typeAttrsP = &typeAttrs;
+
+    CHECK(CffiTypeAndAttrsParse(
+        ipCtxP, typeObj, CFFI_F_TYPE_PARSE_FIELD, typeAttrsP));
+
+    CffiResult ret;
+    if (CffiTypeIsVariableSize(&typeAttrsP->dataType)) {
+        if (typeAttrsP->dataType.baseType != CFFI_K_TYPE_STRUCT
+            || valueObj == NULL) {
+            ret = Tclh_ErrorGeneric(
+                ipCtxP->interp,
+                "VARSIZE",
+                "Allocation of variable size not permitted.");
+        }
+        else {
+            ret = CffiStructSizeForObj(
+                ipCtxP, typeAttrsP->dataType.u.structP, valueObj, &size, NULL);
+        }
+    } else {
+        size = CffiTypeActualSize(&typeAttrsP->dataType);
+        ret  = TCL_OK;
+    }
+
+    if (ret != TCL_OK || typeAttrsP == &typeAttrs)
+        CffiTypeAndAttrsCleanup(typeAttrsP);
+
+    if (ret == TCL_OK)
+        *sizeP = size;
+
+    return ret;
+}
 
 /* Function: CffiTypeLayoutInfo
  * Returns size and alignment information for a type.
@@ -3013,6 +3068,65 @@ CffiParseParseMode(Tcl_Interp *ip, Tcl_Obj *parseModeObj, int *parseModeP)
     return TCL_OK;
 }
 
+static CffiResult
+CffiTypeTobinaryCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, Tcl_Obj *valueObj)
+{
+    CffiTypeAndAttrs typeAttrs;
+    Tcl_Size size;
+
+    CHECK(CffiTypeSizeForValue(
+        ipCtxP, typeObj, valueObj, &typeAttrs, &size));
+    /* Note typeAttrs needs to be cleaned up beyond this point */
+
+    Tcl_Obj *resultObj;
+    void *pv;
+    CffiResult ret;
+
+    resultObj = Tcl_NewByteArrayObj(NULL, size);
+    pv = Tclh_ObjGetBytesByRef(ipCtxP->interp, resultObj, &size);
+    if (pv)
+        ret = CffiNativeValueFromObj(
+            ipCtxP, &typeAttrs, 0, valueObj, 0, pv, 0, NULL);
+    else
+        ret = TCL_ERROR;
+    CffiTypeAndAttrsCleanup(&typeAttrs);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    else
+        Tcl_DecrRefCount(resultObj);
+    return ret;
+}
+
+static CffiResult
+CffiTypeFrombinaryCmd(CffiInterpCtx *ipCtxP,
+                      Tcl_Obj *typeObj,
+                      Tcl_Obj *valueObj)
+{
+    void *pv;
+    Tcl_Size size;
+    CffiResult ret;
+    Tcl_Obj *resultObj;
+    CffiTypeAndAttrs typeAttrs;
+
+    pv = Tclh_ObjGetBytesByRef(ipCtxP->interp, valueObj, &size);
+    if (pv == NULL)
+        return TCL_ERROR;
+
+    CHECK(CffiTypeAndAttrsParse(
+        ipCtxP, typeObj, CFFI_F_TYPE_PARSE_FIELD, &typeAttrs));
+
+    ret = CffiNativeValueToObj(ipCtxP,
+                               &typeAttrs,
+                               pv,
+                               0,
+                               typeAttrs.dataType.arraySize,
+                               &resultObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    CffiTypeAndAttrsCleanup(&typeAttrs);
+    return ret;
+}
+
 CffiResult
 CffiTypeObjCmd(ClientData cdata,
                 Tcl_Interp *ip,
@@ -3020,26 +3134,37 @@ CffiTypeObjCmd(ClientData cdata,
                 Tcl_Obj *const objv[])
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
-    CffiTypeAndAttrs typeAttrs;
-    enum cmdIndex { INFO, SIZE, COUNT };
-    int cmdIndex;
-    int baseSize, size, alignment;
-    int parse_mode;
-    Tcl_WideInt wide;
+    enum cmdIndex { INFO, SIZE, COUNT, TOBINARY, FROMBINARY };
+    int cmd;
     static const Tclh_SubCommand subCommands[] = {
         {"info", 1, 5, "TYPE ?-parsemode PARSEMODE? ?-vlacount VLACOUNT?", NULL},
         {"size", 1, 3, "TYPE ?-vlacount VLACOUNT?", NULL},
         {"count", 1, 1, "TYPE", NULL},
+        {"tobinary", 2, 2, "TYPE VALUE", NULL},
+        {"frombinary", 2, 2, "TYPE BINVALUE", NULL},
         {NULL}
     };
+    CffiTypeAndAttrs typeAttrs;
+    int baseSize, size, alignment;
+    int parse_mode;
+    Tcl_WideInt wide;
     enum Opts { PARSEMODE, VLACOUNT };
     static const char *const opts[] = {"-parsemode", "-vlacount", NULL};
     int vlaCount = -1;
 
-    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
+    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmd));
+    switch (cmd) {
+    case TOBINARY:
+        return CffiTypeTobinaryCmd(ipCtxP, objv[2], objv[3]);
+    case FROMBINARY:
+        return CffiTypeFrombinaryCmd(ipCtxP, objv[2], objv[3]);
+    default:
+        break;
+    }
+
     /* For type info, check if a parse mode is specified */
     parse_mode = -1;
-    if (cmdIndex == INFO && objc == 4) {
+    if (cmd == INFO && objc == 4) {
         /* For backwards compat to 1.x */
         if (CffiParseParseMode(ip, objv[3], &parse_mode) != TCL_OK)
             return TCL_ERROR;
@@ -3050,7 +3175,7 @@ CffiTypeObjCmd(ClientData cdata,
             CHECK(Tcl_GetIndexFromObj(ip, objv[i], opts, "option", 0, &optIndex));
             if (i == objc-1)
                 return Tclh_ErrorOptionValueMissing(ip, objv[i], NULL);
-            if (cmdIndex == COUNT || (cmdIndex == SIZE && optIndex == PARSEMODE)) {
+            if (cmd == COUNT || (cmd == SIZE && optIndex == PARSEMODE)) {
                 return Tclh_ErrorInvalidValue(ip, objv[i], "option");
             }
             ++i;
@@ -3072,7 +3197,7 @@ CffiTypeObjCmd(ClientData cdata,
         return CffiErrorMissingVLACountOption(ip);
     }
 
-    if (cmdIndex == COUNT) {
+    if (cmd == COUNT) {
         /* type count */
         if (typeAttrs.dataType.arraySize != 0 || typeAttrs.dataType.countHolderObj == NULL)
             Tcl_SetObjResult(ip, Tcl_NewIntObj(typeAttrs.dataType.arraySize));
@@ -3081,7 +3206,7 @@ CffiTypeObjCmd(ClientData cdata,
     }
     else {
         CffiTypeLayoutInfo(ipCtxP, &typeAttrs.dataType, vlaCount, &baseSize, &size, &alignment);
-        if (cmdIndex == SIZE)
+        if (cmd == SIZE)
             Tcl_SetObjResult(ip, Tcl_NewIntObj(size));
         else {
             /* type info */

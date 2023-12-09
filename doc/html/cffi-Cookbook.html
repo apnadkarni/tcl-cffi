@@ -84,6 +84,7 @@ LIBC function tzset void {}
 <li>If a symbolic representation is preferred as above and the value is actually a bit mask, optionally add the <code>bitmask</code> attribute to have the value returned as a list of symbols from the enumeration.</li>
 <li>If return values may indicate error conditions, add an error checking annotation like <code>zero</code>, <code>nonzero</code> etc.</li>
 <li>If a error checking annotation is added and additional detail is available from the system, add <code>lasterror</code>, <code>winerror</code> or <code>errno</code> as appropriate. If error information is available through some other API, add the <code>onerror</code> handler. This may also be used to filter errors or convert error conditions to success.</li>
+<li>If the return value is simply a boolean indicating success or failure, include the <code>discard</code> annotation to have an empty string returned on success. Note this does not affect exceptions raised on error.</li>
 </ul>
 <p class='ruff'><strong>Examples</strong></p>
 <p class='ruff'>C</p>
@@ -736,6 +737,7 @@ TYPE[N] type specific annotations ...
 <li>use raw pointers for large data to avoid copies</li>
 <li>use memory get command to decode native memory in type-specific manner</li>
 <li>use defaults, -clear, structsize for structs</li>
+<li>use help interactively</li>
 </ul>
 </main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
 <li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>

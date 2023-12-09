@@ -113,13 +113,13 @@ LIBC function tzset void {}
 .PP
 .RS 4n
 .nf
-           +-         +-      -+ -+ +-           +-                 -+ -+
-schar      | {enum E} | bitmask|  | | zero       | lasterror         |  |
-uchar      +-         +-      -+ -+ | nonzero    | winerror          |  |
-short                               | positive   | errno             |  |
-ushort                              | nonnegative| {onerror HANDLER} |  |
-int                                 +-           +-                 -+ -+
-uint
+           +-       +-      -+ -+ +-     -+ +-          -+ +-                 -+ -+
+schar      |{enum E}|bitmask|   | |discard| | zero       | | lasterror         |  |
+uchar      |        +-      -+  | +-     -+ | nonzero    | | winerror          |  |
+short      +-                  -+           | positive   | | errno             |  |
+ushort                                      | nonnegative| | {onerror HANDLER} |  |
+int                                         |           -+ +-                 -+  |
+uint                                        +-                                   -+
 long
 ulong
 longlong
@@ -141,6 +141,9 @@ If return values may indicate error conditions, add an error checking annotation
 .TP
 \(bu
 If a error checking annotation is added and additional detail is available from the system, add lasterror, winerror or errno as appropriate\&. If error information is available through some other API, add the onerror handler\&. This may also be used to filter errors or convert error conditions to success\&.
+.TP
+\(bu
+If the return value is simply a boolean indicating success or failure, include the discard annotation to have an empty string returned on success\&. Note this does not affect exceptions raised on error\&.
 .PP
 \fBExamples\fP
 .PP
@@ -174,8 +177,9 @@ LIBC function open {int nonnegative errno} {pathname string flags int}
 .PP
 .RS 4n
 .nf
-float
-double
+float  +-     -+
+double |discard|
+       +-     -+
 
 \fISyntax for floating point return types\fP
 
@@ -1434,4 +1438,7 @@ use memory get command to decode native memory in type-specific manner
 .TP
 \(bu
 use defaults, -clear, structsize for structs
+.TP
+\(bu
+use help interactively
 

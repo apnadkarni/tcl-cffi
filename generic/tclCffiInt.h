@@ -599,6 +599,11 @@ CffiResult CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                  CffiTypeAndAttrs *typeAttrsP);
 void CffiTypeAndAttrsCleanup(CffiTypeAndAttrs *typeAttrsP);
 Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
+CffiResult CffiTypeSizeForValue(CffiInterpCtx *ipCtxP,
+                                Tcl_Obj *typeObj,
+                                Tcl_Obj *valueObj,
+                                CffiTypeAndAttrs *typeAttrsP,
+                                Tcl_Size *sizeP);
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
 CffiResult CffiErrorMissingVLACountOption(Tcl_Interp *ip);

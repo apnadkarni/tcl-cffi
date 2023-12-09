@@ -55,9 +55,13 @@ cffi - Commands in namespace cffi
 .br
 \fBhelp\fP \fIsubcommand \&.\&.\&.\fP
 .br
-\fBhelp function\fP \fIFUNCNAME\fP
+\fBhelp function\fP \fINAME\fP
 .br
-\fBhelp functions\fP \fI?FUNCPATTERN?\fP
+\fBhelp functions\fP \fI?PATTERN?\fP
+.br
+\fBhelp struct\fP \fINAME\fP
+.br
+\fBhelp union\fP \fINAME\fP
 .br
 \fBlimits\fP \fItype\fP
 .br
@@ -109,6 +113,8 @@ cffi - Commands in namespace cffi
 .br
 \fBpointer check\fP \fIpointer\fP
 .br
+\fBpointer compare\fP \fIptr1 ptr2\fP
+.br
 \fBpointer counted\fP \fIpointer\fP
 .br
 \fBpointer dispose\fP \fIpointer\fP
@@ -125,6 +131,8 @@ cffi - Commands in namespace cffi
 .br
 \fBpointer tag\fP \fIpointer\fP
 .br
+\fBpointer uncastable\fP \fItag\fP
+.br
 \fBprototype\fP \fIsubcommand \&.\&.\&.\fP
 .br
 \fBprototype delete\fP \fIpattern\fP
@@ -139,9 +147,13 @@ cffi - Commands in namespace cffi
 .br
 \fBtype count\fP \fItype\fP
 .br
+\fBtype frombinary\fP \fItypespec value\fP
+.br
 \fBtype info\fP \fItypedecl ?args?\fP
 .br
 \fBtype size\fP \fItype ?args?\fP
+.br
+\fBtype tobinary\fP \fItypespec value\fP
 .br
 \fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
 .br
@@ -653,7 +665,7 @@ Returns the symbolic name of a value in an enumeration\&.
 Defines an enumeration with consecutive member values\&.
 .TP
 \fIunmask\fP
-Returns a list of enumeration member names corresponding to the bits set in \fI$mask\fP\&. enumeration members\&.
+Returns a list of enumeration member names corresponding to the bits set in \fI$mask\fP\&.
 .TP
 \fIvalue\fP
 Returns the value of an enumeration member\&.
@@ -913,7 +925,6 @@ other than the default zero is desired\&.
 .PP
 Returns a list of enumeration member names corresponding to the
 bits set in \fI$mask\fP\&.
-enumeration members
 .RS 4n\fBenum unmask\fP \fIenumname mask\fP
 .br
 .RE
@@ -940,7 +951,6 @@ as expected if this condition is not met\&.
 .PP
 Returns a list of enumeration member names corresponding to the
 bits set in \fI$mask\fP\&.
-enumeration members
 .PP
 \fBSee also\fR
 .PP
@@ -1000,10 +1010,16 @@ subcommands:
 .RS 4n
 .TP
 \fIfunction\fP
-Returns a string describing the syntax for a CFFI wrapped function\&.
+Returns a string describing the syntax and parameter definitions for a CFFI wrapped function\&.
 .TP
 \fIfunctions\fP
-Returns a list of CFFI-wrapped functions matching the pattern FUNCPATTERN
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN
+.TP
+\fIstruct\fP
+Returns a string describing field types in a struct\&.
+.TP
+\fIunion\fP
+Returns a string describing field types in a union\&.
 .RE
 .PP
 Refer
@@ -1020,35 +1036,37 @@ details\&.
 \fBhelp function\fR (::cffi)
 .RE
 .PP
-Returns a string describing the syntax for a CFFI wrapped function
-.RS 4n\fBhelp function\fP \fIFUNCNAME\fP
+Returns a string describing the syntax and parameter definitions
+for a CFFI wrapped function
+.RS 4n\fBhelp function\fP \fINAME\fP
 .br
 .RE
 .PP
 \fBParameters\fR
 .RS 4n
 .TP
-FUNCNAME
+NAME
 Name of a wrapped function\&.
 .RE
 .PP
 \fBReturn value\fR
 .PP
-Returns a string describing the syntax for a CFFI wrapped function
+Returns a string describing the syntax and parameter definitions
+for a CFFI wrapped function
 .PP
 .RS -4n
 \fBhelp functions\fR (::cffi)
 .RE
 .PP
-Returns a list of CFFI-wrapped functions matching the pattern FUNCPATTERN
-.RS 4n\fBhelp functions\fP \fI?FUNCPATTERN?\fP
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN
+.RS 4n\fBhelp functions\fP \fI?PATTERN?\fP
 .br
 .RE
 .PP
 \fBParameters\fR
 .RS 4n
 .TP
-FUNCPATTERN
+PATTERN
 Glob pattern to match\&. Optional, default *\&.
 .RE
 .PP
@@ -1067,7 +1085,47 @@ cffi::help functions ::libzip::*
 .PP
 \fBReturn value\fR
 .PP
-Returns a list of CFFI-wrapped functions matching the pattern FUNCPATTERN
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN
+.PP
+.RS -4n
+\fBhelp struct\fR (::cffi)
+.RE
+.PP
+Returns a string describing field types in a struct
+.RS 4n\fBhelp struct\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of a Struct\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a string describing field types in a struct
+.PP
+.RS -4n
+\fBhelp union\fR (::cffi)
+.RE
+.PP
+Returns a string describing field types in a union
+.RS 4n\fBhelp union\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of a Union\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a string describing field types in a union
 .PP
 .RS -4n
 \fBlimits\fR (::cffi)
@@ -1749,6 +1807,9 @@ Returns a list of tags that have been marked as castable with the \fIpointer cas
 \fIcheck\fP
 Validates a pointer and raise an exception if invalid\&.
 .TP
+\fIcompare\fP
+Compares if two pointers are the same\&.
+.TP
 \fIcounted\fP
 Registers a pointer as a counted pointer\&.
 .TP
@@ -1772,6 +1833,9 @@ Registers a pointer as a safe uncounted pointer\&.
 .TP
 \fItag\fP
 Returns the pointer tag\&.
+.TP
+\fIuncastable\fP
+Makes pointers with the specified tag uncastable to another type\&.
 .RE
 .PP
 Refer
@@ -1909,6 +1973,30 @@ checked\&.
 .PP
 See \fIPointers\fP for more on pointer
 safety and registration\&.
+.PP
+.RS -4n
+\fBpointer compare\fR (::cffi)
+.RE
+.PP
+Compares if two pointers are the same
+.RS 4n\fBpointer compare\fP \fIptr1 ptr2\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+ptr1
+The first pointer to compare\&.
+.TP
+ptr2
+The second pointer to compare\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns 1 if both address and tag components match, -1 if
+address matches but tags are different and 0 otherwise\&.
 .PP
 .RS -4n
 \fBpointer counted\fR (::cffi)
@@ -2114,6 +2202,22 @@ See \fIPointers\fP for more on pointer tags\&.
 Returns the pointer tag
 .PP
 .RS -4n
+\fBpointer uncastable\fR (::cffi)
+.RE
+.PP
+Makes pointers with the specified tag uncastable to another type
+.RS 4n\fBpointer uncastable\fP \fItag\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+tag
+A pointer tag Pointers tagged with \fI$tag\fP will no longer be castable to other tags that were configured with the \fIpointer castables\fP command\&.
+.RE
+.PP
+.RS -4n
 \fBprototype\fR (::cffi)
 .RE
 .PP
@@ -2304,11 +2408,17 @@ subcommands:
 \fIcount\fP
 Returns the count of elements in an array type\&.
 .TP
+\fIfrombinary\fP
+Converts the native binary value to its script level representation\&.
+.TP
 \fIinfo\fP
 Returns a dictionary containing various information about a type declaration\&.
 .TP
 \fIsize\fP
 Returns the size of a type in terms of the number of bytes of memory occupied by that type\&.
+.TP
+\fItobinary\fP
+Converts a script level value to a native representation\&.
 .RE
 .PP
 Refer
@@ -2344,6 +2454,37 @@ A return value of -1 indicates the type is not an array\&.
 \fBReturn value\fR
 .PP
 Returns the count of elements in an array type
+.PP
+.RS -4n
+\fBtype frombinary\fR (::cffi)
+.RE
+.PP
+Converts the native binary value to its script level representation\&.
+.RS 4n\fBtype frombinary\fP \fItypespec value\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+typespec
+A type declaration\&.
+.TP
+value
+The native binary value\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The \fI$typespec\fP argument may be any type specificiation\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the script level representation of the value\&.
+.PP
+\fBSee also\fR
+.PP
+\fItype tobinary\fP
 .PP
 .RS -4n
 \fBtype info\fR (::cffi)
@@ -2435,6 +2576,39 @@ length array or a struct that contains a variable length array
 .PP
 Returns the size of a type in terms of the number of bytes of memory
 occupied by that type\&.
+.PP
+.RS -4n
+\fBtype tobinary\fR (::cffi)
+.RE
+.PP
+Converts a script level value to a native representation\&.
+.RS 4n\fBtype tobinary\fP \fItypespec value\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+typespec
+A type declaration\&.
+.TP
+value
+The script level value\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The \fI$typespec\fP argument may be any type specificiation\&. If an
+array is specified of a larger size than the number of elements
+in \fI$value\fP, the remaining elements are zeroed out\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a Tcl binary containing the native representation\&.
+.PP
+\fBSee also\fR
+.PP
+\fItype frombinary\fP
 .SH CLASSES
 .PP
 .RS -4n

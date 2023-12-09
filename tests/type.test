@@ -1285,6 +1285,42 @@ namespace eval cffi::test {
             [namespace eval ::ns {cffi::type info INT}]
     } -result {{Size 4 Count -1 Alignment 4 Definition int BaseSize 4} {Size 8 Count -1 Alignment 8 Definition longlong BaseSize 8}}
 
+    #
+    # type tobinary/frombinary
+    testnumargs type-tobinary "cffi::type tobinary" "TYPE VALUE"
+    testnumargs type-frombinary "cffi::type frombinary" "TYPE BINVALUE"
+
+    foreach {type val} [array get testValues] {
+        if {$type ni {string unistring winstring binary}} {
+            test type-tobinary-$type-0 "type tobinary $type" -body {
+                set bin [cffi::type tobinary $type $val]
+                cffi::type frombinary $type $bin
+            } -result $val
+            test type-tobinary-$type-alias-0 "type tobinary alias $type" -setup {
+                cffi::alias clear
+                cffi::alias define ALIAS $type
+            } -body {
+                set bin [cffi::type tobinary ALIAS $val]
+                cffi::type frombinary ALIAS $bin
+            } -result $val
+        }
+        if {$type in $numericTypes} {
+            test type-tobinary-$type-array-0 "type tobinary array $type" -body {
+                set bin [cffi::type tobinary $type\[2\] [list 1 $val]]
+                cffi::type frombinary $type\[2\] $bin
+            } -result [list [expr {$type in $realTypes ? 1.0 : 1}] $val]
+        }
+    }
+
+    test type-tobinary-varsize-0 "type tobinary varsize" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        set bin [cffi::type tobinary struct.S {n 2 a {1 2}}]
+        cffi::type frombinary struct.S $bin
+    } -result {n 2 a {1 2}}
+
 }
 
 

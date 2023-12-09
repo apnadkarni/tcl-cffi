@@ -46,6 +46,29 @@ namespace eval ${NS}::type {
         # Definition - the type declaration after applying any defaults.
         #  For type aliases, this is the resolved type definition.
     }
+    proc tobinary {typespec value} {
+        # Converts a script level value to a native representation.
+        # typespec - a type declaration
+        # value - the script level value
+        #
+        # The $typespec argument may be any type specificiation. If an
+        # array is specified of a larger size than the number of elements
+        # in $value, the remaining elements are zeroed out.
+        #
+        # Returns a Tcl binary containing the native representation.
+        # See also: "type frombinary"
+    }
+    proc frombinary {typespec value} {
+        # Converts the native binary value to its script level representation.
+        # typespec - a type declaration
+        # value - the native binary value
+        #
+        # The $typespec argument may be any type specificiation.
+        #
+        # Returns the script level representation of the value.
+        # See also: "type tobinary"
+    }
+
     namespace export *
     namespace ensemble create
 }
