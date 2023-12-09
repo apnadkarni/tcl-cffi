@@ -893,7 +893,7 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
             Tcl_AppendPrintfToObj(
                 objP,
                 "\n  %s %s %s",
-                cffiBaseTypes[baseType].token,
+                CffiStructIsUnion(fieldP->fieldType.dataType.u.structP) ? "union" : cffiBaseTypes[baseType].token,
                 Tcl_GetString(fieldP->fieldType.dataType.u.structP->name),
                 Tcl_GetString(fieldP->nameObj));
             if (CffiTypeIsVLA(&fieldP->fieldType.dataType)) {
