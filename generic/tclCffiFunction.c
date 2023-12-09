@@ -413,12 +413,14 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             *varNameObjP = valueObj;
             valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
             if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
+                /* A struct may have appropriate defaults. Else will catch later */
                 if (typeAttrsP->dataType.baseType != CFFI_K_TYPE_STRUCT) {
                     return ErrorInvalidValue(
                         ip,
                         *varNameObjP,
                         "Variable specified as inout argument does not exist.");
                 }
+                Tcl_ResetResult(ip);
                 valueObj = Tcl_NewObj();
             }
             /* TBD - check if existing variable is an array and error out? */
