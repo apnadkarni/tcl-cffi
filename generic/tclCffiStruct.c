@@ -598,6 +598,61 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
     return TCL_OK;
 }
 
+/* Function: CffiStructInitSizeField
+ * Initializes a field with the structsize annotation
+ *
+ * Parameters:
+ * structP - struct descriptor. Must have a field with structsize annotation
+ * structAddress - pointer to native struct
+ */
+void
+CffiStructInitSizeField(CffiStruct *structP,
+                        void *structAddress)
+{
+    CFFI_ASSERT(structP->structSizeFieldIndex >= 0);
+    CFFI_ASSERT(!CffiStructIsVariableSize(structP));
+
+    Tcl_Size structSize     = structP->size;
+    const CffiField *fieldP = &structP->fields[structP->structSizeFieldIndex];
+    void *fieldAddress      = fieldP->offset + (char *)structAddress;
+
+    switch (fieldP->fieldType.dataType.baseType) {
+    case CFFI_K_TYPE_SCHAR:
+        *(signed char *)fieldAddress = (signed char)structSize;
+        break;
+    case CFFI_K_TYPE_UCHAR:
+        *(unsigned char *)fieldAddress = (unsigned char)structSize;
+        break;
+    case CFFI_K_TYPE_SHORT:
+        *(short *)fieldAddress = (short)structSize;
+        break;
+    case CFFI_K_TYPE_USHORT:
+        *(unsigned short *)fieldAddress = (unsigned short)structSize;
+        break;
+    case CFFI_K_TYPE_INT:
+        *(int *)fieldAddress = (int)structSize;
+        break;
+    case CFFI_K_TYPE_UINT:
+        *(unsigned int *)fieldAddress = (unsigned int)structSize;
+        break;
+    case CFFI_K_TYPE_LONG:
+        *(long *)fieldAddress = (long)structSize;
+        break;
+    case CFFI_K_TYPE_ULONG:
+        *(unsigned long *)fieldAddress = (unsigned long)structSize;
+        break;
+    case CFFI_K_TYPE_LONGLONG:
+        *(long long *)fieldAddress = (long long)structSize;
+        break;
+    case CFFI_K_TYPE_ULONGLONG:
+        *(unsigned long long *)fieldAddress = (unsigned long long)structSize;
+        break;
+    default:
+        TCLH_PANIC("Field type not valid for structsize annotation");
+        break;
+    }
+}
+
 /* Function: CffiStructParse
  * Parses a *struct* definition into an internal form.
  *
@@ -646,6 +701,7 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
 
     structP = CffiStructCkalloc(nfields);
     structP->dynamicCountFieldIndex = -1;
+    structP->structSizeFieldIndex = -1;
     structP->nFields = 0;     /* Update as we go along */
     structP->pack    = pack;
 
@@ -658,6 +714,15 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
             != TCL_OK) {
             CffiStructUnref(structP);
             return TCL_ERROR;
+        }
+        if (structP->fields[j].fieldType.flags & CFFI_F_ATTR_STRUCTSIZE) {
+            if (structP->structSizeFieldIndex >= 0) {
+                return Tclh_ErrorInvalidValue(
+                    ip,
+                    objs[i + 1],
+                    "A struct cannot have a multiple fields with the structsize annotation.");
+            }
+            structP->structSizeFieldIndex = (int) j;
         }
         if (CffiTypeIsVariableSize(&structP->fields[j].fieldType.dataType)) {
             if (isUnion) {
@@ -745,6 +810,14 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
      */
     CffiType *lastFldTypeP = &structP->fields[nfields - 1].fieldType.dataType;
     if (CffiTypeIsVariableSize(lastFldTypeP)) {
+        if (structP->structSizeFieldIndex >= 0) {
+            CffiStructUnref(structP);
+            return Tclh_ErrorInvalidValue(ip,
+                                          NULL,
+                                          "A variable size struct cannot have "
+                                          "a field with the structsize "
+                                          "annotation.");
+        }
         if (CffiTypeIsVLA(lastFldTypeP)) {
             CFFI_ASSERT(lastFldTypeP->countHolderObj != NULL);
             int countFieldIndex;
@@ -1115,49 +1188,13 @@ CffiStructFromObj(CffiInterpCtx *ipCtxP,
                 /* Dictionary valid but field not found. See if size or
                  * defaulted */
                 if (fieldP->fieldType.flags & CFFI_F_ATTR_STRUCTSIZE) {
-                    /* Fill in struct size */
-                    switch (fieldP->fieldType.dataType.baseType) {
-                    case CFFI_K_TYPE_SCHAR:
-                        *(signed char *)fieldAddress = (signed char)structSize;
-                        continue;
-                    case CFFI_K_TYPE_UCHAR:
-                        *(unsigned char *)fieldAddress =
-                            (unsigned char)structSize;
-                        continue;
-                    case CFFI_K_TYPE_SHORT:
-                        *(short *)fieldAddress = (short)structSize;
-                        continue;
-                    case CFFI_K_TYPE_USHORT:
-                        *(unsigned short *)fieldAddress =
-                            (unsigned short)structSize;
-                        continue;
-                    case CFFI_K_TYPE_INT:
-                        *(int *)fieldAddress = (int)structSize;
-                        continue;
-                    case CFFI_K_TYPE_UINT:
-                        *(unsigned int *)fieldAddress =
-                            (unsigned int)structSize;
-                        continue;
-                    case CFFI_K_TYPE_LONG:
-                        *(long *)fieldAddress = (long)structSize;
-                        continue;
-                    case CFFI_K_TYPE_ULONG:
-                        *(unsigned long *)fieldAddress =
-                            (unsigned long)structSize;
-                        continue;
-                    case CFFI_K_TYPE_LONGLONG:
-                        *(long long *)fieldAddress = (long long)structSize;
-                        continue;
-                    case CFFI_K_TYPE_ULONGLONG:
-                        *(unsigned long long *)fieldAddress =
-                            (unsigned long long)structSize;
-                        continue;
-                    default:
-                        break; /* Just fall thru looking for default */
-                    }
+                    CFFI_ASSERT(structP->structSizeFieldIndex == i);
+                    CffiStructInitSizeField(structP, structAddress);
+                    continue;
                 }
 
-                valueObj = fieldP->fieldType.parseModeSpecificObj; /* Default */
+                /* Default. May be NULL */
+                valueObj = fieldP->fieldType.parseModeSpecificObj;
             }
             if (valueObj == NULL) {
                 /*

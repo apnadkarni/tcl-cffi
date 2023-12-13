@@ -51,9 +51,9 @@ namespace eval ${NS}::type {
         # typespec - a type declaration
         # value - the script level value
         #
-        # The $typespec argument may be any type specificiation. If an
-        # array is specified of a larger size than the number of elements
-        # in $value, the remaining elements are zeroed out.
+        # The $typespec argument must not have a string or variable size
+        # component. If an array is specified of a larger size than the number
+        # of elements in $value, the remaining elements are zeroed out.
         #
         # Returns a Tcl binary containing the native representation.
         # See also: "type frombinary"
@@ -63,7 +63,7 @@ namespace eval ${NS}::type {
         # typespec - a type declaration
         # value - the native binary value
         #
-        # The $typespec argument may be any type specificiation.
+        # The $typespec argument may be any type specification.
         #
         # Returns the script level representation of the value.
         # See also: "type tobinary"

@@ -1794,7 +1794,7 @@ namespace eval ${NS}::test {
     ###
     # structsize
     test function-struct-field-structsize-0 "field structsize" -body {
-        cffi::Struct create SimpleWithStructSize {c {uchar structsize} ll {longlong structsize} s {short {default 43}}}
+        cffi::Struct create SimpleWithStructSize {c {uchar structsize} ll {longlong } s {short {default 43}}}
         testDll function {structCheck fn} int {s {struct.SimpleWithStructSize byref} c schar ll longlong s short}
         set size [dict get [SimpleWithStructSize info] Size]
         fn {ll 42} $size 42 43
@@ -1802,6 +1802,18 @@ namespace eval ${NS}::test {
         rename fn {}
         SimpleWithStructSize destroy
     } -result 1
+
+    cffi::Struct create StructWithSize {cbSize {uint structsize} value double}
+    test function-struct-field-structsize-1 "field structsize - out param" -body {
+        testDll function structGetSize uint {s {struct.StructWithSize out}}
+        list [structGetSize s] $s
+    } -result [list [cffi::type size struct.StructWithSize] [list cbSize [cffi::type size struct.StructWithSize] value 42.0]]
+    test function-struct-field-structsize-2 "field structsize - verify override" -body {
+        testDll function structGetSize uint {s {struct.StructWithSize inout}}
+        # Note 100 should be written, value not.
+        set s [list cbSize 100 value 99]
+        list [structGetSize s] $s
+    } -result [list 100 [list cbSize 100 value 42.0]]
 
     ###
     # struct enum

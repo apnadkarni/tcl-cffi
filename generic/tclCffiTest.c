@@ -864,7 +864,14 @@ EXTERN void structArrayExchange (struct SimpleStruct *a, struct SimpleStruct *b,
         b[i]           = c;
     }
 }
-
+struct StructWithSize {
+    unsigned int cbSize;
+    double value;
+};
+EXTERN unsigned int structGetSize (struct StructWithSize *a) {
+    a->value = 42.0;
+    return a->cbSize;
+}
 struct StructWithPointer {
     void *p;
 };

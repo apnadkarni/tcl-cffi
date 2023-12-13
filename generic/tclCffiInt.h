@@ -333,9 +333,10 @@ typedef struct CffiField {
 } CffiField;
 
 typedef enum CffiStructFlags {
-    CFFI_F_STRUCT_CLEAR   = 0x0001, /* Clear all fieldds on init */
-    CFFI_F_STRUCT_VARSIZE = 0x0002, /* Variable size struct */
-    CFFI_F_STRUCT_UNION   = 0x0004, /* Is a union */
+    CFFI_F_STRUCT_CLEAR        = 0x0001, /* Clear all fieldds on init */
+    CFFI_F_STRUCT_VARSIZE      = 0x0002, /* Variable size struct */
+    CFFI_F_STRUCT_UNION        = 0x0004, /* Is a union */
+    CFFI_F_STRUCT_HASSIZEFIELD = 0x0008, /* Has field with structsize */
 } CffiStructFlags;
 
 /* Struct: CffiStruct
@@ -358,6 +359,8 @@ struct CffiStruct {
     unsigned char alignment; /* Alignment required for struct */
     unsigned char pack;      /* Packing - 0 means natural alignment */
     CffiStructFlags flags;     /* Misc CFFI_F_STRUCT_ flags */
+    int structSizeFieldIndex;  /* Index into fields[] of field holding struct
+                                  size. -1 if no such */
     int dynamicCountFieldIndex; /* Index into fields[] of field holding
                                    array size of variable-sized last field.
                                    -1 if not variable size */
@@ -624,6 +627,7 @@ CffiResult CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
                                      int vlaCount,
                                      int *sizeP,
                                      int *fixedSizeP);
+void CffiStructInitSizeField(CffiStruct *structP, void *structAddress);
 CffiResult CffiStructResolve(Tcl_Interp *ip,
                              const char *nameP,
                              CffiBaseType baseType,

@@ -1,4 +1,4 @@
-# (c) 2021 Ashok P. Nadkarni
+# (c) 2021-2023 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
 # Contains common definitions across test scripts
@@ -1016,6 +1016,14 @@ namespace eval cffi::test {
             cffi::Struct new [list fld [list $type structsize]]
         } -result "Invalid value \"[list $type] structsize\". $errorMessages(attrtype)" -returnCodes error
     }
+
+    test struct-field-structsize-default "structsize with default" -body {
+        cffi::Struct new {dw {uint structsize {default 0}}}
+    } -result {Invalid value "uint structsize {default 0}". Defaults are not allowed in this declaration context.} -returnCodes error
+
+    test struct-field-structsize-default "two structsize fields" -body {
+        cffi::Struct new {dw {uint structsize} dw2 {uint structsize}}
+    } -result {Invalid value "uint structsize". A struct cannot have a multiple fields with the structsize annotation.} -returnCodes error
 
     ###
     # -clear option

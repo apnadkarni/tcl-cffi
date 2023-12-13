@@ -411,7 +411,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         }
         else {
             *varNameObjP = valueObj;
-            valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, TCL_LEAVE_ERR_MSG);
+            /* Note last arg 0 -> no error messages */
+            valueObj     = Tcl_ObjGetVar2(ip, valueObj, NULL, 0);
             if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
                 /* A struct may have appropriate defaults. Else will catch later */
                 if (typeAttrsP->dataType.baseType != CFFI_K_TYPE_STRUCT) {
@@ -420,7 +421,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                         *varNameObjP,
                         "Variable specified as inout argument does not exist.");
                 }
-                Tcl_ResetResult(ip);
                 valueObj = Tcl_NewObj();
             }
             /* TBD - check if existing variable is an array and error out? */
@@ -625,6 +625,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                         valueObj, 0,
                                         structValueP, &ipCtxP->memlifo));
             }
+            else if (typeAttrsP->dataType.u.structP->structSizeFieldIndex >= 0) {
+                CffiStructInitSizeField(typeAttrsP->dataType.u.structP,
+                                        structValueP);
+            }
             if (flags & CFFI_F_ATTR_BYREF) {
                 argP->value.u.ptr = structValueP;
                 /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
@@ -680,6 +684,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 if (i < argP->arraySize) {
                     /* Fill uninitialized with 0 */
                     memset(toP, 0, (argP->arraySize - i) * struct_size);
+                }
+            }
+            else if (typeAttrsP->dataType.u.structP->structSizeFieldIndex >= 0) {
+                Tcl_Size i;
+                for (toP = valueArray, i = 0; i < argP->arraySize;
+                     toP += struct_size, ++i) {
+                    CffiStructInitSizeField(typeAttrsP->dataType.u.structP, toP);
                 }
             }
             argP->value.u.ptr = valueArray;

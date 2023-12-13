@@ -1048,10 +1048,11 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
              */
             if (typeAttrP->parseModeSpecificObj)
                 goto invalid_format; /* Duplicate def */
-            /* Need next check because DEFAULT is not an attribute and
+            /* Need next checks because DEFAULT is not an attribute and
                thus not part of the table based check below this switch */
-            if (!(parseMode
-                  & (CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD))) {
+            if ((flags & CFFI_F_ATTR_STRUCTSIZE)
+                || !(parseMode
+                     & (CFFI_F_TYPE_PARSE_PARAM | CFFI_F_TYPE_PARSE_FIELD))) {
                 message = defaultNotAllowedMsg;
                 goto invalid_format;
             }
@@ -1183,6 +1184,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             flags |= CFFI_F_ATTR_NULLOK;
             break;
         case STRUCTSIZE:
+            if (typeAttrP->parseModeSpecificObj) {
+                message = "\"structsize\" annotation cannot be used with defaults.";
+                goto invalid_format;
+            }
             if (CffiTypeIsArray(&typeAttrP->dataType)) {
                 message = "\"structsize\" annotation not valid for arrays.";
                 goto invalid_format;
