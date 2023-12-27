@@ -601,6 +601,7 @@ CffiResult CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                                  CffiTypeParseMode parseMode,
                                  CffiTypeAndAttrs *typeAttrsP);
 void CffiTypeAndAttrsCleanup(CffiTypeAndAttrs *typeAttrsP);
+Tcl_Obj *CffiTypeUnparse(const CffiType *typeP);
 Tcl_Obj *CffiTypeAndAttrsUnparse(const CffiTypeAndAttrs *typeAttrsP);
 CffiResult CffiTypeSizeForValue(CffiInterpCtx *ipCtxP,
                                 Tcl_Obj *typeObj,

@@ -55,7 +55,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int"
+    } -result "Syntax: int_to_int -> int"
     test help-function-1 {help with args} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int int {i int s struct.::TestStruct d {double out}}
@@ -63,7 +63,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int i s d\n  i: int in\n  s: struct.::TestStruct in\n  d: double out byref"
+    } -result "Syntax: int_to_int i s d -> int\n  i: int in\n  s: struct.::TestStruct in\n  d: double out byref"
     test help-function-2 {help function alias} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function {int_to_int xx} int {i int s struct.::TestStruct d {double out}}
@@ -71,7 +71,31 @@ namespace eval ${NS}::test {
         rename xx {}
     } -body {
         cffi::help function xx
-    } -result "Syntax: xx i s d\n  i: int in\n  s: struct.::TestStruct in\n  d: double out byref"
+    } -result "Syntax: xx i s d -> int\n  i: int in\n  s: struct.::TestStruct in\n  d: double out byref"
+    test help-function-3 {help void return} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int void {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int"
+    test help-function-4 {help discard return} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int {int discard} {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int"
+    test help-function-1 {help with retval} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int void {i {int retval} s struct.::TestStruct d {double out}}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int s d -> int\n  s: struct.::TestStruct in\n  d: double out byref"
     test help-functions-0 {help functions} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function {int_to_int uu} int {}

@@ -27,7 +27,13 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     protoP = fnP->protoP;
     resultObj = Tcl_NewStringObj("Syntax: ", 8);
     Tcl_AppendObjToObj(resultObj, objv[2]);
+
+    int retvalIndex = -1;
     for (i = 0; i < protoP->nParams; ++i) {
+        if (protoP->params[i].typeAttrs.flags & CFFI_F_ATTR_RETVAL) {
+            retvalIndex = i;
+            continue;
+        }
         if (protoP->params[i].typeAttrs.parseModeSpecificObj)
             Tcl_AppendStringsToObj(resultObj,
                                    " ?",
@@ -41,7 +47,27 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     if (protoP->flags & CFFI_F_PROTO_VARARGS)
         Tcl_AppendStringsToObj(resultObj, " ?...?", NULL);
 
+    /* The return type */
+    if (retvalIndex >= 0) {
+        Tcl_Obj *retvalObj =
+            CffiTypeUnparse(&protoP->params[retvalIndex].typeAttrs.dataType);
+        Tcl_AppendStringsToObj(
+            resultObj, " -> ", Tcl_GetString(retvalObj), NULL);
+        Tcl_DecrRefCount(retvalObj);
+    } else {
+        if (protoP->returnType.typeAttrs.dataType.baseType != CFFI_K_TYPE_VOID
+            && !(protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_DISCARD)) {
+            Tcl_Obj *rettypeObj =
+                CffiTypeAndAttrsUnparse(&protoP->returnType.typeAttrs);
+            Tcl_AppendStringsToObj(
+                resultObj, " -> ", Tcl_GetString(rettypeObj), NULL);
+            Tcl_DecrRefCount(rettypeObj);
+        }
+    }
+
     for (i = 0; i < protoP->nParams; ++i) {
+        if (i == retvalIndex)
+            continue;
         Tcl_Obj *typeObj = CffiTypeAndAttrsUnparse(&protoP->params[i].typeAttrs);
         Tcl_AppendStringsToObj(resultObj,
                                "\n  ",
