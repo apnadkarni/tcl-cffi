@@ -106,7 +106,11 @@ CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP)
 #endif
 
     if (dlH == NULL) {
-        Tclh_ErrorNotFound(ip, "Shared library", pathObj, "Could not load shared library.");
+        Tcl_Obj *errorObj;
+        errorObj =
+            Tcl_ObjPrintf("Shared library \"%s\" or its dependency not found.",
+                          Tcl_GetString(pathObj));
+        Tcl_SetObjResult(ip, errorObj);
         Tcl_DecrRefCount(pathObj);
         return TCL_ERROR;
     }
