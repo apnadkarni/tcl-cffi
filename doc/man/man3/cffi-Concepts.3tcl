@@ -878,7 +878,10 @@ Annotations that may be applied to field type declarations include
 \fInullifempty\fP for string, unistring and winstring types\&.
 .TP
 \(bu
-structsize\&. This annotation is specific to field type declarations and results in fields being automatically initialized to the size of the struct if no value is supplied in the dictionary value for the struct\&. This is a common convention in Win32 APIs\&.
+default\&. This specifies a default field value if no value is supplied for the field\&.
+.TP
+\(bu
+structsize\&. This annotation is specific to field type declarations and results in fields being automatically initialized to the size of the struct if no value is supplied in the dictionary value for the struct\&. This annotation cannot be used together the default annotation\&. Note that when structs are used as parameters, fields with this annotation are initialized even when the parameter is an out parameter\&. This is commonly useful in Win32 APIs where output parameters still need a structure size field initialized before passing into the API\&.
 .TP
 \(bu
 The errno, winerror, lasterror and onerror annotations may be specified for fields but are ignored\&. This is to allow sharing of \fItype aliases\fP between field declarations and function return type declarations\&.

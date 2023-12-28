@@ -9,6 +9,23 @@
 #include <sys/types.h>
 #include <stdbool.h>
 
+CffiResult
+CffiAliasLookup(CffiInterpCtx *ipCtxP,
+                const char *aliasNameP,
+                int flags, /* CFFI_F_SKIP_ERROR_MESSAGES */
+                CffiTypeAndAttrs **typeAttrPP,
+                Tcl_Obj **fqnObjP
+                )
+{
+    return CffiNameLookup(ipCtxP->interp,
+                         &ipCtxP->scope.aliases,
+                         aliasNameP,
+                         "Alias",
+                         flags & CFFI_F_SKIP_ERROR_MESSAGES,
+                         (ClientData *)typeAttrPP,
+                         fqnObjP);
+}
+
 /* Function: CffiAliasGet
  * Checks for the existence of a type definition and returns its internal form.
  *
@@ -50,14 +67,7 @@ CffiAliasGet(CffiInterpCtx *ipCtxP,
         temp[nameLen] = 0;
         aliasNameP    = temp;
     }
-    ret = CffiNameLookup(ipCtxP->interp,
-                         &ipCtxP->scope.aliases,
-                         aliasNameP,
-                         "Alias",
-                         flags & CFFI_F_SKIP_ERROR_MESSAGES,
-                         (ClientData *)&aliasTypeAttrP,
-                         NULL);
-
+    ret = CffiAliasLookup(ipCtxP, aliasNameP, flags, &aliasTypeAttrP, NULL);
     if (ret == TCL_ERROR)
         return 0;
 
@@ -138,14 +148,11 @@ CffiAliasAdd(CffiInterpCtx *ipCtxP,
         Tcl_Obj *newObj;
         int different;
 
-        /* Find existing definition */
-        ret = CffiNameLookup(ipCtxP->interp,
-                             &ipCtxP->scope.aliases,
-                             Tcl_GetString(nameObj),
-                             "Alias",
-                             CFFI_F_SKIP_ERROR_MESSAGES,
-                             (ClientData *)&oldP,
-                             &fqnObj);
+        ret = CffiAliasLookup(ipCtxP,
+                              Tcl_GetString(nameObj),
+                              CFFI_F_SKIP_ERROR_MESSAGES,
+                              &oldP,
+                              &fqnObj);
         if (ret == TCL_OK) {
             /* TBD - maybe write a typeAttrs comparison function */
             oldObj    = CffiTypeAndAttrsUnparse(oldP);
@@ -259,13 +266,9 @@ CffiAliasBodyCmd(CffiInterpCtx *ipCtxP,
 
     CFFI_ASSERT(objc == 3);
 
-    CHECK(CffiNameLookup(ip,
-                         &ipCtxP->scope.aliases,
-                         Tcl_GetString(objv[2]),
-                         "Alias",
-                         0,
-                         (ClientData *)&typeAttrsP,
-                         NULL));
+    CHECK(
+        CffiAliasLookup(ipCtxP, Tcl_GetString(objv[2]), 0, &typeAttrsP, NULL));
+
     Tcl_SetObjResult(ip, CffiTypeAndAttrsUnparse(typeAttrsP));
     return TCL_OK;
 }

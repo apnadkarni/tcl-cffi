@@ -732,6 +732,11 @@ Tcl_WideInt CffiGrabSystemError(const CffiTypeAndAttrs *typeAttrsP,
                                 Tcl_WideInt winError);
 Tcl_Obj *CffiQualifyName(Tcl_Interp *ip, Tcl_Obj *nameObj);
 
+CffiResult CffiAliasLookup(CffiInterpCtx *ipCtxP,
+                           const char *aliasNameP,
+                           int flags, /* CFFI_F_SKIP_ERROR_MESSAGES */
+                           CffiTypeAndAttrs **typeAttrPP,
+                           Tcl_Obj **fqnObjP);
 int CffiAliasGet(CffiInterpCtx *ipCtxP,
                  Tcl_Obj *aliasNameObj,
                  CffiTypeAndAttrs *typeAttrP,
@@ -762,7 +767,6 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP);
 void *CffiLibFindSymbol(Tcl_Interp *ip, CffiLoadHandle libH, Tcl_Obj *symbolObj);
 CffiResult CffiLibLoad(Tcl_Interp *ip, Tcl_Obj *pathObj, CffiLibCtx **ctxPP);
 Tcl_Obj *CffiLibPath(Tcl_Interp *ip, CffiLibCtx *ctxP);
-
 
 CffiResult CffiEnumGetMap(CffiInterpCtx *ipCtxP,
                           Tcl_Obj *enumObj,

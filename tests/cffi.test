@@ -48,6 +48,9 @@ namespace eval ${NS}::test {
     testnumargs help-functions "cffi::help functions" "" "?PATTERN?"
     testnumargs help-function "cffi::help struct" "NAME" ""
     testnumargs help-function "cffi::help union" "NAME" ""
+    testnumargs help-function "cffi::help enum" "NAME" ""
+    testnumargs help-function "cffi::help alias" "NAME" ""
+
     test help-function-0 {help no args} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int int {}
@@ -88,7 +91,7 @@ namespace eval ${NS}::test {
     } -body {
         cffi::help function int_to_int
     } -result "Syntax: int_to_int"
-    test help-function-1 {help with retval} -setup {
+    test help-function-5 {help with retval} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int void {i {int retval} s struct.::TestStruct d {double out}}
     } -cleanup {
@@ -96,6 +99,15 @@ namespace eval ${NS}::test {
     } -body {
         cffi::help function int_to_int
     } -result "Syntax: int_to_int s d -> int\n  s: struct.::TestStruct in\n  d: double out byref"
+    test help-function-6 {help implicit} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int int {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help int_to_int
+    } -result "Syntax: int_to_int -> int"
+
     test help-functions-0 {help functions} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function {int_to_int uu} int {}
@@ -159,16 +171,56 @@ namespace eval ${NS}::test {
     } -body {
         lsort [cffi::help functions]
     } -result {getTestStructSize uint_to_uint}
+
     test help-struct-0 {help struct} -body {
         cffi::help struct ::TestStruct
     } -result $desc
 
+    test help-struct-1 {help struct} -body {
+        cffi::help ::TestStruct
+    } -result $desc
+
     test help-union-0 {help union} -body {
         cffi::help union ::TestUnion
-    } -result {union ::TestUnion
-  i: int
-  dbl: double
-  uc: uchar}
+    } -result "union ::TestUnion\x0A  i: int\x0A  dbl: double\x0A  uc: uchar"
+
+    test help-union-1 {help union} -body {
+        cffi::help ::TestUnion
+    } -result "union ::TestUnion\x0A  i: int\x0A  dbl: double\x0A  uc: uchar"
+
+    test help-enum-0 {help enum} -setup {
+        cffi::enum define E {a 1 bb 2}
+    } -cleanup {
+        cffi::enum delete E
+    } -body {
+        cffi::help enum E
+    } -result "enum E\x0A  a\x091\x0A  bb\x092\x0A"
+
+    test help-enum-1 {help enum} -setup {
+        cffi::enum define E {a 1 bb 2}
+    } -cleanup {
+        cffi::enum delete E
+    } -body {
+        cffi::help E
+    } -result "enum E\x0A  a\x091\x0A  bb\x092\x0A"
+
+    test help-alias-0 {help alias} -setup {
+        cffi::alias define A {int bitmask}
+    } -cleanup {
+        cffi::alias delete A
+    } -body {
+        cffi::help alias A
+    } -result "alias A\x0A  int bitmask"
+
+    test help-alias-1 {help alias} -setup {
+        cffi::alias define A {int bitmask}
+    } -cleanup {
+        cffi::alias delete A
+    } -body {
+        cffi::help A
+    } -result "alias A\x0A  int bitmask"
+
+    #######
 
     # Test interp deletion - just to ensure no crashes
     test interp-deletion-0 "Verify interpreter deletion" -body {

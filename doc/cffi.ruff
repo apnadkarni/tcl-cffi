@@ -60,11 +60,11 @@ namespace eval ${NS}::pkgconfig {
 namespace eval ${NS}::help {
     proc function {NAME} {
         # Returns a string describing the syntax and parameter definitions
-        # for a CFFI wrapped function
+        # for a CFFI wrapped function.
         #   NAME - name of a wrapped function
     }
     proc functions {{PATTERN *}} {
-        # Returns a list of CFFI-wrapped functions matching the pattern `PATTERN`
+        # Returns a list of CFFI-wrapped functions matching the pattern `PATTERN`.
         #   PATTERN - glob pattern to match
         #
         # Note that like Tcl's `info commands` the pattern is interpreted relative
@@ -77,12 +77,20 @@ namespace eval ${NS}::help {
         # ````
     }
     proc struct {NAME} {
-        # Returns a string describing field types in a struct
-        #   NAME - name of a Struct
+        # Returns a string describing field types in a [Struct].
+        #   NAME - name of a [Struct]
     }
     proc union {NAME} {
-        # Returns a string describing field types in a union
-        #   NAME - name of a Union
+        # Returns a string describing field types in a [Union].
+        #   NAME - name of a [Union]
+    }
+    proc alias {NAME} {
+        # Returns a string describing an [alias] definition.
+        #   NAME - name of a [alias]
+    }
+    proc enum {NAME} {
+        # Returns a string describing an [enum] definition.
+        #   NAME - name of a [enum]
     }
 
     namespace export *

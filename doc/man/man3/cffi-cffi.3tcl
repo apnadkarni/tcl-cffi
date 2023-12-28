@@ -31,6 +31,8 @@ cffi - Commands in namespace cffi
 .br
 \fBenum\fP \fIsubcommand \&.\&.\&.\fP
 .br
+\fBenum alias\fP \fIenumname enumdefs typedecl\fP
+.br
 \fBenum clear\fP
 .br
 \fBenum define\fP \fIenumname enumdefs\fP
@@ -47,6 +49,8 @@ cffi - Commands in namespace cffi
 .br
 \fBenum name\fP \fIenumname membervalue ?default?\fP
 .br
+\fBenum names\fP \fIenumname\fP
+.br
 \fBenum sequence\fP \fIenumname membernames ?start?\fP
 .br
 \fBenum unmask\fP \fIenumname mask\fP
@@ -54,6 +58,10 @@ cffi - Commands in namespace cffi
 \fBenum value\fP \fIenumname membername ?default?\fP
 .br
 \fBhelp\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBhelp alias\fP \fINAME\fP
+.br
+\fBhelp enum\fP \fINAME\fP
 .br
 \fBhelp function\fP \fINAME\fP
 .br
@@ -637,6 +645,9 @@ following
 subcommands:
 .RS 4n
 .TP
+\fIalias\fP
+Defines a new enumeration and alias of the same name\&.
+.TP
 \fIclear\fP
 Deletes all enumerations from the interpreter\&.
 .TP
@@ -661,6 +672,9 @@ Returns a dictionary containing the members in an enumeration\&.
 \fIname\fP
 Returns the symbolic name of a value in an enumeration\&.
 .TP
+\fInames\fP
+Returns a list containing the names of members in an enumeration\&.
+.TP
 \fIsequence\fP
 Defines an enumeration with consecutive member values\&.
 .TP
@@ -680,6 +694,37 @@ each
 subcommand
 for
 details\&.
+.PP
+.RS -4n
+\fBenum alias\fR (::cffi)
+.RE
+.PP
+Defines a new enumeration and alias of the same name
+.RS 4n\fBenum alias\fP \fIenumname enumdefs typedecl\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration\&.
+.TP
+enumdefs
+Dictionary of enumeration member names to their values\&.
+.TP
+typedecl
+The type to be used for the alias\&. Should have an integer base type and may contain other attributes except enum\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The created alias has the same qualified name as the enum and
+has the corresponding enum attribute\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the fully qualified enumeration name\&.
 .PP
 .RS -4n
 \fBenum clear\fR (::cffi)
@@ -716,6 +761,10 @@ that the corresponding symbol names are acceptible as arguments
 and will be replaced by the corresponding value in the function call\&.
 Enumeration member values must be integers\&.
 .PP
+\fBReturn value\fR
+.PP
+Returns the fully qualified enumeration name\&.
+.PP
 .RS -4n
 \fBenum delete\fR (::cffi)
 .RE
@@ -747,7 +796,7 @@ the scope component of the enumeration name must match exactly\&.
 \fBenum flags\fR (::cffi)
 .RE
 .PP
-Defines an enumeration as bit flags
+Defines an enumeration as bit flags\&.
 .RS 4n\fBenum flags\fP \fIenumname membernames\fP
 .br
 .RE
@@ -773,6 +822,10 @@ enum flags E {A B C}
 .RE
 .PP
 would define an enumeration with A, B, C values being 1, 2 and 4\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the fully qualified enumeration name\&.
 .PP
 .RS -4n
 \fBenum list\fR (::cffi)
@@ -883,6 +936,26 @@ itself undefined\&.
 Returns the symbolic name of a value in an enumeration\&.
 .PP
 .RS -4n
+\fBenum names\fR (::cffi)
+.RE
+.PP
+Returns a list containing the names of members in an enumeration\&.
+.RS 4n\fBenum names\fP \fIenumname\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+enumname
+Name of the enumeration whose element names are to be returned\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list containing the names of members in an enumeration\&.
+.PP
+.RS -4n
 \fBenum sequence\fR (::cffi)
 .RE
 .PP
@@ -918,6 +991,10 @@ and indicates the first value to be assigned to the sequence\&.
 For future compatibility, the two-element form for the first
 enum member should be used instead if a starting value
 other than the default zero is desired\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the fully qualified enumeration name\&.
 .PP
 .RS -4n
 \fBenum unmask\fR (::cffi)
@@ -1009,17 +1086,23 @@ following
 subcommands:
 .RS 4n
 .TP
+\fIalias\fP
+Returns a string describing an \fIalias\fP definition\&.
+.TP
+\fIenum\fP
+Returns a string describing an \fIenum\fP definition\&.
+.TP
 \fIfunction\fP
 Returns a string describing the syntax and parameter definitions for a CFFI wrapped function\&.
 .TP
 \fIfunctions\fP
-Returns a list of CFFI-wrapped functions matching the pattern PATTERN
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
 .TP
 \fIstruct\fP
-Returns a string describing field types in a struct\&.
+Returns a string describing field types in a \fIStruct\fP\&.
 .TP
 \fIunion\fP
-Returns a string describing field types in a union\&.
+Returns a string describing field types in a \fIUnion\fP\&.
 .RE
 .PP
 Refer
@@ -1033,11 +1116,51 @@ for
 details\&.
 .PP
 .RS -4n
+\fBhelp alias\fR (::cffi)
+.RE
+.PP
+Returns a string describing an \fIalias\fP definition\&.
+.RS 4n\fBhelp alias\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of a Union\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a string describing an \fIalias\fP definition\&.
+.PP
+.RS -4n
+\fBhelp enum\fR (::cffi)
+.RE
+.PP
+Returns a string describing an \fIenum\fP definition\&.
+.RS 4n\fBhelp enum\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of a Union\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a string describing an \fIenum\fP definition\&.
+.PP
+.RS -4n
 \fBhelp function\fR (::cffi)
 .RE
 .PP
 Returns a string describing the syntax and parameter definitions
-for a CFFI wrapped function
+for a CFFI wrapped function\&.
 .RS 4n\fBhelp function\fP \fINAME\fP
 .br
 .RE
@@ -1052,13 +1175,13 @@ Name of a wrapped function\&.
 \fBReturn value\fR
 .PP
 Returns a string describing the syntax and parameter definitions
-for a CFFI wrapped function
+for a CFFI wrapped function\&.
 .PP
 .RS -4n
 \fBhelp functions\fR (::cffi)
 .RE
 .PP
-Returns a list of CFFI-wrapped functions matching the pattern PATTERN
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
 .RS 4n\fBhelp functions\fP \fI?PATTERN?\fP
 .br
 .RE
@@ -1085,13 +1208,13 @@ cffi::help functions ::libzip::*
 .PP
 \fBReturn value\fR
 .PP
-Returns a list of CFFI-wrapped functions matching the pattern PATTERN
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
 .PP
 .RS -4n
 \fBhelp struct\fR (::cffi)
 .RE
 .PP
-Returns a string describing field types in a struct
+Returns a string describing field types in a \fIStruct\fP\&.
 .RS 4n\fBhelp struct\fP \fINAME\fP
 .br
 .RE
@@ -1105,13 +1228,13 @@ Name of a Struct\&.
 .PP
 \fBReturn value\fR
 .PP
-Returns a string describing field types in a struct
+Returns a string describing field types in a \fIStruct\fP\&.
 .PP
 .RS -4n
 \fBhelp union\fR (::cffi)
 .RE
 .PP
-Returns a string describing field types in a union
+Returns a string describing field types in a \fIUnion\fP\&.
 .RS 4n\fBhelp union\fP \fINAME\fP
 .br
 .RE
@@ -1125,7 +1248,7 @@ Name of a Union\&.
 .PP
 \fBReturn value\fR
 .PP
-Returns a string describing field types in a union
+Returns a string describing field types in a \fIUnion\fP\&.
 .PP
 .RS -4n
 \fBlimits\fR (::cffi)
@@ -2476,7 +2599,7 @@ The native binary value\&.
 .PP
 \fBDescription\fR
 .PP
-The \fI$typespec\fP argument may be any type specificiation\&.
+The \fI$typespec\fP argument may be any type specification\&.
 .PP
 \fBReturn value\fR
 .PP
@@ -2598,9 +2721,9 @@ The script level value\&.
 .PP
 \fBDescription\fR
 .PP
-The \fI$typespec\fP argument may be any type specificiation\&. If an
-array is specified of a larger size than the number of elements
-in \fI$value\fP, the remaining elements are zeroed out\&.
+The \fI$typespec\fP argument must not have a string or variable size
+component\&. If an array is specified of a larger size than the number
+of elements in \fI$value\fP, the remaining elements are zeroed out\&.
 .PP
 \fBReturn value\fR
 .PP

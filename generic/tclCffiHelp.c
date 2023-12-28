@@ -8,7 +8,7 @@
 #include "tclCffiInt.h"
 
 static CffiResult
-CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
 {
     Tcl_CmdInfo cmdInfo;
     CffiFunction *fnP;
@@ -16,17 +16,16 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *resultObj;
     int i;
 
-    CFFI_ASSERT(objc == 3);
-    if (!Tcl_GetCommandInfo(ipCtxP->interp, Tcl_GetString(objv[2]), &cmdInfo)
+    if (!Tcl_GetCommandInfo(ipCtxP->interp, Tcl_GetString(fnNameObj), &cmdInfo)
         || !cmdInfo.isNativeObjectProc
         || cmdInfo.objProc != CffiFunctionInstanceCmd
 	|| cmdInfo.objClientData == NULL) {
-        return Tclh_ErrorNotFound(ipCtxP->interp, "Cffi command", objv[2], NULL);
+        return Tclh_ErrorNotFound(ipCtxP->interp, "Cffi command", fnNameObj, NULL);
     }
     fnP = (CffiFunction *)cmdInfo.objClientData;
     protoP = fnP->protoP;
     resultObj = Tcl_NewStringObj("Syntax: ", 8);
-    Tcl_AppendObjToObj(resultObj, objv[2]);
+    Tcl_AppendObjToObj(resultObj, fnNameObj);
 
     int retvalIndex = -1;
     for (i = 0; i < protoP->nParams; ++i) {
@@ -83,18 +82,17 @@ CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 }
 
 static CffiResult
-CffiHelpStructOrUnionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[], CffiBaseType baseType)
+CffiHelpStructOrUnionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj, CffiBaseType baseType)
 {
     CffiStruct *structP;
     Tcl_Obj *resultObj;
     int i;
 
-    CFFI_ASSERT(objc == 3);
     CHECK(CffiStructResolve(
-        ipCtxP->interp, Tcl_GetString(objv[2]), baseType, &structP));
+        ipCtxP->interp, Tcl_GetString(nameObj), baseType, &structP));
     resultObj = Tcl_NewStringObj(
         baseType == CFFI_K_TYPE_STRUCT ? "struct " : "union ", -1);
-    Tcl_AppendObjToObj(resultObj, objv[2]);
+    Tcl_AppendObjToObj(resultObj, nameObj);
     for (i = 0; i < structP->nFields; ++i) {
         CffiField *fieldP = &structP->fields[i];
         Tcl_Obj *typeObj = CffiTypeAndAttrsUnparse(&fieldP->fieldType);
@@ -112,19 +110,69 @@ CffiHelpStructOrUnionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[],
 }
 
 static CffiResult
-CffiHelpUnionCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+CffiHelpUnionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 {
-    return CffiHelpStructOrUnionCmd(ipCtxP, objc, objv, CFFI_K_TYPE_UNION);
+    return CffiHelpStructOrUnionCmd(ipCtxP, nameObj, CFFI_K_TYPE_UNION);
 }
 
 static CffiResult
-CffiHelpStructCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+CffiHelpStructCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 {
-    return CffiHelpStructOrUnionCmd(ipCtxP, objc, objv, CFFI_K_TYPE_STRUCT);
+    return CffiHelpStructOrUnionCmd(ipCtxP, nameObj, CFFI_K_TYPE_STRUCT);
 }
 
 static CffiResult
-CffiHelpFunctionsCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+CffiHelpEnumCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *enumNameObj)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Obj *mapObj;
+
+    CHECK(CffiEnumGetMap(ipCtxP, enumNameObj, 0, &mapObj));
+
+    Tcl_Obj *nameObj;
+    Tcl_Obj *valueObj;
+    int done;
+    Tcl_DictSearch search;
+
+    CHECK(Tcl_DictObjFirst(ip, mapObj, &search, &nameObj, &valueObj, &done));
+    Tcl_Obj *resultObj;
+    resultObj = Tcl_ObjPrintf("enum %s\n", Tcl_GetString(enumNameObj));
+    while (!done) {
+        Tcl_AppendStringsToObj(resultObj,
+                               "  ",
+                               Tcl_GetString(nameObj),
+                               "\t",
+                               Tcl_GetString(valueObj),
+                               "\n",
+                               NULL);
+        Tcl_DictObjNext(&search, &nameObj, &valueObj, &done);
+    }
+    Tcl_DictObjDone(&search);
+    Tcl_SetObjResult(ip, resultObj);
+    return TCL_OK;
+}
+
+static CffiResult
+CffiHelpAliasCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+{
+    CffiTypeAndAttrs *typeAttrsP;
+
+    CHECK(
+        CffiAliasLookup(ipCtxP, Tcl_GetString(nameObj), 0, &typeAttrsP, NULL));
+
+    Tcl_Obj *bodyObj = CffiTypeAndAttrsUnparse(typeAttrsP);
+    Tcl_IncrRefCount(bodyObj);
+
+    Tcl_Obj *resultObj;
+    resultObj = Tcl_ObjPrintf(
+        "alias %s\n  %s", Tcl_GetString(nameObj), Tcl_GetString(bodyObj));
+    Tcl_DecrRefCount(bodyObj);
+    Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    return TCL_OK;
+}
+
+static CffiResult
+CffiHelpFunctionsCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *patObj)
 {
     Tcl_Obj *resultObj;
     Tcl_Obj *commandsObj;
@@ -136,12 +184,10 @@ CffiHelpFunctionsCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     CffiResult ret;
     Tcl_Size i;
 
-    CFFI_ASSERT(objc == 2 || objc == 3);
-
     evalObjs[0] = Tcl_NewStringObj("::info", 6);
     evalObjs[1] = Tcl_NewStringObj("commands", 8);
-    if (objc == 3) {
-        evalObjs[2] = objv[2];
+    if (patObj) {
+        evalObjs[2] = patObj;
         nEvalObjs = 3;
     }
     else {
@@ -186,14 +232,42 @@ CffiHelpObjCmd(ClientData cdata,
                Tcl_Obj *const objv[])
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
+    enum cmds { ALIAS, ENUM, FUNCTION, FUNCTIONS, STRUCT, UNION };
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
-        {"function", 1, 1, "NAME", CffiHelpFunctionCmd},
+        {"alias", 0, 1, "NAME", CffiHelpAliasCmd},
+        {"enum", 0, 1, "NAME", CffiHelpEnumCmd},
+        {"function", 0, 1, "NAME", CffiHelpFunctionCmd},
         {"functions", 0, 1, "?PATTERN?", CffiHelpFunctionsCmd},
-        {"struct", 1, 1, "NAME", CffiHelpStructCmd},
-        {"union", 1, 1, "NAME", CffiHelpUnionCmd},
+        {"struct", 0, 1, "NAME", CffiHelpStructCmd},
+        {"union", 0, 1, "NAME", CffiHelpUnionCmd},
 	{NULL}};
 
-    CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
-    return subCommands[cmdIndex].cmdFn(ipCtxP, objc, objv);
+    /* Slightly convoluted logic since we want "help foo" to check all types */
+    if (Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex) == TCL_OK) {
+        switch (cmdIndex) {
+        case FUNCTIONS:
+            return subCommands[cmdIndex].cmdFn(ipCtxP,
+                                               objc > 2 ? objv[2] : NULL);
+        default:
+            if (objc == 2) {
+                return Tclh_ErrorNumArgs(
+                    ip, 2, objv, subCommands[cmdIndex].message);
+            }
+            return subCommands[cmdIndex].cmdFn(ipCtxP, objv[2]);
+        }
+    }
+    if (objc !=2)
+        return TCL_ERROR;
+
+    /* Try each kind in turn */
+    if (CffiHelpFunctionCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiHelpAliasCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiHelpEnumCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiHelpStructCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiHelpUnionCmd(ipCtxP, objv[1]) == TCL_OK) {
+        return TCL_OK;
+    }
+
+    return Tclh_ErrorNotFound(ip, "CFFI program element", objv[1], NULL);
 }
