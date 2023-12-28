@@ -2123,6 +2123,7 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
             void *fldAddr;
             int fldArraySize;
             Tcl_ListObjIndex(NULL, objv[3], i, &nameObj);
+            Tcl_IncrRefCount(nameObj);
             ret = CffiStructComputeFieldAddress(ipCtxP,
                                                 structP,
                                                 structAddr,
@@ -2130,6 +2131,7 @@ CffiStructGetNativeFieldsPointer(Tcl_Interp *ip,
                                                 &fldIndex,
                                                 &fldAddr,
                                                 &fldArraySize);
+            Tcl_DecrRefCount(nameObj);
             if (ret == TCL_OK) {
                 ret = CffiNativeValueToObj(ipCtxP,
                                            &structP->fields[fldIndex].fieldType,
