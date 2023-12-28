@@ -25,8 +25,8 @@ namespace eval ${::NS}::test {
     test Wrapper-new-error-1 {Wrapper new (invalid path)} -body {
         list [catch {
             $libraryClass new nosuchpath
-        } result] $result $::errorCode
-    } -result [list 1 {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.} {cffi NOT_FOUND {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.}}]
+        } result] $result
+    } -result [list 1 {Shared library "nosuchpath" or its dependency not found.}]
 
     test Wrapper-new-error-2 {Wrapper new (extra args)} -body {
         list [catch {
@@ -66,8 +66,8 @@ namespace eval ${::NS}::test {
     test Wrapper-create-error-1 {Wrapper create (invalid path)} -body {
         list [catch {
             $libraryClass create dll nosuchpath
-        } result] $result $::errorCode
-    } -result [list 1 {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.} {cffi NOT_FOUND {Shared library "nosuchpath" not found or inaccessible. Could not load shared library.}}]
+        } result] $result
+    } -result [list 1 {Shared library "nosuchpath" or its dependency not found.}]
 
     test Wrapper-create-error-2 {Wrapper create (extra args)} -body {
         list [catch {

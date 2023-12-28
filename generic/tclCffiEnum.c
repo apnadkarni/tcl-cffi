@@ -425,6 +425,33 @@ CffiEnumMembersCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 }
 
 static CffiResult
+CffiEnumNamesCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_Obj *entries;
+    Tcl_Interp *ip = ipCtxP->interp;
+
+    CFFI_ASSERT(objc == 3);
+
+    CHECK(CffiEnumGetMap(ipCtxP, objv[2], 0, &entries));
+
+    Tcl_DictSearch search;
+    Tcl_Obj *keyObj;
+    Tcl_Obj *namesObj;
+    int done;
+    CHECK(Tcl_DictObjFirst(ip, entries, &search, &keyObj, NULL, &done));
+
+    namesObj = Tcl_NewListObj(0, NULL);
+    while (!done) {
+        Tcl_ListObjAppendElement(ip, namesObj, keyObj);
+        Tcl_DictObjNext(&search, &keyObj, NULL, &done);
+    }
+    Tcl_DictObjDone(&search);
+    Tcl_SetObjResult(ip, namesObj);
+    return TCL_OK;
+}
+
+
+static CffiResult
 CffiEnumListCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     const char *pattern;
@@ -494,6 +521,7 @@ CffiEnumObjCmd(ClientData cdata,
         {"list", 0, 1, "?PATTERN?", CffiEnumListCmd},
         {"members", 1, 1, "ENUM", CffiEnumMembersCmd},
         {"name", 2, 3, "ENUM VALUE ?DEFAULT?", CffiEnumNameCmd},
+        {"names", 1, 1, "ENUM", CffiEnumNamesCmd},
         {"sequence", 2, 3, "ENUM MEMBERNAMES ?START?", CffiEnumSequenceCmd},
         {"value", 2, 3, "ENUM MEMBERNAME ?DEFAULT?", CffiEnumValueCmd},
         {"mask", 2, 2, "ENUM MEMBERLIST", CffiEnumMaskCmd},

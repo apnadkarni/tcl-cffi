@@ -64,6 +64,11 @@ namespace eval ${NS}::enum {
         # the enumeration and no default is provided, or if $enumname is
         # itself undefined.
     }
+    proc names {enumname} {
+        # Returns a list containing the names of members in an enumeration.
+        #  enumname - name of the enumeration whose element names are to be
+        #  returned.
+    }
     proc sequence {enumname membernames {start 0}} {
         # Defines an enumeration with consecutive member values
         #  enumname - name of the enumeration

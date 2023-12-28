@@ -20,12 +20,13 @@ namespace eval cffi::test {
     testsubcmd ::cffi::enum
     testnumargs enum-define "cffi::enum define" "ENUM MEMBERS" ""
     testnumargs enum-delete "cffi::enum delete" "PATTERN" ""
+    testnumargs enum-flags "cffi::enum flags" "ENUM FLAGNAMES" ""
     testnumargs enum-list "cffi::enum list" "" "?PATTERN?"
     testnumargs enum-members "cffi::enum members" "ENUM" ""
-    testnumargs enum-sequence "cffi::enum sequence" "ENUM MEMBERNAMES" "?START?"
-    testnumargs enum-flags "cffi::enum flags" "ENUM FLAGNAMES" ""
-    testnumargs enum-value "cffi::enum value" "ENUM MEMBERNAME" "?DEFAULT?"
     testnumargs enum-name "cffi::enum name" "ENUM VALUE" "?DEFAULT?"
+    testnumargs enum-names "cffi::enum names" "ENUM" ""
+    testnumargs enum-sequence "cffi::enum sequence" "ENUM MEMBERNAMES" "?START?"
+    testnumargs enum-value "cffi::enum value" "ENUM MEMBERNAME" "?DEFAULT?"
 
     # Only very basic tests. Actual verification is in function.test
 
@@ -308,6 +309,18 @@ namespace eval cffi::test {
         cffi::enum name ns::E 10
     } -result e
 
+    test enum-names-scope-0 "enum names in scope" -setup {
+        setup_enums
+    } -body {
+        namespace eval ::ns {cffi::enum names E}
+    } -result e
+
+    test enum-names-scope-1 "enum names in global scope" -setup {
+        setup_enums
+    } -body {
+        namespace eval :: {cffi::enum names E}
+    } -result {a e}
+
     test enum-list-scope-0 "enum list in scope" -setup {setup_enums} -body {
         list \
             [lsort [namespace eval :: {cffi::enum list}]] \
@@ -348,6 +361,12 @@ namespace eval cffi::test {
     } -body {
         cffi::enum members ns::E
     } -result {e 10}
+
+    test enum-members-scope-5 "enum members in global" -setup {
+        setup_enums
+    } -body {
+        cffi::enum members ::E
+    } -result {a 0 e 1}
 
     test enum-sequence-scope-0 "Local scope sequence" -setup {
         reset_enums
