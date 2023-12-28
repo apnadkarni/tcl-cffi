@@ -2,6 +2,20 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::enum {
+    proc alias {enumname enumdefs typedecl} {
+        # Defines a new enumeration and alias of the same name
+        #  enumname - name of the enumeration
+        #  enumdefs - dictionary of enumeration member names to their values.
+        #  typedecl - the type to be used for the alias. Should have
+        #    an integer base type and may contain other attributes except
+        #    enum.
+        #
+        # The created alias has the same qualified name as the enum and
+        # has the corresponding enum attribute.
+        #
+        # Returns the fully qualified enumeration name.
+    }
+
     proc clear {} {
         # Deletes all enumerations from the interpreter
     }
@@ -13,6 +27,8 @@ namespace eval ${NS}::enum {
         # that the corresponding symbol names are acceptible as arguments
         # and will be replaced by the corresponding value in the function call.
         # Enumeration member values must be integers.
+        #
+        # Returns the fully qualified enumeration name.
     }
     proc delete {pattern} {
         # Deletes enumerations.
@@ -25,12 +41,14 @@ namespace eval ${NS}::enum {
 
     }
     proc flags {enumname membernames} {
-        # Defines an enumeration as bit flags
+        # Defines an enumeration as bit flags.
         #  enumname - name of the enumeration
         #  membernames - list of names of the enumeration members
         # For example,
         #     enum flags E {A B C}
         # would define an enumeration with `A`, `B`, `C` values being 1, 2 and 4.
+        #
+        # Returns the fully qualified enumeration name.
     }
     proc list {pattern} {
         # Lists enumerations.
@@ -86,6 +104,8 @@ namespace eval ${NS}::enum {
         # For future compatibility, the two-element form for the first
         # enum member should be used instead if a starting value
         # other than the default zero is desired.
+        #
+        # Returns the fully qualified enumeration name.
     }
     proc unmask {enumname mask} {
         # Returns a list of enumeration member names corresponding to the

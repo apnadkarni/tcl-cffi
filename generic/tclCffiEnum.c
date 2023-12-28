@@ -7,6 +7,24 @@
 
 #include "tclCffiInt.h"
 
+static void
+CffiEnumNameDeleteCallback(ClientData clientData)
+{
+    Tcl_Obj *objP = (Tcl_Obj *)clientData;
+    if (objP)
+        Tcl_DecrRefCount(objP);
+}
+
+static CffiResult
+CffiEnumDelete(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+{
+    return CffiNameDeleteNames(ipCtxP->interp,
+                               &ipCtxP->scope.enums,
+                               Tcl_GetString(nameObj),
+                               CffiEnumNameDeleteCallback);
+}
+
+
 /* Function: CffiEnumGetMap
  * Gets the hash table containing mappings for an enum.
  *
@@ -208,7 +226,10 @@ CffiEnumMemberBitUnmask(Tcl_Interp *ip,
 }
 
 static CffiResult
-CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+CffiEnumDefine(CffiInterpCtx *ipCtxP,
+               Tcl_Obj *nameObj,
+               Tcl_Obj *membersObj,
+               Tcl_Obj **fqnObjP) /* Incr ref before decr! */
 {
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_DictSearch search;
@@ -217,11 +238,9 @@ CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *fqnObj;
     int done;
 
-    CFFI_ASSERT(objc == 4);
-
     /* Verify it is properly formatted */
     CHECK(Tcl_DictObjFirst(
-        ip, objv[3], &search, &memberNameObj, &valueObj, &done));
+        ip, membersObj, &search, &memberNameObj, &valueObj, &done));
     while (!done) {
         Tcl_WideInt wide;
         CHECK(CffiNameSyntaxCheck(ip, memberNameObj));
@@ -231,13 +250,62 @@ CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     }
 
     if (CffiNameObjAdd(
-            ip, &ipCtxP->scope.enums, objv[2], "Enum", objv[3], &fqnObj)
+            ip, &ipCtxP->scope.enums, nameObj, "Enum", membersObj, &fqnObj)
         != TCL_OK) {
         return TCL_ERROR;
     }
-    Tcl_IncrRefCount(objv[3]);
-    Tcl_SetObjResult(ip, fqnObj);
+    Tcl_IncrRefCount(membersObj); /* As it is stored in members dictionary */
+    *fqnObjP = fqnObj;
     return TCL_OK;
+}
+
+static CffiResult
+CffiEnumDefineCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_Obj *fqnObj;
+
+    CFFI_ASSERT(objc == 4);
+
+    CHECK(CffiEnumDefine(ipCtxP, objv[2], objv[3], &fqnObj));
+    Tcl_SetObjResult(ipCtxP->interp, fqnObj);
+    return TCL_OK;
+}
+
+
+static CffiResult
+CffiEnumAliasCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Obj *fqnObj;
+
+    CFFI_ASSERT(objc == 5);
+
+    CHECK(CffiEnumDefine(ipCtxP, objv[2], objv[3], &fqnObj));
+    /* NOTE: do NOT DecrRefCount fqnObj without a IncrRefCount */
+
+    Tcl_Obj *enumDecl[2];
+    enumDecl[0] = Tcl_NewStringObj("enum", 4);
+    enumDecl[1] = fqnObj;
+    Tcl_IncrRefCount(fqnObj);
+
+    Tcl_Obj *enumDeclObj = Tcl_NewListObj(2, enumDecl);
+    Tcl_IncrRefCount(enumDeclObj);
+
+    Tcl_Obj *typeDeclObj = Tcl_DuplicateObj(objv[4]);
+    Tcl_IncrRefCount(typeDeclObj);
+
+    if (Tcl_ListObjAppendElement(ipCtxP->interp, typeDeclObj, enumDeclObj) == TCL_OK) {
+        if (CffiAliasAdd(ipCtxP, objv[2], typeDeclObj, NULL) == TCL_OK) {
+            Tcl_SetObjResult(ip, fqnObj);
+            return TCL_OK;
+        }
+    }
+
+    Tcl_DecrRefCount(enumDeclObj);
+    Tcl_DecrRefCount(typeDeclObj);
+    CffiEnumDelete(ipCtxP, fqnObj);
+    Tcl_DecrRefCount(fqnObj);
+    return TCL_ERROR;
 }
 
 static CffiResult
@@ -470,21 +538,11 @@ CffiEnumListCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
     return ret;
 }
 
-static void CffiEnumNameDeleteCallback(ClientData clientData)
-{
-    Tcl_Obj *objP = (Tcl_Obj *)clientData;
-    if (objP)
-        Tcl_DecrRefCount(objP);
-}
-
 static CffiResult
 CffiEnumDeleteCmd(CffiInterpCtx *ipCtxP, int objc, Tcl_Obj *const objv[])
 {
     CFFI_ASSERT(objc == 3);
-    return CffiNameDeleteNames(ipCtxP->interp,
-                               &ipCtxP->scope.enums,
-                               Tcl_GetString(objv[2]),
-                               CffiEnumNameDeleteCallback);
+    return CffiEnumDelete(ipCtxP, objv[2]);
 }
 
 static CffiResult
@@ -514,6 +572,7 @@ CffiEnumObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     int cmdIndex;
     static const Tclh_SubCommand subCommands[] = {
+        {"alias", 3, 3, "ENUM MEMBERS TYPEDECL", CffiEnumAliasCmd},
         {"clear", 0, 0, "", CffiEnumClearCmd},
         {"define", 2, 2, "ENUM MEMBERS", CffiEnumDefineCmd},
         {"delete", 1, 1, "PATTERN", CffiEnumDeleteCmd},

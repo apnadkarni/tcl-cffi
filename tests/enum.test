@@ -18,6 +18,7 @@ namespace eval cffi::test {
     }
 
     testsubcmd ::cffi::enum
+    testnumargs enum-alias "cffi::enum alias" "ENUM MEMBERS TYPEDECL" ""
     testnumargs enum-define "cffi::enum define" "ENUM MEMBERS" ""
     testnumargs enum-delete "cffi::enum delete" "PATTERN" ""
     testnumargs enum-flags "cffi::enum flags" "ENUM FLAGNAMES" ""
@@ -460,6 +461,43 @@ namespace eval cffi::test {
     } -body {
         cffi::enum unmask E 25
     } -result {a 25}
+
+    ###
+
+    test enum-alias-0 "Define enum alias" -setup {
+        reset_enums
+        reset_aliases
+    } -body {
+        list [cffi::enum alias E {a 1 b 2} int] [cffi::enum members E] [cffi::alias body [lprefixns E]]
+    } -result [list [lprefixns E] {a 1 b 2} {int {enum {a 1 b 2}}}]
+
+    test enum-alias-1 "Define enum alias bitmask" -setup {
+        reset_enums
+        reset_aliases
+    } -body {
+        list [cffi::enum alias E {a 1 b 2} {uint bitmask}] [cffi::enum members E] [cffi::alias body [lprefixns E]]
+    } -result [list [lprefixns E] {a 1 b 2} {uint {enum {a 1 b 2}} bitmask}]
+
+    test enum-alias-error-0 "Define enum alias bad typedecl" -setup {
+        reset_enums
+    } -body {
+        list [cffi::enum alias E {a 1 b 2} foo] [cffi::enum members E] [cffi::alias body [lprefixns E]]
+    } -result {Invalid value "foo". Invalid base type.} -returnCodes error
+
+    test enum-alias-error-1 "Define enum alias existing enum" -setup {
+        reset_enums
+        cffi::enum define E {x 0}
+    } -body {
+        cffi::enum alias E {a 1 b 2} int
+    } -result {Name already exists. Enum with name "::cffi::test::E" already exists.} -returnCodes error
+
+    test enum-alias-error-2 "Define enum alias existing alias" -setup {
+        reset_enums
+        reset_aliases
+        cffi::alias define E int
+    } -body {
+        cffi::enum alias E {a 1 b 2} int
+    } -result {Alias "E" already exists. Alias exists with a different definition.} -returnCodes error
 
     ###
 
