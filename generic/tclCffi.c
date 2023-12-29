@@ -235,7 +235,10 @@ CffiInterpCtxCleanupAndFree(CffiInterpCtx *ipCtxP)
             &ipCtxP->callbackClosures, CffiClosureDeleteEntry, NULL);
         Tcl_DeleteHashTable(&ipCtxP->callbackClosures);
 
+        CffiArenaFinit(ipCtxP);
+
         Tclh_LifoClose(&ipCtxP->memlifo);
+
         ckfree(ipCtxP);
 }
 
@@ -258,6 +261,12 @@ CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
         /* Don't call CleanupAndFree since that assumes memlifo init'ed */
         ckfree(ipCtxP);
         return Tclh_ErrorAllocation(ip, "Memlifo", NULL);
+    }
+    if (CffiArenaInit(ipCtxP) != TCL_OK) {
+        Tclh_LifoClose(&ipCtxP->memlifo);
+        /* Don't call CleanupAndFree on since that assumes all memlifo init'ed */
+        ckfree(ipCtxP);
+        return Tclh_ErrorAllocation(ip, "Arena", NULL);
     }
 
     CffiNameTableInit(&ipCtxP->scope.enums);
@@ -356,6 +365,8 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::help", CffiHelpObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::limits", CffiLimitsObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::arena", CffiArenaObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::sandbox", CffiSandboxObjCmd, NULL, NULL);
 

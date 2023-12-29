@@ -1,0 +1,41 @@
+# (c) 2023 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+namespace eval ${NS}::arena {
+    proc pushframe {size tag} {
+        # Pushes a new stack frame on the memory arena.
+        #  size - size of memory to allocate in frame (optional)
+        #  tag - tag for returned pointer if $size is specified
+        # Synopsis: ?size?
+        # Synopsis: size ?tag?
+        #
+        # The command allocate a new frame in the memory arena stack.
+        # All allocations from this frame will stay valid only until the
+        # corresponding call to [arena popframe].
+        #
+        # If no arguments are specified, the command initializes an empty
+        # frame. Otherwise it allocates and returns a pointer to $size bytes within the frame.
+        #
+        # Returns an empty string if not arguments were specified or a safe pointer.
+        #
+        # See also: "arena allocate" "arena popframe"
+    }
+    proc popframe {} {
+        # Pops the current frame from the memory arena.
+        #
+        # All allocations from the popped frame are freed and pointers to
+        # these unregistered.
+    }
+    proc allocate {size {tag {}}} {
+        # Allocates memory in the current frame in the memory arena.
+        #  size - number of bytes to allocate
+        #  tag - tag for returned pointer
+        # The allocated memory will stay allocated until the frame is destroyed
+        # with [arena popframe].
+        #
+        # Returns a safe pointer to the allocation.
+    }
+    namespace export *
+    namespace ensemble create
+}
+

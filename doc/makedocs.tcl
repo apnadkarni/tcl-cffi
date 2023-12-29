@@ -29,6 +29,7 @@ source prototype.ruff
 source callback.ruff
 source cookbook.ruff
 source union.ruff
+source arena.ruff
 
 set title "Tcl CFFI package"
 

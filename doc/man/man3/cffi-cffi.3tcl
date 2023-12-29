@@ -21,6 +21,16 @@ cffi - Commands in namespace cffi
 .br
 \fBalias load\fP \fIalias_set\fP
 .br
+\fBarena\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBarena allocate\fP \fIsize ?tag?\fP
+.br
+\fBarena popframe\fP
+.br
+\fBarena pushframe\fP \fI?size?\fP
+.br
+\fBarena pushframe\fP \fIsize ?tag?\fP
+.br
 \fBcall\fP \fIfnptr ?args?\fP
 .br
 \fBcallback\fP \fIsubcommand \&.\&.\&.\fP
@@ -474,6 +484,127 @@ dev_t fsblkcnt_t fsfilcnt_t gid_t id_t ino_t key_t
 mode_t nlink_t off_t pid_t size_t ssize_t suseconds_t
 time_t uid_t\&. On Windows, it only includes dev_t ino_t off_t
 time_t\&.
+.PP
+.RS -4n
+\fBarena\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n\fBarena\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The
+ensemble
+supports
+the
+following
+subcommands:
+.RS 4n
+.TP
+\fIallocate\fP
+Allocates memory in the current frame in the memory arena\&.
+.TP
+\fIpopframe\fP
+Pops the current frame from the memory arena\&.
+.TP
+\fIpushframe\fP
+Pushes a new stack frame on the memory arena\&.
+.RE
+.PP
+Refer
+to
+the
+documentation
+of
+each
+subcommand
+for
+details\&.
+.PP
+.RS -4n
+\fBarena allocate\fR (::cffi)
+.RE
+.PP
+Allocates memory in the current frame in the memory arena\&.
+.RS 4n\fBarena allocate\fP \fIsize ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+size
+Number of bytes to allocate\&.
+.TP
+tag
+Tag for returned pointer\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The allocated memory will stay allocated until the frame is destroyed
+with \fIarena popframe\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocation\&.
+.PP
+.RS -4n
+\fBarena popframe\fR (::cffi)
+.RE
+.PP
+Pops the current frame from the memory arena\&.
+.RS 4n\fBarena popframe\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+All allocations from the popped frame are freed and pointers to
+these unregistered\&.
+.PP
+.RS -4n
+\fBarena pushframe\fR (::cffi)
+.RE
+.PP
+Pushes a new stack frame on the memory arena\&.
+.RS 4n\fBarena pushframe\fP \fI?size?\fP
+.br
+\fBarena pushframe\fP \fIsize ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+size
+Size of memory to allocate in frame (optional)
+.TP
+tag
+Tag for returned pointer if \fI$size\fP is specified\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The command allocate a new frame in the memory arena stack\&.
+All allocations from this frame will stay valid only until the
+corresponding call to \fIarena popframe\fP\&.
+.PP
+If no arguments are specified, the command initializes an empty
+frame\&. Otherwise it allocates and returns a pointer to \fI$size\fP bytes within the frame\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns an empty string if not arguments were specified or a safe pointer\&.
+.PP
+\fBSee also\fR
+.PP
+\fIarena allocate\fP, \fIarena popframe\fP
 .PP
 .RS -4n
 \fBcall\fR (::cffi)
@@ -1128,7 +1259,7 @@ Returns a string describing an \fIalias\fP definition\&.
 .RS 4n
 .TP
 NAME
-Name of a Union\&.
+Name of a \fIalias\fP
 .RE
 .PP
 \fBReturn value\fR
@@ -1148,7 +1279,7 @@ Returns a string describing an \fIenum\fP definition\&.
 .RS 4n
 .TP
 NAME
-Name of a Union\&.
+Name of a \fIenum\fP
 .RE
 .PP
 \fBReturn value\fR
@@ -1223,7 +1354,7 @@ Returns a string describing field types in a \fIStruct\fP\&.
 .RS 4n
 .TP
 NAME
-Name of a Struct\&.
+Name of a \fIStruct\fP
 .RE
 .PP
 \fBReturn value\fR
@@ -1243,7 +1374,7 @@ Returns a string describing field types in a \fIUnion\fP\&.
 .RS 4n
 .TP
 NAME
-Name of a Union\&.
+Name of a \fIUnion\fP
 .RE
 .PP
 \fBReturn value\fR

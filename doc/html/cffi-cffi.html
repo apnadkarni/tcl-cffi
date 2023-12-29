@@ -101,6 +101,44 @@ package require cffi
 <p class='ruff'>The <code>C</code> predefined alias set includes <code>_Bool</code>, <code>bool</code>, <code>int8_t</code> <code>uint8_t</code> <code>int16_t</code> <code>uint16_t</code> <code>int32_t</code> <code>uint32_t</code> <code>int64_t</code> <code>uint64_t</code> <code>size_t</code> <code>ssize_t</code></p>
 <p class='ruff'>The <code>win32</code> predefined alias set includes <code>BOOL</code> <code>BOOLEAN</code> <code>BYTE</code> <code>CHAR</code> <code>DWORD</code> <code>DWORDLONG</code> <code>DWORD_PTR</code> <code>HALF_PTR</code> <code>HANDLE</code> <code>INT</code> <code>INT_PTR</code> <code>LONG</code> <code>LONGLONG</code> <code>LONG_PTR</code> <code>LPARAM</code> <code>LPVOID</code> <code>LRESULT</code> <code>SHORT</code> <code>SIZE_T</code> <code>SSIZE_T</code> <code>UCHAR</code> <code>UINT</code> <code>UINT_PTR</code> <code>ULONG</code> <code>ULONGLONG</code> <code>ULONG_PTR</code> <code>USHORT</code> <code>WORD</code> <code>WPARAM</code></p>
 <p class='ruff'>The <code>posix</code> alias set is platform dependent. In POSIX compliant environments, it includes <code>blkcnt_t</code> <code>blksize_t</code> <code>clock_t</code> <code>dev_t</code> <code>fsblkcnt_t</code> <code>fsfilcnt_t</code> <code>gid_t</code> <code>id_t</code> <code>ino_t</code> <code>key_t</code> <code>mode_t</code> <code>nlink_t</code> <code>off_t</code> <code>pid_t</code> <code>size_t</code> <code>ssize_t</code> <code>suseconds_t</code> <code>time_t</code> <code>uid_t</code>. On Windows, it only includes <code>dev_t</code> <code>ino_t</code> <code>off_t</code> <code>time_t</code>.</p>
+<h3 class='ruffproc'><a name='::cffi::arena'>arena</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>A command ensemble.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>arena</span> <span class='ruff_arg'>subcommand ...</span></div>
+<h5 class='ruff'>Description</h5><p class='ruff'>The ensemble supports the following subcommands:</p>
+<table class='ruff_deflist'>
+<tr><td><a href="cffi-cffi.html#::cffi::arena allocate" title="allocate" class='ruff_cmd'>allocate</a></td><td>Allocates memory in the current frame in the memory arena.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::arena popframe" title="popframe" class='ruff_cmd'>popframe</a></td><td>Pops the current frame from the memory arena.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::arena pushframe" title="pushframe" class='ruff_cmd'>pushframe</a></td><td>Pushes a new stack frame on the memory arena.</td></tr>
+</table>
+<p class='ruff'>Refer to the documentation of each subcommand for details.</p>
+<h3 class='ruffproc'><a name='::cffi::arena allocate'>arena allocate</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Allocates memory in the current frame in the memory arena.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>arena allocate</span> <span class='ruff_arg'>size ?tag?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>size</code></td><td>Number of bytes to allocate.</td></tr>
+<tr><td><code>tag</code></td><td>Tag for returned pointer. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The allocated memory will stay allocated until the frame is destroyed with <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a>.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocation.</p>
+<h3 class='ruffproc'><a name='::cffi::arena popframe'>arena popframe</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Pops the current frame from the memory arena.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>arena popframe</span> </div>
+<h5 class='ruff'>Description</h5><p class='ruff'>All allocations from the popped frame are freed and pointers to these unregistered.</p>
+<h3 class='ruffproc'><a name='::cffi::arena pushframe'>arena pushframe</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Pushes a new stack frame on the memory arena.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>?size?</span><br><span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>size ?tag?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>size</code></td><td>Size of memory to allocate in frame (optional)</td></tr>
+<tr><td><code>tag</code></td><td>Tag for returned pointer if <code>$size</code> is specified.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The command allocate a new frame in the memory arena stack. All allocations from this frame will stay valid only until the corresponding call to <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a>.</p>
+<p class='ruff'>If no arguments are specified, the command initializes an empty frame. Otherwise it allocates and returns a pointer to <code>$size</code> bytes within the frame.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns an empty string if not arguments were specified or a safe pointer.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::arena allocate" title="arena allocate" class='ruff_cmd'>arena allocate</a>, <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a></p>
 <h3 class='ruffproc'><a name='::cffi::call'>call</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Invokes a C function through a function pointer.</p>
@@ -325,7 +363,7 @@ enum flags E {A B C}
 <p class='ruff'>Returns a string describing an <a href="cffi-cffi.html#::cffi::alias" title="alias" class='ruff_cmd'>alias</a> definition.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>help alias</span> <span class='ruff_arg'>NAME</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>NAME</code></td><td>Name of a Union.</td></tr>
+<tr><td><code>NAME</code></td><td>Name of a <a href="cffi-cffi.html#::cffi::alias" title="alias" class='ruff_cmd'>alias</a></td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a string describing an <a href="cffi-cffi.html#::cffi::alias" title="alias" class='ruff_cmd'>alias</a> definition.</p>
 <h3 class='ruffproc'><a name='::cffi::help enum'>help enum</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -333,7 +371,7 @@ enum flags E {A B C}
 <p class='ruff'>Returns a string describing an <a href="cffi-cffi.html#::cffi::enum" title="enum" class='ruff_cmd'>enum</a> definition.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>help enum</span> <span class='ruff_arg'>NAME</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>NAME</code></td><td>Name of a Union.</td></tr>
+<tr><td><code>NAME</code></td><td>Name of a <a href="cffi-cffi.html#::cffi::enum" title="enum" class='ruff_cmd'>enum</a></td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a string describing an <a href="cffi-cffi.html#::cffi::enum" title="enum" class='ruff_cmd'>enum</a> definition.</p>
 <h3 class='ruffproc'><a name='::cffi::help function'>help function</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -363,7 +401,7 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Returns a string describing field types in a <a href="cffi-cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a>.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>help struct</span> <span class='ruff_arg'>NAME</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>NAME</code></td><td>Name of a Struct.</td></tr>
+<tr><td><code>NAME</code></td><td>Name of a <a href="cffi-cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a></td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a string describing field types in a <a href="cffi-cffi.html#::cffi::Struct" title="Struct" class='ruff_cmd'>Struct</a>.</p>
 <h3 class='ruffproc'><a name='::cffi::help union'>help union</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -371,7 +409,7 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Returns a string describing field types in a <a href="cffi-cffi.html#::cffi::Union" title="Union" class='ruff_cmd'>Union</a>.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>help union</span> <span class='ruff_arg'>NAME</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>NAME</code></td><td>Name of a Union.</td></tr>
+<tr><td><code>NAME</code></td><td>Name of a <a href="cffi-cffi.html#::cffi::Union" title="Union" class='ruff_cmd'>Union</a></td></tr>
 </table>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a string describing field types in a <a href="cffi-cffi.html#::cffi::Union" title="Union" class='ruff_cmd'>Union</a>.</p>
 <h3 class='ruffproc'><a name='::cffi::limits'>limits</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -1284,6 +1322,11 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::alias delete'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> delete</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>alias delete</span> <span class='ruff_arg'>pattern</span></pre>Deletes aliases matching a pattern.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::alias list'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> list</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>alias list</span> <span class='ruff_arg'>?pattern?</span></pre>Returns a list of aliases that match the specified pattern.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::alias load'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> load</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>alias load</span> <span class='ruff_arg'>alias_set</span></pre>Loads predefined type aliases.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena'>arena</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena allocate'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> allocate</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena allocate</span> <span class='ruff_arg'>size ?tag?</span></pre>Allocates memory in the current frame in the memory arena.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena popframe'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> popframe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena popframe</span> </pre>Pops the current frame from the memory arena.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena pushframe'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> pushframe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>?size?</span>
+<span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>size ?tag?</span></pre>Pushes a new stack frame on the memory arena.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::call'>call</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>call</span> <span class='ruff_arg'>fnptr ?args?</span></pre>Invokes a C function through a function pointer.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::callback'>callback</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>callback</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::callback free'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> free</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>callback free</span> <span class='ruff_arg'>cb</span></pre>Frees a callback pointer

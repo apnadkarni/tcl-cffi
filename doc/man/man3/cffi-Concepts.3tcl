@@ -597,6 +597,17 @@ facilities\&. Access to the content is available through
 convert to and from Tcl binary strings\&. The \fI::cffi::memory get\fP and
 \fI::cffi::memory set\fP commands provide type-aware access to read and
 write memory\&.
+.PP
+As an alternative to the memory command, the arena command
+implements a memory arena in which frames can be allocated with
+\fI::cffi::arena pushframe\fP\&. Memory blocks can then be allocated with the
+last allocated frame using \fI::cffi::arena allocate\fP\&. These blocks are
+all freed when the frame is deallocated with \fI::cffi::arena popframe\fP\&.
+Multiple calls can be made to \fI::cffi::arena pushframe\fP with
+\fI::cffi::arena popframe\fP freeing the last allocated frame\&. In effect
+this behaves like a software stack and is useful for short-lived storage
+as it is faster and results in less memory fragmentation than the heap
+based memory command\&.
 .SS STRINGS
 .PP
 Strings in C are generally represented in memory as a sequence of null

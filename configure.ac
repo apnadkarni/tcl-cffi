@@ -74,6 +74,7 @@ TEA_SETUP_COMPILER
 
 TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiAlias.c \
+                     generic/tclCffiArena.c \
                      generic/tclCffiCallback.c \
                      generic/tclCffiEnum.c \
                      generic/tclCffiFunction.c \

@@ -1,0 +1,90 @@
+# (c) 2021 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# Tests for the cffi::arena command
+
+source [file join [file dirname [info script]] common.tcl]
+
+namespace eval cffi::test {
+    testsubcmd ::cffi::arena
+
+    ###
+    testnumargs arena-pushframe "cffi::arena pushframe" "" "?SIZE ?TAG??"
+    testnumargs arena-popframe "cffi::arena popframe" "" ""
+
+    test arena-pushpopframe-0 "Push and pop a frame" -body {
+        list [cffi::arena pushframe] [cffi::arena popframe]
+    } -result [list {} {}]
+
+    test arena-pushpopframe-1 "Push one pop twice" -body {
+        cffi::arena pushframe
+        list [cffi::arena validate] \
+            [cffi::arena popframe] [cffi::arena validate] \
+            [catch {cffi::arena popframe} msg] $msg [cffi::arena validate]
+    } -result [list {} {} {} 1 {Internal error: attempt to pop frame in empty arena.} {}]
+
+    test arena-pushpopframe-2 "Push frame with size" -body {
+        set p [cffi::arena pushframe 10]
+        set result [list [cffi::pointer isvalid $p] [cffi::arena popframe] [cffi::pointer list]]
+    } -result {1 {} {}}
+
+    test arena-pushpopframe-3 "Push frame with size and tag" -body {
+        set p [cffi::arena pushframe 10 TAG]
+        set result [list [cffi::pointer tag $p] [cffi::pointer isvalid $p] [cffi::arena popframe] [cffi::pointer list]]
+    } -result {TAG 1 {} {}}
+
+    test arena-pushpopframe-4 "Push multiple frames" -body {
+        set p [cffi::arena pushframe 10]
+        set q [cffi::arena pushframe 10]
+        set result [list [cffi::arena validate] \
+                        [cffi::pointer isvalid $p] [cffi::pointer isvalid $q] \
+                        [cffi::arena popframe] \
+                        [cffi::pointer isvalid $p] [cffi::pointer isvalid $q] \
+                        [cffi::arena popframe] \
+                        [cffi::pointer isvalid $p] [cffi::pointer isvalid $q] \
+                        [cffi::arena validate] \
+                        [cffi::pointer list]]
+    } -result {{} 1 1 {} 1 0 {} 0 0 {} {}}
+
+    ### allocate
+
+    testnumargs arena-allocate "cffi::arena allocate" "SIZE" "?TAG?"
+
+    test arena-allocate-0 "Allocate without tag" -setup {
+        cffi::arena pushframe
+    } -cleanup {
+        cffi::arena popframe
+    } -body {
+        set p [cffi::arena allocate 1]
+        list [cffi::pointer isvalid $p] [cffi::pointer tag $p]
+    } -result {1 {}}
+
+    test arena-allocate-1 "Allocate with tag" -setup {
+        cffi::arena pushframe
+    } -cleanup {
+        cffi::arena popframe
+    } -body {
+        set p [cffi::arena allocate 1 TAG]
+        list [cffi::pointer isvalid $p] [cffi::pointer tag $p]
+    } -result {1 TAG}
+
+    test arena-allocate-2 "Multipl frames and allocations" -body {
+        cffi::arena pushframe
+        set p [cffi::arena allocate 1]
+        set q [cffi::arena allocate 1]
+        cffi::arena pushframe
+        set r [cffi::arena allocate 1]
+        set result [list [cffi::arena validate] \
+                        [cffi::pointer isvalid $p] [cffi::pointer isvalid $q] [cffi::pointer isvalid $r] \
+                        [cffi::arena popframe] \
+                        [cffi::pointer isvalid $p] [cffi::pointer isvalid $q] [cffi::pointer isvalid $r] \
+                        [cffi::arena popframe] \
+                        [cffi::pointer isvalid $p] [cffi::pointer isvalid $q] [cffi::pointer isvalid $r] \
+                        [cffi::arena validate] \
+                        [cffi::pointer list]]
+    } -result {{} 1 1 1 {} 1 1 0 {} 0 0 0 {} {}}
+
+}
+
+::tcltest::cleanupTests
+namespace delete cffi::test

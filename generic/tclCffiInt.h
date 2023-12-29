@@ -416,7 +416,11 @@ typedef struct CffiInterpCtx {
 #ifdef CFFI_USE_DYNCALL
     DCCallVM *vmP; /* The dyncall call context to use */
 #endif
-    Tclh_Lifo memlifo;        /* Software stack */
+    Tclh_Lifo memlifo;        /* Software stack - C level */
+
+    Tclh_Lifo arenaStore;   /* Software stack - for script level arena command */
+    struct CffiArenaFrame *arenaFrameP; /* Top of arena frame chain */
+
     Tclh_LibContext *tclhCtxP;
 } CffiInterpCtx;
 
@@ -833,6 +837,10 @@ CffiResult CffiNameDeleteNames(Tcl_Interp *ip,
                                const char *pattern,
                                void (*deleteFn)(ClientData));
 
+/* Arenas */
+CffiResult CffiArenaInit(CffiInterpCtx *ipCtxP);
+void CffiArenaFinit(CffiInterpCtx *ipCtxP);
+
 #ifdef CFFI_USE_DYNCALL
 
 CffiResult CffiDyncallInit(CffiInterpCtx *ipCtxP);
@@ -1050,6 +1058,7 @@ Tcl_ObjCmdProc CffiPrototypeObjCmd;
 Tcl_ObjCmdProc CffiStructObjCmd;
 Tcl_ObjCmdProc CffiUnionObjCmd;
 Tcl_ObjCmdProc CffiTypeObjCmd;
+Tcl_ObjCmdProc CffiArenaObjCmd;
 
 #ifdef CFFI_HAVE_CALLBACKS
 Tcl_ObjCmdProc CffiCallbackObjCmd;
