@@ -171,19 +171,20 @@ CffiArenaObjCmd(ClientData cdata,
                 Tcl_Obj *const objv[])
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
-    enum cmds { ALLOCATE, POPFRAME, PUSHFRAME, VALIDATE };
+    enum cmds { ALLOCATE, NEW, POPFRAME, PUSHFRAME, VALIDATE };
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
         {"allocate", 1, 2, "SIZE ?TAG?", NULL},
+        {"new", 2, 3, "TYPE INITIALIZER ?TAG?", NULL},
         {"popframe", 0, 0, "", NULL},
         {"pushframe", 0, 2, "?SIZE ?TAG??", NULL},
         {"validate", 0, 0, "", NULL},
         {NULL}};
-
     void *pv;
     Tcl_Obj *resultObj = NULL;
     Tcl_Size size = 0;
     CffiResult ret = TCL_OK;
+    CffiTypeAndAttrs typeAttrs;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
     switch (cmdIndex) {
@@ -193,6 +194,17 @@ CffiArenaObjCmd(ClientData cdata,
         /* Note nothing to free if pointer obj creation fails */
         ret = CffiMakePointerObj(
             ipCtxP, pv, objc > 3 ? objv[3] : NULL, 0, &resultObj);
+        break;
+
+    case NEW:
+        CHECK(
+            CffiTypeSizeForValue(ipCtxP, objv[2], objv[3], &typeAttrs, &size));
+        CHECK(CffiArenaAllocate(ipCtxP, size, &pv));
+        /* Note nothing to free on failure */
+        CHECK(CffiNativeValueFromObj(
+            ipCtxP, &typeAttrs, 0, objv[3], 0, pv, 0, NULL));
+        ret = CffiMakePointerObj(
+            ipCtxP, pv, objc > 4 ? objv[4] : NULL, 0, &resultObj);
         break;
 
     case PUSHFRAME:
@@ -209,9 +221,11 @@ CffiArenaObjCmd(ClientData cdata,
             }
         }
         break;
+
     case POPFRAME:
         ret = CffiArenaPopFrame(ipCtxP);
         break;
+
     case VALIDATE:
         ret = CffiArenaValidate(ipCtxP);
         break;

@@ -107,21 +107,36 @@ package require cffi
 <div class='ruff_synopsis'><span class='ruff_cmd'>arena</span> <span class='ruff_arg'>subcommand ...</span></div>
 <h5 class='ruff'>Description</h5><p class='ruff'>The ensemble supports the following subcommands:</p>
 <table class='ruff_deflist'>
-<tr><td><a href="cffi-cffi.html#::cffi::arena allocate" title="allocate" class='ruff_cmd'>allocate</a></td><td>Allocates memory in the current frame in the memory arena.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::arena allocate" title="allocate" class='ruff_cmd'>allocate</a></td><td>Allocates memory in the current arena frame in the memory arena.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::arena new" title="new" class='ruff_cmd'>new</a></td><td>Allocates memory in the current arena for a type and initializes it.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::arena popframe" title="popframe" class='ruff_cmd'>popframe</a></td><td>Pops the current frame from the memory arena.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::arena pushframe" title="pushframe" class='ruff_cmd'>pushframe</a></td><td>Pushes a new stack frame on the memory arena.</td></tr>
 </table>
 <p class='ruff'>Refer to the documentation of each subcommand for details.</p>
 <h3 class='ruffproc'><a name='::cffi::arena allocate'>arena allocate</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
-<p class='ruff'>Allocates memory in the current frame in the memory arena.</p>
-<div class='ruff_synopsis'><span class='ruff_cmd'>arena allocate</span> <span class='ruff_arg'>size ?tag?</span></div>
+<p class='ruff'>Allocates memory in the current arena frame in the memory arena.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>arena allocate</span> <span class='ruff_arg'>sizespec ?tag?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>size</code></td><td>Number of bytes to allocate.</td></tr>
+<tr><td><code>sizespec</code></td><td>Requested size of memory block. This may be specified either as an integer value or a type specification (optional)</td></tr>
 <tr><td><code>tag</code></td><td>Tag for returned pointer. Optional, default <code>&quot;&quot;</code>.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>The allocated memory will stay allocated until the frame is destroyed with <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a>.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>The allocated memory will stay allocated until the frame is destroyed with <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a>. The size <code>$sizespec</code> may be specified as a positive integer or a CFFI type declaration in which case the memory allocated is that of the type's size.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocation.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::arena new" title="arena new" class='ruff_cmd'>arena new</a></p>
+<h3 class='ruffproc'><a name='::cffi::arena new'>arena new</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Allocates memory in the current arena for a type and initializes it.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>arena new</span> <span class='ruff_arg'>typespec initializer ?tag?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>typespec</code></td><td>A type declaration.</td></tr>
+<tr><td><code>initializer</code></td><td>The type-specific value to use to initialize allocated memory.</td></tr>
+<tr><td><code>tag</code></td><td>The optional tag for the returned pointer. Optional, default <code>&quot;&quot;</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The <code>$typespec</code> argument may be any type specificiation. If an array is specified of a larger size than the number of elements in <code>$initializer</code>, the remaining elements are zeroed out.</p>
+<p class='ruff'>The returned memory will be freed when the arena frame is freed with <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a>.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::arena allocate" title="arena allocate" class='ruff_cmd'>arena allocate</a></p>
 <h3 class='ruffproc'><a name='::cffi::arena popframe'>arena popframe</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Pops the current frame from the memory arena.</p>
@@ -132,11 +147,11 @@ package require cffi
 <p class='ruff'>Pushes a new stack frame on the memory arena.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>?size?</span><br><span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>size ?tag?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>size</code></td><td>Size of memory to allocate in frame (optional)</td></tr>
-<tr><td><code>tag</code></td><td>Tag for returned pointer if <code>$size</code> is specified.</td></tr>
+<tr><td><code>sizespec</code></td><td>Requested size of memory block. This may be specified either as an integer value or a type specification (optional)</td></tr>
+<tr><td><code>tag</code></td><td>Tag for returned pointer if <code>$size</code> is specified (optional)</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>The command allocate a new frame in the memory arena stack. All allocations from this frame will stay valid only until the corresponding call to <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a>.</p>
-<p class='ruff'>If no arguments are specified, the command initializes an empty frame. Otherwise it allocates and returns a pointer to <code>$size</code> bytes within the frame.</p>
+<p class='ruff'>If no arguments are specified, the command initializes an empty frame. Otherwise it allocates storage of <code>$sizespec</code> bytes within the new frame and returns a pointer to it. The size <code>$sizespec</code> may be specified as a positive integer or a CFFI type declaration in which case the memory allocated is that of the type's size.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns an empty string if not arguments were specified or a safe pointer.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::arena allocate" title="arena allocate" class='ruff_cmd'>arena allocate</a>, <a href="cffi-cffi.html#::cffi::arena popframe" title="arena popframe" class='ruff_cmd'>arena popframe</a></p>
 <h3 class='ruffproc'><a name='::cffi::call'>call</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -1323,7 +1338,8 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::alias list'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> list</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>alias list</span> <span class='ruff_arg'>?pattern?</span></pre>Returns a list of aliases that match the specified pattern.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::alias load'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> load</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>alias load</span> <span class='ruff_arg'>alias_set</span></pre>Loads predefined type aliases.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena'>arena</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
-</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena allocate'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> allocate</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena allocate</span> <span class='ruff_arg'>size ?tag?</span></pre>Allocates memory in the current frame in the memory arena.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena allocate'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> allocate</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena allocate</span> <span class='ruff_arg'>sizespec ?tag?</span></pre>Allocates memory in the current arena frame in the memory arena.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena new'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> new</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena new</span> <span class='ruff_arg'>typespec initializer ?tag?</span></pre>Allocates memory in the current arena for a type and initializes it.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena popframe'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> popframe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena popframe</span> </pre>Pops the current frame from the memory arena.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::arena pushframe'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> pushframe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>?size?</span>
 <span class='ruff_cmd'>arena pushframe</span> <span class='ruff_arg'>size ?tag?</span></pre>Pushes a new stack frame on the memory arena.

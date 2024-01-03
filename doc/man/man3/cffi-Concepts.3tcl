@@ -600,10 +600,10 @@ write memory\&.
 .PP
 As an alternative to the memory command, the arena command
 implements a memory arena in which frames can be allocated with
-\fI::cffi::arena pushframe\fP\&. Memory blocks can then be allocated with the
-last allocated frame using \fI::cffi::arena allocate\fP\&. These blocks are
-all freed when the frame is deallocated with \fI::cffi::arena popframe\fP\&.
-Multiple calls can be made to \fI::cffi::arena pushframe\fP with
+\fI::cffi::arena pushframe\fP\&. Memory blocks can then be allocated within
+the last allocated frame using \fI::cffi::arena allocate\fP\&. These blocks
+are all freed when the frame is deallocated with \fI::cffi::arena
+popframe\fP\&. Multiple calls can be made to \fI::cffi::arena pushframe\fP with
 \fI::cffi::arena popframe\fP freeing the last allocated frame\&. In effect
 this behaves like a software stack and is useful for short-lived storage
 as it is faster and results in less memory fragmentation than the heap

@@ -23,7 +23,9 @@ cffi - Commands in namespace cffi
 .br
 \fBarena\fP \fIsubcommand \&.\&.\&.\fP
 .br
-\fBarena allocate\fP \fIsize ?tag?\fP
+\fBarena allocate\fP \fIsizespec ?tag?\fP
+.br
+\fBarena new\fP \fItypespec initializer ?tag?\fP
 .br
 \fBarena popframe\fP
 .br
@@ -507,7 +509,10 @@ subcommands:
 .RS 4n
 .TP
 \fIallocate\fP
-Allocates memory in the current frame in the memory arena\&.
+Allocates memory in the current arena frame in the memory arena\&.
+.TP
+\fInew\fP
+Allocates memory in the current arena for a type and initializes it\&.
 .TP
 \fIpopframe\fP
 Pops the current frame from the memory arena\&.
@@ -530,16 +535,16 @@ details\&.
 \fBarena allocate\fR (::cffi)
 .RE
 .PP
-Allocates memory in the current frame in the memory arena\&.
-.RS 4n\fBarena allocate\fP \fIsize ?tag?\fP
+Allocates memory in the current arena frame in the memory arena\&.
+.RS 4n\fBarena allocate\fP \fIsizespec ?tag?\fP
 .br
 .RE
 .PP
 \fBParameters\fR
 .RS 4n
 .TP
-size
-Number of bytes to allocate\&.
+sizespec
+Requested size of memory block\&. This may be specified either as an integer value or a type specification (optional)
 .TP
 tag
 Tag for returned pointer\&. Optional, default ""\&.
@@ -548,11 +553,56 @@ Tag for returned pointer\&. Optional, default ""\&.
 \fBDescription\fR
 .PP
 The allocated memory will stay allocated until the frame is destroyed
-with \fIarena popframe\fP\&.
+with \fIarena popframe\fP\&. The size \fI$sizespec\fP may be specified as a
+positive integer or a CFFI type declaration in which case the memory
+allocated is that of the type's size\&.
 .PP
 \fBReturn value\fR
 .PP
 Returns a safe pointer to the allocation\&.
+.PP
+\fBSee also\fR
+.PP
+\fIarena new\fP
+.PP
+.RS -4n
+\fBarena new\fR (::cffi)
+.RE
+.PP
+Allocates memory in the current arena for a type and initializes it\&.
+.RS 4n\fBarena new\fP \fItypespec initializer ?tag?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+typespec
+A type declaration\&.
+.TP
+initializer
+The type-specific value to use to initialize allocated memory\&.
+.TP
+tag
+The optional tag for the returned pointer\&. Optional, default ""\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The \fI$typespec\fP argument may be any type specificiation\&. If an
+array is specified of a larger size than the number of elements
+in \fI$initializer\fP, the remaining elements are zeroed out\&.
+.PP
+The returned memory will be freed when the arena frame is freed with
+\fIarena popframe\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fIarena allocate\fP
 .PP
 .RS -4n
 \fBarena popframe\fR (::cffi)
@@ -582,11 +632,11 @@ Pushes a new stack frame on the memory arena\&.
 \fBParameters\fR
 .RS 4n
 .TP
-size
-Size of memory to allocate in frame (optional)
+sizespec
+Requested size of memory block\&. This may be specified either as an integer value or a type specification (optional)
 .TP
 tag
-Tag for returned pointer if \fI$size\fP is specified\&.
+Tag for returned pointer if \fI$size\fP is specified (optional)
 .RE
 .PP
 \fBDescription\fR
@@ -595,8 +645,11 @@ The command allocate a new frame in the memory arena stack\&.
 All allocations from this frame will stay valid only until the
 corresponding call to \fIarena popframe\fP\&.
 .PP
-If no arguments are specified, the command initializes an empty
-frame\&. Otherwise it allocates and returns a pointer to \fI$size\fP bytes within the frame\&.
+If no arguments are specified, the command initializes an empty frame\&.
+Otherwise it allocates storage of \fI$sizespec\fP bytes within the new frame
+and returns a pointer to it\&. The size \fI$sizespec\fP may be specified as a
+positive integer or a CFFI type declaration in which case the memory
+allocated is that of the type's size\&.
 .PP
 \fBReturn value\fR
 .PP

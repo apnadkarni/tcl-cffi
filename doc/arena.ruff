@@ -31,7 +31,7 @@ namespace eval ${NS}::arena {
         # these unregistered.
     }
     proc allocate {sizespec {tag {}}} {
-        # Allocates memory in the current frame in the memory arena.
+        # Allocates memory in the current arena frame in the memory arena.
         #  sizespec - requested size of memory block. This may be specified
         #   either as an integer value or a type specification (optional)
         #  tag - tag for returned pointer
@@ -41,8 +41,28 @@ namespace eval ${NS}::arena {
         # positive integer or a CFFI type declaration in which case the memory
         # allocated is that of the type's size.
         #
+        # See also: "arena new"
+        #
         # Returns a safe pointer to the allocation.
     }
+    proc new {typespec initializer {tag {}}} {
+        # Allocates memory in the current arena for a type and initializes it.
+        #  typespec - a type declaration
+        #  initializer - the type-specific value to use to initialize allocated memory.
+        #  tag - The optional tag for the returned pointer.
+        #
+        # The $typespec argument may be any type specificiation. If an
+        # array is specified of a larger size than the number of elements
+        # in $initializer, the remaining elements are zeroed out.
+        #
+        # The returned memory will be freed when the arena frame is freed with
+        # [arena popframe].
+        #
+        # See also: "arena allocate"
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
+
     namespace export *
     namespace ensemble create
 }
