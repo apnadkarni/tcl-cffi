@@ -183,15 +183,29 @@ CffiArenaObjCmd(ClientData cdata,
     void *pv;
     Tcl_Obj *resultObj = NULL;
     Tcl_Size size = 0;
+    CffiResult ret = TCL_OK;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
     switch (cmdIndex) {
     case ALLOCATE:
-        CHECK(Tclh_ObjToSizeInt(ip, objv[2], &size));
+        ret = Tclh_ObjToSizeInt(NULL, objv[2], &size);
+        if (ret != TCL_OK) {
+            ret = CffiTypeSizeForValue(ipCtxP, objv[2], NULL, NULL, &size);
+        }
+        if (ret != TCL_OK || size <= 0) {
+            return Tclh_ErrorInvalidValue(
+                ip,
+                objv[2],
+                "Allocation size argument must be a positive 32-bit integer or "
+                "a fixed size type specification.");
+        }
+
         CHECK(CffiArenaAllocate(ipCtxP, size, &pv));
-        CHECK(Tclh_PointerRegister(
-            ip, ipCtxP->tclhCtxP, pv, objc > 3 ? objv[3] : NULL, &resultObj));
+        /* Note nothing to free if pointer obj creation fails */
+        ret = CffiMakePointerObj(
+            ipCtxP, pv, objc > 3 ? objv[3] : NULL, 0, &resultObj);
         break;
+
     case PUSHFRAME:
         if (objc > 2) {
             CHECK(Tclh_ObjToSizeInt(ip, objv[2], &size));
@@ -199,22 +213,22 @@ CffiArenaObjCmd(ClientData cdata,
         CHECK(CffiArenaPushFrame(ipCtxP, size, &pv));
         if (size) {
             CFFI_ASSERT(pv);
-            CHECK(Tclh_PointerRegister(ip,
-                                       ipCtxP->tclhCtxP,
-                                       pv,
-                                       objc > 3 ? objv[3] : NULL,
-                                       &resultObj));
+            ret = CffiMakePointerObj(
+                ipCtxP, pv, objc > 3 ? objv[3] : NULL, 0, &resultObj);
+            if (ret != TCL_OK) {
+                CffiArenaPopFrame(ipCtxP); /* Pop frame we just created */
+            }
         }
         break;
     case POPFRAME:
-        CHECK(CffiArenaPopFrame(ipCtxP));
+        ret = CffiArenaPopFrame(ipCtxP);
         break;
     case VALIDATE:
-        CHECK(CffiArenaValidate(ipCtxP));
+        ret = CffiArenaValidate(ipCtxP);
         break;
     }
 
-    if (resultObj != NULL)
+    if (ret == TCL_OK && resultObj != NULL)
         Tcl_SetObjResult(ip, resultObj);
-    return TCL_OK;
+    return ret;
 }

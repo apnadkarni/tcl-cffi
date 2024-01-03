@@ -69,22 +69,16 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
                       CffiFlags flags)
 {
     Tcl_Interp *ip = ipCtxP->interp;
-    Tcl_WideInt wide;
     Tcl_Size size;
     CffiResult ret;
     Tcl_Obj *ptrObj;
-    Tcl_Obj *tagObj;
     void *p;
 
-    ret = Tclh_ObjToRangedInt(NULL, objv[2], 1, INT_MAX, &wide);
-    if (ret == TCL_OK)
-        size = (Tcl_Size)wide;
-    else {
-        /* Check first if it is a type specification. */
+    ret = Tclh_ObjToSizeInt(NULL, objv[2], &size);
+    if (ret != TCL_OK) {
         ret = CffiTypeSizeForValue(ipCtxP, objv[2], NULL, NULL, &size);
     }
-
-    if (ret != TCL_OK) {
+    if (ret != TCL_OK || size <= 0) {
         return Tclh_ErrorInvalidValue(
             ip,
             objv[2],
@@ -94,16 +88,7 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
 
     p = Tcl_Alloc(size);
 
-    if (objc == 4) {
-        tagObj = CffiMakePointerTagFromObj(ipCtxP, objv[3]);
-        Tcl_IncrRefCount(tagObj);
-    }
-    else
-        tagObj = NULL;
-
-    ret = Tclh_PointerRegister(ip, ipCtxP->tclhCtxP, p, tagObj, &ptrObj);
-    if (tagObj)
-        Tcl_DecrRefCount(tagObj);
+    ret = CffiMakePointerObj(ipCtxP, p, objc == 4 ? objv[3] : NULL, 0, &ptrObj);
     if (ret == TCL_OK)
         Tcl_SetObjResult(ip, ptrObj);
     else
@@ -156,19 +141,10 @@ CffiMemoryNewCmd(CffiInterpCtx *ipCtxP,
     ret = CffiNativeValueFromObj(ipCtxP, &typeAttrs, 0, objv[3], 0, pv, 0, NULL);
     if (ret == TCL_OK) {
         Tcl_Obj *ptrObj;
-        Tcl_Obj *tagObj;
-        if (objc > 4) {
-            tagObj = CffiMakePointerTagFromObj(ipCtxP, objv[4]);
-            Tcl_IncrRefCount(tagObj);
-        }
-        else
-            tagObj = NULL;
-        ret = Tclh_PointerRegister(
-            ip, ipCtxP->tclhCtxP, pv, tagObj, &ptrObj);
+        ret =
+            CffiMakePointerObj(ipCtxP, pv, objc == 5 ? objv[4] : NULL, 0, &ptrObj);
         if (ret == TCL_OK)
             Tcl_SetObjResult(ip, ptrObj);
-        if (tagObj)
-            Tcl_DecrRefCount(tagObj);
     }
 
     if (ret != TCL_OK)

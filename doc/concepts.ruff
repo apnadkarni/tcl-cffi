@@ -495,10 +495,10 @@ namespace eval Concepts {
 
         As an alternative to the `memory` command, the `arena` command
         implements a memory arena in which frames can be allocated with
-        [::cffi::arena pushframe]. Memory blocks can then be allocated with the
-        last allocated frame using [::cffi::arena allocate]. These blocks are
-        all freed when the frame is deallocated with [::cffi::arena popframe].
-        Multiple calls can be made to [::cffi::arena pushframe] with
+        [::cffi::arena pushframe]. Memory blocks can then be allocated within
+        the last allocated frame using [::cffi::arena allocate]. These blocks
+        are all freed when the frame is deallocated with [::cffi::arena
+        popframe]. Multiple calls can be made to [::cffi::arena pushframe] with
         [::cffi::arena popframe] freeing the last allocated frame. In effect
         this behaves like a software stack and is useful for short-lived storage
         as it is faster and results in less memory fragmentation than the heap

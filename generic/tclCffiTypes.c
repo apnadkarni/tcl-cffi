@@ -379,6 +379,52 @@ Tcl_Obj *CffiMakePointerTagFromObj(CffiInterpCtx *ipCtxP, Tcl_Obj *tagObj)
     return CffiMakePointerTag(ipCtxP, tag, len);
 }
 
+/* Function: CffiMakePointerObj
+ * Creates a Tcl_Obj wrapping a pointer
+ *
+ * Parameters:
+ * ipCtxP - interp context
+ * pv - pointer to wrap, may be NULL.
+ * tagObj - tag, may be NULL.
+ * flags - 0, CFFI_F_ATTR_UNSAFE, CFFI_F_ATTR_COUNTED
+ * ptrObjP - location to store wrapper pointer
+ *
+ * Returns:
+ * TCL_OK or TCL_ERROR.
+ */
+CffiResult
+CffiMakePointerObj(CffiInterpCtx *ipCtxP,
+                   void *pv,
+                   Tcl_Obj *tagObj,
+                   int flags,
+                   Tcl_Obj **ptrObjP)
+{
+    CffiResult ret;
+    CFFI_ASSERT(flags == 0 || flags == CFFI_F_ATTR_UNSAFE
+                || flags == CFFI_F_ATTR_COUNTED);
+
+    if (tagObj) {
+        tagObj = CffiMakePointerTagFromObj(ipCtxP, tagObj);
+        Tcl_IncrRefCount(tagObj);
+    }
+    if (pv == NULL || flags == CFFI_F_ATTR_UNSAFE) {
+        *ptrObjP    = Tclh_PointerWrap(NULL, tagObj);
+        ret         = TCL_OK;
+    }
+    else {
+        ret = (flags == CFFI_F_ATTR_COUNTED
+                   ? Tclh_PointerRegisterCounted
+                   : Tclh_PointerRegister)(ipCtxP->interp,
+                                           ipCtxP->tclhCtxP,
+                                           pv,
+                                           tagObj,
+                                           ptrObjP);
+    }
+    if (tagObj)
+        Tcl_DecrRefCount(tagObj);
+    return ret;
+}
+
 /* Function: CffiTypeInit
  * Initializes a CffiType structure
  *
@@ -2363,6 +2409,11 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
     int         flags = typeAttrsP->flags;
     Tcl_Interp *ip    = ipCtxP->interp;
 
+    /*
+     * NOTE: we do NOT use CffiMakePointerObj here because that will
+     * atomize the tag. That is extra overhead since the tag in 
+     * typeAttrsP->dataType is already atomized.
+     */
     if (pointer == NULL) {
         /* NULL pointers are never registered */
         *resultObjP = Tclh_PointerWrap(NULL, typeAttrsP->dataType.u.tagNameObj);

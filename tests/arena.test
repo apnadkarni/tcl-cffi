@@ -31,7 +31,7 @@ namespace eval cffi::test {
     test arena-pushpopframe-3 "Push frame with size and tag" -body {
         set p [cffi::arena pushframe 10 TAG]
         set result [list [cffi::pointer tag $p] [cffi::pointer isvalid $p] [cffi::arena popframe] [cffi::pointer list]]
-    } -result {TAG 1 {} {}}
+    } -result {::cffi::test::TAG 1 {} {}}
 
     test arena-pushpopframe-4 "Push multiple frames" -body {
         set p [cffi::arena pushframe 10]
@@ -66,7 +66,7 @@ namespace eval cffi::test {
     } -body {
         set p [cffi::arena allocate 1 TAG]
         list [cffi::pointer isvalid $p] [cffi::pointer tag $p]
-    } -result {1 TAG}
+    } -result {1 ::cffi::test::TAG}
 
     test arena-allocate-2 "Multipl frames and allocations" -body {
         cffi::arena pushframe
