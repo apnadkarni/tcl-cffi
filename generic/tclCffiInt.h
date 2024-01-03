@@ -612,6 +612,10 @@ CffiResult CffiTypeSizeForValue(CffiInterpCtx *ipCtxP,
                                 Tcl_Obj *valueObj,
                                 CffiTypeAndAttrs *typeAttrsP,
                                 Tcl_Size *sizeP);
+CffiResult CffiParseAllocationSize(CffiInterpCtx *ipCtxP,
+                                   Tcl_Obj *sizeObj,
+                                   Tcl_Size *sizeP);
+
 void CffiStructUnref(CffiStruct *structP);
 CffiResult CffiErrorStructIsVariableSize(Tcl_Interp *ip, CffiStruct *structP, const char *oper);
 CffiResult CffiErrorMissingVLACountOption(Tcl_Interp *ip);

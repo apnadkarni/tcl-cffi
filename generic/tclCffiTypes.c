@@ -3330,3 +3330,35 @@ int CffiGetCountFromNative (const void *valueP, CffiBaseType baseType)
         return 0;/* Keep compiler happy */
     }
 }
+
+/* Function: CffiParseAllocationSize
+ * Parses an allocation size specification.
+ *
+ * Parameters:
+ * ipCtxP - interp context
+ * sizeObj - size specification. May be a positive integer or a type spec
+ * sizeP - location to return the parsed size
+ *
+ * Returns:
+ * TCL_OK or TCL_ERROR
+ */
+CffiResult
+CffiParseAllocationSize(CffiInterpCtx *ipCtxP,
+                        Tcl_Obj *sizeObj,
+                        Tcl_Size *sizeP)
+{
+    Tcl_Size size;
+    CffiResult ret = Tclh_ObjToSizeInt(NULL, sizeObj, &size);
+    if (ret != TCL_OK) {
+        ret = CffiTypeSizeForValue(ipCtxP, sizeObj, NULL, NULL, &size);
+    }
+    if (ret != TCL_OK || size <= 0) {
+        return Tclh_ErrorInvalidValue(
+            ipCtxP->interp,
+            sizeObj,
+            "Allocation size argument must be a positive integer or "
+            "a fixed size type specification.");
+    }
+    *sizeP = size;
+    return TCL_OK;
+}

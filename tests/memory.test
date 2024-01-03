@@ -56,7 +56,7 @@ namespace eval cffi::test {
 
     test memory-allocate-error-0 {Allocate zero bytes} -body {
         list [catch {cffi::memory allocate 0} result] $result $::errorCode
-    } -result {1 {Invalid value "0". Allocation size argument must be a positive 32-bit integer or a fixed size type specification.} {cffi INVALID_VALUE {Invalid value "0". Allocation size argument must be a positive 32-bit integer or a fixed size type specification.}}}
+    } -result {1 {Invalid value "0". Allocation size argument must be a positive integer or a fixed size type specification.} {cffi INVALID_VALUE {Invalid value "0". Allocation size argument must be a positive integer or a fixed size type specification.}}}
 
     test memory-allocate-error-1 {Missing args} -body {
         list [catch {cffi::memory allocate} result] $result $::errorCode
@@ -68,11 +68,11 @@ namespace eval cffi::test {
 
     test memory-allocate-badtype-0 "allocate bad type" -body {
         cffi::memory allocate badtype
-    } -result {Invalid value "badtype". Allocation size argument must be a positive 32-bit integer or a fixed size type specification.} -returnCodes error
+    } -result {Invalid value "badtype". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
 
     test memory-allocate-badtype-1 "allocate bad type - void" -body {
         cffi::memory allocate void
-    } -result {Invalid value "void". Allocation size argument must be a positive 32-bit integer or a fixed size type specification.} -returnCodes error
+    } -result {Invalid value "void". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
 
     test memory-allocate-badtype-2 "allocate varsize" -setup {
         cffi::Struct create S {n int a uchar[n]}
@@ -80,7 +80,7 @@ namespace eval cffi::test {
         S destroy
     } -body {
         cffi::memory allocate struct.S
-    } -result {Invalid value "struct.S". Allocation size argument must be a positive 32-bit integer or a fixed size type specification.} -returnCodes error
+    } -result {Invalid value "struct.S". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
 
     ###
 

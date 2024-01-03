@@ -188,18 +188,7 @@ CffiArenaObjCmd(ClientData cdata,
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
     switch (cmdIndex) {
     case ALLOCATE:
-        ret = Tclh_ObjToSizeInt(NULL, objv[2], &size);
-        if (ret != TCL_OK) {
-            ret = CffiTypeSizeForValue(ipCtxP, objv[2], NULL, NULL, &size);
-        }
-        if (ret != TCL_OK || size <= 0) {
-            return Tclh_ErrorInvalidValue(
-                ip,
-                objv[2],
-                "Allocation size argument must be a positive 32-bit integer or "
-                "a fixed size type specification.");
-        }
-
+        CHECK(CffiParseAllocationSize(ipCtxP, objv[2], &size));
         CHECK(CffiArenaAllocate(ipCtxP, size, &pv));
         /* Note nothing to free if pointer obj creation fails */
         ret = CffiMakePointerObj(

@@ -74,18 +74,7 @@ CffiMemoryAllocateCmd(CffiInterpCtx *ipCtxP,
     Tcl_Obj *ptrObj;
     void *p;
 
-    ret = Tclh_ObjToSizeInt(NULL, objv[2], &size);
-    if (ret != TCL_OK) {
-        ret = CffiTypeSizeForValue(ipCtxP, objv[2], NULL, NULL, &size);
-    }
-    if (ret != TCL_OK || size <= 0) {
-        return Tclh_ErrorInvalidValue(
-            ip,
-            objv[2],
-            "Allocation size argument must be a positive 32-bit integer or "
-            "a fixed size type specification.");
-    }
-
+    CHECK(CffiParseAllocationSize(ipCtxP, objv[2], &size));
     p = Tcl_Alloc(size);
 
     ret = CffiMakePointerObj(ipCtxP, p, objc == 4 ? objv[3] : NULL, 0, &ptrObj);
