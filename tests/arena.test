@@ -46,6 +46,50 @@ namespace eval cffi::test {
                         [cffi::pointer list]]
     } -result {{} 1 1 {} 1 0 {} 0 0 {} {}}
 
+    foreach {type val} [array get testValues] {
+        if {$type ni {string unistring winstring binary}} {
+            test arena-pushframe-$type-0 "pushframe $type" -cleanup {
+                cffi::arena popframe
+            } -body {
+                set p [cffi::arena pushframe $type]
+                cffi::memory set $p $type $val
+                cffi::memory get $p $type
+            } -result $val
+            if {$type in [list {*}$numericTypes struct.::StructValue]} {
+                # In array tests, use [lindex $type 0] since testValues contains
+                # "pointer unsafe" and we only want pointer
+                test arena-pushframe-$type-array-0 "pushframe $type array" -cleanup {
+                    cffi::arena popframe
+                } -body {
+                    set p [cffi::arena pushframe $type\[2\]]
+                    cffi::memory set $p $type\[2\] [list $val $val]
+                    cffi::memory get $p $type\[2\]
+                } -result [list $val $val]
+            }
+        }
+    }
+
+    test arena-pushframe-error-0 {pushframe zero bytes} -body {
+        list [catch {cffi::arena pushframe 0} result] $result $::errorCode
+    } -result {1 {Invalid value "0". Allocation size argument must be a positive integer or a fixed size type specification.} {cffi INVALID_VALUE {Invalid value "0". Allocation size argument must be a positive integer or a fixed size type specification.}}}
+
+    test arena-pushframe-badtype-0 "pushframe bad type" -body {
+        cffi::arena pushframe badtype
+    } -result {Invalid value "badtype". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
+
+    test arena-pushframe-badtype-1 "pushframe bad type - void" -body {
+        cffi::arena pushframe void
+    } -result {Invalid value "void". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
+
+    test arena-pushframe-badtype-2 "pushframe varsize" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::arena pushframe struct.S
+    } -result {Invalid value "struct.S". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
+
+
     ### allocate
 
     testnumargs arena-allocate "cffi::arena allocate" "SIZE" "?TAG?"
@@ -83,6 +127,53 @@ namespace eval cffi::test {
                         [cffi::arena validate] \
                         [cffi::pointer list]]
     } -result {{} 1 1 1 {} 1 1 0 {} 0 0 0 {} {}}
+
+    foreach {type val} [array get testValues] {
+        if {$type ni {string unistring winstring binary}} {
+            test arena-allocate-$type-0 "allocate $type" -setup {
+                cffi::arena pushframe
+            } -cleanup {
+                cffi::arena popframe
+            } -body {
+                set p [cffi::arena allocate $type]
+                cffi::memory set $p $type $val
+                cffi::memory get $p $type
+            } -result $val
+            if {$type in [list {*}$numericTypes struct.::StructValue]} {
+                # In array tests, use [lindex $type 0] since testValues contains
+                # "pointer unsafe" and we only want pointer
+                test arena-allocate-$type-array-0 "allocate $type array" -setup {
+                    cffi::arena pushframe
+                } -cleanup {
+                    cffi::arena popframe
+                } -body {
+                    set p [cffi::arena allocate $type\[2\]]
+                    cffi::memory set $p $type\[2\] [list $val $val]
+                    cffi::memory get $p $type\[2\]
+                } -result [list $val $val]
+            }
+        }
+    }
+
+    test arena-allocate-error-0 {Allocate zero bytes} -body {
+        list [catch {cffi::arena allocate 0} result] $result $::errorCode
+    } -result {1 {Invalid value "0". Allocation size argument must be a positive integer or a fixed size type specification.} {cffi INVALID_VALUE {Invalid value "0". Allocation size argument must be a positive integer or a fixed size type specification.}}}
+
+    test arena-allocate-badtype-0 "allocate bad type" -body {
+        cffi::arena allocate badtype
+    } -result {Invalid value "badtype". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
+
+    test arena-allocate-badtype-1 "allocate bad type - void" -body {
+        cffi::arena allocate void
+    } -result {Invalid value "void". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
+
+    test arena-allocate-badtype-2 "allocate varsize" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        cffi::arena allocate struct.S
+    } -result {Invalid value "struct.S". Allocation size argument must be a positive integer or a fixed size type specification.} -returnCodes error
 
 }
 

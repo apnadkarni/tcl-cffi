@@ -2,10 +2,11 @@
 # See LICENSE for license terms.
 
 namespace eval ${NS}::arena {
-    proc pushframe {size tag} {
+    proc pushframe {sizespec tag} {
         # Pushes a new stack frame on the memory arena.
-        #  size - size of memory to allocate in frame (optional)
-        #  tag - tag for returned pointer if $size is specified
+        #  sizespec - requested size of memory block. This may be specified
+        #   either as an integer value or a type specification (optional)
+        #  tag - tag for returned pointer if $size is specified (optional)
         # Synopsis: ?size?
         # Synopsis: size ?tag?
         #
@@ -13,8 +14,11 @@ namespace eval ${NS}::arena {
         # All allocations from this frame will stay valid only until the
         # corresponding call to [arena popframe].
         #
-        # If no arguments are specified, the command initializes an empty
-        # frame. Otherwise it allocates and returns a pointer to $size bytes within the frame.
+        # If no arguments are specified, the command initializes an empty frame.
+        # Otherwise it allocates storage of $sizespec bytes within the new frame
+        # and returns a pointer to it. The size $sizespec may be specified as a
+        # positive integer or a CFFI type declaration in which case the memory
+        # allocated is that of the type's size.
         #
         # Returns an empty string if not arguments were specified or a safe pointer.
         #
@@ -26,12 +30,16 @@ namespace eval ${NS}::arena {
         # All allocations from the popped frame are freed and pointers to
         # these unregistered.
     }
-    proc allocate {size {tag {}}} {
+    proc allocate {sizespec {tag {}}} {
         # Allocates memory in the current frame in the memory arena.
-        #  size - number of bytes to allocate
+        #  sizespec - requested size of memory block. This may be specified
+        #   either as an integer value or a type specification (optional)
         #  tag - tag for returned pointer
+        #
         # The allocated memory will stay allocated until the frame is destroyed
-        # with [arena popframe].
+        # with [arena popframe]. The size $sizespec may be specified as a
+        # positive integer or a CFFI type declaration in which case the memory
+        # allocated is that of the type's size.
         #
         # Returns a safe pointer to the allocation.
     }

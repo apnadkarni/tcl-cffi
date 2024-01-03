@@ -197,7 +197,7 @@ CffiArenaObjCmd(ClientData cdata,
 
     case PUSHFRAME:
         if (objc > 2) {
-            CHECK(Tclh_ObjToSizeInt(ip, objv[2], &size));
+            CHECK(CffiParseAllocationSize(ipCtxP, objv[2], &size));
         }
         CHECK(CffiArenaPushFrame(ipCtxP, size, &pv));
         if (size) {
