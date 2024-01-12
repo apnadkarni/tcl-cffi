@@ -12,12 +12,12 @@
 #define CFFI_VALID_INTEGER_ATTRS                                       \
     (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK             \
      | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
-     | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD)
+     | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD)
 
 /* Note string cannot be INOUT parameter */
 #define CFFI_VALID_STRING_ATTRS                                                \
     (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF \
-     | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_LASTERROR    \
+     | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_LASTERROR    \
      | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR | CFFI_F_ATTR_DISCARD)
 
 /*
@@ -89,19 +89,19 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_K_TYPE_FLOAT,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(float)},
     {TOKENANDLEN(double),
      DCSIG(DOUBLE),
      CFFI_K_TYPE_DOUBLE,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(double)},
     {TOKENANDLEN(struct),
      DCSIG(AGGREGATE),
      CFFI_K_TYPE_STRUCT,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NULLOK
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS
          | CFFI_F_ATTR_DISCARD,
      0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
@@ -109,7 +109,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(pointer),
      DCSIG(POINTER),
      CFFI_K_TYPE_POINTER,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NULLOK
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NOVALUECHECKS
          | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR
          | CFFI_F_ATTR_DISCARD,
      sizeof(void *)},
@@ -133,17 +133,17 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(chars),
      DCSIG(POINTER),
      CFFI_K_TYPE_CHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(char)},
     {TOKENANDLEN(unichars),
      DCSIG(POINTER),
      CFFI_K_TYPE_UNICHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(Tcl_UniChar)},
     {TOKENANDLEN(bytes),
      DCSIG(POINTER),
      CFFI_K_TYPE_BYTE_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(unsigned char)},
     {TOKENANDLEN(union), 0, CFFI_K_TYPE_UNION, 0, 0},
 #ifdef _WIN32
@@ -155,7 +155,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(winchars),
      DCSIG(POINTER),
      CFFI_K_TYPE_WINCHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLOK | CFFI_F_ATTR_MULTISZ
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_MULTISZ
          | CFFI_F_ATTR_DISCARD,
      sizeof(WCHAR)},
 #endif
@@ -185,10 +185,11 @@ enum cffiTypeAttrOpt {
     ENUM,
     BITMASK,
     ONERROR,
-    NULLOK,
+    NOVALUECHECKS,
     STRUCTSIZE,
     MULTISZ,
     DISCARD,
+    NULLOK,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -196,7 +197,7 @@ typedef struct CffiAttrs {
                                      some tokens are not attributes */
     int attrFlag;    /* Corresponding CFFI_F_ATTR flag / -1 if not attribute */
     char parseModes; /* Parse modes in which the attribute is valid */
-    char nAttrArgs;  /* Attribute arguments including itself */
+    char nAttrArgs;  /* Count of attribute arguments including itself */
 } CffiAttrs;
 static CffiAttrs cffiAttrs[] = {
     {"in", PARAM_IN, CFFI_F_ATTR_IN, CFFI_F_TYPE_PARSE_PARAM, 1},
@@ -252,7 +253,7 @@ static CffiAttrs cffiAttrs[] = {
     {"enum", ENUM, CFFI_F_ATTR_ENUM, CFFI_F_TYPE_PARSE_ALL, 2},
     {"bitmask", BITMASK, CFFI_F_ATTR_BITMASK, CFFI_F_TYPE_PARSE_ALL, 1},
     {"onerror", ONERROR, CFFI_F_ATTR_ONERROR, CFFI_F_TYPE_PARSE_ALL, 2},
-    {"nullok", NULLOK, CFFI_F_ATTR_NULLOK, CFFI_F_TYPE_PARSE_ALL, 1},
+    {"novaluechecks", NOVALUECHECKS, CFFI_F_ATTR_NOVALUECHECKS, CFFI_F_TYPE_PARSE_ALL, 1},
     {"structsize",
      STRUCTSIZE,
      CFFI_F_ATTR_STRUCTSIZE,
@@ -260,6 +261,7 @@ static CffiAttrs cffiAttrs[] = {
      1},
     {"multisz", MULTISZ, CFFI_F_ATTR_MULTISZ, CFFI_F_TYPE_PARSE_ALL, 1},
     {"discard", DISCARD, CFFI_F_ATTR_DISCARD, CFFI_F_TYPE_PARSE_RETURN, 1},
+    {"nullok", NULLOK, /* synonym */ -1, CFFI_F_TYPE_PARSE_ALL, 1},
     {NULL}};
 
 CffiResult
@@ -1213,7 +1215,8 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 typeAttrP->parseModeSpecificObj = fieldObjs[1];
             }
             break;
-        case NULLOK:
+        case NULLOK: /* FALLTHRU - synonym for NOVALUECHECKS */
+        case NOVALUECHECKS:
             if (baseType != CFFI_K_TYPE_POINTER
                 && baseType != CFFI_K_TYPE_ASTRING
                 && baseType != CFFI_K_TYPE_UNISTRING
@@ -1227,7 +1230,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             goto invalid_format;
             }
 
-            flags |= CFFI_F_ATTR_NULLOK;
+            flags |= CFFI_F_ATTR_NOVALUECHECKS;
             break;
         case STRUCTSIZE:
             if (typeAttrP->parseModeSpecificObj) {
@@ -1467,7 +1470,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 
     /* Checks that require all flags to have been set */
 
-    if (flags & CFFI_F_ATTR_NULLOK) {
+    if (flags & CFFI_F_ATTR_NOVALUECHECKS) {
         switch (baseType) {
             case CFFI_K_TYPE_POINTER:
             case CFFI_K_TYPE_ASTRING:
@@ -1480,7 +1483,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             default:
                 if (flags & CFFI_F_ATTR_BYREF)
                     break;
-                /* nullok only valid for pointers at the C level */
+                /* novaluechecks currently only valid for pointers at the C level */
                 message = "A type annotation is not valid for this data type without the byref annotation.";
                 goto invalid_format;
         }
@@ -2376,8 +2379,15 @@ CffiCheckPointer(Tcl_Interp *ip,
 {
     CffiAttrFlags flags = typeAttrsP->flags;
 
-    if (pointer || (flags & CFFI_F_ATTR_NULLOK))
+    if (flags & CFFI_F_ATTR_NOVALUECHECKS)
         return TCL_OK;
+#ifdef _WIN32
+    if (pointer != NULL && pointer != INVALID_HANDLE_VALUE)
+        return TCL_OK;
+#else
+    if (pointer)
+        return TCL_OK;
+#endif
     *sysErrorP =
         CffiGrabSystemError(typeAttrsP, (Tcl_WideInt)(intptr_t)pointer);
     return TCL_ERROR;
@@ -2473,7 +2483,7 @@ CffiPointerFromObj(CffiInterpCtx *ipCtxP,
         ip, ipCtxP->tclhCtxP, pointerObj, &pv, tagObj));
 
     if (pv == NULL) {
-        if ((typeAttrsP->flags & CFFI_F_ATTR_NULLOK) == 0) {
+        if ((typeAttrsP->flags & CFFI_F_ATTR_NOVALUECHECKS) == 0) {
             return Tclh_ErrorInvalidValue(ip, NULL, "Pointer is NULL.");
         }
     }

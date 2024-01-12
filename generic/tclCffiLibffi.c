@@ -365,7 +365,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
         if (valueP == NULL) {
             CffiStruct *structP;
             structP = typeAttrsP->dataType.u.structP;
-            if (!(typeAttrsP->flags & CFFI_F_ATTR_NULLOK) || CffiStructIsVariableSize(structP)) {
+            if (!(typeAttrsP->flags & CFFI_F_ATTR_NOVALUECHECKS) || CffiStructIsVariableSize(structP)) {
                 return Tclh_ErrorInvalidValue(
                     cbP->ipCtxP->interp,
                     NULL,

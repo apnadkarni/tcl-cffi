@@ -204,14 +204,14 @@ namespace eval ${NS}::test {
         }
         cffi::prototype function proto int [list s {struct.::S byref}]
         set caller callback_check_byref
-        testDll function $caller int {p {pointer unsafe nullok} fnptr pointer.proto}
+        testDll function $caller int {p {pointer unsafe novaluechecks} fnptr pointer.proto}
     } -body {
         set fnptr [cffi::callback new [namespace current]::proto [namespace current]::cb -1]
         # Should not crash but return the error value -1
         $caller NULL $fnptr
     } -result -1
 
-    test callback-new-struct-byref-null-1 "Pass NULL pointer to struct nullok by reference" -setup {
+    test callback-new-struct-byref-null-1 "Pass NULL pointer to struct novaluechecks by reference" -setup {
         cffi::prototype clear
         cffi::Struct create ::S {i int d double}
         proc [namespace current]::cb {s} {
@@ -219,16 +219,16 @@ namespace eval ${NS}::test {
                 return [expr {$i == 1 && $d == 2.0}]
             }
         }
-        cffi::prototype function proto int [list s {struct.::S byref nullok}]
+        cffi::prototype function proto int [list s {struct.::S byref novaluechecks}]
         set caller callback_check_byref
-        testDll function $caller int {p {pointer unsafe nullok} fnptr pointer.proto}
+        testDll function $caller int {p {pointer unsafe novaluechecks} fnptr pointer.proto}
     } -body {
         set fnptr [cffi::callback new [namespace current]::proto [namespace current]::cb -1]
         # Should not crash but return the error value -1
         $caller NULL $fnptr
     } -result -1
 
-    test callback-new-struct-byref-null-2 "Pass NULL pointer to struct with nullok, default by reference" -setup {
+    test callback-new-struct-byref-null-2 "Pass NULL pointer to struct with novaluechecks, default by reference" -setup {
         cffi::prototype clear
         cffi::Struct create ::S {i {int {default 1}} d {double {default 2}}} -clear
         proc [namespace current]::cb {s} {
@@ -236,9 +236,9 @@ namespace eval ${NS}::test {
                 return [expr {$i == 1 && $d == 2.0}]
             }
         }
-        cffi::prototype function proto int [list s {struct.::S byref nullok}]
+        cffi::prototype function proto int [list s {struct.::S byref novaluechecks}]
         set caller callback_check_byref
-        testDll function $caller int {p {pointer unsafe nullok} fnptr pointer.proto}
+        testDll function $caller int {p {pointer unsafe novaluechecks} fnptr pointer.proto}
     } -body {
         set fnptr [cffi::callback new [namespace current]::proto [namespace current]::cb -1]
         # Should not crash but return the result from default struct values

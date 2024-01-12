@@ -103,10 +103,11 @@ namespace eval Concepts {
         with an empty string indicating the end. (Windows MULTI_SZ format)
         `nonnegative` - Raise an exception if the function return value is negative.
         `nonzero` - Raise an exception if the function return values is zero.
+        `novaluechecks` - Disable value validity checks. The checks depend on the
+        value type. See discussion of specific types for its semantics.
         `nullifempty` - Treat the empty string or struct dictionary in a parameter
           or field as a NULL pointer. See [Strings as NULL pointers].
-        `nullok` - Do not raise an exception if a parameter, return value or field
-        is a NULL pointer. See [Null pointers].
+        `nullok` - Deprecated. Alias for `novaluechecks`.
         `onerror` - Specifies an error handler if a function return value indicates
           an error condition.
         `out` - marks a parameter as output-only from a function.
@@ -225,7 +226,7 @@ namespace eval Concepts {
         the length passed in the call.
 
         If the size argument used by a dynamic array type is passed as 0, an error
-        is raised unless the type declaration includes a `nullok` annotation. In
+        is raised unless the type declaration includes a `novaluechecks` annotation. In
         that case, the array pointer argument is passed as NULL to the function.
 
         In the above function, the `dwLen` parameter was an `in` parameter
@@ -465,17 +466,17 @@ namespace eval Concepts {
         function's error handling mechanisms. Similarly, an attempt to pass a
         null pointer to a function or store it as a field value in a C struct
         will raise an exception. This can be overridden by including the
-        `nullok` annotation on the function return, parameter or structure
+        `novaluechecks` annotation on the function return, parameter or structure
         fields type definition. For return values of type `string`, `unistring`
         and `winstring` with this annotation, an empty string is returned when
         the called function returns NULL. In case of structs that are returned
-        by reference, a `nullok` annotation will map a NULL return value to a
+        by reference, a `novaluechecks` annotation will map a NULL return value to a
         struct with default values for all fields. If any field does not have a
         default, an error is raised.
 
         Note that when returned as output parameters from a function,
         either directly or embedded as struct field, null pointers are
-        permitted even without the `nullok` annotation.
+        permitted even without the `novaluechecks` annotation.
 
         #### Memory operations
 
@@ -780,7 +781,7 @@ namespace eval Concepts {
         Annotations that may be applied to field type declarations include
 
         - [unsafe][Pointer safety], [counted][Pointer safety] and
-        [nullok][Null pointers] for pointer types
+        [novaluechecks][Invalid pointer values] for pointer types
         - [enum][Enumerations] and [bitmask][Type annotations] for integer types
         - [nullifempty][Strings as NULL pointers] for `string`, `unistring`
         and `winstring` types.
@@ -1409,12 +1410,13 @@ namespace eval Concepts {
         error condition.
 
         An error condition is also generated when a function returning a pointer
-        returns a null pointer. This is also true for `string`, `unistring` and
+        returns an null pointer or, *on Windows only*, the `INVALID_HANDLE_VALUE`
+        preprocessor constant. This is also true for `string`, `unistring` and
         `winstring` return types as well as `struct` types that are returned by
         reference since those are all pointers beneath the covers. This
         treatment of null pointers as errors can be overridden with the the
-        `nullok` annotation. If this annotation is specified and the function
-        returns a NULL pointer,
+        `novaluechecks` annotation. If this annotation is specified and the
+        function returns a NULL pointer,
 
         - for `pointer` types, the NULL pointer is returned to the caller
         - for `string`, `unistring` and `winstring` types, an empty string

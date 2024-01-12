@@ -218,7 +218,7 @@ typedef enum CffiAttrFlags {
     CFFI_F_ATTR_BYREF            = 0x00000008, /* Parameter is a reference */
     CFFI_F_ATTR_DISPOSE          = 0x00000010, /* Unregister the pointer */
     CFFI_F_ATTR_COUNTED          = 0x00000020, /* Counted safe pointer */
-    CFFI_F_ATTR_UNSAFE           = 0x00000040, /* Pointers need not be checked */
+    CFFI_F_ATTR_UNSAFE           = 0x00000040, /* Pointers need not be registered */
     CFFI_F_ATTR_DISPOSEONSUCCESS = 0x00000080, /* Unregister on success */
     CFFI_F_ATTR_ZERO             = 0x00000100, /* Must be zero/null */
     CFFI_F_ATTR_NONZERO          = 0x00000200, /* Must be nonzero/nonnull */
@@ -235,7 +235,7 @@ typedef enum CffiAttrFlags {
     CFFI_F_ATTR_ENUM             = 0x00100000, /* Use enum names */
     CFFI_F_ATTR_BITMASK          = 0x00200000, /* Treat as a bitmask */
     CFFI_F_ATTR_NULLIFEMPTY      = 0x00400000, /* Empty -> null pointer */
-    CFFI_F_ATTR_NULLOK           = 0x00800000, /* Null pointers allowed */
+    CFFI_F_ATTR_NOVALUECHECKS    = 0x00800000, /* No value validity checks */
     CFFI_F_ATTR_STRUCTSIZE       = 0x01000000, /* Field contains struct size */
     CFFI_F_ATTR_MULTISZ          = 0x02000000, /* Windows multisz */
 } CffiAttrFlags;

@@ -418,7 +418,7 @@ namespace eval cffi::test {
         # Scalar tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs nullifempty multisz] {
             testinvalidattr "$type $attr" param $errorMessages(attrtype)
-            if {$attr eq "nullok"} continue
+            if {$attr eq "novaluechecks"} continue
             testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
         }
         # Scalar tests - attributes invalid for param parse mode
@@ -613,9 +613,9 @@ namespace eval cffi::test {
             "out storealways" "out byref storealways"
             "inout storealways" "inout byref storealways"
             "inout storeonerror" "inout byref storeonerror"
-            "nullok" "in nullok"
-            "nullok out" "out byref nullok"
-            "nullok inout" "inout byref nullok"
+            "novaluechecks" "in novaluechecks"
+            "novaluechecks out" "out byref novaluechecks"
+            "novaluechecks inout" "inout byref novaluechecks"
             "in lasterror" "in"
             "in errno" "in"
             "in {onerror handler}" "in"
@@ -709,7 +709,7 @@ namespace eval cffi::test {
         testpointer $type field "unsafe"
         testpointer "$type counted" field "unsafe" ;# counted overridden in fields
         testpointer "$type unsafe" field "unsafe"
-        testpointer "$type nullok" field "unsafe nullok"
+        testpointer "$type novaluechecks" field "unsafe novaluechecks"
 
         # Error handling attributes should be ignored
         foreach attr [list {*}$pointer_valid_error_attrs [list {onerror handler}]] {
@@ -843,7 +843,7 @@ namespace eval cffi::test {
 
             # Invalid attributes for type
             foreach attr [list {*}$pointerAttrs {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
-                if {$attr eq "nullok"} continue; # Skip nullok from pointerAttrs
+                if {$attr eq "novaluechecks"} continue; # Skip novaluechecks from pointerAttrs
                 testinvalidattr [list $type\[2\] $attr] $parse_mode $errorMessages(attrtype)
             }
 
@@ -899,10 +899,10 @@ namespace eval cffi::test {
             "byref" "in byref"
             "byref in" "in byref"
             "byref out" "out byref"
-            "nullok" "in nullok"
-            "in nullok" "in nullok"
-            "byref nullok" "in byref nullok"
-            "out nullok" "out byref nullok"
+            "novaluechecks" "in novaluechecks"
+            "in novaluechecks" "in novaluechecks"
+            "byref novaluechecks" "in byref novaluechecks"
+            "out novaluechecks" "out byref novaluechecks"
             "in errno" "in"
             "in {onerror handler}" "in"
             "out errno" "out byref"
@@ -984,7 +984,7 @@ namespace eval cffi::test {
         foreach parse_mode {param return field} {
             # Scalar tests - invalid attributes for type
             foreach attr [list {*}$pointerAttrs {*}$requirementAttrs structsize winerror bitmask {{enum E}}] {
-                if {$attr ne "nullok"} {
+                if {$attr ne "novaluechecks"} {
                     testinvalidattr "$type $attr" $parse_mode $errorMessages(attrtype)
                 }
             }
@@ -1058,14 +1058,14 @@ namespace eval cffi::test {
                 "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
                 "in byref {default {}}" "in byref {default {}}"
                 "in byref nullifempty" "in byref nullifempty"
-                "in byref nullok" "in byref nullok"
+                "in byref novaluechecks" "in byref novaluechecks"
                 "retval" "out retval byref"
                 "out retval" "out retval byref"
             } {
                 teststruct "struct.::TestStruct $attrs" param $expected
             }
-            testinvalidattr "struct.TestStruct in nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
-            testinvalidattr "struct.TestStruct in nullok" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
+            testinvalidattr "struct.TestStruct in novaluechecks" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
+            testinvalidattr "struct.TestStruct in novaluechecks" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
 
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.} -constraints structbyval
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
@@ -1077,9 +1077,9 @@ namespace eval cffi::test {
             if {$parse_mode eq "return"} {
                 teststruct "struct.::TestStruct" $parse_mode "" 0 -constraints structbyval
                 teststruct "struct.::TestStruct byref" $parse_mode "byref" 0
-                teststruct "struct.::TestStruct nullok byref" $parse_mode "byref nullok" 0
-                testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
-                testinvalidattr "struct.TestStruct nullok" $parse_mode $errorMessages(typeparsemode) -constraints !structbyval
+                teststruct "struct.::TestStruct novaluechecks byref" $parse_mode "byref novaluechecks" 0
+                testinvalidattr "struct.TestStruct novaluechecks" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
+                testinvalidattr "struct.TestStruct novaluechecks" $parse_mode $errorMessages(typeparsemode) -constraints !structbyval
             } else {
                 teststruct "struct.::TestStruct" $parse_mode ""
                 testinvalidattr "struct.TestStruct byref" $parse_mode $errorMessages(attrparsemode)
@@ -1095,17 +1095,17 @@ namespace eval cffi::test {
         }
         # Scalar tests - invalid attributes for type
         foreach attr [list {*}$pointerAttrs {*}$errorAttrs structsize bitmask multisz {{enum E}}] {
-            if {$attr ne "nullok"} {
+            if {$attr ne "novaluechecks"} {
                 testinvalidattr "struct.TestStruct $attr" $parse_mode $errorMessages(attrtype)
             }
         }
-        testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
+        testinvalidattr "struct.TestStruct novaluechecks" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
         if {$parse_mode eq "return"} {
-            testinvalidattr "struct.TestStruct nullok" $parse_mode $errorMessages(typeparsemode) -constraints !structbyval -match glob
+            testinvalidattr "struct.TestStruct novaluechecks" $parse_mode $errorMessages(typeparsemode) -constraints !structbyval -match glob
         } elseif {$parse_mode eq "field"} {
-            testinvalidattr "struct.TestStruct nullok" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints !structbyval -match glob
+            testinvalidattr "struct.TestStruct novaluechecks" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints !structbyval -match glob
         } else {
-            testinvalidattr "struct.TestStruct nullok" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
+            testinvalidattr "struct.TestStruct novaluechecks" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
         }
 
         # Array tests

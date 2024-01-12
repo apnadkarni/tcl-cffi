@@ -911,18 +911,18 @@ namespace eval cffi::test {
 
     ###
     # pointer handling in fields
-    test struct-pointer-nullok-0 "NULL pointer in field" -body {
-        cffi::Struct create S {p {pointer nullok unsafe}}
+    test struct-pointer-novaluechecks-0 "NULL pointer in field" -body {
+        cffi::Struct create S {p {pointer novaluechecks unsafe}}
         S frombinary [S tobinary [list p [makeptr 0]]]
     } -result [list p [makeptr 0]]
 
-    test struct-pointer-nullok-1 "NULL pointer in field" -body {
+    test struct-pointer-novaluechecks-1 "NULL pointer in field" -body {
         cffi::Struct create S {p {pointer unsafe}}
         S frombinary [S tobinary [list p [makeptr 0]]]
     } -result {Invalid value. Pointer is NULL. Error converting field ::cffi::test::S.p to a native value.} -returnCodes error
 
-    test struct-pointer-nullok-2 "NULL pointer in output field" -body {
-        cffi::Struct create S {p {pointer nullok unsafe}}
+    test struct-pointer-novaluechecks-2 "NULL pointer in output field" -body {
+        cffi::Struct create S {p {pointer novaluechecks unsafe}}
         cffi::Struct create S2 {p {pointer unsafe}}
         S2 frombinary [S tobinary [list p [makeptr 0]]]
     } -result [list p [makeptr 0]]

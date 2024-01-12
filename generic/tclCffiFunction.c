@@ -828,13 +828,13 @@ pass_null_array:
     /* Zero size array, pass as NULL */
     CFFI_ASSERT(argP->arraySize == 0);
     CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-    if ((flags & CFFI_F_ATTR_NULLOK) == 0) {
+    if ((flags & CFFI_F_ATTR_NOVALUECHECKS) == 0) {
         if (valueObjNeedsDecr)
             Tcl_DecrRefCount(valueObj);
         return Tclh_ErrorGeneric(ip,
                                  NULL,
                                  "Passing a zero size array requires "
-                                 "the nullok annotation.");
+                                 "the novaluechecks annotation.");
     }
     argP->value.u.ptr = NULL;
     STOREARGBYVAL(CffiStoreArgPointer, ptr);

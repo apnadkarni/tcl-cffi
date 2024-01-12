@@ -156,8 +156,8 @@ namespace eval cffi::test {
 
 
     variable paramDirectionAttrs {in out inout}
-    variable pointerAttrs {nullok unsafe dispose counted}
-    variable stringAttrs {nullok nullifempty}
+    variable pointerAttrs {novaluechecks unsafe dispose counted}
+    variable stringAttrs {novaluechecks nullifempty}
     variable requirementAttrs {zero nonzero nonnegative positive}
     variable errorHandlerAttrs {errno}
     if {$::tcl_platform(platform) eq "windows"} {
