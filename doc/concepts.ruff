@@ -455,7 +455,7 @@ namespace eval Concepts {
         [::cffi::pointer safe], [::cffi::pointer counted] and
         [::cffi::pointer dispose] commands.
 
-        #### Null pointers
+        #### Invalid pointer values
 
         At the script level, a null pointers is any pointer whose address
         component is 0. The token `NULL` may also be used for this purpose.
@@ -1392,7 +1392,7 @@ namespace eval Concepts {
 
         #### Error annotations
 
-        Two additional sets of type annotations are provided to solve these
+        Additional sets of type annotations are provided to solve these
         issues. The first set of annotations is used to define the error check
         conditions to be applied to function return values. The second set is
         used to specify how the error detail is to be retrieved.
@@ -1491,6 +1491,14 @@ namespace eval Concepts {
         can also be specified for parameters and struct fields where they are
         silently ignored. This is to permit the same type alias (e.g. status codes)
         to be used in all three declaration contexts.
+
+        One final annotation related to error handling is `saveerrors`. This is
+        provided to deal with functions that do not return an error status but
+        rely on the caller checking `errno` or `GetLastError()` after the call.
+        This annotation can be added to any return type. If present, the `errno`
+        value and `GetLastError()` value on Windows are saved internally after
+        the CFFI call and can then be retrieved with the [::cffi::savederrors]
+        command.
 
         #### Errors and output parameters
 

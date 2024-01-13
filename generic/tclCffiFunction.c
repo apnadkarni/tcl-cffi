@@ -1821,6 +1821,23 @@ CffiFunctionCall(ClientData cdata,
         CFFI_ASSERT(callCtx.nArgs == nActualArgs);
     }
 
+#ifdef _WIN32
+#define SAVEERROR()                                                       \
+    do {                                                                  \
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_SAVEERROR) { \
+            ipCtxP->savedWinError = GetLastError();                       \
+            ipCtxP->savedErrno    = errno;                                \
+        }                                                                 \
+    } while (0)
+#else
+#define SAVEERROR()                                                       \
+    do {                                                                  \
+        if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_SAVEERROR) { \
+            ipCtxP->savedErrno = errno;                                   \
+        }                                                                 \
+    } while (0)
+#endif
+
     /*
      * A note on pointer disposal - pointers must be disposed of AFTER the
      * function is invoked (since success/fail control disposal) but BEFORE
@@ -1852,6 +1869,7 @@ CffiFunctionCall(ClientData cdata,
         }                                                                      \
         else                                                                   \
             cretval.u.fld_ = dcfn_(&callCtx);                                  \
+        SAVEERROR();                                                           \
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_REQUIREMENT_MASK) \
             fnCheckRet = CffiCheckNumeric(                                     \
                 ip, &protoP->returnType.typeAttrs, &cretval, &sysError);       \
@@ -1879,6 +1897,7 @@ CffiFunctionCall(ClientData cdata,
     switch (protoP->returnType.typeAttrs.dataType.baseType) {
     case CFFI_K_TYPE_VOID:
         CffiCallVoidFunc(&callCtx);
+        SAVEERROR();
         CffiPointerArgsDispose(
             ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);
         if (!discardResult)
@@ -1927,6 +1946,7 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_WINSTRING:
 #endif
         pointer = CffiCallPointerFunc(&callCtx);
+        SAVEERROR();
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {
             if (pointer)
                 pointer = *(void **)pointer; /* By ref so dereference */
@@ -1988,6 +2008,7 @@ CffiFunctionCall(ClientData cdata,
     case CFFI_K_TYPE_STRUCT:
         if (protoP->returnType.typeAttrs.flags & CFFI_F_ATTR_BYREF) {
             pointer = CffiCallPointerFunc(&callCtx);
+            SAVEERROR();
             fnCheckRet = CffiCheckPointer(
                 ip, &protoP->returnType.typeAttrs, pointer, &sysError);
             CffiPointerArgsDispose(ipCtxP, callCtx.nArgs, callCtx.argsP, fnCheckRet);
@@ -2023,6 +2044,7 @@ CffiFunctionCall(ClientData cdata,
                        protoP->returnType.typeAttrs.dataType.u.structP->dcAggrP,
                        callCtx.retValueP);
 # endif
+            SAVEERROR();
             pointer = callCtx.retValueP;
 #else
             (void)Tclh_ErrorInvalidValue(

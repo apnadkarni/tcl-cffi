@@ -198,6 +198,25 @@ CffiLimitsObjCmd(ClientData cdata,
 }
 
 static CffiResult
+CffiSavedErrorsObjCmd(ClientData cdata,
+                      Tcl_Interp *ip,
+                      int objc,
+                      Tcl_Obj *const objv[])
+{
+    CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
+    Tcl_Obj *objs[2];
+    objs[0] = Tcl_NewWideIntObj(ipCtxP->savedErrno);
+#ifdef _WIN32
+    objs[1] = Tcl_NewWideIntObj(ipCtxP->savedWinError);
+#else
+    objs[1] = Tcl_NewWideIntObj(0);
+#endif
+    Tcl_SetObjResult(ip, Tcl_NewListObj(2, objs));
+    return TCL_OK;
+}
+
+
+static CffiResult
 CffiSandboxObjCmd(ClientData cdata,
                   Tcl_Interp *ip,
                   int objc,
@@ -254,7 +273,7 @@ CffiInterpCtxAllocAndInit(Tcl_Interp *ip, CffiInterpCtx **ipCtxPP)
     ipCtxP->interp = ip;
 
     /* Set up memlifo before anything else */
-    /* TBD - size 16000 too much? */
+    /* TBD - size 16000 too much? too little? */
     if (Tclh_LifoInit(
             &ipCtxP->memlifo, NULL, NULL, 16000, TCLH_LIFO_PANIC_ON_FAIL)
         != 0) {
@@ -367,6 +386,8 @@ Cffi_Init(Tcl_Interp *ip)
         ip, CFFI_NAMESPACE "::limits", CffiLimitsObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::arena", CffiArenaObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::savederrors", CffiSavedErrorsObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::sandbox", CffiSandboxObjCmd, NULL, NULL);
 

@@ -163,6 +163,8 @@ cffi - Commands in namespace cffi
 .br
 \fBprototype stdcall\fP \fIname fntype parameters\fP
 .br
+\fBsavederrors\fP
+.br
 \fBtype\fP \fIsubcommand \&.\&.\&.\fP
 .br
 \fBtype count\fP \fItype\fP
@@ -2690,6 +2692,24 @@ See \fIPrototypes and function pointers\fP for more details\&.
 \fBSee also\fR
 .PP
 \fI::cffi::Wrapper\&.stdcall\fP
+.PP
+.RS -4n
+\fBsavederrors\fR (::cffi)
+.RE
+.PP
+Return errno and GetLastError() values from the last
+CFFI call annotated with saveerrors\&.
+.RS 4n\fBsavederrors\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+For functions annotated with saveerrors, CFFI internally saves the
+errno and (on Windows) GetLastError() values\&. The savederrors
+command retrieves these as a pair with the first element being the
+saved errno value and the second the GetLastError() result\&. The
+latter is always 0 on non-Windows platforms\&.
 .PP
 .RS -4n
 \fBtype\fR (::cffi)

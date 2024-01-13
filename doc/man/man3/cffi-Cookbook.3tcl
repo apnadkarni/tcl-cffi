@@ -82,7 +82,9 @@ Note WINAPI in the Windows SDK headers maps to __stdcall\&.
 .PP
 .RS 4n
 .nf
-void
+     +-          -+
+void | saveerrors |
+     +-          -+
 
 \fISyntax for void return type\fP
 
@@ -113,14 +115,14 @@ LIBC function tzset void {}
 .PP
 .RS 4n
 .nf
-           +-       +-      -+ -+ +-     -+ +-          -+ +-                 -+ -+
-schar      |{enum E}|bitmask|   | |discard| | zero       | | lasterror         |  |
-uchar      |        +-      -+  | +-     -+ | nonzero    | | winerror          |  |
-short      +-                  -+           | positive   | | errno             |  |
+          +-        +-      -+ -+ +-     -+ +-          -+ +-                 -+ -+
+schar     |{enum E} |bitmask |  | |discard| | zero       | | lasterror         |  |
+uchar     |         +-      -+  | +-     -+ | nonzero    | | winerror          |  |
+short     +-                   -+           | positive   | | errno             |  |
 ushort                                      | nonnegative| | {onerror HANDLER} |  |
-int                                         |           -+ +-                 -+  |
-uint                                        +-                                   -+
-long
+int                                         |           -+ | saveerrors        |  |
+uint                                        |              +-                 -+  |
+long                                        +-                                   -+
 ulong
 longlong
 ulonglong
@@ -141,6 +143,9 @@ If return values may indicate error conditions, add an error checking annotation
 .TP
 \(bu
 If a error checking annotation is added and additional detail is available from the system, add lasterror, winerror or errno as appropriate\&. If error information is available through some other API, add the onerror handler\&. This may also be used to filter errors or convert error conditions to success\&.
+.TP
+\(bu
+If error conditions are not detectable from the return value but the function expects caller to check errno or GetLastError() after the call returns, add the saveerrors annotation instead of the above\&. Then call \fI::cffi::savederrors\fP to retrieve or check for errors\&.
 .TP
 \(bu
 If the return value is simply a boolean indicating success or failure, include the discard annotation to have an empty string returned on success\&. Note this does not affect exceptions raised on error\&.
@@ -230,6 +235,7 @@ pointer       | counted| | nullok            |
 pointer\&.TAG   | unsafe | | lasterror         |
               +-      -+ | errno             |
                          | {onerror HANDLER} |
+                         | saveerrors        |
                          +-                 -+
 
 \fISyntax for raw pointer return type\fP
@@ -245,6 +251,9 @@ By default, pointers returned from functions are marked as \fIsafe pointers\fP\&
 .TP
 \(bu
 Irrespective of the pointer safety annotations, NULL pointers returned from functions will by default raise a generic \fIPointer is NULL\fP exception\&. As for integer return values, if additional information is available from the system or API, the type can be annoted with lasterror, errno or onerror\&. On the other hand, if a NULL pointer is a valid return value, the nullok annotation will suppress the exception and return a NULL pointer at the script level\&.
+.TP
+\(bu
+If error conditions are not detectable from the return value but the function expects caller to check errno or GetLastError() after the call returns, add the saveerrors annotation instead of the above\&. Then call \fI::cffi::savederrors\fP to retrieve or check for errors\&.
 .PP
 \fBExamples\fP
 .PP

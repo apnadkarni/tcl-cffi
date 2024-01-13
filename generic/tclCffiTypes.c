@@ -9,16 +9,18 @@
 #include "tclCffiInt.h"
 #include <errno.h>
 
-#define CFFI_VALID_INTEGER_ATTRS                                       \
-    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK             \
-     | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM | CFFI_F_ATTR_BITMASK \
-     | CFFI_F_ATTR_STRUCTSIZE | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD)
+#define CFFI_VALID_INTEGER_ATTRS                                         \
+    (CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_REQUIREMENT_MASK               \
+     | CFFI_F_ATTR_SAVEERROR | CFFI_F_ATTR_ERROR_MASK | CFFI_F_ATTR_ENUM \
+     | CFFI_F_ATTR_BITMASK | CFFI_F_ATTR_STRUCTSIZE                      \
+     | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD)
 
 /* Note string cannot be INOUT parameter */
 #define CFFI_VALID_STRING_ATTRS                                                \
     (CFFI_F_ATTR_IN | CFFI_F_ATTR_OUT | CFFI_F_ATTR_RETVAL | CFFI_F_ATTR_BYREF \
-     | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_LASTERROR    \
-     | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR | CFFI_F_ATTR_DISCARD)
+     | CFFI_F_ATTR_SAVEERROR | CFFI_F_ATTR_NULLIFEMPTY                         \
+     | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO   \
+     | CFFI_F_ATTR_ONERROR | CFFI_F_ATTR_DISCARD)
 
 /*
  * Basic type meta information. The order *MUST* match the order in
@@ -33,7 +35,11 @@
 #endif
 
 const struct CffiBaseTypeInfo cffiBaseTypes[] = {
-    {TOKENANDLEN(void), DCSIG(VOID), CFFI_K_TYPE_VOID, 0, 0},
+    {TOKENANDLEN(void),
+     DCSIG(VOID),
+     CFFI_K_TYPE_VOID,
+     CFFI_F_ATTR_SAVEERROR,
+     0},
     {TOKENANDLEN(schar),
      DCSIG(CHAR),
      CFFI_K_TYPE_SCHAR,
@@ -89,29 +95,31 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_K_TYPE_FLOAT,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAVEERROR | CFFI_F_ATTR_NOVALUECHECKS
+         | CFFI_F_ATTR_DISCARD,
      sizeof(float)},
     {TOKENANDLEN(double),
      DCSIG(DOUBLE),
      CFFI_K_TYPE_DOUBLE,
      /* Note NUMERIC left out of float and double for now as the same error
         checks do not apply */
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAVEERROR | CFFI_F_ATTR_NOVALUECHECKS
+         | CFFI_F_ATTR_DISCARD,
      sizeof(double)},
     {TOKENANDLEN(struct),
      DCSIG(AGGREGATE),
      CFFI_K_TYPE_STRUCT,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS
-         | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY
+         | CFFI_F_ATTR_SAVEERROR | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      0},
     /* For pointer, only LASTERROR/ERRNO make sense for reporting errors */
     /*  */
     {TOKENANDLEN(pointer),
      DCSIG(POINTER),
      CFFI_K_TYPE_POINTER,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK | CFFI_F_ATTR_NOVALUECHECKS
-         | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO | CFFI_F_ATTR_ONERROR
-         | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_SAFETY_MASK
+         | CFFI_F_ATTR_SAVEERROR | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_LASTERROR | CFFI_F_ATTR_ERRNO
+         | CFFI_F_ATTR_ONERROR | CFFI_F_ATTR_DISCARD,
      sizeof(void *)},
     {TOKENANDLEN(string),
      DCSIG(STRING),
@@ -190,6 +198,7 @@ enum cffiTypeAttrOpt {
     MULTISZ,
     DISCARD,
     NULLOK,
+    SAVEERROR,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -262,6 +271,7 @@ static CffiAttrs cffiAttrs[] = {
     {"multisz", MULTISZ, CFFI_F_ATTR_MULTISZ, CFFI_F_TYPE_PARSE_ALL, 1},
     {"discard", DISCARD, CFFI_F_ATTR_DISCARD, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"nullok", NULLOK, /* synonym */ -1, CFFI_F_TYPE_PARSE_ALL, 1},
+    {"saveerrors", SAVEERROR, CFFI_F_ATTR_SAVEERROR, CFFI_F_TYPE_PARSE_RETURN, 1},
     {NULL}};
 
 CffiResult
@@ -1248,6 +1258,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             break;
         case DISCARD:
             flags |= CFFI_F_ATTR_DISCARD;
+            break;
+        case SAVEERROR:
+            flags |= CFFI_F_ATTR_SAVEERROR;
             break;
         }
     }
@@ -2926,10 +2939,9 @@ CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_S
  */
 CffiResult
 CffiCheckNumeric(Tcl_Interp *ip,
-                  const CffiTypeAndAttrs *typeAttrsP,
-                  CffiValue *valueP,
-                  Tcl_WideInt *sysErrorP
-                  )
+                 const CffiTypeAndAttrs *typeAttrsP,
+                 CffiValue *valueP,
+                 Tcl_WideInt *sysErrorP)
 {
     CffiAttrFlags flags = typeAttrsP->flags;
     int is_signed;

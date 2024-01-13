@@ -3510,6 +3510,22 @@ namespace eval ${NS}::test {
     } -body {
         list [::ns::int_to_int 65537]
     } -result 65537
+
+    ###
+    # saveerror
+    test function-savederrors-errno-0 "savederror errno" -setup {
+        testDll function setErrno [list int saveerrors] {val int}
+    } -body {
+        list [setErrno 42] [lindex [cffi::savederrors] 0]
+    } -result {42 22}
+
+    test function-savederrors-lasterror-0 "savederror lasterror" -setup {
+        testDll function setWinError [list int saveerrors] {val int}
+    } -body {
+        list [setWinError 42] [lindex [cffi::savederrors] 1]
+    } -result {42 13}
+
+
 }
 
 ${NS}::test::testDll destroy

@@ -132,11 +132,14 @@ Raise an exception if the function return value is negative\&.
 nonzero
 Raise an exception if the function return values is zero\&.
 .TP
+novaluechecks
+Disable value validity checks\&. The checks depend on the value type\&. See discussion of specific types for its semantics\&.
+.TP
 nullifempty
 Treat the empty string or struct dictionary in a parameter or field as a NULL pointer\&. See \fIStrings as NULL pointers\fP\&.
 .TP
 nullok
-Do not raise an exception if a parameter, return value or field is a NULL pointer\&. See \fINull pointers\fP\&.
+Deprecated\&. Alias for novaluechecks\&.
 .TP
 onerror
 Specifies an error handler if a function return value indicates an error condition\&.
@@ -308,7 +311,7 @@ This ensures a buffer of the correct size is passed to the function based on
 the length passed in the call\&.
 .PP
 If the size argument used by a dynamic array type is passed as 0, an error
-is raised unless the type declaration includes a nullok annotation\&. In
+is raised unless the type declaration includes a novaluechecks annotation\&. In
 that case, the array pointer argument is passed as NULL to the function\&.
 .PP
 In the above function, the dwLen parameter was an in parameter
@@ -559,7 +562,7 @@ explicitly control pointer registration or with the \fI::cffi::pointer check\fP,
 \fI::cffi::pointer safe\fP, \fI::cffi::pointer counted\fP and
 \fI::cffi::pointer dispose\fP commands\&.
 .PP
-\fBNull pointers\fR
+\fBInvalid pointer values\fR
 .PP
 At the script level, a null pointers is any pointer whose address
 component is 0\&. The token NULL may also be used for this purpose\&.
@@ -570,17 +573,17 @@ result that is a null pointer is treated as an error and triggers the
 function's error handling mechanisms\&. Similarly, an attempt to pass a
 null pointer to a function or store it as a field value in a C struct
 will raise an exception\&. This can be overridden by including the
-nullok annotation on the function return, parameter or structure
+novaluechecks annotation on the function return, parameter or structure
 fields type definition\&. For return values of type string, unistring
 and winstring with this annotation, an empty string is returned when
 the called function returns NULL\&. In case of structs that are returned
-by reference, a nullok annotation will map a NULL return value to a
+by reference, a novaluechecks annotation will map a NULL return value to a
 struct with default values for all fields\&. If any field does not have a
 default, an error is raised\&.
 .PP
 Note that when returned as output parameters from a function,
 either directly or embedded as struct field, null pointers are
-permitted even without the nullok annotation\&.
+permitted even without the novaluechecks annotation\&.
 .PP
 \fBMemory operations\fR
 .PP
@@ -880,7 +883,7 @@ values to fields\&.
 Annotations that may be applied to field type declarations include
 .TP
 \(bu
-\fIunsafe\fP, \fIcounted\fP and \fInullok\fP for pointer types
+\fIunsafe\fP, \fIcounted\fP and \fInovaluechecks\fP for pointer types
 .TP
 \(bu
 \fIenum\fP and \fIbitmask\fP for integer types
@@ -1446,7 +1449,7 @@ Tcl interpreter returns to the script level\&.
 .PP
 \fBError annotations\fR
 .PP
-Two additional sets of type annotations are provided to solve these
+Additional sets of type annotations are provided to solve these
 issues\&. The first set of annotations is used to define the error check
 conditions to be applied to function return values\&. The second set is
 used to specify how the error detail is to be retrieved\&.
@@ -1473,12 +1476,13 @@ whether it satisfies the condition\&. Failure to do so is treated as an
 error condition\&.
 .PP
 An error condition is also generated when a function returning a pointer
-returns a null pointer\&. This is also true for string, unistring and
+returns an null pointer or, \fIon Windows only\fP, the INVALID_HANDLE_VALUE
+preprocessor constant\&. This is also true for string, unistring and
 winstring return types as well as struct types that are returned by
 reference since those are all pointers beneath the covers\&. This
 treatment of null pointers as errors can be overridden with the the
-nullok annotation\&. If this annotation is specified and the function
-returns a NULL pointer,
+novaluechecks annotation\&. If this annotation is specified and the
+function returns a NULL pointer,
 .TP
 \(bu
 for pointer types, the NULL pointer is returned to the caller
@@ -1551,6 +1555,14 @@ annotations have effect only with respect to function return values, they
 can also be specified for parameters and struct fields where they are
 silently ignored\&. This is to permit the same type alias (e\&.g\&. status codes)
 to be used in all three declaration contexts\&.
+.PP
+One final annotation related to error handling is saveerrors\&. This is
+provided to deal with functions that do not return an error status but
+rely on the caller checking errno or GetLastError() after the call\&.
+This annotation can be added to any return type\&. If present, the errno
+value and GetLastError() value on Windows are saved internally after
+the CFFI call and can then be retrieved with the \fI::cffi::savederrors\fP
+command\&.
 .PP
 \fBErrors and output parameters\fR
 .PP

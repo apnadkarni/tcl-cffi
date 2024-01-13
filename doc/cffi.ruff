@@ -34,6 +34,17 @@ namespace eval $NS {
         # Returns a pair containing the minimum and maximum values
         # for the specified type.
     }
+
+    proc savederrors {} {
+        # Return `errno` and `GetLastError()` values from the last
+        # CFFI call annotated with `saveerrors`.
+        #
+        # For functions annotated with `saveerrors`, CFFI internally saves the
+        # `errno` and (on Windows) `GetLastError()` values. The `savederrors`
+        # command retrieves these as a pair with the first element being the
+        # saved `errno` value and the second the `GetLastError()` result. The
+        # latter is always 0 on non-Windows platforms.
+    }
 }
 
 namespace eval ${NS}::pkgconfig {

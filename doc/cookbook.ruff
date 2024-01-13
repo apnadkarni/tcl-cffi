@@ -66,7 +66,9 @@ namespace eval Cookbook {
         #### Void returns
 
         ``` -caption "Syntax for void return type" diagram
-        void
+             +-          -+
+        void | saveerrors |
+             +-          -+
         ```
 
         The `void` return type does not permit any annotations.
@@ -88,14 +90,14 @@ namespace eval Cookbook {
         #### Integer returns
 
         ``` -caption "Syntax for integer return types" diagram
-                   +-       +-      -+ -+ +-     -+ +-          -+ +-                 -+ -+
-        schar      |{enum E}|bitmask|   | |discard| | zero       | | lasterror         |  |
-        uchar      |        +-      -+  | +-     -+ | nonzero    | | winerror          |  |
-        short      +-                  -+           | positive   | | errno             |  |
+                  +-        +-      -+ -+ +-     -+ +-          -+ +-                 -+ -+
+        schar     |{enum E} |bitmask |  | |discard| | zero       | | lasterror         |  |
+        uchar     |         +-      -+  | +-     -+ | nonzero    | | winerror          |  |
+        short     +-                   -+           | positive   | | errno             |  |
         ushort                                      | nonnegative| | {onerror HANDLER} |  |
-        int                                         |           -+ +-                 -+  |
-        uint                                        +-                                   -+
-        long
+        int                                         |           -+ | saveerrors        |  |
+        uint                                        |              +-                 -+  |
+        long                                        +-                                   -+
         ulong
         longlong
         ulonglong
@@ -118,6 +120,11 @@ namespace eval Cookbook {
         as appropriate. If error information is available through some other
         API, add the `onerror` handler. This may also be used to filter errors
         or convert error conditions to success.
+
+        * If error conditions are not detectable from the return value but the
+        function expects caller to check `errno` or `GetLastError()` after the
+        call returns, add the `saveerrors` annotation instead of the above.
+        Then call [::cffi::savederrors] to retrieve or check for errors.
 
         * If the return value is simply a boolean indicating success or failure,
         include the `discard` annotation to have an empty string returned on success.
@@ -199,6 +206,7 @@ namespace eval Cookbook {
         pointer.TAG   | unsafe | | lasterror         |
                       +-      -+ | errno             |
                                  | {onerror HANDLER} |
+                                 | saveerrors        |
                                  +-                 -+
         ```
 
@@ -234,6 +242,11 @@ namespace eval Cookbook {
         or `onerror`. On the other hand, if a NULL pointer is a valid return
         value, the `nullok` annotation will suppress the exception and return
         a NULL pointer at the script level.
+
+        * If error conditions are not detectable from the return value but the
+        function expects caller to check `errno` or `GetLastError()` after the
+        call returns, add the `saveerrors` annotation instead of the above.
+        Then call [::cffi::savederrors] to retrieve or check for errors.
 
         **Examples**
 

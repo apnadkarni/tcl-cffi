@@ -165,7 +165,7 @@ namespace eval cffi::test {
         lappend errorHandlerAttrs winerror lasterror
     }
     variable errorAttrs [concat $requirementAttrs $errorHandlerAttrs]
-    variable typeAttrs [concat $paramDirectionAttrs $pointerAttrs $errorAttrs byref]
+    variable typeAttrs [concat $paramDirectionAttrs $pointerAttrs $errorAttrs byref saveerror]
 
     variable invalidFieldAttrs [list {*}$paramDirectionAttrs retval byref storeonerror storealways]
 

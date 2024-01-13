@@ -238,6 +238,7 @@ typedef enum CffiAttrFlags {
     CFFI_F_ATTR_NOVALUECHECKS    = 0x00800000, /* No value validity checks */
     CFFI_F_ATTR_STRUCTSIZE       = 0x01000000, /* Field contains struct size */
     CFFI_F_ATTR_MULTISZ          = 0x02000000, /* Windows multisz */
+    CFFI_F_ATTR_SAVEERROR        = 0x04000000, /* Save error codes after call */
 } CffiAttrFlags;
 
 /*
@@ -422,6 +423,11 @@ typedef struct CffiInterpCtx {
     struct CffiArenaFrame *arenaFrameP; /* Top of arena frame chain */
 
     Tclh_LibContext *tclhCtxP;
+
+    int savedErrno;
+#ifdef _WIN32
+    DWORD savedWinError;
+#endif
 } CffiInterpCtx;
 
 /* Context for dll commands. */
