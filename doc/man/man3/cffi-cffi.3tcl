@@ -2484,6 +2484,10 @@ tag\&.
 See \fIPointers\fP for more on pointer
 safety and registration\&.
 .PP
+\fBReturn value\fR
+.PP
+Returns the registered pointer\&.
+.PP
 .RS -4n
 \fBpointer tag\fR (::cffi)
 .RE

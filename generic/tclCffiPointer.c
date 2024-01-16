@@ -210,8 +210,12 @@ CffiPointerObjCmd(ClientData cdata,
         }
         return ret;
     case COUNTED:
-        return Tclh_PointerRegisterCounted(
+        ret = Tclh_PointerRegisterCounted(
             ip, ipCtxP->tclhCtxP, pv, objP, NULL);
+        if (ret == TCL_OK) {
+            Tcl_SetObjResult(ip, objv[2]);
+        }
+        return ret;
     case DISPOSE:
         if (pv)
             return Tclh_PointerUnregister(

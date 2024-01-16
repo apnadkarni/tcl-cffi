@@ -838,7 +838,7 @@ cffi::call $fnptr 1 2
 <li>Invoking the outer function</li>
 <li>Freeing the callback function pointer with <a href="cffi-cffi.html#::cffi::callback free" title="::cffi::callback free" class='ruff_cmd'>::cffi::callback free</a> when no longer needed. Note it may be used multiple times before freeing.</li>
 </ul>
-<p class='ruff'>Currently callbacks are only supported with the <code>libffi</code> backend. Moreover, callbacks cannot take a variable number of arguments.</p>
+<p class='ruff'>Callbacks cannot take a variable number of arguments.</p>
 <p class='ruff'><strong>Warning:</strong> CFFI callbacks can only be used when the called function invokes them before returning. They are not suitable in cases where the callback is called at a later time after the function returns. Doing so will likely result in a crash.</p>
 <p class='ruff'>Use of callbacks is illustrated below for the <code>ftw</code> function available on some platforms to iterate through files and directories. The C declaration of the function is</p>
 

@@ -66,6 +66,8 @@ namespace eval ${NS}::pointer {
         # is raised if the pointer is NULL or already registered as
         # an uncounted pointer.
         #
+        # Returns the registered pointer.
+        #
         # See [Pointers][::Concepts::Pointers] for more on counted
         # pointers and registration.
     }

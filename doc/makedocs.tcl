@@ -3,6 +3,11 @@
 
 package require ruff
 
+set env(JAVA_HOME) {D:\src\jdk-17.0.4.1}
+set env(JDK_HOME) $env(JAVA_HOME)
+set env(CLASSPATH) ".;$env(JAVA_HOME)\\lib;$env(JAVA_HOME)\\jre\\lib"
+set env(PATH) "$env(PATH);$env(JAVA_HOME)\\bin"
+
 # Extract version from configure
 proc get_version {ac_path} {
     set fd [open $ac_path]

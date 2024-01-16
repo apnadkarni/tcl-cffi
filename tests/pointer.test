@@ -265,10 +265,11 @@ namespace eval ${NS}::test {
 
     test pointer-counted-0 "pointer counted" -body {
         set p [makeptr 1]
-        cffi::pointer counted $p
-        cffi::pointer counted $p
-        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
-    } -result {1 {} 1 {} 0}
+        list \
+            [cffi::pointer counted $p] \
+            [cffi::pointer counted $p] \
+            [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result [list [makeptr 1] [makeptr 1] 1 {} 1 {} 0]
     test pointer-counted-1 "pointer counted tag" -body {
         set p [makeptr 1 TAG]
         cffi::pointer counted $p
