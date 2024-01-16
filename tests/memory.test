@@ -233,9 +233,9 @@ namespace eval cffi::test {
             [cffi::pointer isvalid $p] \
             [catch {cffi::memory tostring $p} result] \
             [string match {Pointer 0x*^ is not registered.} $result] \
-            [cffi::pointer safe $p] \
+            [cffi::pointer compare $p [cffi::pointer safe $p]] \
             [cffi::memory free $p]
-    } -result [list 0 1 1 {} {}]
+    } -result [list 0 1 1 1 {}]
     test memory-string!-$num "To/from string! - unsafe, no optional args" -body {
         unset -nocomplain p
         set p [cffi::memory fromstring abc]
@@ -243,9 +243,9 @@ namespace eval cffi::test {
         list \
             [cffi::pointer isvalid $p] \
             [cffi::memory tostring! $p] \
-            [cffi::pointer safe $p] \
+            [cffi::pointer compare $p [cffi::pointer safe $p]] \
             [cffi::memory free $p]
-    } -result [list 0 abc {} {}]
+    } -result [list 0 abc 1 {}]
     # Encoding tests
     # Note: do not include ascii for jis0208 encoding tests.
     # See https://core.tcl-lang.org/tcl/tktview/9bad909c6ed4691bcad1886d710a923791a524a2
@@ -274,9 +274,9 @@ namespace eval cffi::test {
                 list \
                     [cffi::pointer isvalid $p] \
                     [cffi::memory tostring! $p $encoding] \
-                    [cffi::pointer safe $p] \
+                    [cffi::pointer compare $p [cffi::pointer safe $p]] \
                     [cffi::memory free $p]
-            } -result [list 0 $val {} {}]
+            } -result [list 0 $val 1 {}]
             test memory-string-[incr num] "To/from long string - safe $encoding" -body {
                 unset -nocomplain p
                 set p [cffi::memory fromstring [string repeat $val $repeat] $encoding]
@@ -292,9 +292,9 @@ namespace eval cffi::test {
                 list \
                     [cffi::pointer isvalid $p] \
                     [cffi::memory tostring! $p $encoding] \
-                    [cffi::pointer safe $p] \
+                    [cffi::pointer compare $p [cffi::pointer safe $p]] \
                     [cffi::memory free $p]
-            } -result [list 0 [string repeat $val $repeat] {} {}]
+            } -result [list 0 [string repeat $val $repeat] 1 {}]
     }
     test memory-string-[incr num] "memory tostring offset" -body {
         unset -nocomplain p

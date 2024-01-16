@@ -1622,8 +1622,7 @@ namespace eval Concepts {
         - Freeing the callback function pointer with [::cffi::callback free] when
         no longer needed. Note it may be used multiple times before freeing.
 
-        Currently callbacks are only supported with the `libffi` backend. Moreover,
-        callbacks cannot take a variable number of arguments.
+        Callbacks cannot take a variable number of arguments.
 
         **Warning:** CFFI callbacks can only be used when the called function
         invokes them before returning. They are not suitable in cases where

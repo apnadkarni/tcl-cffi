@@ -241,14 +241,12 @@ namespace eval ${NS}::test {
 
     test pointer-safe-0 "pointer safe" -body {
         set p [makeptr 1]
-        cffi::pointer safe $p
-        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
-    } -result {1 {} 0}
+        list [cffi::pointer safe $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result [list [makeptr 1] 1 {} 0]
     test pointer-safe-1 "pointer safe tagged" -body {
         set p [makeptr 1 TAG]
-        cffi::pointer safe $p
-        list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
-    } -result {1 {} 0}
+        list [cffi::pointer safe $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
+    } -result [list [makeptr 1 TAG] 1 {} 0]
     test pointer-safe-2 "pointer safe dup ok" -body {
         set p [makeptr 1 TAG]
         cffi::pointer safe $p

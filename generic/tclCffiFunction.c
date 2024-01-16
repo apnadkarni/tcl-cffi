@@ -128,32 +128,38 @@ CffiArgPrepareChars(CffiCall *callP,
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
+    char *p;
 
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_CHAR_ARRAY);
     CFFI_ASSERT(argP->arraySize > 0);
 
-    valueP->u.ptr =
-        Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize);
+    /* Extra element for bounds checks */
+    p = Tclh_LifoAlloc(&ipCtxP->memlifo, 1 + argP->arraySize);
+
+    /*
+     * To protect against the called C function leaving the output
+     * argument unmodified on error which would result in our
+     * processing garbage in CffiArgPostProcess, set null terminator.
+     */
+    p[0] = 0;
+    /* In case encoding employs double nulls */
+    if (argP->arraySize > 1)
+        p[1] = 0;
+    /* For bounds checks for overrun */
+    p[argP->arraySize] = 0;
+
+    valueP->u.ptr = p;
+
+    if (typeAttrsP->flags & CFFI_F_ATTR_OUT)
+        return TCL_OK;
 
     /* If input, we need to encode appropriately */
-    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT))
-        return CffiCharsFromObj(ipCtxP->interp,
-                                typeAttrsP->dataType.u.encoding,
-                                valueObj,
-                                valueP->u.ptr,
-                                argP->arraySize);
-    else {
-        /*
-         * To protect against the called C function leaving the output
-         * argument unmodified on error which would result in our
-         * processing garbage in CffiArgPostProcess, set null terminator.
-         */
-        *(char *)valueP->u.ptr = '\0';
-        /* In case encoding employs double nulls */
-        if (argP->arraySize > 1)
-            *(1 + (char *)valueP->u.ptr) = '\0';
-        return TCL_OK;
-    }
+    CFFI_ASSERT(typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT));
+    return CffiCharsFromObj(ipCtxP->interp,
+                            typeAttrsP->dataType.u.encoding,
+                            valueObj,
+                            valueP->u.ptr,
+                            argP->arraySize);
 }
 
 /* Function: CffiArgPrepareUniChars
@@ -182,26 +188,30 @@ CffiArgPrepareUniChars(CffiCall *callP,
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
+    Tcl_UniChar *uniP;
 
     CFFI_ASSERT(argP->arraySize > 0);
-
-    valueP->u.ptr =
-        Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(Tcl_UniChar));
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_UNICHAR_ARRAY);
 
-    if (typeAttrsP->flags & (CFFI_F_ATTR_IN|CFFI_F_ATTR_INOUT)) {
-        return CffiUniCharsFromObjSafe(
-            ipCtxP->interp, valueObj, valueP->u.ptr, argP->arraySize);
-    }
-    else {
-        /*
-         * To protect against the called C function leaving the output
-         * argument unmodified on error which would result in our
-         * processing garbage in CffiArgPostProcess, set null terminator.
-         */
-        *(Tcl_UniChar *)valueP->u.ptr = 0;
+    /* Extra element for bounds checks */
+    uniP = Tclh_LifoAlloc(&ipCtxP->memlifo,
+                                   (1 + argP->arraySize) * sizeof(Tcl_UniChar));
+    /*
+     * To protect against the called C function leaving the output
+     * argument unmodified on error which would result in our
+     * processing garbage in CffiArgPostProcess, set null terminator.
+     */
+    uniP[0] = 0;
+    /* For bounds checks for overrun */
+    uniP[argP->arraySize] = 0;
+    valueP->u.ptr = uniP;
+
+    if (typeAttrsP->flags & CFFI_F_ATTR_OUT)
         return TCL_OK;
-    }
+
+    CFFI_ASSERT(typeAttrsP->flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT));
+    return CffiUniCharsFromObjSafe(
+        ipCtxP->interp, valueObj, valueP->u.ptr, argP->arraySize);
 }
 
 #ifdef _WIN32
@@ -231,28 +241,33 @@ CffiArgPrepareWinChars(CffiCall *callP,
     CffiInterpCtx *ipCtxP = callP->fnP->ipCtxP;
     CffiArgument *argP    = &callP->argsP[arg_index];
     const CffiTypeAndAttrs *typeAttrsP = argP->typeAttrsP;
+    WCHAR *wsP;
 
     CFFI_ASSERT(argP->arraySize > 0);
     CFFI_ASSERT(typeAttrsP->dataType.baseType == CFFI_K_TYPE_WINCHAR_ARRAY);
 
     if (typeAttrsP->flags & CFFI_F_ATTR_OUT) {
-        valueP->u.ptr =
-            Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(WCHAR));
+        /* Allocate extra element for bounds checks */
+        wsP = Tclh_LifoAlloc(&ipCtxP->memlifo,
+                             (1 + argP->arraySize) * sizeof(WCHAR));
         /*
          * To protect against the called C function leaving the output
          * argument unmodified on error which would result in our
          * processing garbage in CffiArgPostProcess, set null terminator.
          */
-        *(WCHAR *)valueP->u.ptr = 0;
+        *wsP = 0;
+        /* To check for out-of-bounds writes */
+        wsP[argP->arraySize - 1] = 0;
+        wsP[argP->arraySize]     = 0;
+        valueP->u.ptr = wsP;
         return TCL_OK;
     }
 
     /* in or inout parameter */
 
     if (typeAttrsP->flags & CFFI_F_ATTR_MULTISZ) {
-        void *wsP;
         Tcl_Size nBytes;
-        wsP = Tclh_ObjToWinCharsMultiLifo(
+        wsP = (WCHAR *) Tclh_ObjToWinCharsMultiLifo(
             ipCtxP->tclhCtxP, &ipCtxP->memlifo, valueObj, NULL, &nBytes);
         if (wsP == NULL)
             return TCL_ERROR;
@@ -266,8 +281,9 @@ CffiArgPrepareWinChars(CffiCall *callP,
         return TCL_OK;
     }
 
-    valueP->u.ptr =
-        Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * sizeof(WCHAR));
+    /* Extra elements for overrun checks */
+    wsP = Tclh_LifoAlloc(&ipCtxP->memlifo, (1+argP->arraySize) * sizeof(WCHAR));
+    valueP->u.ptr = wsP;
 
     int encResult;
     Tcl_Size len;
@@ -275,8 +291,10 @@ CffiArgPrepareWinChars(CffiCall *callP,
 
     encResult = Tclh_UtfToWinChars(
         ipCtxP->tclhCtxP, p, len, valueP->u.ptr, argP->arraySize, NULL);
-    if (encResult == TCL_OK)
+    if (encResult == TCL_OK) {
+        wsP[argP->arraySize] = 0; /* For bounds check */
         return TCL_OK;
+    }
     else {
         return Tclh_ErrorEncodingFromUtf8(
             ipCtxP->interp, encResult, Tcl_GetString(valueObj), len);
@@ -961,9 +979,28 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
         break;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
+        /* [arraySize+1] should contain sentinel 0 */
+        if (*(arraySize + (char*)valueP->u.ptr)) {
+            goto overRunPanic;
+        }
+        ret = CffiNativeValueToObj(
+            ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
+        break;
     case CFFI_K_TYPE_UNICHAR_ARRAY:
+        if (*(arraySize + (Tcl_UniChar*)valueP->u.ptr)) {
+            goto overRunPanic;
+        }
+        ret = CffiNativeValueToObj(
+            ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
+        break;
 #ifdef _WIN32
     case CFFI_K_TYPE_WINCHAR_ARRAY:
+        if (*(arraySize + (WCHAR*)valueP->u.ptr)) {
+            goto overRunPanic;
+        }
+        ret = CffiNativeValueToObj(
+            ipCtxP, typeAttrsP, valueP->u.ptr, 0, arraySize, &valueObj);
+        break;
 #endif
     case CFFI_K_TYPE_BYTE_ARRAY:
         ret = CffiNativeValueToObj(
@@ -1072,6 +1109,10 @@ store_value:
         Tcl_DecrRefCount(valueObj);
     }
     return TCL_OK;
+
+overRunPanic:
+    TCLH_PANIC("Out or inout parameter buffer overrun.");
+    return TCL_ERROR;/* Not reached */
 }
 
 /* Function: CffiReturnPrepare

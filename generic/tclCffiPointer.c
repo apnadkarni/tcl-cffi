@@ -203,8 +203,12 @@ CffiPointerObjCmd(ClientData cdata,
         Tcl_SetObjResult(ip, Tcl_NewBooleanObj(ret == TCL_OK));
         return TCL_OK;
     case SAFE:
-        return Tclh_PointerRegister(
+        ret = Tclh_PointerRegister(
             ip, ipCtxP->tclhCtxP, pv, objP, NULL);
+        if (ret == TCL_OK) {
+            Tcl_SetObjResult(ip, objv[2]);
+        }
+        return ret;
     case COUNTED:
         return Tclh_PointerRegisterCounted(
             ip, ipCtxP->tclhCtxP, pv, objP, NULL);

@@ -124,6 +124,8 @@ namespace eval ${NS}::pointer {
         # it is an error if the pointer is already registered with a different
         # tag.
         #
+        # Returns the registered pointer.
+        #
         # See [Pointers][::Concepts::Pointers] for more on pointer
         # safety and registration.
     }
