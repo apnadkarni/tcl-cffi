@@ -333,11 +333,11 @@ Cffi_Init(Tcl_Interp *ip)
     Tclh_LibContext *tclhCtxP = NULL;
 
 #ifdef USE_TCL_STUBS
-    if (Tcl_InitStubs(ip, "8.6", 0) == NULL) {
+    if (Tcl_InitStubs(ip, TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;
     }
 #else
-    if (Tcl_PkgRequire(ip, "Tcl", "8.6", 0) == NULL) {
+    if (Tcl_PkgRequire(ip, "Tcl", TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;
     }
 #endif
