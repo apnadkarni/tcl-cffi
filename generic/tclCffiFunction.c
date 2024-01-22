@@ -372,6 +372,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     Tcl_Size len;
     char *p;
     int valueObjNeedsDecr = 0;
+    int passOutputPointerAsNull = 0;
 
     /* Note valueObj can be NULL, e.g. in the case of retval parameters */
 
@@ -428,20 +429,37 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             CFFI_ASSERT(valueObj == NULL);
         }
         else {
-            *varNameObjP = valueObj;
-            /* Note last arg 0 -> no error messages */
-            valueObj     = Tcl_ObjGetVar2(ip, valueObj, NULL, 0);
-            if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
-                /* A struct may have appropriate defaults. Else will catch later */
-                if (typeAttrsP->dataType.baseType != CFFI_K_TYPE_STRUCT) {
-                    return ErrorInvalidValue(
-                        ip,
-                        *varNameObjP,
-                        "Variable specified as inout argument does not exist.");
+            /* valueObj holds the name of a variable */
+            if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
+                /* If varname is empty string, pass NULL to function */
+                Tcl_Size varNameLen;
+                (void)Tcl_GetStringFromObj(valueObj, &varNameLen);
+                if (varNameLen == 0) {
+                    passOutputPointerAsNull = 1;
+                    argP->flags |= CFFI_F_IGNORE_OUTPUT;
+                    argP->value.u.ptr = NULL;
                 }
-                valueObj = Tcl_NewObj();
             }
-            /* TBD - check if existing variable is an array and error out? */
+            if (passOutputPointerAsNull)
+                valueObj = NULL;
+            else {
+                *varNameObjP = valueObj;
+                /* Note last arg 0 -> no error messages */
+                valueObj = Tcl_ObjGetVar2(ip, valueObj, NULL, 0);
+                if (valueObj == NULL && (flags & CFFI_F_ATTR_INOUT)) {
+                    /* A struct may have appropriate defaults. Else will catch
+                     * later */
+                    if (typeAttrsP->dataType.baseType != CFFI_K_TYPE_STRUCT) {
+                        return ErrorInvalidValue(ip,
+                                                 *varNameObjP,
+                                                 "Variable specified as inout "
+                                                 "argument does not exist.");
+                    }
+                    valueObj = Tcl_NewObj();
+                }
+                /* TBD - check if existing variable is an array and error out?
+                 */
+            }
         }
     }
     if (valueObj) {
@@ -493,9 +511,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     do {                                                \
         storefn_(callP, arg_index, argP->value.u.fld_); \
     } while (0)
-#define STOREARGBYREF(fld_)                                         \
-    do {                                                            \
-        CffiStoreArgPointer(callP, arg_index, &argP->value.u.fld_); \
+#define STOREARGBYREF(fld_)                                                 \
+    do {                                                                    \
+        CffiStoreArgPointer(callP,                                          \
+                            arg_index,                                      \
+                            passOutputPointerAsNull ? NULL                  \
+                                                    : &argP->value.u.fld_); \
     } while (0)
 #endif /*  CFFI_USE_DYNCALL */
 
@@ -504,10 +525,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     do {                                                     \
         callP->argValuesPP[arg_index] = &argP->value.u.fld_; \
     } while (0)
-#define STOREARGBYREF(fld_)                                  \
-    do {                                                     \
-        argP->valueP                  = &argP->value.u.fld_; \
-        callP->argValuesPP[arg_index] = &argP->valueP;       \
+#define STOREARGBYREF(fld_)                                                  \
+    do {                                                                     \
+        argP->valueP = passOutputPointerAsNull ? NULL : &argP->value.u.fld_; \
+        callP->argValuesPP[arg_index] = &argP->valueP;                       \
     } while (0)
 
 #endif /* CFFI_USE_LIBFFI */
@@ -539,8 +560,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_WINSTRING:
 #endif
         if (argP->arraySize < 0) {
-            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
+            if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)
+                && !passOutputPointerAsNull) {
                 /* NOTE - &argP->value is start of all field values */
+                CFFI_ASSERT(valueObj);
                 CHECK(CffiNativeScalarFromObj(ipCtxP,
                                               typeAttrsP,
                                               valueObj,
@@ -574,7 +597,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                     ipCtxP->interp, baseType, __FILE__, __LINE__);
             }
         }
-        else if (argP->arraySize == 0) {
+        else if (argP->arraySize == 0 || passOutputPointerAsNull) {
             /* Zero size array, pass as NULL */
             goto pass_null_array;
         }
@@ -620,7 +643,11 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 CFFI_ASSERT(flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT));
                 CFFI_ASSERT(valueObj);
 
-                CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
+                if (passOutputPointerAsNull)
+                    dict_size = 0;
+                else {
+                    CHECK(Tcl_DictObjSize(ip, valueObj, &dict_size));
+                }
                 if (dict_size == 0) {
                     /* Empty dictionary AND NULLIFEMPTY set */
                     argP->value.u.ptr = NULL;
@@ -648,7 +675,8 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                                         structValueP);
             }
             if (flags & CFFI_F_ATTR_BYREF) {
-                argP->value.u.ptr = structValueP;
+                argP->value.u.ptr =
+                    passOutputPointerAsNull ? NULL : structValueP;
                 /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
                 STOREARGBYVAL(CffiStoreArgPointer, ptr);
             } else {
@@ -680,7 +708,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             int struct_size = typeAttrsP->dataType.u.structP->size;
             CFFI_ASSERT(!CffiStructIsVariableSize(typeAttrsP->dataType.u.structP));
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-            if (argP->arraySize == 0)
+            if (argP->arraySize == 0 || passOutputPointerAsNull)
                 goto pass_null_array;
             valueArray =
                 Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize * struct_size);
@@ -734,7 +762,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         else {
             void **valueArray;
             CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-            if (argP->arraySize == 0)
+            if (argP->arraySize == 0 || passOutputPointerAsNull)
                 goto pass_null_array;
             valueArray = Tclh_LifoAlloc(&ipCtxP->memlifo,
                                       argP->arraySize * sizeof(void *));
@@ -772,7 +800,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_CHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        if (argP->arraySize == 0)
+        if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         CHECK(CffiArgPrepareChars(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
@@ -781,7 +809,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_UNICHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        if (argP->arraySize == 0)
+        if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         CHECK(CffiArgPrepareUniChars(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
@@ -791,7 +819,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 #ifdef _WIN32
     case CFFI_K_TYPE_WINCHAR_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        if (argP->arraySize == 0)
+        if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         CHECK(CffiArgPrepareWinChars(callP, arg_index, valueObj, &argP->value));
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
@@ -818,7 +846,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 
     case CFFI_K_TYPE_BYTE_ARRAY:
         CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-        if (argP->arraySize <= 0)
+        if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         argP->value.u.ptr = Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize);
         if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
@@ -846,7 +874,7 @@ pass_null_array:
     /* Zero size array, pass as NULL */
     CFFI_ASSERT(argP->arraySize == 0);
     CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-    if ((flags & CFFI_F_ATTR_NOVALUECHECKS) == 0) {
+    if ((flags & CFFI_F_ATTR_NOVALUECHECKS) == 0 && !passOutputPointerAsNull) {
         if (valueObjNeedsDecr)
             Tcl_DecrRefCount(valueObj);
         return Tclh_ErrorGeneric(ip,
@@ -907,6 +935,9 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
         return TCL_OK;
 
     CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
+
+    if (argP->flags & CFFI_F_IGNORE_OUTPUT)
+        return TCL_OK;
 
     protoP = callP->fnP->protoP;
     if (arg_index < protoP->nParams

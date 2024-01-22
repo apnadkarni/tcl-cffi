@@ -34,28 +34,37 @@
         return val;                             \
     }
 
-#define FNINOUT(token_, type_)                                   \
-    EXTERN type_ token_##_out(type_ in, type_ *out)              \
-    {                                                            \
-        *out = in + 1;                                           \
-        return in + 2;                                           \
-    }                                                            \
-    EXTERN int token_##_retval(type_ in, type_ *out)             \
-    {                                                            \
-        *out = in + 1;                                           \
-        return 1;                                                \
-    }                                                            \
-    EXTERN type_ token_##_byref(type_ *inP) { return *inP + 2; } \
-    EXTERN type_ token_##_inout(type_ *inoutP)                   \
-    {                                                            \
-        *inoutP = *inoutP + 1;                                   \
-        return *inoutP + 1;                                      \
-    }                                                            \
-    EXTERN type_ *token_##_ret_byref(type_ in)                   \
-    {                                                            \
-        static type_ static_val;                                 \
-        static_val = in + 1;                                     \
-        return &static_val;                                      \
+#define FNINOUT(token_, type_)                       \
+    EXTERN type_ token_##_out(type_ in, type_ *out)  \
+    {                                                \
+        if (out)                                     \
+            *out = in + 1;                           \
+        return in + 2;                               \
+    }                                                \
+    EXTERN int token_##_retval(type_ in, type_ *out) \
+    {                                                \
+        if (out)                                     \
+            *out = in + 1;                           \
+        return 1;                                    \
+    }                                                \
+    EXTERN type_ token_##_byref(type_ *inP)          \
+    {                                                \
+        return *inP + 2;                             \
+    }                                                \
+    EXTERN type_ token_##_inout(type_ *inoutP)       \
+    {                                                \
+        if (inoutP) {                                \
+            *inoutP = *inoutP + 1;                   \
+            return *inoutP + 1;                      \
+        }                                            \
+        else                                         \
+            return 0;                                \
+    }                                                \
+    EXTERN type_ *token_##_ret_byref(type_ in)       \
+    {                                                \
+        static type_ static_val;                     \
+        static_val = in + 1;                         \
+        return &static_val;                          \
     }
 
 #define FNDYNAMICARRAY(token_, type_)                            \
@@ -128,6 +137,8 @@
     EXTERN int token_##_out(type_ *in, type_ *out)   \
     {                                                \
         int i;                                       \
+        if (out == NULL)                             \
+            return 0;                                \
         for (i = 0; in[i]; ++i)                      \
             out[i] = in[i];                          \
         out[i] = in[i];                              \
@@ -137,6 +148,8 @@
     {                                                \
         int i, len;                                  \
         type_ ch;                                    \
+        if (inout == NULL)                           \
+            return 0;                                \
         for (len = 0; inout[len]; ++len)             \
             ;                                        \
         for (i = 0; i < len / 2; ++i) {              \
@@ -441,6 +454,8 @@ FNNUMERICARRAY(double, double)
 EXTERN int pointer_in(int *pint) { return *pint; }
 EXTERN void pointer_out(int **ppint)
 {
+    if (ppint == NULL)
+        return;
     static int outint = 99;
     *ppint = &outint;
 }
@@ -461,7 +476,8 @@ EXTERN void *pointer_errno(void *p) {
     return p;
 }
 EXTERN void *pointer_reflect(void *in, void **outP) {
-    *outP = in;
+    if (outP)
+        *outP = in;
     return in;
 }
 EXTERN int pointer_dispose(void *in, int ret) {
@@ -540,6 +556,8 @@ EXTERN const char **jis0208_return_byref() {
     return &s;
 }
 EXTERN int string_param_out(char **strPP) {
+    if (strPP == NULL)
+        return 0;
     *strPP = "abc";
     return sizeof("abc") - 1;
 }
@@ -566,6 +584,8 @@ EXTERN const Tcl_UniChar **unistring_return_byref() {
     return &s;
 }
 EXTERN int unistring_param_out(Tcl_UniChar **strPP) {
+    if (strPP == NULL)
+        return 0;
     *strPP = unichar_test_string;
     return (sizeof(unichar_test_string)/sizeof(unichar_test_string[0])) - 1;
 }
@@ -593,6 +613,8 @@ EXTERN const WCHAR **winstring_return_byref() {
     return &s;
 }
 EXTERN int winstring_param_out(WCHAR **strPP) {
+    if (strPP == NULL)
+        return 0;
     *strPP = winchar_test_string;
     return (sizeof(winchar_test_string)/sizeof(winchar_test_string[0])) - 1;
 }
@@ -690,6 +712,8 @@ EXTERN int jis0208_inout(char *in)
 EXTERN int bytes_out(int n, unsigned char *in, unsigned char *out)
 {
     int i;
+    if (out == NULL)
+        return 0;
     for (i = 0; i < n; ++i)
         out[i] = in[i];
     return i;
@@ -699,6 +723,8 @@ EXTERN void bytes_inout(int n, unsigned char *inout)
 {
     int i;
     unsigned char ch;
+    if (inout == NULL)
+        return 0;
     for (i = 0; i < n / 2; ++i) {
         ch       = inout[i];
         inout[i] = inout[n - i - 1];
@@ -714,6 +740,9 @@ EXTERN void get_array_int(int *a, int n) {
 EXTERN int getTestStructSize() { return (int)sizeof(TestStruct); }
 EXTERN int getTestStruct(TestStruct *tsP)
 {
+    if (tsP == NULL)
+        return 0;
+
     memset(tsP, 0, sizeof(*tsP));
 
 #define OFF(type, field) (type) offsetof(TestStruct, field)
@@ -758,6 +787,8 @@ EXTERN TestStruct *returnTestStructByRef() {
 /* Increments every numeric field value by 1 */
 EXTERN void incrTestStruct(TestStruct *tsP)
 {
+    if (tsP == NULL)
+        return;
 #define SET(fld)                 \
     do {                         \
         tsP->fld = tsP->fld + 1; \
@@ -781,6 +812,8 @@ EXTERN void incrTestStruct(TestStruct *tsP)
 /* Increments every numeric field value by 1 */
 EXTERN void incrTestStructByVal(TestStruct from, TestStruct *tsP)
 {
+    if (tsP == NULL)
+        return;
 #define SET(fld)                 \
     do {                         \
         tsP->fld = from.fld + 1; \

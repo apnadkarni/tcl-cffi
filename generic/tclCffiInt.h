@@ -529,6 +529,7 @@ typedef struct CffiArgument {
                            Should never be 0. */
     int flags;
 #define CFFI_F_ARG_INITIALIZED 0x1
+#define CFFI_F_IGNORE_OUTPUT 0x2 /* Do not store output variable */
 } CffiArgument;
 
 /* Struct: CffiCall

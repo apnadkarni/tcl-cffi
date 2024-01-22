@@ -1071,7 +1071,12 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             message = "A type annotation has the wrong number of fields.";
             goto invalid_format;
         }
-        if ((cffiAttrs[attrIndex].attrFlag & validAttrs) == 0) {
+        /*
+         * Check if the attribute is valid for the type. For the moment,
+         * always permit NULLIFEMPTY. We will check again after all
+         * annotations are collected.
+         */
+        if ((cffiAttrs[attrIndex].attrFlag & (CFFI_F_ATTR_NULLIFEMPTY | validAttrs)) == 0) {
             message = "A type annotation is not valid for the data type.";
             goto invalid_format;
         }
@@ -1266,12 +1271,26 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     }
 
     /*
+     * Redo nullifempty check now that all attributes are collected. It is
+     * allowed if the base type allows it or if it is an inout or out param.
+     */
+    if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
+        && (validAttrs & CFFI_F_ATTR_NULLIFEMPTY) == 0) {
+        /* nullifempty is set but not valid for base type. Must be output param */
+        if ((flags & (CFFI_F_ATTR_INOUT | CFFI_F_ATTR_OUT)) == 0 || (flags & (CFFI_F_ATTR_RETVAL))) {
+            message = "A type annotation is not valid for the data type.";
+            goto invalid_format;
+        }
+    }
+
+    /*
      * Now check whether any attributes are set that are not valid for the
      * allowed parse modes. We do this separately here rather than in the
      * loop above to handle merging of attributes from typeAliases, which are
      * not parse mode specific, with attributes specified in function
      * prototypes or structs.
      */
+    /* TODO - optimize by looping only over set flags */
     for (i = 0; i < sizeof(cffiAttrs) / sizeof(cffiAttrs[0]); ++i) {
         if (cffiAttrs[i].attrFlag == -1)
             continue;/* Not an attribute flag */
@@ -1304,11 +1323,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             /*
              * NULLIFEMPTY never allowed for any output.
              */
-            if ((flags & CFFI_F_ATTR_NULLIFEMPTY)
-                || ((flags & CFFI_F_ATTR_OUT)
-                    && (flags
-                        & (CFFI_F_ATTR_DISPOSE
-                           | CFFI_F_ATTR_DISPOSEONSUCCESS)))) {
+            if ((flags & CFFI_F_ATTR_OUT)
+                 && (flags
+                     & (CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS))) {
                 message = "One or more annotations are invalid for the "
                           "parameter direction.";
                 goto invalid_format;

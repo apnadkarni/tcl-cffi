@@ -2332,6 +2332,10 @@ an uncounted pointer\&.
 See \fIPointers\fP for more on counted
 pointers and registration\&.
 .PP
+\fBReturn value\fR
+.PP
+Returns the registered pointer\&.
+.PP
 .RS -4n
 \fBpointer dispose\fR (::cffi)
 .RE

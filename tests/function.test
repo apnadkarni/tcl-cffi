@@ -337,6 +337,13 @@ namespace eval ${NS}::test {
             list [$fn $val arr] $arr
         } -result [list [expr {2+$val}] [expr {1+$val}]]
 
+        set fn2 ${fn}_nullifempty
+        testDll function [list $fn $fn2] $type [list inparam [list $type in] outparam [list $type out nullifempty]]
+        test function-param-out-$type-nullifempty-0 "$type out nullifempty params" -body {
+            unset -nocomplain ""
+            list [$fn2 $val ""] [info exists ""]
+        } -result [list [expr {2+$val}] 0]
+
         test function-param-inout-$type-0 "$type inout params" -setup {
             set fn ${type}_inout
             testDll function $fn $type [list inoutparam [list $type inout]]
@@ -344,6 +351,13 @@ namespace eval ${NS}::test {
             set param $val
             list [$fn param] $param
         } -result [list [expr {2+$val}] [expr {1+$val}]]
+
+        test function-param-inout-$type-nullifempty-0 "$type inout params" -setup {
+            set fn ${type}_inout
+            testDll function $fn $type [list inoutparam [list $type inout nullifempty]]
+        } -body {
+            list [$fn ""] [info exists ""]
+        } -result [list [expr {$type in {float double} ? "0.0" : "0"}] 0]
 
         if {$type in $intTypes} {
             set fn ${type}_out
@@ -598,6 +612,13 @@ namespace eval ${NS}::test {
         } -body {
             list [$fn outvar] $outvar
         } -result [list [string length $val] $val]
+        test function-$type-out-nullifempty-0 "$type out nullifempty" -setup {
+            unset -nocomplain ""
+            set fn ${type}_param_out
+            testDll function $fn int [list outvar [list $type out nullifempty]]
+        } -body {
+            list [$fn ""] [info exists ""]
+        } -result {0 0}
 
         test function-$type-retval-0 "$type retval" -setup {
             set fn ${type}_param_out
@@ -1069,6 +1090,12 @@ namespace eval ${NS}::test {
         uchar_array_dynamic_copy nout out $len $val
         list $nout $out
     } -result [list 2 [string range $val 0 1]]
+    test function-bytes-out-nullifempty-0 "bytes out nullifempty" -setup {
+        unset -nocomplain ""
+        testDll function bytes_out int [list n int input bytes\[$len\] output [list bytes\[$len\] out nullifempty]]
+    } -body {
+        list [bytes_out $len $val ""] [info exists ""]
+    } -result {0 0}
 
     test function-bytes-retval-0 "bytes retval" -setup {
         testDll function bytes_out {int nonzero} [list n int input bytes\[$len\] output [list bytes\[$len\] retval]]
@@ -1090,6 +1117,12 @@ namespace eval ${NS}::test {
         bytes_inout $largelen out
         set out
     } -result [string reverse $largeval]
+    test function-bytes-inout-nullifempty-0 "bytes inout nullifempty" -setup {
+        unset -nocomplain ""
+        testDll function bytes_inout void [list n int output [list bytes\[$len\] inout nullifempty]]
+    } -body {
+        list [bytes_inout $len ""] [info exists ""]
+    } -result {{} 0}
     test function-bytes-inout-error-0 "bytes inout buffer size error" -setup {
         testDll function bytes_inout void [list n int output [list bytes\[1\] inout]]
     } -body {
@@ -1117,6 +1150,9 @@ namespace eval ${NS}::test {
     test function-binary-inout-error-0 "binary inout" -body {
         testDll function bytes_inout void [list n int output [list binary inout]]
     } -result {Invalid value "binary inout". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
+    test function-binary-out-nullifempty-0 "binary out nullifempty" -body {
+        testDll function bytes_out void [list n int input binary output [list binary out nullifempty]]
+    } -result {Invalid value "binary out nullifempty". A type annotation is not valid for the data type.* Error defining function *} -match glob -returnCodes error
 
     ## Parameter tests - pointers
     test function-pointer-in-0 "pointer in" -setup {
@@ -1139,6 +1175,14 @@ namespace eval ${NS}::test {
         pointer_out p
         list [cffi::pointer isvalid $p] [binary scan [cffi::memory tobinary $p 4] n val] $val
     } -result [list 1 1 99]
+
+    test function-pointer-out-nullifempty-0 "pointer out nullifempty" -setup {
+        unset -nocomplain ""
+        testDll function pointer_out void {p {pointer out nullifempty}}
+    } -body {
+        pointer_out ""
+        info exists ""
+    } -result 0
 
     test function-pointer-retval-0 "pointer retval" -setup {
         testDll function pointer_retval {int nonzero} {inp {pointer unsafe} p {pointer retval}}
@@ -1482,6 +1526,12 @@ namespace eval ${NS}::test {
         getStructWithNullStrings s
         set s
     } -constraints !win -result {s {} utf8 {} jis {} uni {}}
+    test function-struct-out-nullifempty-0 "Param struct out nullifempty" -setup {
+        unset -nocomplain ""
+        testDll function getTestStruct int {s {struct.TestStruct out nullifempty}}
+    } -body {
+        list [getTestStruct ""] [info exists ""]
+    } -result {0 0}
 
     test function-struct-out-crash-bug#39 "Param struct out" -setup {
         testDll function getTestStruct int {s {struct.TestStruct out}}
@@ -1616,6 +1666,12 @@ namespace eval ${NS}::test {
         struct_pointer_array_exchange a b
         list $a $b
     } -result [list [list ptrs [make_unsafe_pointers 4 5 6]] [list ptrs [make_unsafe_pointers 1 2 3]]]
+    test function-struct-inout-nullifempty-0 "Pass struct inout nullifempty" -setup {
+        unset -nocomplain ""
+        testDll function incrTestStruct void {s {struct.TestStruct inout nullifempty}}
+    } -body {
+        list [incrTestStruct ""] [info exists ""]
+    } -result {{} 0}
 
     test function-struct-inout-error-0 "Param struct inout - empty dictionary" -setup {
         testDll function incrTestStruct void {s {struct.TestStruct inout}}

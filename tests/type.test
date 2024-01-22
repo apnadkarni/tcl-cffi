@@ -431,6 +431,15 @@ namespace eval cffi::test {
             if {$attr eq "novaluechecks"} continue
             testinvalidattr "$type\[2\] $attr" param $errorMessages(attrtype)
         }
+
+        # nullifempty - valid only for out and inout
+        foreach attr {out inout} {
+            testnumeric "$type $attr nullifempty" param "$attr byref nullifempty"
+        }
+        foreach attr {in retval} {
+            testinvalidattr "$type $attr nullifempty" param $errorMessages(attrtype)
+        }
+
         # Scalar tests - attributes invalid for param parse mode
         foreach attr [list {*}$requirementAttrs saveerrors] {
             if {$type in $intTypes} {
@@ -622,8 +631,10 @@ namespace eval cffi::test {
             "{default 0^}" "in {default 0^}"
             "out storeonerror" "out byref storeonerror"
             "out storealways" "out byref storealways"
+            "out nullifempty" "out byref nullifempty"
             "inout storealways" "inout byref storealways"
             "inout storeonerror" "inout byref storeonerror"
+            "inout nullifempty" "inout byref nullifempty"
             "nullok" "in novaluechecks"
             "novaluechecks" "in novaluechecks"
             "novaluechecks out" "out byref novaluechecks"
@@ -674,6 +685,8 @@ namespace eval cffi::test {
                 testinvalidattr [list $type $attr] param $errorMessages(attrtype)
             }
         }
+        testinvalidattr [list $type in nullifempty] param $errorMessages(attrtype)
+        testinvalidattr [list $type retval nullifempty] param $errorMessages(attrtype)
 
         foreach count {[0] [-2] [] [2x] \[2 [2]x} {
             testinvalidattr "$type$count" param "$errorMessages(arraysize)"
@@ -811,6 +824,8 @@ namespace eval cffi::test {
                     "{default 0}" "in byref {default 0}"
                     "out storeonerror" "out byref storeonerror"
                     "out storealways" "out byref storealways"
+                    "out nullifempty" "out byref nullifempty"
+                    "inout nullifempty" "inout byref nullifempty"
                     "retval" "out retval byref"
                     "out retval" "out retval byref"
                 } {
@@ -859,6 +874,8 @@ namespace eval cffi::test {
                 if {$attr eq "novaluechecks"} continue; # Skip novaluechecks from pointerAttrs
                 testinvalidattr [list $type\[2\] $attr] $parse_mode $errorMessages(attrtype)
             }
+            testinvalidattr [list $type\[2\] in nullifempty] $parse_mode $errorMessages(attrtype)
+            testinvalidattr [list $type\[2\] retval nullifempty] $parse_mode $errorMessages(attrtype)
 
             # array invalid count spec failure
             foreach count {[0] [-2] [] [2x] \[2 [2]x} {
@@ -909,6 +926,7 @@ namespace eval cffi::test {
             "nullifempty" "in nullifempty"
             "in nullifempty" "in nullifempty"
             "out" "out byref"
+            "out nullifempty" "out byref nullifempty"
             "byref" "in byref"
             "byref in" "in byref"
             "byref out" "out byref"
@@ -953,6 +971,7 @@ namespace eval cffi::test {
 
         foreach attr {inout {inout byref}} {
             testinvalidattr "$type $attr" param $errorMessages(attrtype)
+            testinvalidattr "$type $attr nullifempty" param $errorMessages(attrtype)
         }
 
         # Failure tests - invalid attribute combinations
@@ -1034,6 +1053,8 @@ namespace eval cffi::test {
     foreach attr {out retval inout {out byref} {inout byref} structsize bitmask multisz {{enum E}}} {
         testinvalidattr "binary $attr" param $errorMessages(attrtype)
     }
+    testinvalidattr "binary out nullifempty" param $errorMessages(attrtype)
+    testinvalidattr "binary inout nullifempty" param $errorMessages(attrtype)
 
     ## binary - field or return mode
     foreach parse_mode {field return} {
@@ -1074,6 +1095,8 @@ namespace eval cffi::test {
                 "in byref novaluechecks" "in byref novaluechecks"
                 "retval" "out retval byref"
                 "out retval" "out retval byref"
+                "out nullifempty" "out byref nullifempty"
+                "inout nullifempty" "inout byref nullifempty"
             } {
                 teststruct "struct.::TestStruct $attrs" param $expected
             }

@@ -482,9 +482,9 @@ namespace eval Cookbook {
         ##### Output and input-output integer parameters
 
         ``` -caption "Syntax for integer output and input-output parameters" diagram
-        schar     +-    -+ +-      -+ +-     -+ +-          -+ +-               -+
-        uchar     |out   | |{enum E}| |bitmask| |storeonerror| |lasterror        |
-        short     |inout | +-      -+ +-     -+ |storealways | |winerror         |
+        schar     +-    -+ +-      -+ +-     -+ +-          -+ +-               -+ +-          -+
+        uchar     |out   | |{enum E}| |bitmask| |storeonerror| |lasterror        | |nullifempty |
+        short     |inout | +-      -+ +-     -+ |storealways | |winerror         | +-          -+
         ushort    |retval|                      +-          -+ |errno            |
         int       +-    -+                                     |{onerror HANDLER}|
         uint                                                   +-               -+
@@ -525,6 +525,11 @@ namespace eval Cookbook {
         * Error handling annotations like `errno` may be present but are
         ignored. This is to permit the same aliases to be used in both return
         and parameter declarations.
+
+        * Add the `nullifempty` annotation for `out` and `inout` function
+        parameters that are allow NULL to be passed as the argument when no
+        output value is of interest. When the function wrapper is invoked, pass
+        the empty string as the output variable name.
 
         **Examples**
 
@@ -586,9 +591,9 @@ namespace eval Cookbook {
         ##### Out and in-out floating point parameters
 
         ``` -caption "Syntax for floating point output and input-output parameters" diagram
-                        +-          -+
-        float    out    |storeonerror|
-        double   inout  |storealways |
+                        +-          -+ +-         -+
+        float    out    |storeonerror| |nullifempty|
+        double   inout  |storealways | +-         -+
                  retval +-          -+
         ```
 
@@ -615,6 +620,10 @@ namespace eval Cookbook {
         (for example an error code). See
         [Errors and output parameters][::Concepts::Errors and output parameters].
 
+        * Add the `nullifempty` annotation for `out` and `inout` function
+        parameters that are allow NULL to be passed as the argument when no
+        output value is of interest. When the function wrapper is invoked, pass
+        the empty string as the output variable name.
 
         #### Pointer parameters
 
@@ -703,10 +712,10 @@ namespace eval Cookbook {
         ##### Raw pointer out and in-out parameters
 
         ``` -caption "Syntax for output and input-output raw pointer parameters" diagram
-                     +-    -+ +-     -+ +-              -+ +-    -+ +-              -+ +-          -+
-        pointer      |inout | |counted| |dispose         | |nullok| |{default PTRVAL}| |storealways |
-        pointer.TAG  |out   | |unsafe | |disposeonsuccess| +-    -+ +-              -+ |storeonerror|
-                     |retval| +-     -+ +-              -+                             +-          -+
+                     +-    -+ +-     -+ +-              -+ +-         -+ +-              -+ +-          -+
+        pointer      |inout | |counted| |dispose         | |nullok     | |{default PTRVAL}| |storealways |
+        pointer.TAG  |out   | |unsafe | |disposeonsuccess| |nullifempty| +-              -+ |storeonerror|
+                     |retval| +-     -+ +-              -+ +-         -+                    +-          -+
                      +-    -+
         ```
 
@@ -722,29 +731,31 @@ namespace eval Cookbook {
         function result in lieu of the actual function return value.
         See [Output parameters as function result][::Concepts::Output parameters as function result].
 
-        * By default, pointers returned in out and in-out parameters
-        are registered as safe pointers.
-        They may be alternatively be annotated with
+        * By default, pointers returned in out and in-out parameters are
+        registered as safe pointers. They may be alternatively be annotated with
         `counted` or `unsafe` if they are to be registered as reference counted
-        or not to be registered at all.
-        For more details on pointer management and safety, see
-        [Pointer safety][::Concepts::Pointer safety].
+        or not to be registered at all. For more details on pointer management
+        and safety, see [Pointer safety][::Concepts::Pointer safety].
 
         * When a C function releases the resource associated with a registered
-        pointer (safe or counted), the pointer should be unregistered.
-        The `dispose` annotation should be placed on the parameter annotation
-        to convey to CFFI that the pointer should be unregistered. The
-        `disposeonsuccess` annotation is similar except that the pointer
-        is unregistered only in the case the function returns successfully.
-        The `dispose` and `disposeonsuccess` annotations is not valid with
-        the `out` or `retval` annotations.
-        For more details on pointer management and safety, see
-        [Pointer safety][::Concepts::Pointer safety].
+        pointer (safe or counted), the pointer should be unregistered. The
+        `dispose` annotation should be placed on the parameter annotation to
+        convey to CFFI that the pointer should be unregistered. The
+        `disposeonsuccess` annotation is similar except that the pointer is
+        unregistered only in the case the function returns successfully. The
+        `dispose` and `disposeonsuccess` annotations is not valid with the `out`
+        or `retval` annotations. For more details on pointer management and
+        safety, see [Pointer safety][::Concepts::Pointer safety].
 
         * The `nullok` annotation indicates that pointers passed in and out
         of the function can be NULL. Without the annotation, an exception is
         raised if the pointer stored on output is NULL or in the case of `inout`
         the pointer passed in is NULL.
+
+        * Add the `nullifempty` annotation for `out` and `inout` function
+        parameters that are allow NULL to be passed as the argument when no
+        output value is of interest. When the function wrapper is invoked, pass
+        the empty string as the output variable name.
 
         * The `default` annotation may be used to supply a default pointer value to
         be passed if no argument is supplied for the parameter when the function
@@ -851,9 +862,9 @@ namespace eval Cookbook {
         ##### Output and input-output struct parameters
 
         ``` -caption "Syntax for struct output and input-output parameters" diagram
-                             +-          -+
-        struct.STRUCT out    |storeonerror|
-                      inout  |storealways |
+                             +-          -+ +-         -+
+        struct.STRUCT out    |storeonerror| |nullifempty|
+                      inout  |storealways | +-         -+
                       retval +-          -+
         ```
 
@@ -880,6 +891,11 @@ namespace eval Cookbook {
         (for example an error code). See
         [Errors and output parameters][::Concepts::Errors and output parameters].
         These annotations are rarely applicable to struct output parameters.
+
+        * Add the `nullifempty` annotation for `out` and `inout` function
+        parameters that are allow NULL to be passed as the argument when no
+        output value is of interest. When the function wrapper is invoked, pass
+        the empty string as the output variable name.
 
         **Examples**
 
@@ -970,9 +986,9 @@ namespace eval Cookbook {
         **Output character arrays**
 
         ``` -caption "Syntax for character array output parameters" diagram
-                          +-    -+ +-          -+  +-       -+
-        chars[N]          |out   | |storealways |  | multisz |
-        chars.ENCODING[N] |inout | |storeonerror|  +-       -+
+                          +-    -+ +-          -+ +-         -+ +-      -+
+        chars[N]          |out   | |storealways | |nullifempty| |multisz |
+        chars.ENCODING[N] |inout | |storeonerror| +-         -+ +-      -+
         unichars[N]       |retval| +-          -+
         winchars[N]       +-    -+
         ```
@@ -1010,6 +1026,11 @@ namespace eval Cookbook {
         * The `multisz` may only be used for `winchars`. The output
         is interpreted as holding a Windows `MULTI_SZ` string type and stored
         as a Tcl list.
+
+        * Add the `nullifempty` annotation for `out` and `inout` function
+        parameters that are allow NULL to be passed as the argument when no
+        output value is of interest. When the function wrapper is invoked, pass
+        the empty string as the output variable name.
 
         **Examples**
 

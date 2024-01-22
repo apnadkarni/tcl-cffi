@@ -136,7 +136,7 @@ novaluechecks
 Disable value validity checks\&. The checks depend on the value type\&. See discussion of specific types for its semantics\&.
 .TP
 nullifempty
-Treat the empty string or struct dictionary in a parameter or field as a NULL pointer\&. See \fIStrings as NULL pointers\fP\&.
+Treat an empty string or struct dictionary value passed as function argument or struct field as a NULL pointer\&. See \fIStrings as NULL pointers\fP\&. In the case of out or inout parameters, specifies that if the variable name passed as the argument is the empty string, a NULL pointer should be passed as the function argument\&.
 .TP
 nullok
 Deprecated\&. Alias for novaluechecks\&.
@@ -1413,7 +1413,7 @@ The bitmask annotation may be used for integer types\&. For in and inout paramet
 The default annotation may be used for pure input parameters\&. The associated value is passed to the function if an argument is not explicitly supplied\&. The annotation comprises of a list of two elements, the first being the annotation default and the second being the value to use\&. As for Tcl procs, if a default is specified for a parameter, all subsequent parameters must also have a default specified\&.
 .TP
 \(bu
-The nullifempty annotation is available only for in parameters of type string, unistring, winstring, binary and struct\&. If present, a NULL pointer is passed into the C function if the passed argument is an empty string in the case of string, unistring and winstring, and an empty dictionary in the case of struct\&. This facility is useful for API's where NULL pointers signify default options\&. Note that the binary type always has nullifempty implied even if not explicitly specified\&.
+For in parameters, the nullifempty annotation is available only for types string, unistring, winstring, binary and struct\&. If present, a NULL pointer is passed into the C function if the passed argument is an empty string in the case of string, unistring and winstring, and an empty dictionary in the case of struct\&. This facility is useful for API's where NULL pointers signify default options\&. Note that the binary type always has nullifempty implied even if not explicitly specified\&. For out and inout parameters, nullifempty may be specified for other types as well\&. In this case, if the name of the variable passed to hold the output is the empty string, the corresponding function argument pointer is passed as NULL\&.
 .TP
 \(bu
 The storeonerror and storealways annotations are only applicable when either out or inout annotations are present\&. These control storage of output parameters in the presence of errors\&. See \fIErrors and output parameters\fP\&.

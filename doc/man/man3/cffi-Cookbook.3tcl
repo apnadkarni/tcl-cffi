@@ -515,9 +515,9 @@ KERNEL32 stdcall SetHandleInformation {int nonzero lasterror} {
 .PP
 .RS 4n
 .nf
-schar     +-    -+ +-      -+ +-     -+ +-          -+ +-               -+
-uchar     |out   | |{enum E}| |bitmask| |storeonerror| |lasterror        |
-short     |inout | +-      -+ +-     -+ |storealways | |winerror         |
+schar     +-    -+ +-      -+ +-     -+ +-          -+ +-               -+ +-          -+
+uchar     |out   | |{enum E}| |bitmask| |storeonerror| |lasterror        | |nullifempty |
+short     |inout | +-      -+ +-     -+ |storealways | |winerror         | +-          -+
 ushort    |retval|                      +-          -+ |errno            |
 int       +-    -+                                     |{onerror HANDLER}|
 uint                                                   +-               -+
@@ -548,6 +548,9 @@ If the function return value is subject to error checks (for example null pointe
 .TP
 \(bu
 Error handling annotations like errno may be present but are ignored\&. This is to permit the same aliases to be used in both return and parameter declarations\&.
+.TP
+\(bu
+Add the nullifempty annotation for out and inout function parameters that are allow NULL to be passed as the argument when no output value is of interest\&. When the function wrapper is invoked, pass the empty string as the output variable name\&.
 .PP
 \fBExamples\fP
 .PP
@@ -617,9 +620,9 @@ LIBM sin double {x double}
 .PP
 .RS 4n
 .nf
-                +-          -+
-float    out    |storeonerror|
-double   inout  |storealways |
+                +-          -+ +-         -+
+float    out    |storeonerror| |nullifempty|
+double   inout  |storealways | +-         -+
          retval +-          -+
 
 \fISyntax for floating point output and input-output parameters\fP
@@ -638,6 +641,9 @@ Use the retval annotation for output parameters where you want the output parame
 .TP
 \(bu
 If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&.
+.TP
+\(bu
+Add the nullifempty annotation for out and inout function parameters that are allow NULL to be passed as the argument when no output value is of interest\&. When the function wrapper is invoked, pass the empty string as the output variable name\&.
 .PP
 \fBPointer parameters\fR
 .PP
@@ -717,10 +723,10 @@ LIBC function realloc {pointer errno} {
 .PP
 .RS 4n
 .nf
-             +-    -+ +-     -+ +-              -+ +-    -+ +-              -+ +-          -+
-pointer      |inout | |counted| |dispose         | |nullok| |{default PTRVAL}| |storealways |
-pointer\&.TAG  |out   | |unsafe | |disposeonsuccess| +-    -+ +-              -+ |storeonerror|
-             |retval| +-     -+ +-              -+                             +-          -+
+             +-    -+ +-     -+ +-              -+ +-         -+ +-              -+ +-          -+
+pointer      |inout | |counted| |dispose         | |nullok     | |{default PTRVAL}| |storealways |
+pointer\&.TAG  |out   | |unsafe | |disposeonsuccess| |nullifempty| +-              -+ |storeonerror|
+             |retval| +-     -+ +-              -+ +-         -+                    +-          -+
              +-    -+
 
 \fISyntax for output and input-output raw pointer parameters\fP
@@ -745,6 +751,9 @@ When a C function releases the resource associated with a registered pointer (sa
 .TP
 \(bu
 The nullok annotation indicates that pointers passed in and out of the function can be NULL\&. Without the annotation, an exception is raised if the pointer stored on output is NULL or in the case of inout the pointer passed in is NULL\&.
+.TP
+\(bu
+Add the nullifempty annotation for out and inout function parameters that are allow NULL to be passed as the argument when no output value is of interest\&. When the function wrapper is invoked, pass the empty string as the output variable name\&.
 .TP
 \(bu
 The default annotation may be used to supply a default pointer value to be passed if no argument is supplied for the parameter when the function is invoked\&. All succeeding parameter in the parameter list must also have default annotations\&. This annotation cannot be used with out and retval annotations\&.
@@ -846,9 +855,9 @@ LIBGIT function git_checkout_head {int zero} {
 .PP
 .RS 4n
 .nf
-                     +-          -+
-struct\&.STRUCT out    |storeonerror|
-              inout  |storealways |
+                     +-          -+ +-         -+
+struct\&.STRUCT out    |storeonerror| |nullifempty|
+              inout  |storealways | +-         -+
               retval +-          -+
 
 \fISyntax for struct output and input-output parameters\fP
@@ -867,6 +876,9 @@ Use the retval annotation for output parameters where you want the output parame
 .TP
 \(bu
 If the function return value is subject to error checks (for example null pointer checks) and fails the checks, output values are not stored in variables as they may hold garbage values\&. The storealways annotation indicates the output value is valid regardless of function failure\&. The storeonerror annotation indicates the output value is valid \fBonly\fP on function failure (for example an error code)\&. See \fIErrors and output parameters\fP\&. These annotations are rarely applicable to struct output parameters\&.
+.TP
+\(bu
+Add the nullifempty annotation for out and inout function parameters that are allow NULL to be passed as the argument when no output value is of interest\&. When the function wrapper is invoked, pass the empty string as the output variable name\&.
 .PP
 \fBExamples\fP
 .PP
@@ -955,9 +967,9 @@ The two are handled differently in CFFI as described below\&.
 .PP
 .RS 4n
 .nf
-                  +-    -+ +-          -+  +-       -+
-chars[N]          |out   | |storealways |  | multisz |
-chars\&.ENCODING[N] |inout | |storeonerror|  +-       -+
+                  +-    -+ +-          -+ +-         -+ +-      -+
+chars[N]          |out   | |storealways | |nullifempty| |multisz |
+chars\&.ENCODING[N] |inout | |storeonerror| +-         -+ +-      -+
 unichars[N]       |retval| +-          -+
 winchars[N]       +-    -+
 
@@ -988,6 +1000,9 @@ If the function return value is subject to error checks (for example null pointe
 .TP
 \(bu
 The multisz may only be used for winchars\&. The output is interpreted as holding a Windows MULTI_SZ string type and stored as a Tcl list\&.
+.TP
+\(bu
+Add the nullifempty annotation for out and inout function parameters that are allow NULL to be passed as the argument when no output value is of interest\&. When the function wrapper is invoked, pass the empty string as the output variable name\&.
 .PP
 \fBExamples\fP
 .PP
