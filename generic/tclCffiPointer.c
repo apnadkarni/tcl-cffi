@@ -9,25 +9,35 @@
 
 static CffiResult
 CffiPointerCastableCmd(CffiInterpCtx *ipCtxP,
-                       Tcl_Obj *subtypeObj,
+                       Tcl_Obj *subtypeObjList,
                        Tcl_Obj *supertypeObj)
 {
-    Tcl_Obj *subFqnObj;
     Tcl_Obj *superFqnObj;
     CffiResult ret;
     Tcl_Interp *ip = ipCtxP->interp;
+    Tcl_Obj **subtypeObjs;
+    Tcl_Size nSubtypes;
+    Tcl_Size i;
 
-    /* QUalify both tags if unqualified */
-    subFqnObj = Tclh_NsQualifyNameObj(ip, subtypeObj, NULL);
-    Tcl_IncrRefCount(subFqnObj);
+    if (Tcl_ListObjGetElements(
+        ip, subtypeObjList, &nSubtypes, &subtypeObjs) != TCL_OK)
+        return TCL_ERROR;
+
+    /* Qualify tags if unqualified */
     superFqnObj = Tclh_NsQualifyNameObj(ip, supertypeObj, NULL);
     Tcl_IncrRefCount(superFqnObj);
 
-    ret = Tclh_PointerSubtagDefine(
-        ip, ipCtxP->tclhCtxP, subFqnObj, superFqnObj);
-    if (ret == TCL_OK)
-        Tcl_SetObjResult(ip, subFqnObj);
-    Tcl_DecrRefCount(subFqnObj);
+    for (i = 0; i < nSubtypes; ++i) {
+        Tcl_Obj *subFqnObj;
+        subFqnObj = Tclh_NsQualifyNameObj(ip, subtypeObjs[i], NULL);
+        Tcl_IncrRefCount(subFqnObj);
+        ret = Tclh_PointerSubtagDefine(
+            ip, ipCtxP->tclhCtxP, subFqnObj, superFqnObj);
+        if (ret != TCL_OK)
+            break;
+        Tcl_DecrRefCount(subFqnObj);
+    }
+
     Tcl_DecrRefCount(superFqnObj);
     return ret;
 }

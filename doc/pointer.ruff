@@ -38,10 +38,10 @@ namespace eval ${NS}::pointer {
         #
         # Returns a pointer with the same address and new tag
     }
-    proc castable {subtag supertag} {
+    proc castable {subtags supertag} {
         # Specifies that pointers with tag $subtag are acceptable in declarations
         # that require $supertag.
-        #  subtag - tag which is to be marked as acceptable wherever $supertag
+        #  subtags - list of tags which are acceptable wherever $supertag
         #    is expected. Will be qualified with current scope if necessary.
         #  supertag - tag which should accept $subtag tagged pointers.
         #    Will be qualified with current scope if necessary.

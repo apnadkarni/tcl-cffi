@@ -393,7 +393,7 @@ namespace eval ${NS}::test {
         cffi::pointer uncastable ::T
     } -body {
         list $p [catch {cffi::pointer cast $p ::T2}] [cffi::pointer castable ::T ::T2] [cffi::pointer cast $p ::T2] [cffi::pointer list]
-    } -result [list [makeptr 1 ::T] 1 ::T [makeptr 1 ::T2] {}]
+    } -result [list [makeptr 1 ::T] 1 {} [makeptr 1 ::T2] {}]
 
     test pointer-cast-5 "Cast unsafe pointers unqualified" -setup {
         set p [cffi::pointer make 1 T]
@@ -408,7 +408,7 @@ namespace eval ${NS}::test {
             [cffi::pointer list]
     } -result [list [makeptr 1 [namespace current]::T] \
                    1 \
-                   [namespace current]::T \
+                   {} \
                    [makeptr 1 [namespace current]::T2] \
                    [makeptr 1 [namespace current]::T] \
                    {} \
@@ -432,7 +432,7 @@ namespace eval ${NS}::test {
     } -result [list [makeptr 1 [namespace current]::T] \
                    1 \
                    1 \
-                   [namespace current]::T \
+                   {} \
                    [makeptr 1 [namespace current]::T2] \
                    0 \
                    1 \
@@ -461,7 +461,7 @@ namespace eval ${NS}::test {
             [catch {downcast $t}] \
             [cffi::pointer uncastable T2] \
             [cffi::pointer castables]
-    } -result [list [makeptr 1] 1 1 [namespace current]::T2 {::cffi::test::T2 ::cffi::test::T} [makeptr 1] 1 {} {}]
+    } -result [list [makeptr 1] 1 1 {} {::cffi::test::T2 ::cffi::test::T} [makeptr 1] 1 {} {}]
 
     test pointer-castable-1 "Pointer argument castable - void*" -setup {
         testDll function {pointer_to_pointer upcast} {pointer unsafe} {p {pointer unsafe}}
@@ -482,13 +482,14 @@ namespace eval ${NS}::test {
     } -cleanup {
         S free $s
         S free $s2
+        cffi::pointer uncastable ::T2
     } -body {
         list \
             [catch {S new [list p [makeptr 1 ::T]]} s] \
             [catch {S new [makeptr 1 ::T2]}] \
             [cffi::pointer castable ::T2 ::T] \
             [catch {S new [list p [makeptr 1 ::T2]]} s2] \
-    } -result [list 0 1 ::T2 0]
+        } -result [list 0 1 {} 0]
 
     test pointer-castable-3 "Pointer field castable to void*" -setup {
         cffi::Struct create S {p {pointer unsafe}}
@@ -503,6 +504,22 @@ namespace eval ${NS}::test {
     } -body {
         S new [list p [makeptr 1]]
     } -result "Value*has the wrong type. Pointer type mismatch.*" -match glob -returnCodes error
+
+    test pointer-castable-5 "Pointer argument multiple castable" -setup {
+        testDll function {pointer_to_pointer upcast} {pointer unsafe} {p {pointer.T unsafe}}
+    } -cleanup {
+        cffi::pointer uncastable T2
+        cffi::pointer uncastable ::T3
+    } -body {
+        set t [cffi::pointer make 1 T]
+        set t2 [cffi::pointer make 2 T2]
+        set t3 [cffi::pointer make 3 ::T3]
+        list \
+            [cffi::pointer castable {T2 ::T3} T] \
+            [cffi::pointer castables] \
+            [upcast $t2] \
+            [upcast $t3]
+    } -result [list {} {::cffi::test::T2 ::cffi::test::T ::T3 ::cffi::test::T} [makeptr 2] [makeptr 3]]
 
     ###
     # pointer compare
