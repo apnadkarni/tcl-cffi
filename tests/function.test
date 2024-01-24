@@ -173,6 +173,22 @@ namespace eval ${NS}::test {
         }} message] $message [int_to_int 42] [double_to_double 99]
     } -result [list 1 "Errors:\nSymbol \"nosuchfunction\" not found or inaccessible." 42 99.0]
 
+    test functions-5 {Comment in function definitions} -setup {
+        catch {rename int_to_int {}}
+        catch {rename double_to_double {}}
+    } -cleanup {
+        rename int_to_int {}
+        rename double_to_double {}
+    } -body {
+        testDll functions {
+            int_to_int int {param int}
+            # int {}
+            double_to_double double {param double}
+        }
+        list [int_to_int 42] [double_to_double 99]
+    } -result {42 99.0}
+
+
     test functions-error-0 {Multiple functions - invalid count} -body {
         testDll functions {onearg}
     } -result {Invalid value "onearg". Incomplete function definition list.} -returnCodes error
@@ -242,6 +258,26 @@ namespace eval ${NS}::test {
                         $fn double {a double b double}]
         list [catch {testDll stdcalls $fnlist} message] $message [$fn 1.0 2]
     } -result [list 1 "Errors:\nSymbol \"nosuchfn\" not found or inaccessible." 0.5]
+
+    test stdcalls-3 {Comment in definitions} -cleanup {
+        rename $fn {}
+    } -body {
+        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+            set fn _stdcalltest@16
+        } else {
+            set fn stdcalltest
+        }
+        set fnlist [list $fn double {a double b double}]
+        if {[catch {testDll stdcalls $fnlist}] && $fn eq "_stdcalltest@16"} {
+            # Mingw does not prefix _
+            set fn stdcalltest@16
+        }
+        set fnlist [list \
+                        \# int {} \
+                        $fn double {a double b double}]
+        testDll stdcalls $fnlist
+        $fn 1.0 2
+    } -result 0.5
 
     # Basic type conversion to test input parameters and return types
 

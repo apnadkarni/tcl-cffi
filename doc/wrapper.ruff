@@ -104,6 +104,9 @@ oo::class create ${NS}::Wrapper {
         # If a function is not found, the command will raise an error but those
         # functions that are found will be defined. The error can be completely
         # suppressed with the `-ignoremissing` option.
+        #
+        # If the function name element is `#`, the triple is ignored, effectively
+        # being considered a comment.
     }
     method stdcalls {fnlist args} {
         # Creates Tcl commands for multiple C functions within the loaded library
@@ -119,6 +122,9 @@ oo::class create ${NS}::Wrapper {
         # If a function is not found, the command will raise an error but those
         # functions that are found will be defined. The error can be completely
         # suppressed with the `-ignoremissing` option.
+        #
+        # If the function name element is `#`, the triple is ignored, effectively
+        # being considered a comment.
     }
 }
 

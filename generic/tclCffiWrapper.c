@@ -119,6 +119,8 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
     }
 
     for (i = 0; i < nobjs; i += 3) {
+        if (!strcmp("#", Tcl_GetString(objs[i])))
+            continue; /* Comment */
         ret = CffiDefineOneFunctionFromLib(ip,
                                            ctxP,
                                            objs[i],
