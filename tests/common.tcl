@@ -120,7 +120,10 @@ namespace eval cffi::test {
         c schar
         i int
     } -clear
-
+    cffi::Struct create ::StructWithVLA {
+        count ushort
+        values int[count]
+    }
     # Generic test values for all types
     variable testValues
     foreach type {schar short int long longlong} {

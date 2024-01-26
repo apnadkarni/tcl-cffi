@@ -724,7 +724,7 @@ EXTERN void bytes_inout(int n, unsigned char *inout)
     int i;
     unsigned char ch;
     if (inout == NULL)
-        return 0;
+        return;
     for (i = 0; i < n / 2; ++i) {
         ch       = inout[i];
         inout[i] = inout[n - i - 1];
@@ -1059,16 +1059,20 @@ getStringFromStructByvalStringArray(struct StructWithStringArrays s,
 }
 
 struct StructWithVLA {
-    int count;
+    unsigned short count;
     int values[1];
 };
 EXTERN int copyStructWithVLA (struct StructWithVLA *from, struct StructWithVLA *to)
 {
     int i;
     int sum;
-    to->count = from->count;
+    if (to) {
+        to->count = from->count;
+    }
     for (sum =0, i = 0; i < from->count; ++i) {
-        to->values[i] = from->values[i];
+        if (to) {
+            to->values[i] = from->values[i];
+        }
         sum += from->values[i];
     }
     return sum;

@@ -960,6 +960,16 @@ namespace eval cffi::test {
         S fromnative $p
     } -result {n 2 a {1 2}}
 
+    test memory-new-varsize-1 "new varsize = 0" -setup {
+        cffi::Struct create S {n int a uchar[n]}
+    } -cleanup {
+        cffi::memory free $p
+        S destroy
+    } -body {
+        set p [cffi::memory new struct.S {n 0 a {}} S]
+        S fromnative $p
+    } -result {n 0 a {}}
+
     test memory-get-winchars-multisz-0 "Get a multisz list" -setup {
         set p [cffi::memory new {bytes[100]} "A\x00 \x00B\x00\x00\x00C\x00\x00\x00D\x00E\x00\x00\x00\x00\x00"]
     } -cleanup {

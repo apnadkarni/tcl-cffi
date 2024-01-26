@@ -529,8 +529,11 @@ CffiStructComputeFieldAddress(CffiInterpCtx *ipCtxP,
         CFFI_ASSERT(!CffiStructIsUnion(structP));
         fldArraySize =
             CffiStructGetDynamicCountNative(ipCtxP, structP, structAddr);
-        if (fldArraySize <= 0)
+        if (fldArraySize < 0) {
+            Tclh_ErrorGeneric(
+                ip, NULL, "Internal error: field array size is negative.");
             return TCL_ERROR;
+        }
     }
 
     *fldIndexP     = fldIndex;

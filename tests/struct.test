@@ -863,7 +863,17 @@ namespace eval cffi::test {
         T frombinary $bin
     } -result [list i 42 s [list n 2 ll [list $intMin(longlong) $intMax(longlong)]]]
 
-    test struct-frombinary-varsize-1 "struct frombinary truncation - less than minsize" -setup {
+    test struct-tobinary-varsize-2 "struct tobinary/frombinary varsize = 0" -setup {
+        cffi::Struct create S {n short ll longlong[n]}
+    } -cleanup {
+        S destroy
+    } -body {
+        set bin [S tobinary {n 0 ll {}}]
+        S frombinary $bin
+    } -result {n 0 ll {}}
+
+
+    test struct-frombinary-varsize-0 "struct frombinary truncation - less than minsize" -setup {
         cffi::Struct create S {n short ll longlong[n]}
     } -cleanup {
         S destroy
@@ -1375,6 +1385,16 @@ namespace eval cffi::test {
     } -body {
         ::S getnative $p d 1
     } -result {Operation indexing failed on ::S. Operation not permitted on variable sized structs.} -returnCodes error
+
+    test struct-getnative-varsize-3 "struct getnative - varsize = 0" -setup {
+        cffi::Struct create ::S {n int d double[n]}
+        set p [::S new {n 0 d {}}]
+    } -cleanup {
+        ::S free $p
+        rename ::S ""
+    } -body {
+        ::S getnative $p d
+    } -result {}
 
     ###
     # getnative!

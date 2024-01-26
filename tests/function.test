@@ -2893,15 +2893,8 @@ namespace eval ${NS}::test {
             set fn pointer_add
             testDll function $fn {pointer novaluechecks unsafe} [list inarray [list $type\[n\] novaluechecks out] n int]
             unset -nocomplain outvar
-        } -body {
-            list [$fn {} 0] [info exists outvar]
-        } -result [list [makeptr 0] 0]
-
-        test function-array-count0-$type-inout-0 {array inout size 0} -setup {
-            # Fake out function as taking array. Doesn't matter as we pass NULL
-            set fn pointer_add
-            testDll function $fn {pointer novaluechecks unsafe} [list inarray [list $type\[n\] novaluechecks out] n int]
-            unset -nocomplain outvar
+        } -cleanup {
+            unset -nocomplain "" ; # Clean up dummy output variable
         } -body {
             list [$fn {} 0] [info exists outvar]
         } -result [list [makeptr 0] 0]
@@ -3573,6 +3566,47 @@ namespace eval ${NS}::test {
         rename fn {}
         S destroy
     } -result 1
+
+    ###
+    # struct with VLA
+    test function-struct-vla-0 "VLA struct as input and output" -body {
+        testDll function copyStructWithVLA int {
+            from {struct.::StructWithVLA byref}
+            to {struct.::StructWithVLA out}
+        }
+    } -result {Invalid value "struct.::StructWithVLA out". Variable sized types are not allowed in this type declaration context. Error defining function copyStructWithVLA.} -returnCodes error
+
+    test function-struct-vla-1 "VLA struct as input" -body {
+        testDll function copyStructWithVLA int {
+            from {struct.::StructWithVLA byref}
+            to {pointer nullok}
+        }
+        list [copyStructWithVLA {count 2 values {42 43}} NULL] [info exists ""]
+    } -result {85 0}
+
+    test function-struct-vla-2 "VLA struct as input and output pointer" -setup {
+        testDll function copyStructWithVLA int {
+            from {struct.::StructWithVLA byref}
+            to {pointer.::StructWithVLA}
+        }
+        set p [::StructWithVLA allocate -vlacount 2]
+    } -cleanup {
+        ::StructWithVLA free $p
+    } -body {
+        list [copyStructWithVLA {count 2 values {42 43}} $p] [::StructWithVLA fromnative $p]
+    } -result {85 {count 2 values {42 43}}}
+
+    test function-struct-vla-3 "VLA struct as input and output pointer, VLA count 0" -setup {
+        testDll function copyStructWithVLA int {
+            from {struct.::StructWithVLA byref}
+            to {pointer.::StructWithVLA}
+        }
+        set p [::StructWithVLA allocate -vlacount 0]
+    } -cleanup {
+        ::StructWithVLA free $p
+    } -body {
+        list [copyStructWithVLA {count 0 values {}} $p] [::StructWithVLA fromnative $p]
+    } -result {0 {count 0 values {}}}
 
     ###
     # scopes - aliases
