@@ -3302,7 +3302,7 @@ CffiTypeObjCmd(ClientData cdata,
     else {
         CffiTypeLayoutInfo(ipCtxP, &typeAttrs.dataType, vlaCount, &baseSize, &size, &alignment);
         if (cmd == SIZE)
-            Tcl_SetObjResult(ip, Tcl_NewIntObj(size));
+            Tcl_SetObjResult(ip, Tcl_NewWideIntObj(size));
         else {
             /* type info */
             Tcl_Obj *objs[10];

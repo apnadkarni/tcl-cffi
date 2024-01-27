@@ -1357,7 +1357,8 @@ namespace eval Cookbook {
         field in a native struct a NULL pointer value.
 
         * Pointer fields that hold pointers to character strings may be
-        alternatively declared as [string pointer fields][String pointer fields].
+        alternatively declared as [string pointer fields][String pointer fields]
+        under some restrictions described below.
 
         #### String pointer fields
 

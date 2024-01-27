@@ -1000,6 +1000,63 @@ CffiStructDescribeCmd(Tcl_Interp *ip,
     return TCL_OK;
 }
 
+/* Function: CffiStructSizeCmd
+ * Returns the size of the struct as the interp result.
+ *
+ * Parameters:
+ * ip - Interpreter
+ * structP - Pointer to a <CffiStruct>
+ *
+ * Returns:
+ * *TCL_OK* on success, *TCL_ERROR* on failure.
+ */
+static CffiResult
+CffiStructSizeCmd(Tcl_Interp *ip,
+                  int objc,
+                  Tcl_Obj *const objv[],
+                  CffiStructCmdCtx *structCtxP)
+{
+    CffiStruct *structP = structCtxP->structP;
+    int structSize;
+    int structFixedSize;
+    enum Opts { VLACOUNT };
+    static const char *const opts[] = {"-vlacount", NULL};
+    int vlaCount = -1;
+
+    if (CffiStructIsVariableSize(structP)) {
+        if (objc < 4) {
+            return CffiErrorMissingVLACountOption(ip);
+        }
+        int optIndex;
+        int i;
+        for (i = 2; i < objc; ++i) {
+            Tcl_WideInt wide;
+            CHECK(Tcl_GetIndexFromObj(ip, objv[i], opts, "option", 0, &optIndex));
+            if (i == objc-1)
+                return Tclh_ErrorOptionValueMissing(ip, objv[i], NULL);
+            ++i;
+            switch (optIndex) {
+            case VLACOUNT:
+                CHECK(Tclh_ObjToRangedInt(ip, objv[i], 0, INT_MAX, &wide));
+                vlaCount = (int)wide;
+                break;
+            }
+        }
+
+        CHECK(CffiStructSizeForVLACount(structCtxP->ipCtxP,
+                                     structP,
+                                     vlaCount,
+                                     &structSize,
+                                     &structFixedSize));
+    }
+    else /* Fixed size struct */
+        structSize = structP->size;
+
+    Tcl_SetObjResult(ip, Tcl_NewWideIntObj(structSize));
+    return TCL_OK;
+}
+
+
 /* Function: CffiStructInfoCmd
  * Returns a dictionary describing the structure as the interp result.
  *
@@ -2483,6 +2540,7 @@ CffiStructInstanceCmd(ClientData cdata,
         {"new", 0, 1, "?INITIALIZER?", CffiStructNewCmd},
         {"setnative", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetNativeCmd},
         {"setnative!", 3, 4, "POINTER FIELD VALUE ?INDEX?", CffiStructSetNativeUnsafeCmd},
+        {"size", 0, 2, "?-vlacount VLACOUNT?", CffiStructSizeCmd},
         {"tobinary", 1, 1, "DICTIONARY", CffiStructToBinaryCmd},
         {"tonative", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeCmd},
         {"tonative!", 2, 3, "POINTER INITIALIZER ?INDEX?", CffiStructToNativeUnsafeCmd},
@@ -2653,6 +2711,7 @@ CffiUnionInstanceCmd(ClientData cdata,
         {"encode", 2, 2, "FIELD VALUE", CffiUnionEncodeCmd},
         {"info", 0, 0, "", CffiStructInfoCmd},
         {"name", 0, 0, "", CffiStructNameCmd},
+        {"size", 0, 2, "?-vlacount VLACOUNT?", CffiStructSizeCmd},
         {NULL}
     };
     int cmdIndex;

@@ -60,4 +60,7 @@ oo::class create ${NS}::Union {
         # Note the name of the struct may be different from the name of
         # the object command.
     }
+    method size {} {
+        # Returns the size of the union.
+    }
 }

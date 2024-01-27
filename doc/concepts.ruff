@@ -783,8 +783,14 @@ namespace eval Concepts {
 
         Annotations that may be applied to field type declarations include
 
-        - [unsafe][Pointer safety], [counted][Pointer safety] and
-        [novaluechecks][Invalid pointer values] for pointer types
+        - [unsafe][Pointer safety] may be applied but is superfluous as
+        pointers in struct fields are implicitly marked unsafe as these
+        are more often than not internal pointers in C and not explictly
+        passed across interfaces. For the same
+        reason the [counted][Pointer safety] annotation is ignored if present.
+        - the [novaluechecks][Invalid pointer values] annotation for pointer
+        types may be present to indicate no value checks (e.g. for NULL)
+        are applied to the field.
         - [enum][Enumerations] and [bitmask][Type annotations] for integer types
         - [nullifempty][Strings as NULL pointers] for `string`, `unistring`
         and `winstring` types.

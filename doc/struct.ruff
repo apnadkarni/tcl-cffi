@@ -264,4 +264,12 @@ oo::class create ${NS}::Struct {
         # Note the name of the struct is different from the name of
         # the object name.
     }
+    method size {args} {
+        # Returns the size of the struct.
+        #   -vlacount VLACOUNT - number of elements in variable size array
+        #
+        # The option `-vlacount` must be specified if the struct contains
+        # a field that is a variable length array (VLA) or a nested struct
+        # that contains a VLA. `VLACOUNT` is then length of that array.
+    }
 }

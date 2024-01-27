@@ -64,28 +64,47 @@ namespace eval cffi::test {
 
             set tinfo [cffi::type info $type]
             dict with tinfo {}
-            test union-$type-0 "union new $type" -cleanup {
+
+            test union-info-$type-0 "union new $type" -cleanup {
                 $s destroy
             } -body {
                 set s [cffi::Union new "fld $type"]
                 $s info
             } -result [list Size $Size Alignment $Alignment Flags 4 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr]]] -match dict
 
-            test union-$type-1 "union create {schar $type}" -cleanup {
+            test union-size-$type-0 "union new $type" -cleanup {
+                $s destroy
+            } -body {
+                set s [cffi::Union new "fld $type"]
+                $s size
+            } -result $Size
+            test union-info-$type-1 "union create {schar $type}" -cleanup {
                 S destroy
             } -body {
                 cffi::Union create S "c schar fld $type"
                 S info
             } -result [list Size $Size Alignment $Alignment Flags 4 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset 0 Definition $typeAndAttr]]] -match dict
+            test union-size-$type-1 "union create {schar $type}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Union create S "c schar fld $type"
+                S size
+            } -result $Size
 
-            test union-$type-2 "union create {$type uchar}" -cleanup {
+            test union-info-$type-2 "union create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Union create S "fld $type c uchar"
                 S info
             } -result [list Size $Size Alignment $Alignment Flags 4 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr] c [list Size 1 Offset 0 Definition uchar] ]] -match dict
+            test union-size-$type-2 "union create {$type uchar}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Union create S "fld $type c uchar"
+                S size
+            } -result $Size
         }
-        test union-$type-3 "union create {schar $type\[2\]}" -cleanup {
+        test union-info-$type-3 "union create {schar $type\[2\]}" -cleanup {
             S destroy
         } -body {
             cffi::Union create S "c schar fld $type\[2\] c2 schar"
@@ -98,6 +117,12 @@ namespace eval cffi::test {
                                            fld [list Size [expr {2*$Size}] Offset 0 Definition $arrType] \
                                            c2 [list Size 1 Offset 0 Definition schar]]]
 
+        test union-size-$type-3 "union create {schar $type\[2\]}" -cleanup {
+            S destroy
+        } -body {
+            cffi::Union create S "c schar fld $type\[2\] c2 schar"
+            S size
+        } -result [expr {2*$Size}]
     }
     foreach type [array names testValues] {
         if {$type ni {binary string unistring winstring}} {

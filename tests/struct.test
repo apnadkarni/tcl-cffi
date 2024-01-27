@@ -42,6 +42,7 @@ namespace eval cffi::test {
 
         set typeAndAttr $type
         set arrType [list "$type\[2\]"]
+        set varsizeArrType [list "$type\[count\]"]
         # Skip scalar tests for these
         if {$type in {chars bytes}} {
             set Size 1
@@ -56,32 +57,85 @@ namespace eval cffi::test {
             if {$type eq "pointer"} {
                 set typeAndAttr [list $type unsafe]
                 set arrType [list $type\[2\] unsafe]
+                set varsizeArrType [list $type\[count\] unsafe]
             }
 
             set tinfo [cffi::type info $type]
             dict with tinfo {}
-            test struct-$type-0 "struct new $type" -cleanup {
+
+            test struct-info-$type-0 "struct new $type" -cleanup {
                 $s destroy
             } -body {
                 set s [cffi::Struct new "fld $type"]
                 $s info
             } -result [list Size $Size Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr]]] -match dict
 
-            test struct-$type-1 "struct create {schar $type}" -cleanup {
+            test struct-size-$type-0 "struct new $type" -cleanup {
+                $s destroy
+            } -body {
+                set s [cffi::Struct new "fld $type"]
+                $s size
+            } -result $Size
+
+            test struct-info-$type-1 "struct create {schar $type}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "c schar fld $type"
                 S info
             } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset $Size Definition $typeAndAttr]]] -match dict
 
-            test struct-$type-2 "struct create {$type uchar}" -cleanup {
+            test struct-size-$type-1 "struct create {schar $type}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Struct create S "c schar fld $type"
+                S size
+            } -result [expr {2*$Size}]
+            test struct-info-$type-2 "struct create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "fld $type c uchar"
                 S info
             } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
+            test struct-size-$type-2 "struct create {$type uchar}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Struct create S "fld $type c uchar"
+                S size
+            } -result [expr {2*$Size}]
+
+            test struct-$type-info-varsize-0 "struct info varsize" -setup {
+                cffi::Struct create S "count uchar arr $type\[count\]"
+            } -body {
+                S info
+            } -result {Required option "-vlacount" not specified. This option is required for variable size structs.} -returnCodes error
+
+            test struct-info-varsize-$type-0 "struct create {schar $type\[count\]}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Struct create S "count schar fld $type\[count\]"
+                S info -vlacount 2
+            } -result [list \
+                        Size [expr {3*$Size}] \
+                        Alignment $Alignment \
+                        Flags 2 Fields [list \
+                                            count [list Size 1 Offset 0 Definition schar] \
+                                            fld [list Size [expr {2*$Size}] Offset $Size Definition $varsizeArrType]]]
+
+            test struct-$type-size-varsize-0 "struct size varsize" -setup {
+                cffi::Struct create S "count uchar arr $type\[count\]"
+            } -body {
+                S size
+            } -result {Required option "-vlacount" not specified. This option is required for variable size structs.} -returnCodes error
+
+            test struct-size-varsize-$type-0 "struct create {schar $type\[count\]}" -cleanup {
+                S destroy
+            } -body {
+                cffi::Struct create S "count schar fld $type\[count\]"
+                S size -vlacount 2
+            } -result [expr {3*$Size}]
+
         }
-        test struct-$type-3 "struct create {schar $type\[2\]}" -cleanup {
+        test struct-info-$type-3 "struct create {schar $type\[2\]}" -cleanup {
             S destroy
         } -body {
             cffi::Struct create S "c schar fld $type\[2\] c2 schar"
@@ -93,6 +147,14 @@ namespace eval cffi::test {
                                            c [list Size 1 Offset 0 Definition schar] \
                                            fld [list Size [expr {2*$Size}] Offset $Size Definition $arrType] \
                                            c2 [list Size 1 Offset [expr {3*$Size}] Definition schar]]]
+        test struct-size-$type-3 "struct create {schar $type\[2\]}" -cleanup {
+            S destroy
+        } -body {
+            cffi::Struct create S "c schar fld $type\[2\] c2 schar"
+            S size
+        } -result [expr {4*$Size}]
+    
+
     }
 
     # Struct size, offset and alignment tests
@@ -250,7 +312,6 @@ namespace eval cffi::test {
         rename S {}
     } -body {
         set p [S allocate]
-        list [cffi::pointer isvalid $p] [S free $p] [cffi::pointer isvalid $p]
     } -result {Required option "-vlacount" not specified. Variable size structs must specify the size of the contained variable length array.} -returnCodes error
 
     test struct-allocate-varsize-1 "struct allocate -vlacount" -setup {
@@ -2019,6 +2080,19 @@ namespace eval cffi::test {
     testpacked 4 {Size 16 Alignment 4 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 4 Definition double} s {Size 2 Offset 12 Definition ushort}}}
     testpacked 8 {Size 24 Alignment 8 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 8 Definition double} s {Size 2 Offset 16 Definition ushort}}}
     testpacked 16 {Size 24 Alignment 8 Flags 0 Fields {uc {Size 1 Offset 0 Definition uchar} dbl {Size 8 Offset 8 Definition double} s {Size 2 Offset 16 Definition ushort}}}
+
+    ###
+    # Extras, might already be tested elsewhere
+    test type-pointer-field-0 "pointer fields are always unsafe" -setup {
+        cffi::Struct create S {p pointer}
+    } -body {
+        dict get [S info] Fields p Definition
+    } -result {pointer unsafe}
+    test type-pointer-field-1 "pointer fields are always unsafe" -setup {
+        cffi::Struct create S {p {pointer counted}}
+    } -body {
+        dict get [S info] Fields p Definition
+    } -result {pointer unsafe}
 }
 
 
