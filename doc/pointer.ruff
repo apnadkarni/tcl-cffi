@@ -109,10 +109,11 @@ namespace eval ${NS}::pointer {
         #     Only pointers matching the tag are returned.
     }
     proc make {address tag} {
-        # Return a pointer for a memory address
+        # Return a pointer for a memory address.
         #  address - memory address as a positive integer
         #  tag - If not fully qualified, this will be qualified
-        #   with the current namespace name.
+        #   with the current namespace name. An empty tag is treated
+        #   as if it was unspecified.
         #
         # The returned pointer is not registered as safe. The caller
         # can use the [pointer safe] command to mark it as such if so desired.

@@ -7,6 +7,17 @@
 
 #include "tclCffiInt.h"
 
+static CFFI_INLINE CffiPointerNullifyTag(Tcl_Obj **tagObjP) {
+    if (*tagObjP) {
+        Tcl_Size len;
+        /* Tcl_GetCharLength will shimmer so GetStringFromObj */
+        (void)Tcl_GetStringFromObj(*tagObjP, &len);
+        if (len == 0)
+            *tagObjP = NULL;
+    }
+}
+
+
 static CffiResult
 CffiPointerCastableCmd(CffiInterpCtx *ipCtxP,
                        Tcl_Obj *subtypeObjList,
@@ -19,6 +30,10 @@ CffiPointerCastableCmd(CffiInterpCtx *ipCtxP,
     Tcl_Size nSubtypes;
     Tcl_Size i;
 
+    CffiPointerNullifyTag(&supertypeObj);
+    if (supertypeObj == NULL)
+        return TCL_OK; /* void pointer - everything is already castable to it */
+
     if (Tcl_ListObjGetElements(
         ip, subtypeObjList, &nSubtypes, &subtypeObjs) != TCL_OK)
         return TCL_ERROR;
@@ -27,8 +42,12 @@ CffiPointerCastableCmd(CffiInterpCtx *ipCtxP,
     superFqnObj = Tclh_NsQualifyNameObj(ip, supertypeObj, NULL);
     Tcl_IncrRefCount(superFqnObj);
 
+    ret = TCL_OK;
     for (i = 0; i < nSubtypes; ++i) {
         Tcl_Obj *subFqnObj;
+        CffiPointerNullifyTag(&subtypeObjs[i]);
+        if (subtypeObjs[i] == NULL)
+            continue; /* Ignore void* as a subtype. Requires explicit cast */
         subFqnObj = Tclh_NsQualifyNameObj(ip, subtypeObjs[i], NULL);
         Tcl_IncrRefCount(subFqnObj);
         ret = Tclh_PointerSubtagDefine(
@@ -48,6 +67,10 @@ CffiPointerUncastableCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *tagObj)
     Tcl_Interp *ip = ipCtxP->interp;
     CffiResult ret;
 
+    CffiPointerNullifyTag(&tagObj);
+    if (tagObj == NULL)
+        return TCL_OK; /* void pointer - always castable - ignore */
+
     tagObj = Tclh_NsQualifyNameObj(ip, tagObj, NULL);
     Tcl_IncrRefCount(tagObj);
 
@@ -62,6 +85,7 @@ CffiPointerCastCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *ptrObj, Tcl_Obj *newTagObj)
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj *fqnObj;
     int ret;
+    CffiPointerNullifyTag(&newTagObj);
     if (newTagObj) {
         newTagObj = Tclh_NsQualifyNameObj(ip, newTagObj, NULL);
         Tcl_IncrRefCount(newTagObj);
@@ -137,20 +161,24 @@ CffiPointerObjCmd(ClientData cdata,
     /* LIST and MAKE do not take a pointer arg like the others */
     switch (cmdIndex) {
     case LIST:
+        if (objc > 2) {
+            objP = objv[2];
+            CffiPointerNullifyTag(&objP);
+        } else
+            objP = NULL;
         Tcl_SetObjResult(ip,
                          Tclh_PointerEnumerate(ip,
                                                ipCtxP->tclhCtxP,
-                                               objc == 3 ? objv[2] : NULL));
+                                               objP));
         return TCL_OK;
     case MAKE:
         CHECK(Tclh_ObjToAddress(ip, objv[2], &pv));
         objP = NULL;
         if (objc >= 4 && pv != NULL) {
-            Tcl_Size len;
-            /* Tcl_GetCharLength will shimmer so GetStringFromObj */
-            (void) Tcl_GetStringFromObj(objv[3], &len);
-            if (len != 0)
-                objP = Tclh_NsQualifyNameObj(ip, objv[3], NULL);
+            objP = objv[3];
+            CffiPointerNullifyTag(&objP);
+            if (objP)
+                objP = Tclh_NsQualifyNameObj(ip, objP, NULL);
         }
         Tcl_SetObjResult(ip, Tclh_PointerWrap(pv, objP));
         return TCL_OK;

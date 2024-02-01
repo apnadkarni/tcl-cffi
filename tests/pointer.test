@@ -440,6 +440,24 @@ namespace eval ${NS}::test {
                    [list [makeptr 1 [namespace current]::T]] \
                   ]
 
+    # More exhaustive combinations. May overlap with some tests above
+    proc testcast {id taga tagb registration result args} {
+        test pointer-cast-$taga-$tagb-$registration-$id "pointer cast $taga->$tagb, $registration" -setup {
+            purge_pointers
+            set pa [makeptr 1 $taga]
+            if {$registration ne ""} {
+                ::cffi::pointer safe [::cffi::pointer make 1 $registration]
+            }
+        } -cleanup {
+            unset -nocomplain pa
+            purge_pointers
+        } -body {
+            cffi::pointer cast $pa $tagb
+        } -result $result {*}$args
+    }
+    testcast 1 T1 "" "" [makeptr 1]
+    testcast 1 T1 T2 "" "Pointer tags are not compatible for casting." -returnCodes error
+
     ###
     # castable tests
     testnumargs pointer-castable "pointer castable" "SUBTAG SUPERTAG" ""
