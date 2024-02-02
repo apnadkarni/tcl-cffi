@@ -214,7 +214,7 @@ namespace eval ${NS}::test {
         list [lsort [cffi::pointer list]] [cffi::pointer dispose 1^TAG] [cffi::pointer dispose 2^] [cffi::pointer list]
     } -result [list [list [makeptr 1 TAG] [makeptr 2]] {} {} {}]
 
-    test pointer-list-2 "pointer list" -setup {
+    test pointer-list-2 "pointer list for tag" -setup {
         cffi::pointer safe 1^TAG
         cffi::pointer safe 2^
         cffi::pointer safe 3^BAG
@@ -226,13 +226,25 @@ namespace eval ${NS}::test {
         cffi::pointer list TAG
     } -result [list [makeptr 1 TAG]]
 
-    test pointer-list-3 "pointer list" -setup {
+    test pointer-list-3 "pointer list no matches" -setup {
         cffi::pointer safe 1^TAG
     } -cleanup {
         cffi::pointer dispose 1^TAG
     } -body {
         cffi::pointer list TAGX
     } -result [list ]
+
+    test pointer-list-4 "pointer list for void" -setup {
+        cffi::pointer safe 1^TAG
+        cffi::pointer safe 2^
+        cffi::pointer safe 3^BAG
+    } -cleanup {
+        cffi::pointer dispose 1^TAG
+        cffi::pointer dispose 2^
+        cffi::pointer dispose 3^BAG
+    } -body {
+        cffi::pointer list ""
+    } -result [list [makeptr 2]]
 
     ###
     # pointer safe
@@ -441,22 +453,55 @@ namespace eval ${NS}::test {
                   ]
 
     # More exhaustive combinations. May overlap with some tests above
-    proc testcast {id taga tagb registration result args} {
-        test pointer-cast-$taga-$tagb-$registration-$id "pointer cast $taga->$tagb, $registration" -setup {
+    proc testcast {taga tagb registeredTag result args} {
+        set id pointer-cast-$taga-$tagb-$registeredTag
+        set comment "pointer cast $taga->$tagb, $registeredTag"
+        if {$taga eq "void"} {set taga ""}
+        if {$tagb eq "void"} {set tagb ""}
+        if {$registeredTag eq "void"} {set registeredTag ""}
+        set setup {
             purge_pointers
-            set pa [makeptr 1 $taga]
-            if {$registration ne ""} {
-                ::cffi::pointer safe [::cffi::pointer make 1 $registration]
+            set pa [cffi::pointer make 1 $taga]
+            if {$registeredTag ne "-"} {
+                ::cffi::pointer safe [::cffi::pointer make 1 $registeredTag]
             }
-        } -cleanup {
+        }
+        set cleanup {
             unset -nocomplain pa
             purge_pointers
-        } -body {
-            cffi::pointer cast $pa $tagb
-        } -result $result {*}$args
+        }
+        set filteredArgs {}
+        set args [foreach {opt val} $args {
+            if {$opt eq "-setup"} {
+                append setup \n $val
+                continue
+            }
+            if {$opt eq "-cleanup"} {
+                append cleanup \n $val
+                continue
+            }
+            lappend filteredArgs $opt $val
+        }]
+        test $id $comment -setup $setup -cleanup $cleanup -body {
+            list [cffi::pointer cast $pa $tagb] [cffi::pointer list]
+        } -result $result {*}$filteredArgs
     }
-    testcast 1 T1 "" "" [makeptr 1]
-    testcast 1 T1 T2 "" "Pointer tags are not compatible for casting." -returnCodes error
+    # Unregistered cases first
+    testcast void void - [list [cffi::pointer make 1] [list ]]
+    testcast void T    - [list [cffi::pointer make 1 T] [list ]]
+    testcast T    T    - [list [cffi::pointer make 1 T] [list ]]
+    testcast T    void - [list [cffi::pointer make 1] [list ]]
+    testcast T    T2   - "Pointer tags are not compatible for casting." -returnCodes error
+    testcast T    BASE - [list [cffi::pointer make 1 BASE] [list ]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast BASE T - [list [cffi::pointer make 1 T] [list ]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
 
     ###
     # castable tests
@@ -566,6 +611,16 @@ namespace eval ${NS}::test {
     test pointer-compare-7 "Compare NULL with non-NULL" -body {
         cffi::pointer compare [makeptr 1] NULL
     } -result 0
+
+    ###
+    # Ensure empty tag treated as void pointer
+    test pointer-empty-tag-0 "pointer make empty tag" -body {
+        cffi::pointer make 1 ""
+    } -result [cffi::pointer make 1]
+    test pointer-empty-tag-1 "pointer cast empty tag" -body {
+        cffi::pointer cast [cffi::pointer make 1 T] ""
+    } -result [cffi::pointer make 1]
+
 }
 
 ::tcltest::cleanupTests

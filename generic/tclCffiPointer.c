@@ -163,7 +163,6 @@ CffiPointerObjCmd(ClientData cdata,
     case LIST:
         if (objc > 2) {
             objP = objv[2];
-            CffiPointerNullifyTag(&objP);
         } else
             objP = NULL;
         Tcl_SetObjResult(ip,

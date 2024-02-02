@@ -103,10 +103,12 @@ namespace eval ${NS}::pointer {
         # See [Pointers][::Concepts::Pointers] for more on pointer
         # safety and registration.
     }
-    proc list {args} {
+    proc list {tag} {
         # Returns a list of registered pointers optionally filtered by a tag.
-        #   args - if specified, must be a single argument which is a tag.
-        #     Only pointers matching the tag are returned.
+        #   tag - if specified, only pointers matching the tag are returned.
+        #     If `tag` is the empty string, only pointers without a tag are
+        #     returned.
+        # Synopsis: ?tag?
     }
     proc make {address tag} {
         # Return a pointer for a memory address.
