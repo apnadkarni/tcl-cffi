@@ -31,7 +31,9 @@ namespace eval ${NS}::pointer {
         # Synopsis: pointer ?TAG?
         #
         # The cast will fail if the `TAG` is not castable to or from the
-        # pointer's tag. See [Casting pointers].
+        # pointer's tag. See [Casting pointers]. In addition, the cast will
+        # fail if the pointer is registered as a safe pointer and the
+        # pointer's tag is not castable to the tag in the registration.
         #
         # If `TAG` is not specified, any existing tag is removed from the pointer
         # (effectively marking it as a `void*` pointer).

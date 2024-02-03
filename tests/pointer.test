@@ -7,6 +7,10 @@ source [file join [file dirname [info script]] common.tcl]
 
 namespace eval ${NS}::test {
 
+    proc pointer1 {{tag {}}} {
+        return [cffi::pointer make 1 $tag]
+    }
+
     proc testnullptr {cmd} {
         test pointer-$cmd-null-0 "pointer $cmd NULL" -body {
             list [catch {cffi::pointer $cmd [makeptr 0]} result] $result $::errorCode
@@ -486,22 +490,74 @@ namespace eval ${NS}::test {
             list [cffi::pointer cast $pa $tagb] [cffi::pointer list]
         } -result $result {*}$filteredArgs
     }
-    # Unregistered cases first
-    testcast void void - [list [cffi::pointer make 1] [list ]]
-    testcast void T    - [list [cffi::pointer make 1 T] [list ]]
-    testcast T    T    - [list [cffi::pointer make 1 T] [list ]]
-    testcast T    void - [list [cffi::pointer make 1] [list ]]
+    # Unregistered casts
+    testcast void void - [list [pointer1] [list ]]
+    testcast void T    - [list [pointer1 T] [list ]]
+    testcast T    T    - [list [pointer1 T] [list ]]
+    testcast T    void - [list [pointer1] [list ]]
     testcast T    T2   - "Pointer tags are not compatible for casting." -returnCodes error
-    testcast T    BASE - [list [cffi::pointer make 1 BASE] [list ]] -setup {
+    testcast T    BASE - [list [pointer1 BASE] [list ]] -setup {
         cffi::pointer castable T BASE
     } -cleanup {
         cffi::pointer uncastable T
     }
-    testcast BASE T - [list [cffi::pointer make 1 T] [list ]] -setup {
+    testcast BASE T - [list [pointer1 T] [list ]] -setup {
         cffi::pointer castable T BASE
     } -cleanup {
         cffi::pointer uncastable T
     }
+    # Registered casts
+    testcast void void void [list [pointer1] [list [pointer1]]]
+    testcast void void T    [list [pointer1] [list [pointer1]]]
+    testcast void T    void [list [pointer1 T] [list [pointer1 T]]]
+    testcast void T    T    [list [pointer1 T] [list [pointer1 T]]]
+    testcast T    void void [list [pointer1] [list [pointer1]]]
+    testcast T    void T    [list [pointer1] [list [pointer1]]]
+    testcast T    T    void [list [pointer1 T] [list [pointer1 T]]]
+    testcast T    T    T    [list [pointer1 T] [list [pointer1 T]]]
+    testcast T    T2   T    "Pointer tags are not compatible for casting." -returnCodes error
+    testcast T    T2   T2   "Value has the wrong type. Pointer tag does not match registered tag." -returnCodes error
+    testcast T    BASE void [list [pointer1 BASE] [list [pointer1 BASE]]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast T    BASE T [list [pointer1 BASE] [list [pointer1 BASE]]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast T    BASE BASE [list [pointer1 BASE] [list [pointer1 BASE]]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast T    BASE T2 "Value has the wrong type. Pointer tag does not match registered tag." -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    } -returnCodes error
+
+    testcast BASE    T void [list [pointer1 T] [list [pointer1 T]]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast BASE    T T [list [pointer1 T] [list [pointer1 T]]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast BASE    T BASE [list [pointer1 T] [list [pointer1 T]]] -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    }
+    testcast BASE    T T2 "Value has the wrong type. Pointer tag does not match registered tag." -setup {
+        cffi::pointer castable T BASE
+    } -cleanup {
+        cffi::pointer uncastable T
+    } -returnCodes error
 
     ###
     # castable tests
