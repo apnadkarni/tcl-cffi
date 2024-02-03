@@ -575,10 +575,8 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
         /* TODO - check - is this correct. Won't the call check registration? */
         CHECK(Tclh_PointerUnwrapTagged(
             ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
-        if (structAddr == NULL) {
-            Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-            return TCL_ERROR;
-        }
+        if (structAddr == NULL)
+            return Tclh_ErrorPointerNull(ip);
     }
 
     int structIndex; /* Index into array of structs */

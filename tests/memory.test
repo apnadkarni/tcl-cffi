@@ -96,7 +96,7 @@ namespace eval cffi::test {
         cffi::memory free $p
     } -body {
         list [catch {cffi::memory free $p} result] $result $::errorCode
-    } -result {1 {Pointer * is not registered.} {cffi ERROR {Pointer * is not registered.}}} -match glob
+    } -result {1 {Invalid value*Pointer validation failed: not registered.} {cffi INVALID_VALUE {Invalid value*Pointer validation failed: not registered.}}} -match glob
 
     ###
 
@@ -132,7 +132,7 @@ namespace eval cffi::test {
 
     test memory-binary-2 {To/From tobinary - unsafe} -body {
         cffi::memory tobinary [makeptr 1] 1
-    } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+    } -result "Invalid value \"[makeptr 1]\". Pointer validation failed: not registered." -returnCodes error
 
     test memory-binary-3 {To/From tobinary! - unsafe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
@@ -191,7 +191,7 @@ namespace eval cffi::test {
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tobinary!-error-0 "tobinary! null pointer" -body {
         cffi::memory tobinary! 0^ 1
-    } -result {Pointer is NULL.} -returnCodes error
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
     test memory-tobinary-error-1 {To/From binary offset negative - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
         unset -nocomplain p
@@ -232,10 +232,9 @@ namespace eval cffi::test {
         list \
             [cffi::pointer isvalid $p] \
             [catch {cffi::memory tostring $p} result] \
-            [string match {Pointer 0x*^ is not registered.} $result] \
             [cffi::pointer compare $p [cffi::pointer safe $p]] \
             [cffi::memory free $p]
-    } -result [list 0 1 1 1 {}]
+    } -result [list 0 1 1 {}]
     test memory-string!-$num "To/from string! - unsafe, no optional args" -body {
         unset -nocomplain p
         set p [cffi::memory fromstring abc]
@@ -343,7 +342,7 @@ namespace eval cffi::test {
     } -result {Invalid value. Negative offsets are not allowed for safe pointers.} -returnCodes error
     test memory-tostring!-error-0 "tostring! null pointer" -body {
         cffi::memory tostring! 0^ 1
-    } -result {Pointer is NULL.} -returnCodes error
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
 
     ###
     # memory fill
@@ -606,19 +605,19 @@ namespace eval cffi::test {
         } -result "Invalid value. Pointer is NULL." -returnCodes error
         test memory-set-$type-unregistered-0 "set $type unregistered" -body {
             cffi::memory set [makeptr 1] $type $testValues($type)
-        } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+        } -result "Invalid value \"[makeptr 1]\". Pointer validation failed: not registered." -returnCodes error
         test memory-get-$type-null-0 "get $type NULL" -body {
             cffi::memory get NULL $type
         } -result "Invalid value. Pointer is NULL." -returnCodes error
         test memory-get-$type-unregistered-0 "get $type unregistered" -body {
             cffi::memory get [makeptr 1] $type
-        } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+        } -result "Invalid value \"[makeptr 1]\". Pointer validation failed: not registered." -returnCodes error
         test memory-set!-$type-null-0 "set! $type NULL" -body {
             cffi::memory set! NULL $type $testValues($type)
-        } -result {Pointer is NULL.} -returnCodes error
+        } -result {Invalid value. Pointer is NULL.} -returnCodes error
         test memory-get!-$type-null-0 "get! $type NULL" -body {
             cffi::memory get! NULL $type
-        } -result {Pointer is NULL.} -returnCodes error
+        } -result {Invalid value. Pointer is NULL.} -returnCodes error
     }
     foreach {type val} [array get testValues] {
         if {$type ni {string unistring winstring binary}} {

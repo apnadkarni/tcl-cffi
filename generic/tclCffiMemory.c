@@ -30,16 +30,15 @@ CffiMemoryAddressFromObj(CffiInterpCtx *ipCtxP,
                          void **addressP)
 {
     void *pv;
-    if (allowUnsafe)
-        CHECK(Tclh_PointerUnwrap(ipCtxP->interp, ptrObj, &pv));
-    else
-        CHECK(Tclh_PointerObjVerify(
-            ipCtxP->interp, ipCtxP->tclhCtxP, ptrObj, &pv, NULL));
-
-    if (pv == NULL) {
-        Tcl_SetResult(ipCtxP->interp, "Pointer is NULL.", TCL_STATIC);
-        return TCL_ERROR;
+    CHECK(Tclh_PointerUnwrap(ipCtxP->interp, ptrObj, &pv));
+    if (!allowUnsafe) {
+        CHECK(Tclh_PointerVerify(
+            ipCtxP->interp, ipCtxP->tclhCtxP, pv));
     }
+
+    if (pv == NULL)
+        return Tclh_ErrorPointerNull(ipCtxP->interp);
+
     *addressP = pv;
     return TCL_OK;
 }
@@ -174,7 +173,7 @@ CffiMemoryFreeCmd(CffiInterpCtx *ipCtxP,
     CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     if (pv == NULL)
         return TCL_OK;
-    ret = Tclh_PointerUnregister(ip, ipCtxP->tclhCtxP, pv, NULL);
+    ret = Tclh_PointerUnregister(ip, ipCtxP->tclhCtxP, pv);
     if (ret == TCL_OK)
         ckfree(pv);
     return ret;
@@ -268,10 +267,8 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerObjVerify(
             ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
 
-    if (pv == NULL) {
-        Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-        return TCL_ERROR;
-    }
+    if (pv == NULL)
+        return Tclh_ErrorPointerNull(ip);
 
     CHECK(Tclh_ObjToUInt(ip, objv[3], &len));
 
@@ -397,10 +394,8 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerObjVerify(
             ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
 
-    if (pv == NULL) {
-        Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-        return TCL_ERROR;
-    }
+    if (pv == NULL)
+        return Tclh_ErrorPointerNull(ip);
 
     if (objc == 3) {
         encoding = NULL;
@@ -590,10 +585,8 @@ CffiMemoryFillCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerObjVerify(
             ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
 
-    if (pv == NULL) {
-        Tcl_SetResult(ip, "Pointer is NULL.", TCL_STATIC);
-        return TCL_ERROR;
-    }
+    if (pv == NULL)
+        return Tclh_ErrorPointerNull(ip);
 
     CHECK(Tclh_ObjToUChar(ip, objv[3], &val));
     CHECK(Tclh_ObjToRangedInt(ip, objv[4], 0, INT_MAX, &len));

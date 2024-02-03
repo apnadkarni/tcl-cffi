@@ -81,10 +81,8 @@ CffiPointerArgsDispose(CffiInterpCtx *ipCtxP,
                 if (nptrs < 0) {
                     /* Scalar */
                     if (argsP[i].savedValue.u.ptr != NULL)
-                        Tclh_PointerUnregister(ip,
-                                               ipCtxP->tclhCtxP,
-                                               argsP[i].savedValue.u.ptr,
-                                               NULL);
+                        Tclh_PointerUnregister(
+                            ip, ipCtxP->tclhCtxP, argsP[i].savedValue.u.ptr);
                 }
                 else {
                     /* Array */
@@ -94,7 +92,7 @@ CffiPointerArgsDispose(CffiInterpCtx *ipCtxP,
                     for (j = 0; j < nptrs; ++j) {
                         if (ptrArray[j] != NULL)
                             Tclh_PointerUnregister(
-                                ip, ipCtxP->tclhCtxP, ptrArray[j], NULL);
+                                ip, ipCtxP->tclhCtxP, ptrArray[j]);
                     }
                 }
             }

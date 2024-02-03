@@ -402,7 +402,7 @@ namespace eval cffi::test {
         set p [S allocate]
         list [S free $p] \
             [catch {S free $p} result] \
-            [string match "Pointer $p is not registered." $result]
+            [string match "Invalid value \"$p\". Pointer validation failed: not registered." $result]
     } -result [list {} 1 1]
 
     test struct-free-1 "struct free NULL pointer" -setup {
@@ -449,7 +449,7 @@ namespace eval cffi::test {
     } -body {
         cffi::pointer dispose $p
         set s [::TestStruct fromnative $p]
-    } -result {^Pointer 0x[[:xdigit:]]+\^::TestStruct is not registered\.$} -match regexp -returnCodes error
+    } -result {^Invalid value "0x[[:xdigit:]]+\^::TestStruct". Pointer validation failed: not registered.$} -match regexp -returnCodes error
 
     test struct-fromnative-error-1 "struct fromnative - null pointer" -body {
         ::TestStruct fromnative NULL
@@ -714,7 +714,7 @@ namespace eval cffi::test {
         rename S ""
     } -body {
         S tonative $p {c 1 i 2 s 3}
-    } -result {^Pointer 0x[[:xdigit:]]+\^::S is not registered\.$} -match regexp -returnCodes error
+    } -result {^Invalid value "0x[[:xdigit:]]+\^::S"\. Pointer validation failed: not registered.$} -match regexp -returnCodes error
 
     test struct-tonative-error-10 "struct tonative - NULL pointer" -setup {
         cffi::Struct create ::S {c uchar i longlong s short}
@@ -1301,7 +1301,7 @@ namespace eval cffi::test {
     } -cleanup {
         ::cffi::pointer dispose $ptr
         S destroy
-    } -result "Value \"[scoped_ptr 8 S2]\" has the wrong type. Pointer type mismatch." -returnCodes error
+    } -result "Value \"[scoped_ptr 8 S2]\" has the wrong type. Expected pointer to ::cffi::test::S." -returnCodes error
 
     test struct-fieldpointer-error-3 "Address of field - unsafe pointer" -setup {
         ::cffi::Struct create S {c schar i int}
@@ -1310,7 +1310,7 @@ namespace eval cffi::test {
         S fieldpointer $ptr i
     } -cleanup {
         S destroy
-    } -result "Pointer [scoped_ptr 8 S] is not registered." -returnCodes error
+    } -result "Invalid value \"[scoped_ptr 8 S]\". Pointer validation failed: not registered." -returnCodes error
 
     ###
     # struct getnative
@@ -1379,14 +1379,14 @@ namespace eval cffi::test {
         S destroy
     } -body {
         S getnative [scoped_ptr 1 S] i
-    } -result "Pointer [scoped_ptr 1 S] is not registered." -returnCodes error
+    } -result "Invalid value \"[scoped_ptr 1 S]\". Pointer validation failed: not registered." -returnCodes error
     test struct-getnative-error-1 "Wrong tag pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
         S getnative [scoped_ptr 1 S2] i
-    } -result "Value \"[scoped_ptr 1 S2]\" has the wrong type. Pointer type mismatch." -returnCodes error
+    } -result "Value \"[scoped_ptr 1 S2]\" has the wrong type. Expected pointer to ::cffi::test::S." -returnCodes error
     test struct-getnative-error-2 "NULL pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
@@ -1533,14 +1533,14 @@ namespace eval cffi::test {
         S destroy
     } -body {
         S setnative [scoped_ptr 1 S] i 42
-    } -result "Pointer [scoped_ptr 1 S] is not registered." -returnCodes error
+    } -result "Invalid value \"[scoped_ptr 1 S]\". Pointer validation failed: not registered." -returnCodes error
     test struct-setnative-error-1 "Wrong tag pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
         S destroy
     } -body {
         S setnative [scoped_ptr 1 S2] i 42
-    } -result "Value \"[scoped_ptr 1 S2]\" has the wrong type. Pointer type mismatch." -returnCodes error
+    } -result "Value \"[scoped_ptr 1 S2]\" has the wrong type. Expected pointer to ::cffi::test::S." -returnCodes error
     test struct-setnative-error-2 "NULL pointer" -setup {
         ::cffi::Struct create S {i int}
     } -cleanup {
@@ -1679,7 +1679,7 @@ namespace eval cffi::test {
         S destroy
     } -body {
         S setnative! NULL i 42
-    } -result {Pointer is NULL.} -returnCodes error
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
 
     ###
     # struct getnativefields
@@ -1738,7 +1738,7 @@ namespace eval cffi::test {
         S destroy
     } -body {
         S getnativefields [makeptr 1 ::TestStruct] {d c}
-    } -result "Value \"[makeptr 1 ::TestStruct]\" has the wrong type. Pointer type mismatch." -returnCodes error
+    } -result "Value \"[makeptr 1 ::TestStruct]\" has the wrong type. Expected pointer to ::cffi::test::S." -returnCodes error
     test struct-getnativefields-error-2 "unknown field" -setup {
         ::cffi::Struct create S {c schar d double }
         set p [S allocate]
@@ -1751,7 +1751,7 @@ namespace eval cffi::test {
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
     test struct-getnativefields-error-3 "unsafe pointer" -body {
         ::TestStruct getnativefields 1^::TestStruct {}
-    } -result "Pointer [makeptr 1 ::TestStruct] is not registered." -returnCodes error
+    } -result "Invalid value \"[makeptr 1 ::TestStruct]\". Pointer validation failed: not registered." -returnCodes error
 
     test struct-getnativefields-varsize-0 "struct getnativefields - varsize" -setup {
         cffi::Struct create ::S {n int d double[n]}
@@ -1818,7 +1818,7 @@ namespace eval cffi::test {
         S destroy
     } -body {
         S getnativefields! NULL {d c}
-    } -result {Pointer is NULL.} -returnCodes error
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error
 
     ###
     # struct new

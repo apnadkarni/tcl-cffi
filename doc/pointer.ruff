@@ -13,7 +13,8 @@ namespace eval ${NS}::pointer {
         #
         # - it must not be NULL
         # - it must be registered
-        # - if it is tagged, the tag must be the same as that of the registration.
+        # - if it is tagged, the tag must be the same as that of the registration
+        #   or implicitly castable to it.
         #
         # If any of the above conditions is not met, an error exception is raised.
         # Note that if $pointer is untagged, the tag of the registration is not
@@ -97,7 +98,8 @@ namespace eval ${NS}::pointer {
         #
         # - it must not be NULL
         # - it must be registered
-        # - if it is tagged, the tag must be the same as that of the registration.
+        # - if it is tagged, the tag must be the same as that of the registration
+        #   or implicitly castable to it.
         #
         # Return a boolean true value if all the above conditions are met,
         # otherwise false.

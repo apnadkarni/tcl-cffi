@@ -1281,7 +1281,7 @@ namespace eval ${NS}::test {
     test function-pointer-param-safety-1 "pointer unsafe to safe" -body {
         testDll function pointer_noop void {p pointer}
         pointer_noop 1^
-    } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
 
     test function-pointer-param-safety-2 "pointer unsafe to unsafe" -body {
         testDll function pointer_noop void {p {pointer unsafe}}
@@ -1291,12 +1291,12 @@ namespace eval ${NS}::test {
     test function-pointer-param-safety-3 "pointer unsafe to counted" -body {
         testDll function pointer_noop void {p {pointer counted}}
         pointer_noop 1^
-    } -result "Pointer [makeptr 1] is not registered." -returnCodes error
+    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
 
     test function-pointer-param-safety-4 "pointer unsafe dispose" -body {
         testDll function pointer_noop void {p {pointer dispose}}
         pointer_noop 1^
-    } -result "Pointer [makeptr 1] is not registered." -returnCodes error -match glob
+    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error -match glob
 
     test function-pointer-param-safety-5 "pointer unsafe dispose conflict" -body {
         testDll function pointer_noop void {p {pointer dispose unsafe}}
@@ -1458,12 +1458,12 @@ namespace eval ${NS}::test {
     test function-pointer-param-tag-2 "pointer tag safe - wrong type" -body {
         testDll function pointer_noop void {p pointer.TAG}
         pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     test function-pointer-param-tag-3 "pointer tag unsafe - wrong type" -body {
         testDll function pointer_noop void {p {pointer.TAG unsafe}}
         pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     test function-pointer-param-tag-4 "pointer tag counted" -setup {
         testDll function pointer_noop void {p {pointer.::TAG counted}}
@@ -1477,7 +1477,7 @@ namespace eval ${NS}::test {
     test function-pointer-param-tag-5 "pointer tag counted - wrong type" -body {
         testDll function pointer_noop void {p {pointer.TAG counted}}
         pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     # tag dispose
     test function-pointer-param-tag-6 "pointer tag dispose" -setup {
@@ -1491,7 +1491,7 @@ namespace eval ${NS}::test {
     test function-pointer-param-tag-7 "pointer tag dispose - wrong type" -body {
         testDll function pointer_noop void {p {pointer.TAG dispose}}
         pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Pointer type mismatch.} -returnCodes error
+    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     test function-pointer-param-tag-8 "pointer tag safe passed to untagged" -setup {
         testDll function pointer_noop void {p pointer}
@@ -1509,7 +1509,7 @@ namespace eval ${NS}::test {
         cffi::pointer dispose 1^
     } -body {
         list [catch {pointer_noop 1^} result] $result
-    } -result {1 {Value "1^" has the wrong type. Pointer type mismatch.}}
+    } -result {1 {Value "1^" has the wrong type. Expected pointer to ::cffi::test::TAG.}}
 
     test function-pointer-param-tag-10 "pointer tag unsafe passed to untagged" -setup {
         testDll function pointer_noop void {p {pointer unsafe}}
@@ -1521,7 +1521,7 @@ namespace eval ${NS}::test {
         testDll function pointer_noop void {p {pointer.TAG unsafe}}
     } -body {
         list [catch {pointer_noop 1^} result] $result
-    } -result {1 {Value "1^" has the wrong type. Pointer type mismatch.}}
+    } -result {1 {Value "1^" has the wrong type. Expected pointer to ::cffi::test::TAG.}}
 
     # Pointer param error attributes
     foreach attr [linsert $requirementAttrs end nullifempty] {

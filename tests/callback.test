@@ -340,7 +340,7 @@ namespace eval ${NS}::test {
         noargs_caller $fnptr
     } -cleanup {
         unset fnptr
-    } -result {Pointer 0x*^::cffi::test::proto is not registered.} -returnCodes error -match glob
+    } -result {Invalid value "0x*^::cffi::test::proto". Pointer validation failed: not registered.} -returnCodes error -match glob
 
     test callback-free-1 "free callback in callback" -setup {
         cffi::prototype clear

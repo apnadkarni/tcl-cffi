@@ -2505,25 +2505,49 @@ CffiPointerFromObj(CffiInterpCtx *ipCtxP,
                    Tcl_Obj *pointerObj,
                    void **pointerP)
 {
-    Tcl_Obj *tagObj = typeAttrsP->dataType.u.tagNameObj;
-    Tcl_Interp *ip  = ipCtxP->interp;
+    Tclh_ReturnCode ret;
     void *pv;
+    Tclh_PointerTypeTag tag;
+    Tclh_PointerTagRelation tagRelation;
+    Tclh_PointerRegistrationStatus registration;
 
-    CHECK(Tclh_PointerUnwrapTagged(
-        ip, ipCtxP->tclhCtxP, pointerObj, &pv, tagObj));
-
+    ret = Tclh_PointerObjDissect(ipCtxP->interp,
+                                 ipCtxP->tclhCtxP,
+                                 pointerObj,
+                                 typeAttrsP->dataType.u.tagNameObj,
+                                 &pv,
+                                 &tag,
+                                 &tagRelation,
+                                 &registration);
+    if (ret != TCL_OK)
+        return ret;
     if (pv == NULL) {
         if ((typeAttrsP->flags & CFFI_F_ATTR_NOVALUECHECKS) == 0) {
-            return Tclh_ErrorInvalidValue(ip, NULL, "Pointer is NULL.");
+            return Tclh_ErrorPointerNull(ipCtxP->interp);
         }
     }
     else {
-        /*
-         * Do checks for safe pointers. Note: Cannot use Tclh_PointerObjVerify
-         * because that rejects NULL pointers.
-         */
+        switch (tagRelation) {
+            case TCLH_TAG_RELATION_EQUAL:
+            case TCLH_TAG_RELATION_IMPLICITLY_CASTABLE:
+                break;
+            case TCLH_TAG_RELATION_UNRELATED:
+            case TCLH_TAG_RELATION_EXPLICITLY_CASTABLE:
+            default:
+                return Tclh_ErrorPointerObjType(
+                    ipCtxP->interp, pointerObj, typeAttrsP->dataType.u.tagNameObj);
+        }
         if (!(typeAttrsP->flags & CFFI_F_ATTR_UNSAFE)) {
-            CHECK(Tclh_PointerVerify(ip, ipCtxP->tclhCtxP, pv, tagObj));
+            switch (registration) {
+                case TCLH_POINTER_REGISTRATION_OK:
+                case TCLH_POINTER_REGISTRATION_DERIVED:
+                    break;
+                case TCLH_POINTER_REGISTRATION_MISSING:
+                case TCLH_POINTER_REGISTRATION_WRONGTAG:
+                default:
+                    return Tclh_ErrorPointerObjRegistration(
+                        ipCtxP->interp, pointerObj, registration);
+            }
         }
     }
 

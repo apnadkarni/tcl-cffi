@@ -133,7 +133,7 @@ CffiArenaPopFrame(CffiInterpCtx *ipCtxP)
     for (arenaLinkP = arenaFrameP->allocationsP; arenaLinkP;
          arenaLinkP = arenaLinkP->prevAllocationP) {
         void *p = ARENA_ALLOCATION_LINK_SIZE + (char *)arenaLinkP;
-        (void)Tclh_PointerUnregister(ipCtxP->interp, ipCtxP->tclhCtxP, p, NULL);
+        (void)Tclh_PointerUnregister(ipCtxP->interp, ipCtxP->tclhCtxP, p);
     }
     Tclh_LifoPopFrame(&ipCtxP->arenaStore);
     return TCL_OK;
@@ -158,7 +158,7 @@ CffiArenaValidate(CffiInterpCtx *ipCtxP)
              linkP = linkP->prevAllocationP) {
             void *p = ARENA_ALLOCATION_LINK_SIZE + (char *)linkP;
             CHECK(
-                Tclh_PointerVerify(ipCtxP->interp, ipCtxP->tclhCtxP, p, NULL));
+                Tclh_PointerVerify(ipCtxP->interp, ipCtxP->tclhCtxP, p));
         }
     }
     return TCL_OK;

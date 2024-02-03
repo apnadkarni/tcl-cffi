@@ -119,6 +119,7 @@ CffiPointerObjCmd(ClientData cdata,
     void *pv;
     CffiResult ret;
     Tcl_Obj *objP;
+    int validity;
 
     static const Tclh_SubCommand subCommands[] = {
         {"address", 1, 1, "POINTER", NULL},
@@ -129,10 +130,12 @@ CffiPointerObjCmd(ClientData cdata,
         {"compare", 2, 2, "POINTER POINTER", NULL},
         {"counted", 1, 1, "POINTER", NULL},
         {"dispose", 1, 1, "POINTER", NULL},
+        {"invalidate", 1, 1, "POINTER", NULL},
         {"isnull", 1, 1, "POINTER", NULL},
         {"isvalid", 1, 1, "POINTER", NULL},
         {"list", 0, 1, "?TAG?", NULL},
         {"make", 1, 2, "ADDRESS ?TAG?", NULL},
+        {"pin", 1, 1, "POINTER", NULL},
         {"safe", 1, 1, "POINTER", NULL},
         {"tag", 1, 1, "POINTER", NULL},
         {"uncastable", 1, 1, "TAG"},
@@ -147,14 +150,17 @@ CffiPointerObjCmd(ClientData cdata,
         COMPARE,
         COUNTED,
         DISPOSE,
+        INVALIDATE,
         ISNULL,
         ISVALID,
         LIST,
         MAKE,
+        PIN,
         SAFE,
         TAG,
         UNCASTABLE,
     };
+    Tclh_PointerRegistrationStatus registration;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
 
@@ -194,6 +200,31 @@ CffiPointerObjCmd(ClientData cdata,
             return TCL_OK;
         }
         return TCL_ERROR;/* Tclh_PointerSubtags should have set error */
+    case CHECK:
+    case ISVALID:
+        CHECK(Tclh_PointerObjDissect(ip,
+                                     ipCtxP->tclhCtxP,
+                                     objv[2],
+                                     NULL,
+                                     &pv,
+                                     &objP,
+                                     NULL,
+                                     &registration));
+        validity = 1;
+        if (pv == NULL || registration == TCLH_POINTER_REGISTRATION_MISSING
+            || (objP && registration == TCLH_POINTER_REGISTRATION_WRONGTAG)) {
+            validity = 0;
+        }
+        if (cmdIndex == ISVALID) {
+            Tcl_SetObjResult(ip, Tcl_NewIntObj(validity));
+            return TCL_OK;
+        } else {
+            if (validity)
+                return TCL_OK;
+            return Tclh_ErrorInvalidValue(
+                ip, objv[2], "Pointer is NULL or not registered as a valid pointer.");
+        }
+        break;
     case UNCASTABLE:
         return CffiPointerUncastableCmd(ipCtxP, objv[2]);
     default:
@@ -220,7 +251,7 @@ CffiPointerObjCmd(ClientData cdata,
         case TAG:
             break;
         default:
-            return Tclh_ErrorInvalidValue(ip, objv[2], "Pointer is NULL.");
+            return Tclh_ErrorPointerNull(ip);
         }
     }
 
@@ -233,12 +264,6 @@ CffiPointerObjCmd(ClientData cdata,
         if (ret == TCL_OK && objP)
             Tcl_SetObjResult(ip, objP);
         return ret;
-    case CHECK:
-        return Tclh_PointerVerify(ip, ipCtxP->tclhCtxP, pv, objP);
-    case ISVALID:
-        ret = Tclh_PointerVerify(ip, ipCtxP->tclhCtxP, pv, objP);
-        Tcl_SetObjResult(ip, Tcl_NewBooleanObj(ret == TCL_OK));
-        return TCL_OK;
     case SAFE:
         ret = Tclh_PointerRegister(
             ip, ipCtxP->tclhCtxP, pv, objP, NULL);
@@ -253,9 +278,22 @@ CffiPointerObjCmd(ClientData cdata,
             Tcl_SetObjResult(ip, objv[2]);
         }
         return ret;
+    case PIN:
+        /* Note: tag objP is ignored */
+        ret = Tclh_PointerPin(
+            ip, ipCtxP->tclhCtxP, pv, NULL);
+        if (ret == TCL_OK) {
+            Tcl_SetObjResult(ip, objv[2]);
+        }
+        return ret;
     case DISPOSE:
         if (pv)
-            return Tclh_PointerUnregister(
+            return Tclh_PointerUnregisterTagged(
+                ip, ipCtxP->tclhCtxP, pv, objP);
+        return TCL_OK;
+    case INVALIDATE:
+        if (pv)
+            return Tclh_PointerInvalidateTagged(
                 ip, ipCtxP->tclhCtxP, pv, objP);
         return TCL_OK;
     default: /* Just to keep compiler happy */

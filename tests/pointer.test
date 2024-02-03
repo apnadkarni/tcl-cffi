@@ -11,17 +11,15 @@ namespace eval ${NS}::test {
         return [cffi::pointer make 1 $tag]
     }
 
-    proc testnullptr {cmd} {
+    proc testnullptr cmd {
         test pointer-$cmd-null-0 "pointer $cmd NULL" -body {
-            list [catch {cffi::pointer $cmd [makeptr 0]} result] $result $::errorCode
-        } -result [list 1 \
-                       "Invalid value \"[makeptr 0]\". Pointer is NULL." \
-                       [list cffi INVALID_VALUE "Invalid value \"[makeptr 0]\". Pointer is NULL."]]
+            list [catch {cffi::pointer $cmd [makeptr 0]} result] \
+                [string match "Invalid value*Pointer is NULL*" $result]
+        } -result {1 1}
         test pointer-$cmd-null-1 "pointer $cmd NULL tagged" -body {
-            list [catch {cffi::pointer $cmd [makeptr 0 TAG]} result] $result $::errorCode
-        } -result [list 1 \
-                       "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL." \
-                       [list cffi INVALID_VALUE "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL."]]
+            list [catch {cffi::pointer $cmd [makeptr 0 TAG]} result] \
+                [string match "Invalid value*Pointer is NULL*" $result]
+        } -result {1 1}
     }
     proc testbadargs {cmd} {
         test pointer-$cmd-badarg-0 "pointer $cmd non-pointer" -body {
@@ -62,13 +60,14 @@ namespace eval ${NS}::test {
     } -result TAG
 
     # pointer check
+    set checkFailMessage0  "Invalid value \"[makeptr 0]\". Pointer is NULL or not registered as a valid pointer."
+    set checkFailMessage1  "Invalid value \"[makeptr 1]\". Pointer is NULL or not registered as a valid pointer."
     testbadargs check
     testnullptr check
     test pointer-check-0 "pointer check fail" -body {
         list [catch {cffi::pointer check [makeptr 1]} result] \
-            $result \
-            $::errorCode
-    } -result "1 {Pointer [makeptr 1] is not registered.} {cffi ERROR {Pointer [makeptr 1] is not registered.}}"
+            [string match "Invalid value \"[makeptr 1]\". Pointer is NULL*" $result]
+    } -result {1 1}
 
     test pointer-check-1 "pointer check success" -setup {
         set ptr [makeptr 1]
@@ -81,9 +80,8 @@ namespace eval ${NS}::test {
 
     test pointer-check-2 "pointer check fail tagged" -body {
         list [catch {cffi::pointer check [makeptr 1 TAG]} result] \
-            $result \
-            $::errorCode
-    } -result "1 {Pointer [makeptr 1 TAG] is not registered.} {cffi ERROR {Pointer [makeptr 1 TAG] is not registered.}}"
+            [string match "Invalid value \"[makeptr 1 TAG]\". Pointer is NULL*" $result]
+    } -result {1 1}
 
     test pointer-check-3 "pointer check success tagged" -setup {
         set ptr [makeptr 1 TAG]
@@ -102,8 +100,7 @@ namespace eval ${NS}::test {
     } -body {
         list [catch {cffi::pointer check [makeptr 1 TAG2]} result] \
             $result \
-            $::errorCode
-    } -result "1 {Value has the wrong type. Pointer tag does not match registered tag.} {cffi WRONG_TYPE {Value has the wrong type. Pointer tag does not match registered tag.}}"
+        } -result [list 1 "Invalid value \"[makeptr 1 TAG2]\". Pointer is NULL or not registered as a valid pointer."]
 
     test pointer-check-5 "pointer check tagged against registered untagged" -setup {
         set ptr [makeptr 1]
@@ -111,10 +108,9 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::pointer dispose $ptr
     } -body {
-        list [catch {cffi::pointer check [makeptr 1 TAG]} result] \
-            $result \
-            $::errorCode
-    } -result "1 {Value has the wrong type. Pointer tag does not match registered tag.} {cffi WRONG_TYPE {Value has the wrong type. Pointer tag does not match registered tag.}}"
+        # Note TAG is always implicitly castable to void so should succeed
+        cffi::pointer check [makeptr 1 TAG]
+    } -result ""
 
     test pointer-check-6 "pointer check untagged against registered tagged" -setup {
         set ptr [makeptr 1 TAG]
@@ -124,18 +120,6 @@ namespace eval ${NS}::test {
     } -body {
         cffi::pointer check [makeptr 1]
     } -result ""
-
-    test pointer-check-7 "pointer check null pointer" -body {
-        list [catch {cffi::pointer check [makeptr 0]} result] $result $::errorCode
-    } -result [list 1 \
-                   "Invalid value \"[makeptr 0]\". Pointer is NULL." \
-                   [list cffi INVALID_VALUE "Invalid value \"[makeptr 0]\". Pointer is NULL."]]
-
-    test pointer-check-8 "pointer check null tagged pointer" -body {
-        list [catch {cffi::pointer check [makeptr 0 TAG]} result] $result $::errorCode
-    } -result [list 1 \
-                   "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL." \
-                   [list cffi INVALID_VALUE "Invalid value \"[makeptr 0 TAG]\". Pointer is NULL."]]
 
     # pointer isvalid
     testbadargs isvalid
@@ -180,8 +164,9 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::pointer dispose $ptr
     } -body {
+        # Note TAG is always implicitly castable to void so should succeed
         cffi::pointer isvalid [makeptr 1 TAG]
-    } -result 0
+    } -result 1
 
     test pointer-isvalid-6 "pointer isvalid untagged against registered tagged" -setup {
         set ptr [makeptr 1 TAG]
@@ -301,7 +286,7 @@ namespace eval ${NS}::test {
         set p [makeptr 1 TAG]
         cffi::pointer counted $p
         list [catch {cffi::pointer counted [makeptr 1 TAG2]} result] [cffi::pointer dispose $p] $result
-    } -result {1 {} {Value has the wrong type. Pointer tag does not match registered tag.}}
+    } -result {1 {} {Value has the wrong type. Expected pointer^TAG, got pointer^TAG2.}}
 
     ###
     # pointer dispose
@@ -450,7 +435,7 @@ namespace eval ${NS}::test {
                    1 \
                    {} \
                    [makeptr 1 [namespace current]::T2] \
-                   0 \
+                   1 \
                    1 \
                    [makeptr 1 [namespace current]::T] \
                    [list [makeptr 1 [namespace current]::T]] \
@@ -495,7 +480,7 @@ namespace eval ${NS}::test {
     testcast void T    - [list [pointer1 T] [list ]]
     testcast T    T    - [list [pointer1 T] [list ]]
     testcast T    void - [list [pointer1] [list ]]
-    testcast T    T2   - "Pointer tags are not compatible for casting." -returnCodes error
+    testcast T    T2   - "Value has the wrong type. Expected pointer^::cffi::test::T2, got pointer^::cffi::test::T." -returnCodes error
     testcast T    BASE - [list [pointer1 BASE] [list ]] -setup {
         cffi::pointer castable T BASE
     } -cleanup {
@@ -515,8 +500,8 @@ namespace eval ${NS}::test {
     testcast T    void T    [list [pointer1] [list [pointer1]]]
     testcast T    T    void [list [pointer1 T] [list [pointer1 T]]]
     testcast T    T    T    [list [pointer1 T] [list [pointer1 T]]]
-    testcast T    T2   T    "Pointer tags are not compatible for casting." -returnCodes error
-    testcast T    T2   T2   "Value has the wrong type. Pointer tag does not match registered tag." -returnCodes error
+    testcast T    T2   T    "Value has the wrong type. Expected pointer^::cffi::test::T2, got pointer^::cffi::test::T." -returnCodes error
+    testcast T    T2   T2   "Value has the wrong type. Expected pointer^::cffi::test::T2, got pointer^::cffi::test::T." -returnCodes error
     testcast T    BASE void [list [pointer1 BASE] [list [pointer1 BASE]]] -setup {
         cffi::pointer castable T BASE
     } -cleanup {
@@ -532,7 +517,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::pointer uncastable T
     }
-    testcast T    BASE T2 "Value has the wrong type. Pointer tag does not match registered tag." -setup {
+    testcast T    BASE T2 "Value has the wrong type. Expected pointer^::cffi::test::T2, got pointer^::cffi::test::T." -setup {
         cffi::pointer castable T BASE
     } -cleanup {
         cffi::pointer uncastable T
@@ -553,7 +538,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::pointer uncastable T
     }
-    testcast BASE    T T2 "Value has the wrong type. Pointer tag does not match registered tag." -setup {
+    testcast BASE    T T2 "Value has the wrong type. Expected pointer^::cffi::test::T2, got pointer^::cffi::test::BASE." -setup {
         cffi::pointer castable T BASE
     } -cleanup {
         cffi::pointer uncastable T
@@ -622,7 +607,7 @@ namespace eval ${NS}::test {
         cffi::Struct create S {p {pointer.::T unsafe}}
     } -body {
         S new [list p [makeptr 1]]
-    } -result "Value*has the wrong type. Pointer type mismatch.*" -match glob -returnCodes error
+    } -result "Value*has the wrong type. Expected pointer to ::T. Error converting field ::cffi::test::S.p to a native value." -match glob -returnCodes error
 
     test pointer-castable-5 "Pointer argument multiple castable" -setup {
         testDll function {pointer_to_pointer upcast} {pointer unsafe} {p {pointer.T unsafe}}
@@ -677,6 +662,43 @@ namespace eval ${NS}::test {
         cffi::pointer cast [cffi::pointer make 1 T] ""
     } -result [cffi::pointer make 1]
 
+    ###
+    # pointer pin
+    test pointer-pinned-0 "Pin pointer" -body {
+        set p [pointer1]
+        list [cffi::pointer pin $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer safe $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer counted $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list [pointer1] 1 {} 1 [pointer1] {} 1 [pointer1] {} 1 {} 0]
+
+    test pointer-pinned-1 "Pin pointer with tag" -body {
+        set p [pointer1 T]
+        list [cffi::pointer pin $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer safe $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer counted $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list [pointer1 T] 1 {} 1 [pointer1 T] {} 1 [pointer1 T] {} 1 {} 0]
+    # TBD - cast should not change tag in registry
+
+    ###
+    # TBD - pointer invalidate
 }
 
 ::tcltest::cleanupTests

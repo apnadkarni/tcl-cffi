@@ -296,7 +296,7 @@ CffiCallbackFreeCmd(CffiInterpCtx *ipCtxP,
     CHECK(Tclh_PointerObjGetTag(ip, objv[2], &tagObj));
     if (tagObj == NULL)
         return Tclh_ErrorInvalidValue(ip, objv[2], "Not a callback function pointer.");
-    ret = Tclh_PointerUnregister(ip, ipCtxP->tclhCtxP, pv, tagObj);
+    ret = Tclh_PointerUnregisterTagged(ip, ipCtxP->tclhCtxP, pv, tagObj);
     if (ret == TCL_OK)
         CffiCallbackCleanupAndFree(cbP);
 
