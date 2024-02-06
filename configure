@@ -4905,6 +4905,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
     vars="generic/tclCffi.c \
                      generic/tclCffiAlias.c \
+                     generic/tclCffiArena.c \
                      generic/tclCffiCallback.c \
                      generic/tclCffiEnum.c \
                      generic/tclCffiFunction.c \

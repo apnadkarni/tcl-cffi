@@ -3647,7 +3647,7 @@ namespace eval ${NS}::test {
 
     test function-savederrors-lasterror-0 "savederror lasterror" -setup {
         testDll function setWinError [list int saveerrors] {val int}
-    } -body {
+    } -constraints win -body {
         list [setWinError 42] [lindex [cffi::savederrors] 1]
     } -result {42 13}
 
