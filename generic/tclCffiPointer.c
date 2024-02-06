@@ -7,7 +7,7 @@
 
 #include "tclCffiInt.h"
 
-static CFFI_INLINE CffiPointerNullifyTag(Tcl_Obj **tagObjP) {
+CFFI_INLINE void CffiPointerNullifyTag(Tcl_Obj **tagObjP) {
     if (*tagObjP) {
         Tcl_Size len;
         /* Tcl_GetCharLength will shimmer so GetStringFromObj */

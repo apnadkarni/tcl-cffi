@@ -643,7 +643,7 @@ CffiResult CffiStructSizeForVLACount(CffiInterpCtx *ipCtxP,
                                      int vlaCount,
                                      int *sizeP,
                                      int *fixedSizeP);
-void CffiStructInitSizeField(CffiStruct *structP, void *structAddress);
+void CffiStructInitSizeField(const CffiStruct *structP, void *structAddress);
 CffiResult CffiStructResolve(Tcl_Interp *ip,
                              const char *nameP,
                              CffiBaseType baseType,

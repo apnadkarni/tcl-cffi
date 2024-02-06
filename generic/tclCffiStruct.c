@@ -637,7 +637,7 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
  * structAddress - pointer to native struct
  */
 void
-CffiStructInitSizeField(CffiStruct *structP,
+CffiStructInitSizeField(const CffiStruct *structP,
                         void *structAddress)
 {
     CFFI_ASSERT(structP->structSizeFieldIndex >= 0);
@@ -2809,7 +2809,7 @@ CffiStructOrUnionObjCmd(ClientData cdata,
                         )
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
-    CffiStruct *structP;
+    CffiStruct *structP = NULL;
     CffiStructCmdCtx *structCtxP;
     static const Tclh_SubCommand structCommands[] = {
         {"new", 1, 4, "STRUCTDEF ?-clear? ?-pack N?", NULL},

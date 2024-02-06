@@ -1160,10 +1160,10 @@ overRunPanic:
 static CffiResult
 CffiReturnPrepare(CffiCall *callP)
 {
-    CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
 
 #ifdef CFFI_USE_DYNCALL
 # ifdef CFFI_HAVE_STRUCT_BYVAL
+    CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
     /*
      * nothing to do except for structs returned by value as no
      * allocations needed. arrays, struct, chars[], unichars[], bytes and
@@ -1188,6 +1188,7 @@ CffiReturnPrepare(CffiCall *callP)
 #endif /* CFFI_USE_DYNCALL */
 
 #ifdef CFFI_USE_LIBFFI
+    CffiTypeAndAttrs *retTypeAttrsP = &callP->fnP->protoP->returnType.typeAttrs;
     /* Byref return values are basically pointers irrespective of base type */
     if (retTypeAttrsP->flags & CFFI_F_ATTR_BYREF) {
         callP->retValueP = &callP->retValue.u.ptr;
