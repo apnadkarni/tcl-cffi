@@ -127,7 +127,7 @@ cffi - Commands in namespace cffi
 .br
 \fBpointer cast\fP \fIpointer ?TAG?\fP
 .br
-\fBpointer castable\fP \fIsubtag supertag\fP
+\fBpointer castable\fP \fIsubtags supertag\fP
 .br
 \fBpointer castables\fP
 .br
@@ -139,13 +139,17 @@ cffi - Commands in namespace cffi
 .br
 \fBpointer dispose\fP \fIpointer\fP
 .br
+\fBpointer invalidate\fP \fIpointer\fP
+.br
 \fBpointer isnull\fP \fIpointer\fP
 .br
 \fBpointer isvalid\fP \fIpointer\fP
 .br
-\fBpointer list\fP \fI?args?\fP
+\fBpointer list\fP \fI?tag?\fP
 .br
 \fBpointer make\fP \fIaddress ?tag?\fP
+.br
+\fBpointer pin\fP \fIpointer\fP
 .br
 \fBpointer safe\fP \fIpointer\fP
 .br
@@ -213,6 +217,8 @@ cffi - Commands in namespace cffi
 .br
 \fBOBJECT setnative!\fP \fIpointer fieldname value ?index?\fP
 .br
+\fBOBJECT size\fP \fI?args?\fP
+.br
 \fBOBJECT tobinary\fP \fIdict_value\fP
 .br
 \fBOBJECT tonative\fP \fIpointer initializer ?index?\fP
@@ -232,6 +238,8 @@ cffi - Commands in namespace cffi
 \fBOBJECT info\fP
 .br
 \fBOBJECT name\fP
+.br
+\fBOBJECT size\fP
 .br
 \fBWrapper create OBJNAME\fP \fIpath\fP
 .br
@@ -2125,6 +2133,9 @@ Registers a pointer as a counted pointer\&.
 \fIdispose\fP
 Unregisters a safe or counted pointer\&.
 .TP
+\fIinvalidate\fP
+Unregisters a safe, counted or pinned pointer irrespective its reference count\&.
+.TP
 \fIisnull\fP
 Returns true if the pointer is a NULL pointer, false otherwise\&.
 .TP
@@ -2136,6 +2147,9 @@ Returns a list of registered pointers optionally filtered by a tag\&.
 .TP
 \fImake\fP
 Return a pointer for a memory address\&.
+.TP
+\fIpin\fP
+Pins a pointer as permanently safe\&.
 .TP
 \fIsafe\fP
 Registers a pointer as a safe uncounted pointer\&.
@@ -2199,7 +2213,9 @@ New tag to apply\&. This will be qualified with the current scope if not fully q
 \fBDescription\fR
 .PP
 The cast will fail if the TAG is not castable to or from the
-pointer's tag\&. See \fICasting pointers\fP\&.
+pointer's tag\&. See \fICasting pointers\fP\&. In addition, the cast will
+fail if the pointer is registered as a safe pointer and the
+pointer's tag is not castable to the tag in the registration\&.
 .PP
 If TAG is not specified, any existing tag is removed from the pointer
 (effectively marking it as a void* pointer)\&.
@@ -2214,15 +2230,15 @@ Returns a pointer with the same address and new tag
 .PP
 Specifies that pointers with tag \fI$subtag\fP are acceptable in declarations
 that require \fI$supertag\fP\&.
-.RS 4n\fBpointer castable\fP \fIsubtag supertag\fP
+.RS 4n\fBpointer castable\fP \fIsubtags supertag\fP
 .br
 .RE
 .PP
 \fBParameters\fR
 .RS 4n
 .TP
-subtag
-Tag which is to be marked as acceptable wherever \fI$supertag\fP is expected\&. Will be qualified with current scope if necessary\&.
+subtags
+List of tags which are acceptable wherever \fI$supertag\fP is expected\&. Will be qualified with current scope if necessary\&.
 .TP
 supertag
 Tag which should accept \fI$subtag\fP tagged pointers\&. Will be qualified with current scope if necessary\&.
@@ -2274,7 +2290,7 @@ it must not be NULL
 it must be registered
 .TP
 \(bu
-if it is tagged, the tag must be the same as that of the registration\&.
+if it is tagged, the tag must be the same as that of the registration or implicitly castable to it\&.
 .PP
 If any of the above conditions is not met, an error exception is raised\&.
 Note that if \fI$pointer\fP is untagged, the tag of the registration is not
@@ -2365,6 +2381,43 @@ See \fIPointers\fP for more on pointer
 safety and registration\&.
 .PP
 .RS -4n
+\fBpointer invalidate\fR (::cffi)
+.RE
+.PP
+Unregisters a safe, counted or pinned pointer irrespective its reference
+count\&.
+.RS 4n\fBpointer invalidate\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be unregistered\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Note that the command only unregisters the pointer\&. It does
+not do anything in terms of releases any resources associated
+with the pointer\&.
+.PP
+The command differs from \fIpointer unregister\fP in that
+.TP
+\(bu
+it unregisters a counted pointer even if its reference count was greater than 1\&.
+.TP
+\(bu
+it unregisters pinned pointers
+.TP
+\(bu
+it does not raise an error for null pointers
+.PP
+See \fIPointers\fP for more on pointer
+safety and registration\&.
+.PP
+.RS -4n
 \fBpointer isnull\fR (::cffi)
 .RE
 .PP
@@ -2411,7 +2464,7 @@ it must not be NULL
 it must be registered
 .TP
 \(bu
-if it is tagged, the tag must be the same as that of the registration\&.
+if it is tagged, the tag must be the same as that of the registration or implicitly castable to it\&.
 .PP
 Return a boolean true value if all the above conditions are met,
 otherwise false\&.
@@ -2424,15 +2477,15 @@ safety and registration\&.
 .RE
 .PP
 Returns a list of registered pointers optionally filtered by a tag\&.
-.RS 4n\fBpointer list\fP \fI?args?\fP
+.RS 4n\fBpointer list\fP \fI?tag?\fP
 .br
 .RE
 .PP
 \fBParameters\fR
 .RS 4n
 .TP
-args
-If specified, must be a single argument which is a tag\&. Only pointers matching the tag are returned\&.
+tag
+If specified, only pointers matching the tag are returned\&. If tag is the empty string, only pointers without a tag are returned\&.
 .RE
 .PP
 \fBReturn value\fR
@@ -2443,7 +2496,7 @@ Returns a list of registered pointers optionally filtered by a tag\&.
 \fBpointer make\fR (::cffi)
 .RE
 .PP
-Return a pointer for a memory address
+Return a pointer for a memory address\&.
 .RS 4n\fBpointer make\fP \fIaddress ?tag?\fP
 .br
 .RE
@@ -2455,13 +2508,44 @@ address
 Memory address as a positive integer\&.
 .TP
 tag
-If not fully qualified, this will be qualified with the current namespace name\&.
+If not fully qualified, this will be qualified with the current namespace name\&. An empty tag is treated as if it was unspecified\&.
 .RE
 .PP
 \fBDescription\fR
 .PP
 The returned pointer is not registered as safe\&. The caller
 can use the \fIpointer safe\fP command to mark it as such if so desired\&.
+.PP
+.RS -4n
+\fBpointer pin\fR (::cffi)
+.RE
+.PP
+Pins a pointer as permanently safe\&.
+.RS 4n\fBpointer pin\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to be pinned\&. This may or may not be already registered as safe\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+Once a pointer is pinned, it is unaffected by any \fIpointer safe\fP,
+\fIpointer counted\fP or \fIpointed dispose\fP calls\&. It can however be
+invalidated by \fIpointer invalidate\fP\&.
+.PP
+A pinned pointer has no associated tag even if the passed pointer
+has one\&. It will thus match any pointer with the same address component
+irrespective of the tag\&. The primary use of pinned pointers is to deal
+with "pseudo handles" in the Windows API\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns \fI$pointer\fP itself\&.
 .PP
 .RS -4n
 \fBpointer safe\fR (::cffi)
@@ -3004,6 +3088,9 @@ Sets the value of a field in a native structure in memory\&.
 setnative!
 Sets the value of a field in a native structure in memory\&.
 .TP
+size
+Returns the size of the struct\&.
+.TP
 tobinary
 Encodes the Tcl representation of a C struct value into a Tcl binary string\&.
 .TP
@@ -3525,6 +3612,32 @@ holding a count for a variable sized field; otherwise, an error is
 raised\&.
 .PP
 .RS -4n
+\fBsize\fR (::cffi::Struct)
+.RE
+.PP
+Returns the size of the struct\&.
+.RS 4n\fBOBJECT size\fP \fI?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+-vlacount VLACOUNT
+Number of elements in variable size array\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The option -vlacount must be specified if the struct contains
+a field that is a variable length array (VLA) or a nested struct
+that contains a VLA\&. VLACOUNT is then length of that array\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns the size of the struct\&.
+.PP
+.RS -4n
 \fBtobinary\fR (::cffi::Struct)
 .RE
 .PP
@@ -3631,6 +3744,9 @@ Returns a dictionary containing information about the info layout\&.
 .TP
 name
 Returns the name of the struct\&.
+.TP
+size
+Returns the size of the union\&.
 .RE
 .PP
 .RS -4n
@@ -3788,6 +3904,19 @@ the object command\&.
 \fBReturn value\fR
 .PP
 Returns the name of the struct\&.
+.PP
+.RS -4n
+\fBsize\fR (::cffi::Union)
+.RE
+.PP
+Returns the size of the union\&.
+.RS 4n\fBOBJECT size\fP
+.br
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the size of the union\&.
 .PP
 .RS -4n
 \fBWrapper\fR (::cffi)
@@ -3980,6 +4109,9 @@ If a function is not found, the command will raise an error but those
 functions that are found will be defined\&. The error can be completely
 suppressed with the -ignoremissing option\&.
 .PP
+If the function name element is #, the triple is ignored, effectively
+being considered a comment\&.
+.PP
 .RS -4n
 \fBpath\fR (::cffi::Wrapper)
 .RE
@@ -4071,4 +4203,7 @@ method\&.
 If a function is not found, the command will raise an error but those
 functions that are found will be defined\&. The error can be completely
 suppressed with the -ignoremissing option\&.
+.PP
+If the function name element is #, the triple is ignored, effectively
+being considered a comment\&.
 

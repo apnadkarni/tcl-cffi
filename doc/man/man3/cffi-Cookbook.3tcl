@@ -1316,7 +1316,7 @@ Pointer fields in a struct are always treated as unsafe even when the unsafe ann
 The nullok annotation should be applied to any field that can validly hold a NULL pointer\&. In the absence of an annotation, an exception is raised if an attempt is made to assign the field in a native struct a NULL pointer value\&.
 .TP
 \(bu
-Pointer fields that hold pointers to character strings may be alternatively declared as \fIstring pointer fields\fP\&.
+Pointer fields that hold pointers to character strings may be alternatively declared as \fIstring pointer fields\fP under some restrictions described below\&.
 .PP
 \fBString pointer fields\fR
 .PP

@@ -45,6 +45,7 @@ namespace eval ${NS}::test {
     testsubcmd ::cffi::pointer
 
     # pointer tag
+    testnumargs pointer-tag "pointer tag" POINTER
     testbadargs tag
     test pointer-tag-0 "pointer no tag" -body {
         cffi::pointer tag [makeptr 1]
@@ -60,8 +61,7 @@ namespace eval ${NS}::test {
     } -result TAG
 
     # pointer check
-    set checkFailMessage0  "Invalid value \"[makeptr 0]\". Pointer is NULL or not registered as a valid pointer."
-    set checkFailMessage1  "Invalid value \"[makeptr 1]\". Pointer is NULL or not registered as a valid pointer."
+    testnumargs pointer-check "pointer check" POINTER
     testbadargs check
     testnullptr check
     test pointer-check-0 "pointer check fail" -body {
@@ -122,7 +122,7 @@ namespace eval ${NS}::test {
     } -result ""
 
     # pointer isvalid
-    testbadargs isvalid
+    testnumargs pointer-isvalid "pointer isvalid" POINTER
     test pointer-isvalid-0 "pointer isvalid fail" -body {
         cffi::pointer isvalid [makeptr 1]
     } -result 0
@@ -187,10 +187,7 @@ namespace eval ${NS}::test {
 
     ###
     # pointer list
-
-    test pointer-list-numargs-0 "pointer list too many args" -body {
-        cffi::pointer list A B
-    } -result "wrong # args: should be \"cffi::pointer list ?TAG?\"" -returnCodes error
+    testnumargs pointer-list "pointer list" "" ?TAG?
 
     test pointer-list-0 "pointer list empty" -body {
         cffi::pointer list
@@ -237,6 +234,7 @@ namespace eval ${NS}::test {
 
     ###
     # pointer safe
+    testnumargs pointer-safe "pointer safe" POINTER
     testbadargs safe
     testnullptr safe
 
@@ -261,6 +259,7 @@ namespace eval ${NS}::test {
 
     ###
     # pointer counted
+    testnumargs pointer-counted "pointer counted" POINTER
     testbadargs counted
     testnullptr counted
 
@@ -290,6 +289,7 @@ namespace eval ${NS}::test {
 
     ###
     # pointer dispose
+    testnumargs pointer-dispose "pointer dispose" POINTER
     testbadargs dispose
     test pointer-dispose-0 "pointer dispose" -body {
         set p [makeptr 1]
@@ -313,6 +313,7 @@ namespace eval ${NS}::test {
 
     ###
     # pointer isnull
+    testnumargs pointer-isnull "pointer isnull" POINTER
     testbadargs isnull
     test pointer-isnull-0 "pointer isnull" -body {
         cffi::pointer isnull [makeptr 0]
@@ -329,6 +330,7 @@ namespace eval ${NS}::test {
 
     ###
     # pointer address
+    testnumargs pointer-address "pointer address" POINTER
     testbadargs address
     test pointer-address-0 "pointer address" -body {
         cffi::pointer address [makeptr 1]
@@ -664,6 +666,9 @@ namespace eval ${NS}::test {
 
     ###
     # pointer pin
+    testnumargs pointer-pin "pointer pin" "POINTER"
+    testnullptr pin
+    testbadargs pin
     test pointer-pinned-0 "Pin pointer" -body {
         set p [pointer1]
         list [cffi::pointer pin $p] \
@@ -683,6 +688,7 @@ namespace eval ${NS}::test {
     test pointer-pinned-1 "Pin pointer with tag" -body {
         set p [pointer1 T]
         list [cffi::pointer pin $p] \
+            [cffi::pointer list] \
             [cffi::pointer isvalid $p] \
             [cffi::pointer dispose $p] \
             [cffi::pointer isvalid $p] \
@@ -694,11 +700,85 @@ namespace eval ${NS}::test {
             [cffi::pointer isvalid $p] \
             [cffi::pointer invalidate $p] \
             [cffi::pointer isvalid $p]
-    } -result [list [pointer1 T] 1 {} 1 [pointer1 T] {} 1 [pointer1 T] {} 1 {} 0]
-    # TBD - cast should not change tag in registry
+    } -result [list [pointer1 T] [pointer1] 1 {} 1 [pointer1 T] {} 1 [pointer1 T] {} 1 {} 0]
+
+    test pointer-pinned-2 "Pin safe pointer" -body {
+        set p [pointer1]
+        cffi::pointer safe $p
+        list [cffi::pointer pin $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer safe $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer counted $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list [pointer1] 1 {} 1 [pointer1] {} 1 [pointer1] {} 1 {} 0]
+
+    test pointer-pinned-3 "Pin counted pointer" -body {
+        set p [pointer1]
+        cffi::pointer counted $p
+        list [cffi::pointer pin $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer safe $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer counted $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list [pointer1] 1 {} 1 [pointer1] {} 1 [pointer1] {} 1 {} 0]
+
+
+    test pointer-pinned-4 "Cast should not change tag of pinned pointer" -body {
+        set p [pointer1]
+        list [cffi::pointer pin $p] \
+            [cffi::pointer list] \
+            [cffi::pointer cast $p T] \
+            [cffi::pointer list] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer list]
+    } -result [list [pointer1] [pointer1] [pointer1 T] [pointer1] {} {}]
 
     ###
-    # TBD - pointer invalidate
+    # pointer invalidate
+    testnumargs pointer-invalidate "pointer invalidate" POINTER
+    testbadargs invalidate
+    test pointer-invalidate-0 "pointer invalidate safe" -body {
+        set p [makeptr 1]
+        cffi::pointer safe $p
+        list [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
+    test pointer-invalidate-1 "pointer invalidate counted" -body {
+        set p [makeptr 1]
+        cffi::pointer counted $p
+        cffi::pointer counted $p
+        list [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0 {} 0}
+    test pointer-invalidate-2 "pointer invalidate NULL pointer" -body {
+        set p [makeptr 0]
+        cffi::pointer invalidate $p
+    } -result {}
+    test pointer-invalidate-3 "pointer invalidate NULL pointer TAG" -body {
+        set p [makeptr 0 TAG]
+        cffi::pointer invalidate $p
+    } -result {}
+    test pointer-invalidate-4 "pointer invalidate unsafe - no error raised" -body {
+        set p [makeptr 1]
+        list [cffi::pointer isvalid $p] [cffi::pointer invalidate $p]
+    } -result {0 {}}
+    test pointer-invalidate-5 "pointer invalidate pinned" -body {
+        set p [makeptr 1]
+        cffi::pointer pin $p
+        list [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p]
+    } -result {1 {} 0}
 }
 
 ::tcltest::cleanupTests

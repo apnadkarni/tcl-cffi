@@ -458,6 +458,19 @@ namespace eval Concepts {
         [::cffi::pointer safe], [::cffi::pointer counted] and
         [::cffi::pointer dispose] commands.
 
+        ##### Pinned pointers
+
+        The [::cffi::pointer pin] command may be used to permanently register a
+        pointer as safe. The pointer will remain registered irrespective of any
+        [::cffi::pointer dispose] calls and can only be unregistered with
+        [::cffi::pointer invalidate].
+
+        Pinned pointers have no associated tag and any pointers with the
+        same address components as a pinned pointer will be considered registered.
+
+        The primary use of pinned pointers is for API's that make use of
+        "pseudo handles" that are always valid.
+
         #### Invalid pointer values
 
         At the script level, a null pointers is any pointer whose address

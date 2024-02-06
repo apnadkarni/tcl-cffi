@@ -151,6 +151,39 @@ namespace eval ${NS}::pointer {
         # Pointers tagged with $tag will no longer be castable to other
         # tags that were configured with the [pointer castables] command.
     }
+    proc pin pointer {
+        # Pins a pointer as permanently safe.
+        #  pointer - pointer to be pinned. This may or may not be already registered
+        #    as safe.
+        # Once a pointer is pinned, it is unaffected by any [pointer safe],
+        # [pointer counted] or [pointer dispose] calls. It can however be
+        # invalidated by [pointer invalidate].
+        #
+        # A pinned pointer has no associated tag even if the passed pointer
+        # has one. It will thus match any pointer with the same address component
+        # irrespective of the tag. The primary use of pinned pointers is to deal
+        # with "pseudo handles" in the Windows API.
+        #
+        # Returns $pointer itself.
+    }
+    proc invalidate {pointer} {
+        # Unregisters a safe, counted or pinned pointer irrespective its reference
+        # count.
+        #  pointer - pointer to be unregistered
+        # Note that the command only unregisters the pointer. It does
+        # not do anything in terms of releases any resources associated
+        # with the pointer.
+        #
+        # The command differs from [pointer dispose] in that
+        #   - it unregisters a counted pointer even if its reference count was
+        #     greater than 1.
+        #   - it unregisters pinned pointers
+        #   - it does not raise an error for null pointers
+        #
+        # See [Pointers][::Concepts::Pointers] for more on pointer
+        # safety and registration.
+    }
+
     namespace export *
     namespace ensemble create
 }

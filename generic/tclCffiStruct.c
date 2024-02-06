@@ -567,16 +567,46 @@ CffiStructComputeAddress(CffiInterpCtx *ipCtxP,
 {
     Tcl_Interp *ip  = ipCtxP->interp;
     void *structAddr;
+    Tclh_ReturnCode ret;
+    Tclh_PointerTypeTag tag;
+    Tclh_PointerTagRelation tagRelation;
+    Tclh_PointerRegistrationStatus registration;
 
-    if (safe)
-        CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
-    else {
-        /* TODO - check - is this correct. Won't the call check registration? */
-        CHECK(Tclh_PointerUnwrapTagged(
-            ip, ipCtxP->tclhCtxP, nativePointerObj, &structAddr, structP->name));
-        if (structAddr == NULL)
-            return Tclh_ErrorPointerNull(ip);
+    ret = Tclh_PointerObjDissect(ip,
+                                 ipCtxP->tclhCtxP,
+                                 nativePointerObj,
+                                 structP->name,
+                                 &structAddr,
+                                 &tag,
+                                 &tagRelation,
+                                 &registration);
+    if (ret != TCL_OK)
+        return ret;
+
+    if (structAddr == NULL)
+        return Tclh_ErrorPointerNull(ip);
+
+    switch (tagRelation) {
+    case TCLH_TAG_RELATION_EQUAL:
+    case TCLH_TAG_RELATION_IMPLICITLY_CASTABLE:
+        break;
+    case TCLH_TAG_RELATION_UNRELATED:
+    case TCLH_TAG_RELATION_EXPLICITLY_CASTABLE:
+    default:
+        return Tclh_ErrorPointerObjType(ip, nativePointerObj, structP->name);
+    }
+
+    if (safe) {
+        switch (registration) {
+        case TCLH_POINTER_REGISTRATION_OK:
+        case TCLH_POINTER_REGISTRATION_DERIVED:
+            break;
+        case TCLH_POINTER_REGISTRATION_MISSING:
+        case TCLH_POINTER_REGISTRATION_WRONGTAG:
+        default:
+            return Tclh_ErrorPointerObjRegistration(
+                ip, nativePointerObj, registration);
+        }
     }
 
     int structIndex; /* Index into array of structs */

@@ -673,7 +673,7 @@ double +-         -+
 <li>The <code>TAG</code> is optional but recommended wherever possible for additional <a href="cffi-Concepts.html#::Concepts-Pointer tags" title="tag-based" >tag-based</a> type checks. If the pointer's target type is a struct, it is is recommended, but not mandatory, that the tag used be the name of the struct instance command. This makes it convenient to access the referenced memory using the struct <a href="cffi-cffi.html#::cffi::Struct" title="methods" class='ruff_cmd'>methods</a>.</li>
 <li>Pointer fields in a struct are always treated as unsafe even when the <code>unsafe</code> annotation is not specified. The <code>counted</code> annotation may be present (for sharing a type alias with parameter types) but is ignored.</li>
 <li>The <code>nullok</code> annotation should be applied to any field that can validly hold a NULL pointer. In the absence of an annotation, an exception is raised if an attempt is made to assign the field in a native struct a NULL pointer value.</li>
-<li>Pointer fields that hold pointers to character strings may be alternatively declared as <a href="cffi-Cookbook.html#::Cookbook-String pointer fields" title="string pointer fields" >string pointer fields</a>.</li>
+<li>Pointer fields that hold pointers to character strings may be alternatively declared as <a href="cffi-Cookbook.html#::Cookbook-String pointer fields" title="string pointer fields" >string pointer fields</a> under some restrictions described below.</li>
 </ul>
 <h4 class='ruff'><a name='::Cookbook-String pointer fields'></a>String pointer fields<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>

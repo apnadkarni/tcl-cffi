@@ -562,6 +562,19 @@ explicitly control pointer registration or with the \fI::cffi::pointer check\fP,
 \fI::cffi::pointer safe\fP, \fI::cffi::pointer counted\fP and
 \fI::cffi::pointer dispose\fP commands\&.
 .PP
+\fBPinned pointers\fR
+.PP
+The \fI::cffi::pointer pin\fP command may be used to permanently register a
+pointer as safe\&. The pointer will remain registered irrespective of any
+\fI::cffi::pointer dispose\fP calls and can only be unregistered with
+\fI::cffi::pointer invalidate\fP\&.
+.PP
+Pinned pointers have no associated tag and any pointers with the
+same address components as a pinned pointer will be considered registered\&.
+.PP
+The primary use of pinned pointers is for API's that make use of
+"pseudo handles" that are always valid\&.
+.PP
 \fBInvalid pointer values\fR
 .PP
 At the script level, a null pointers is any pointer whose address
@@ -883,7 +896,10 @@ values to fields\&.
 Annotations that may be applied to field type declarations include
 .TP
 \(bu
-\fIunsafe\fP, \fIcounted\fP and \fInovaluechecks\fP for pointer types
+\fIunsafe\fP may be applied but is superfluous as pointers in struct fields are implicitly marked unsafe as these are more often than not internal pointers in C and not explictly passed across interfaces\&. For the same reason the \fIcounted\fP annotation is ignored if present\&.
+.TP
+\(bu
+the \fInovaluechecks\fP annotation for pointer types may be present to indicate no value checks (e\&.g\&. for NULL) are applied to the field\&.
 .TP
 \(bu
 \fIenum\fP and \fIbitmask\fP for integer types

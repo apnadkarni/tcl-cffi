@@ -246,6 +246,7 @@ CffiPointerObjCmd(ClientData cdata,
     if (pv == NULL) {
         switch (cmdIndex) {
         case DISPOSE:
+        case INVALIDATE:
             return TCL_OK;
         case ISVALID:
         case TAG:

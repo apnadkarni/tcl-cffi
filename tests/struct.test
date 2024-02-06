@@ -1749,9 +1749,10 @@ namespace eval cffi::test {
     } -body {
         S getnativefields $p nosuchfield
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
+
     test struct-getnativefields-error-3 "unsafe pointer" -body {
         ::TestStruct getnativefields 1^::TestStruct {}
-    } -result "Invalid value \"[makeptr 1 ::TestStruct]\". Pointer validation failed: not registered." -returnCodes error
+    } -result "Invalid value \"1^::TestStruct\". Pointer validation failed: not registered." -returnCodes error
 
     test struct-getnativefields-varsize-0 "struct getnativefields - varsize" -setup {
         cffi::Struct create ::S {n int d double[n]}
@@ -2093,7 +2094,37 @@ namespace eval cffi::test {
     } -body {
         dict get [S info] Fields p Definition
     } -result {pointer unsafe}
+
+    ###
+    # Test base-derived casts
+    test struct-casts-0 "struct cast to base" -setup {
+        cffi::Struct create ::B {c uchar d double}
+        cffi::Struct create ::D {c uchar d double s short}
+        cffi::pointer castable ::D ::B
+        set p [D new {c 1 d 99 s 2}]
+    } -cleanup {
+        cffi::pointer uncastable ::D
+        ::D free $p
+        rename B ""
+        rename D ""
+    } -body {
+        list [cffi::pointer isvalid $p] [::B fromnative $p]
+    } -result [list 1 {c 1 d 99.0}]
+    test struct-casts-0 "struct cast to base" -setup {
+        cffi::Struct create ::B {c uchar d double}
+        cffi::Struct create ::D {c uchar d double s short}
+        cffi::pointer castable ::D ::B
+        set p [B new {c 1 d 99}]
+    } -cleanup {
+        cffi::pointer uncastable ::D
+        ::B free $p
+        rename B ""
+        rename D ""
+    } -body {
+        ::D fromnative $p
+    } -result {Value * has the wrong type. Expected pointer to ::D.} -returnCodes error -match glob
 }
+
 
 
 ::tcltest::cleanupTests
