@@ -12,10 +12,10 @@ jobs:
           - core-8-6-13
           - main
         include:
-          - sys: mingw64
-            arch: x86_64
           - sys: mingw32
             arch: i686
+          - sys: mingw64
+            arch: x86_64
     env:
       TCLSUBDIR: ${{ matrix.sys }}-${{ matrix.tclbranch }}
       TCLDIR: C:/tcl/${{ matrix.sys }}-${{ matrix.tclbranch }}
