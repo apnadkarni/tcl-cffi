@@ -26,20 +26,20 @@ jobs:
         arch: ${{ matrix.arch }}
 
     - name: Checkout tcl-cffi
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
 
     - name: Cache Tcl build
       id: tcl-msvc-cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ env.TCLDIR }}
         key: ${{ runner.os }}-tcl-msvc-${{ env.TCLSUBDIR }}
 
     - name: Checkout Tcl
       if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: tcltk/tcl
         ref: ${{ matrix.tclbranch }}
@@ -60,7 +60,7 @@ jobs:
 
     - name: Cache dyncall
       id: dyncall-msvc-cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: C:/dyncall/msvc/${{ matrix.arch }}
         key: ${{ runner.os }}-dyncall-msvc-${{ matrix.arch }}
