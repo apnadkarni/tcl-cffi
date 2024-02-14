@@ -265,7 +265,7 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     else
         CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL, NULL));
 
     if (pv == NULL)
         return Tclh_ErrorPointerNull(ip);
@@ -392,7 +392,7 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
         CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
     else
         CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL, NULL));
 
     if (pv == NULL)
         return Tclh_ErrorPointerNull(ip);
@@ -583,7 +583,7 @@ CffiMemoryFillCmd(CffiInterpCtx *ipCtxP,
     }
     else
         CHECK(Tclh_PointerObjVerify(
-            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL));
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL, NULL));
 
     if (pv == NULL)
         return Tclh_ErrorPointerNull(ip);
