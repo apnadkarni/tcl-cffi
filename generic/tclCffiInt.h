@@ -239,6 +239,7 @@ typedef enum CffiAttrFlags {
     CFFI_F_ATTR_STRUCTSIZE       = 0x01000000, /* Field contains struct size */
     CFFI_F_ATTR_MULTISZ          = 0x02000000, /* Windows multisz */
     CFFI_F_ATTR_SAVEERROR        = 0x04000000, /* Save error codes after call */
+    CFFI_F_ATTR_PINNED           = 0x08000000, /* Pinned pointer*/
 } CffiAttrFlags;
 
 /*
@@ -263,7 +264,7 @@ typedef struct CffiTypeAndAttrs {
 /* Attributes related to pointer safety */
 #define CFFI_F_ATTR_SAFETY_MASK                                              \
     (CFFI_F_ATTR_UNSAFE | CFFI_F_ATTR_DISPOSE | CFFI_F_ATTR_DISPOSEONSUCCESS \
-     | CFFI_F_ATTR_COUNTED)
+     | CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_PINNED)
 /* Error checking attributes */
 #define CFFI_F_ATTR_REQUIREMENT_MASK                                  \
     (CFFI_F_ATTR_ZERO | CFFI_F_ATTR_NONZERO | CFFI_F_ATTR_NONNEGATIVE \

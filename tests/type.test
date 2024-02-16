@@ -623,11 +623,17 @@ namespace eval cffi::test {
             "in counted byref" "in byref counted" "counted byref out" "out byref counted"
             "inout byref counted" "inout byref counted"
 
-            "dispose" "in dispose"  "in dispose"  "in dispose" 
+            "pinned" "in pinned"  "in pinned"  "in pinned" "out pinned" "out byref pinned"
+            "inout pinned" "inout byref pinned" "byref pinned" "in byref pinned"
+            "in pinned byref" "in byref pinned" "pinned byref out" "out byref pinned"
+            "inout byref pinned" "inout byref pinned"
+
+            "dispose" "in dispose"  "in dispose"  "in dispose"
             "inout dispose" "inout byref dispose" "byref dispose" "in byref dispose"
             "in dispose byref" "in byref dispose"
             "inout byref dispose" "inout byref dispose"
             "counted dispose" "in counted dispose"  "in dispose counted"  "in counted dispose"
+            "pinned dispose" "in dispose pinned"  "in dispose pinned"  "in dispose pinned"
             "{default 0^}" "in {default 0^}"
             "out storeonerror" "out byref storeonerror"
             "out storealways" "out byref storealways"
@@ -667,13 +673,21 @@ namespace eval cffi::test {
             }
         }
         testinvalidattr "$type in retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type retval in" param $errorMessages(attrconflict)
         testinvalidattr "$type in byref retval" param $errorMessages(attrconflict)
         testinvalidattr "$type inout retval" param $errorMessages(attrconflict)
+        testinvalidattr "$type retval inout" param $errorMessages(attrconflict)
         testinvalidattr "$type inout retval byref" param $errorMessages(attrconflict)
 
         testinvalidattr "$type dispose out" param $errorMessages(attrparamdir)
         testinvalidattr "$type dispose unsafe" param $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe dispose" param $errorMessages(attrconflict)
         testinvalidattr "$type counted unsafe" param $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe counted" param $errorMessages(attrconflict)
+        testinvalidattr "$type pinned unsafe" param $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe pinned" param $errorMessages(attrconflict)
+        testinvalidattr "$type pinned counted" param $errorMessages(attrconflict)
+        testinvalidattr "$type counted pinned" param $errorMessages(attrconflict)
         foreach attra {out inout} {
             testinvalidattr "$type $attra {default 0^}" param $errorMessages(defaultdisallowed)
         }
@@ -708,6 +722,11 @@ namespace eval cffi::test {
 
         # Failure tests - invalid attribute combinations
         testinvalidattr "$type counted unsafe" return $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe counted" return $errorMessages(attrconflict)
+        testinvalidattr "$type pinned unsafe" return $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe pinned" return $errorMessages(attrconflict)
+        testinvalidattr "$type counted pinned" return $errorMessages(attrconflict)
+        testinvalidattr "$type pinned counted" return $errorMessages(attrconflict)
 
         # Failure tests - invalid attribute for type
         foreach attr [list {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
@@ -734,6 +753,7 @@ namespace eval cffi::test {
         # Scalar tests - success
         testpointer $type field "unsafe"
         testpointer "$type counted" field "unsafe" ;# counted overridden in fields
+        testpointer "$type pinned" field "unsafe" ;# counted overridden in fields
         testpointer "$type unsafe" field "unsafe"
         testpointer "$type novaluechecks" field "unsafe novaluechecks"
 
@@ -747,6 +767,11 @@ namespace eval cffi::test {
 
         # Failure tests - invalid attribute combinations
         testinvalidattr "$type counted unsafe" field $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe counted" field $errorMessages(attrconflict)
+        testinvalidattr "$type counted pinned" field $errorMessages(attrconflict)
+        testinvalidattr "$type pinned counted" field $errorMessages(attrconflict)
+        testinvalidattr "$type pinned unsafe" field $errorMessages(attrconflict)
+        testinvalidattr "$type unsafe pinned" field $errorMessages(attrconflict)
 
         # Failure tests - invalid attribute for type
         foreach attr [list {*}$errorAttrs nullifempty structsize bitmask {enum E}] {

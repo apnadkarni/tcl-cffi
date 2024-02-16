@@ -2094,6 +2094,11 @@ namespace eval cffi::test {
     } -body {
         dict get [S info] Fields p Definition
     } -result {pointer unsafe}
+    test type-pointer-field-1 "pointer fields are always unsafe" -setup {
+        cffi::Struct create S {p {pointer pinned}}
+    } -body {
+        dict get [S info] Fields p Definition
+    } -result {pointer unsafe}
 
     ###
     # Test base-derived casts

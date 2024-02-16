@@ -159,7 +159,7 @@ namespace eval cffi::test {
 
 
     variable paramDirectionAttrs {in out inout}
-    variable pointerAttrs {novaluechecks unsafe dispose counted}
+    variable pointerAttrs {novaluechecks unsafe dispose counted pinned}
     variable stringAttrs {novaluechecks nullifempty}
     variable requirementAttrs {zero nonzero nonnegative positive}
     variable errorHandlerAttrs {errno}

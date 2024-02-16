@@ -1212,6 +1212,38 @@ namespace eval ${NS}::test {
         list [cffi::pointer isvalid $p] [binary scan [cffi::memory tobinary $p 4] n val] $val
     } -result [list 1 1 99]
 
+    test function-pointer-out-counted-0 "pointer out counted" -setup {
+        testDll function pointer_out void {p {pointer counted out}}
+    } -body {
+        pointer_out p
+        pointer_out p
+        list \
+            [cffi::pointer isvalid $p] \
+            [binary scan [cffi::memory tobinary $p 4] n val] \
+            $val \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list 1 1 99 {} 1 {} 0]
+
+    test function-pointer-out-pinned-0 "pointer out pinned" -setup {
+        testDll function pointer_out void {p {pointer pinned out}}
+    } -body {
+        pointer_out p
+        pointer_out p
+        list \
+            [cffi::pointer isvalid $p] \
+            [binary scan [cffi::memory tobinary $p 4] n val] \
+            $val \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list 1 1 99 {} 1 {} 1 {} 0]
+
     test function-pointer-out-nullifempty-0 "pointer out nullifempty" -setup {
         unset -nocomplain ""
         testDll function pointer_out void {p {pointer out nullifempty}}
@@ -1290,6 +1322,11 @@ namespace eval ${NS}::test {
 
     test function-pointer-param-safety-3 "pointer unsafe to counted" -body {
         testDll function pointer_noop void {p {pointer counted}}
+        pointer_noop 1^
+    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
+
+    test function-pointer-param-safety-3.1 "pointer unsafe to pinned" -body {
+        testDll function pointer_noop void {p {pointer pinned}}
         pointer_noop 1^
     } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
 
@@ -1403,6 +1440,13 @@ namespace eval ${NS}::test {
     } -body {
         list [cffi::pointer isvalid $p] [catch {pointer_dispose $p 1}] [cffi::pointer isvalid $p]
     } -result {1 0 0}
+
+    test function-pointer-param-safety-17 "pointer pinned dispose" -setup {
+        cffi::pointer pin 1^
+    } -body {
+        testDll function pointer_noop void {p {pointer dispose counted}}
+        list [pointer_noop 1^] [cffi::pointer isvalid 1^] [pointer_noop 1^] [cffi::pointer isvalid 1^] [cffi::pointer invalidate 1^] [cffi::pointer isvalid 1^]
+    } -result {{} 1 {} 1 {} 0}
 
     test function-pointer-param-in-null-0 "pass null pointer - fail" -body {
         testDll function pointer_to_pointer void {p {pointer unsafe}}
@@ -2434,6 +2478,21 @@ namespace eval ${NS}::test {
                 [cffi::pointer isvalid $p]
         } -result {1 1 {} {} 0}
 
+        # pinned
+        test function-return-$type-pinned-0 "return type $type pinned" -cleanup {
+        } -body {
+            testDll function pointer_to_pointer [list $type pinned] {p {pointer unsafe}}
+            set p [pointer_to_pointer 1^]
+            set p2 [pointer_to_pointer 1^]
+            list [string equal $p $p2] \
+                [cffi::pointer isvalid $p] \
+                [cffi::pointer dispose $p] \
+                [cffi::pointer dispose $p2] \
+                [cffi::pointer isvalid $p] \
+                [cffi::pointer invalidate $p] \
+                [cffi::pointer isvalid $p2]
+        } -result {1 1 {} {} 1 {} 0}
+
         # unsafe
         test function-return-$type-unsafe-0 "return type $type unsafe" -body {
             testDll function pointer_to_pointer [list $type unsafe] {p {pointer unsafe}}
@@ -2518,6 +2577,29 @@ namespace eval ${NS}::test {
         } -result {1 1}
         test function-return-$type-counted-lasterror-0 "return type $type counted - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type counted lasterror] {p {pointer novaluechecks unsafe}}
+            list [catch {pointer_lasterror 0^} result] $result
+        } -result {1 {The data is invalid.}}
+
+        # pinned
+        test function-return-$type-pinned-novaluechecks-0 "return type $type pinned" -body {
+            testDll function pointer_to_pointer [list $type novaluechecks pinned] {p {pointer novaluechecks unsafe}}
+            set p [pointer_to_pointer 1^]
+            list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p]
+        } -result {1 {} 1 {} 0}
+        test function-return-$type-pinned-null-0 "return type $type pinned novaluechecks - null" -body {
+            testDll function pointer_to_pointer [list $type pinned] {p {pointer novaluechecks unsafe}}
+            pointer_to_pointer 0^
+        } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
+        test function-return-$type-pinned-novaluechecks-null-0 "return type $type pinned novaluechecks - NULL" -body {
+            testDll function pointer_to_pointer [list $type novaluechecks pinned] {p {pointer novaluechecks unsafe}}
+            pointer_to_pointer 0^
+        } -result [makeptr 0 $tag]
+        test function-return-$type-pinned-errno-0 "return type $type pinned - errno" -body {
+            testDll function pointer_errno [list $type pinned errno] {p {pointer novaluechecks unsafe}}
+            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+        } -result {1 1}
+        test function-return-$type-pinned-lasterror-0 "return type $type pinned - lasterror" -constraints win -body {
+            testDll function pointer_lasterror [list $type pinned lasterror] {p {pointer novaluechecks unsafe}}
             list [catch {pointer_lasterror 0^} result] $result
         } -result {1 {The data is invalid.}}
 

@@ -199,6 +199,7 @@ enum cffiTypeAttrOpt {
     DISCARD,
     NULLOK,
     SAVEERROR,
+    PINNED,
 };
 typedef struct CffiAttrs {
     const char *attrName; /* Token */
@@ -272,6 +273,7 @@ static CffiAttrs cffiAttrs[] = {
     {"discard", DISCARD, CFFI_F_ATTR_DISCARD, CFFI_F_TYPE_PARSE_RETURN, 1},
     {"nullok", NULLOK, /* synonym */ -1, CFFI_F_TYPE_PARSE_ALL, 1},
     {"saveerrors", SAVEERROR, CFFI_F_ATTR_SAVEERROR, CFFI_F_TYPE_PARSE_RETURN, 1},
+    {"pinned", PINNED, CFFI_F_ATTR_PINNED, CFFI_F_TYPE_PARSE_ALL, 1},
     {NULL}};
 
 CffiResult
@@ -413,7 +415,7 @@ CffiMakePointerObj(CffiInterpCtx *ipCtxP,
 {
     CffiResult ret;
     CFFI_ASSERT(flags == 0 || flags == CFFI_F_ATTR_UNSAFE
-                || flags == CFFI_F_ATTR_COUNTED);
+                || flags == CFFI_F_ATTR_COUNTED || flags == CFFI_F_ATTR_PINNED);
 
     if (tagObj) {
         tagObj = CffiMakePointerTagFromObj(ipCtxP, tagObj);
@@ -424,13 +426,20 @@ CffiMakePointerObj(CffiInterpCtx *ipCtxP,
         ret         = TCL_OK;
     }
     else {
-        ret = (flags == CFFI_F_ATTR_COUNTED
-                   ? Tclh_PointerRegisterCounted
-                   : Tclh_PointerRegister)(ipCtxP->interp,
-                                           ipCtxP->tclhCtxP,
-                                           pv,
-                                           tagObj,
-                                           ptrObjP);
+        switch (flags) {
+        case CFFI_F_ATTR_COUNTED:
+            ret = Tclh_PointerRegisterCounted(
+                ipCtxP->interp, ipCtxP->tclhCtxP, pv, tagObj, ptrObjP);
+            break;
+        case CFFI_F_ATTR_PINNED:
+            ret =
+                Tclh_PointerPin(ipCtxP->interp, ipCtxP->tclhCtxP, pv, ptrObjP);
+            break;
+        default:
+            ret = Tclh_PointerRegister(
+                ipCtxP->interp, ipCtxP->tclhCtxP, pv, tagObj, ptrObjP);
+            break;
+        }
     }
     if (tagObj)
         Tcl_DecrRefCount(tagObj);
@@ -1123,13 +1132,18 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             typeAttrP->parseModeSpecificObj = fieldObjs[1];
             break;
         case COUNTED:
-            if (flags & CFFI_F_ATTR_UNSAFE)
+            if (flags & (CFFI_F_ATTR_UNSAFE|CFFI_F_ATTR_PINNED))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_COUNTED;
             break;
+        case PINNED:
+            if (flags & (CFFI_F_ATTR_UNSAFE|CFFI_F_ATTR_COUNTED))
+                goto invalid_format;
+            flags |= CFFI_F_ATTR_PINNED;
+            break;
         case UNSAFE:
             if (flags
-                & (CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_DISPOSE
+                & (CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_PINNED | CFFI_F_ATTR_DISPOSE
                    | CFFI_F_ATTR_DISPOSEONSUCCESS))
                 goto invalid_format;
             flags |= CFFI_F_ATTR_UNSAFE;
@@ -1467,7 +1481,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
             goto invalid_format;
         case CFFI_K_TYPE_POINTER:
             /* Pointers in structs are always unsafe */
-            flags &= ~(CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_DISPOSE
+            flags &= ~(CFFI_F_ATTR_COUNTED | CFFI_F_ATTR_PINNED | CFFI_F_ATTR_DISPOSE
                        | CFFI_F_ATTR_DISPOSEONSUCCESS);
             flags |= CFFI_F_ATTR_UNSAFE;
             break;
@@ -2446,7 +2460,6 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
                   Tcl_Obj **resultObjP)
 {
     CffiResult ret;
-    int         flags = typeAttrsP->flags;
     Tcl_Interp *ip    = ipCtxP->interp;
 
     /*
@@ -2459,6 +2472,7 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
         *resultObjP = Tclh_PointerWrap(NULL, typeAttrsP->dataType.u.tagNameObj);
         ret         = TCL_OK;
     } else {
+        int flags = typeAttrsP->flags;
         if (flags & CFFI_F_ATTR_UNSAFE) {
             *resultObjP = Tclh_PointerWrap(
                 pointer, typeAttrsP->dataType.u.tagNameObj);
@@ -2470,6 +2484,12 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
                     ipCtxP->tclhCtxP,
                     pointer,
                     typeAttrsP->dataType.u.tagNameObj,
+                    resultObjP);
+            else if (flags & CFFI_F_ATTR_PINNED)
+                ret = Tclh_PointerPin(
+                    ip,
+                    ipCtxP->tclhCtxP,
+                    pointer,
                     resultObjP);
             else
                 ret = Tclh_PointerRegister(ip,
