@@ -281,8 +281,8 @@ CffiPointerObjCmd(ClientData cdata,
         return ret;
     case PIN:
         /* Note: tag objP is ignored */
-        ret = Tclh_PointerPin(
-            ip, ipCtxP->tclhCtxP, pv, NULL);
+        ret = Tclh_PointerRegisterPinned(
+            ip, ipCtxP->tclhCtxP, pv, objP, NULL);
         if (ret == TCL_OK) {
             Tcl_SetObjResult(ip, objv[2]);
         }

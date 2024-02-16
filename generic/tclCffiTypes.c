@@ -432,8 +432,8 @@ CffiMakePointerObj(CffiInterpCtx *ipCtxP,
                 ipCtxP->interp, ipCtxP->tclhCtxP, pv, tagObj, ptrObjP);
             break;
         case CFFI_F_ATTR_PINNED:
-            ret =
-                Tclh_PointerPin(ipCtxP->interp, ipCtxP->tclhCtxP, pv, ptrObjP);
+            ret = Tclh_PointerRegisterPinned(
+                ipCtxP->interp, ipCtxP->tclhCtxP, pv, tagObj, ptrObjP);
             break;
         default:
             ret = Tclh_PointerRegister(
@@ -2498,10 +2498,11 @@ CffiPointerToObj(CffiInterpCtx *ipCtxP,
                     typeAttrsP->dataType.u.tagNameObj,
                     resultObjP);
             else if (flags & CFFI_F_ATTR_PINNED)
-                ret = Tclh_PointerPin(
+                ret = Tclh_PointerRegisterPinned(
                     ip,
                     ipCtxP->tclhCtxP,
                     pointer,
+                    typeAttrsP->dataType.u.tagNameObj,
                     resultObjP);
             else
                 ret = Tclh_PointerRegister(ip,

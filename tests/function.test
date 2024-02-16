@@ -1244,6 +1244,24 @@ namespace eval ${NS}::test {
             [cffi::pointer isvalid $p]
     } -result [list 1 1 99 {} 1 {} 1 {} 0]
 
+    test function-pointer-out-pinned-1 "pointer out pinned - tagged" -setup {
+        testDll function pointer_out void {p {pointer.::TAG pinned out}}
+    } -body {
+        pointer_out p
+        pointer_out p
+        list \
+            [cffi::pointer tag $p] \
+            [cffi::pointer isvalid $p] \
+            [binary scan [cffi::memory tobinary $p 4] n val] \
+            $val \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer dispose $p] \
+            [cffi::pointer isvalid $p] \
+            [cffi::pointer invalidate $p] \
+            [cffi::pointer isvalid $p]
+    } -result [list ::TAG 1 1 99 {} 1 {} 1 {} 0]
+
     test function-pointer-out-nullifempty-0 "pointer out nullifempty" -setup {
         unset -nocomplain ""
         testDll function pointer_out void {p {pointer out nullifempty}}
@@ -2472,11 +2490,12 @@ namespace eval ${NS}::test {
             set p [pointer_to_pointer 1^]
             set p2 [pointer_to_pointer 1^]
             list [string equal $p $p2] \
+                [cffi::pointer tag $p] \
                 [cffi::pointer isvalid $p] \
                 [cffi::pointer dispose $p] \
                 [cffi::pointer dispose $p2] \
                 [cffi::pointer isvalid $p]
-        } -result {1 1 {} {} 0}
+        } -result [list 1 $tag 1 {} {} 0]
 
         # pinned
         test function-return-$type-pinned-0 "return type $type pinned" -cleanup {
