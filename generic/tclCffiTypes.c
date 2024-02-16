@@ -1651,8 +1651,17 @@ Tcl_Obj *
 CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
                   Tcl_WideInt value)
 {
-    Tcl_Obj *valueObj;
     /* TBD - Handles ulonglong correctly? */
+
+#if 1
+    /* RFE #199 - do not map integers to enums  */
+    if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONGLONG)
+        return Tclh_ObjFromULongLong((unsigned long long)value);
+    else
+        return Tcl_NewWideIntObj(value);
+
+#else
+    Tcl_Obj *valueObj;
     if (typeAttrsP != NULL && ((typeAttrsP->flags & CFFI_F_ATTR_ENUM) != 0)
         && typeAttrsP->dataType.u.tagNameObj != NULL) {
         CffiResult ret;
@@ -1664,6 +1673,7 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
                 NULL, typeAttrsP->dataType.u.tagNameObj, value, &valueObj);
         return ret == TCL_OK ? valueObj : NULL;
     }
+#endif
     return NULL;
 }
 

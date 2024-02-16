@@ -1067,10 +1067,11 @@ namespace eval Concepts {
         ## Enumerations
 
         Enumerations allow the use of symbolic constants in place of integral
-        values passed as arguments to functions. Their primary purpose is
-        similar to preprocessor `#define` constants and `enum` types in C.
-        They are defined and otherwise managed through the `cffi::enum`
-        command ensemble. The fragment below provides an example.
+        values passed as arguments to functions or on assignment to struct
+        fields. Their primary purpose is similar to preprocessor `#define`
+        constants and `enum` types in C. They are defined and otherwise managed
+        through the `cffi::enum` command ensemble. The fragment below provides
+        an example.
 
         ````
         cffi::enum define CMARK_OPTS {
@@ -1117,6 +1118,14 @@ namespace eval Concepts {
         }
         set htmlptr [cmark_render_html $root {SMART NORMALIZE}]
         ````
+
+        When enumeration types are returned from a function or through
+        output parameters or struct fields, they are returned as integers, not
+        mapped to enumeration member names. The [::cffi::enum name] or
+        [::cffi::enum unmask] commands can be used to accomplish for the purpose
+        if desired.
+
+        For additional commands related to enumerations see [::cffi::enum].
 
         ## Functions
 

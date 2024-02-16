@@ -1140,7 +1140,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {i B}
+    } -result {i 42}
     test struct-enum-1 "struct field enum with bitmask" -setup {
         cffi::enum define E {A 1 B 2}
     } -body {
@@ -1149,7 +1149,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {i {A B 7}}
+    } -result {i 7}
     test struct-enum-2 "struct field enum array with bitmask" -setup {
         cffi::enum define E {A 1 B 2 C 4}
     } -body {
@@ -1158,7 +1158,7 @@ namespace eval cffi::test {
     } -cleanup {
         cffi::enum delete E
         S destroy
-    } -result {i {{A 1} {B C 6} {A 9}}}
+    } -result {i {1 6 9}}
     test struct-enum-error-0 "struct field num with unknown enum" -body {
         cffi::Struct create S {i {int {enum NOSUCHENUM}}}
     } -result {Enum "NOSUCHENUM" not found or inaccessible.} -returnCodes error
@@ -1188,7 +1188,7 @@ namespace eval cffi::test {
         S frombinary [S tobinary {i A}]
     } -cleanup {
         S destroy
-    } -result {i A}
+    } -result {i 1}
     test struct-enum-scope-1 "struct field enum - local fall back to global" -setup {
         cffi::enum delete *
         namespace eval :: {
@@ -1201,7 +1201,7 @@ namespace eval cffi::test {
         S frombinary [S tobinary {i A}]
     } -cleanup {
         S destroy
-    } -result {i A}
+    } -result {i 0}
 
     test struct-alias-scope-0 "struct field alias - local scope" -setup {
         cffi::alias delete *

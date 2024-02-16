@@ -1950,12 +1950,7 @@ CffiFunctionCall(ClientData cdata,
             /* Wrap function return value unless an output argument is */      \
             /* to be returned as the result or result to be discarded */       \
             if (argResultIndex < 0 && !discardResult) {                        \
-                /* First try converting function result as enums, bitmasks */  \
-                resultObj = CffiIntValueToObj(&protoP->returnType.typeAttrs,   \
-                                              (Tcl_WideInt)cretval.u.fld_);    \
-                /* If that did not work just use native value */               \
-                if (resultObj == NULL)                                         \
-                    resultObj = objfn_(cretval.u.fld_);                        \
+                resultObj = objfn_(cretval.u.fld_);                            \
             }                                                                  \
         }                                                                      \
         else {                                                                 \
