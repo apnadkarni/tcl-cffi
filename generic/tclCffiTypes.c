@@ -1652,10 +1652,12 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
                   Tcl_WideInt value)
 {
     /* TBD - Handles ulonglong correctly? */
-
+    /* TODO - elimiate this function if we are not going to map ints to enum names */
 #if 1
     /* RFE #199 - do not map integers to enums  */
-    if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONGLONG)
+    if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONGLONG
+        || (sizeof(unsigned long) == sizeof(Tcl_WideInt)
+            && typeAttrsP->dataType.baseType == CFFI_K_TYPE_ULONG))
         return Tclh_ObjFromULongLong((unsigned long long)value);
     else
         return Tcl_NewWideIntObj(value);
