@@ -1181,7 +1181,7 @@ CffiReturnPrepare(CffiCall *callP)
                         retTypeAttrsP->dataType.u.structP->dcAggrP);
         CFFI_ASSERT(!CffiTypeIsVariableSize(&retTypeAttrsP->dataType));
         callP->retValueP = Tclh_LifoAlloc(
-            &callP->fnP->libCtxP->ipCtxP->memlifo,
+            &callP->fnP->ipCtxP->memlifo,
             CffiStructFixedSize(retTypeAttrsP->dataType.u.structP));
     }
 # endif
@@ -1236,7 +1236,7 @@ CffiReturnPrepare(CffiCall *callP)
     case CFFI_K_TYPE_STRUCT:
         CFFI_ASSERT(!CffiTypeIsVariableSize(&retTypeAttrsP->dataType));
         callP->retValueP = Tclh_LifoAlloc(
-            &callP->fnP->libCtxP->ipCtxP->memlifo,
+            &callP->fnP->ipCtxP->memlifo,
             CffiStructFixedSize(retTypeAttrsP->dataType.u.structP));
         break;
     default:
