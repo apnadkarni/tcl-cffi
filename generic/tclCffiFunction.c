@@ -2393,12 +2393,17 @@ CffiDefineOneFunction(Tcl_Interp *ip,
     CffiProto *protoP = NULL;
     CffiFunction *fnP = NULL;
     CffiResult ret;
+    Tcl_Obj **paramObjs;
+    Tcl_Size nparams;
+
+    CHECK(Tcl_ListObjGetElements(ip, paramsObj, &nparams, &paramObjs));
 
     ret = CffiPrototypeParse(ipCtxP,
                              abi,
                              cmdNameObj,
                              returnTypeObj,
-                             paramsObj,
+                             nparams,
+                             paramObjs,
                              &protoP);
     if (ret != TCL_OK) {
         Tcl_AppendResult(ip,

@@ -8,22 +8,77 @@
 #include "tclCffiInt.h"
 
 static CffiResult
+CffiHelpInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+{
+    Tcl_CmdInfo cmdInfo;
+    Tcl_Obj *resultObj;
+    Tcl_Size i;
+
+    if (!Tcl_GetCommandInfo(ipCtxP->interp, Tcl_GetString(nameObj), &cmdInfo)
+        || !cmdInfo.isNativeObjectProc
+        || cmdInfo.objProc != CffiInterfaceInstanceCmd
+        || cmdInfo.objClientData == NULL) {
+        return Tclh_ErrorNotFound(ipCtxP->interp, "Cffi interface", nameObj, NULL);
+    }
+
+    CffiInterface *ifcP = (CffiInterface *)cmdInfo.objClientData;
+
+    resultObj = Tcl_NewStringObj("Interface ", -1);
+    Tcl_AppendObjToObj(resultObj, ifcP->nameObj);
+    if (ifcP->baseIfcP) {
+        Tcl_AppendStringsToObj(resultObj,
+                               "\n  Inherits: ",
+                               Tcl_GetString(ifcP->baseIfcP->nameObj),
+                               NULL);
+    }
+    Tcl_AppendToObj(resultObj, "\n  Methods: ", -1);
+
+    while (ifcP) {
+        const char *sep = "";
+        Tcl_AppendStringsToObj(
+            resultObj, "\n    ", Tcl_GetString(ifcP->nameObj), ": ", NULL);
+        for (i = ifcP->nInheritedMethods; i < ifcP->nMethods; ++i) {
+            Tcl_AppendStringsToObj(resultObj,
+                                   sep,
+                                   Tcl_GetString(ifcP->vtable[i].methodNameObj),
+                                   NULL);
+            sep = " ";
+        }
+        ifcP = ifcP->baseIfcP;
+    }
+    Tcl_SetObjResult(ipCtxP->interp, resultObj);
+    return TCL_OK;
+}
+
+static CffiResult
 CffiHelpFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
 {
     Tcl_CmdInfo cmdInfo;
-    CffiFunction *fnP;
     CffiProto *protoP;
     Tcl_Obj *resultObj;
     int i;
 
     if (!Tcl_GetCommandInfo(ipCtxP->interp, Tcl_GetString(fnNameObj), &cmdInfo)
         || !cmdInfo.isNativeObjectProc
-        || cmdInfo.objProc != CffiFunctionInstanceCmd
-	|| cmdInfo.objClientData == NULL) {
+        || (cmdInfo.objProc != CffiFunctionInstanceCmd
+            && cmdInfo.objProc != CffiMethodInstanceCmd)
+        || cmdInfo.objClientData == NULL) {
         return Tclh_ErrorNotFound(ipCtxP->interp, "Cffi command", fnNameObj, NULL);
     }
-    fnP = (CffiFunction *)cmdInfo.objClientData;
-    protoP = fnP->protoP;
+    if (cmdInfo.objProc == CffiFunctionInstanceCmd) {
+        CffiFunction *fnP = (CffiFunction *)cmdInfo.objClientData;
+        protoP = fnP->protoP;
+    } else {
+        CffiMethod *methodP = (CffiMethod *)cmdInfo.objClientData;
+        if (methodP == NULL || methodP->ifcP == NULL
+            || methodP->vtableSlot >= methodP->ifcP->nMethods) {
+            Tcl_SetResult(ipCtxP->interp,
+                          "Internal error: invalid method slot.",
+                          TCL_STATIC);
+            return TCL_ERROR;
+        }
+        protoP = methodP->ifcP->vtable[methodP->vtableSlot].protoP;
+    }
     resultObj = Tcl_NewStringObj("Syntax: ", 8);
     Tcl_AppendObjToObj(resultObj, fnNameObj);
 
@@ -239,9 +294,10 @@ CffiHelpObjCmd(ClientData cdata,
         {"enum", 0, 1, "NAME", CffiHelpEnumCmd},
         {"function", 0, 1, "NAME", CffiHelpFunctionCmd},
         {"functions", 0, 1, "?PATTERN?", CffiHelpFunctionsCmd},
+        {"interface", 0, 1, "NAME", CffiHelpInterfaceCmd},
         {"struct", 0, 1, "NAME", CffiHelpStructCmd},
-        {"union", 0, 1, "NAME", CffiHelpUnionCmd},
-	{NULL}};
+	    {NULL}
+    };
 
     /* Slightly convoluted logic since we want "help foo" to check all types */
     if (Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex) == TCL_OK) {
@@ -265,7 +321,8 @@ CffiHelpObjCmd(ClientData cdata,
         || CffiHelpAliasCmd(ipCtxP, objv[1]) == TCL_OK
         || CffiHelpEnumCmd(ipCtxP, objv[1]) == TCL_OK
         || CffiHelpStructCmd(ipCtxP, objv[1]) == TCL_OK
-        || CffiHelpUnionCmd(ipCtxP, objv[1]) == TCL_OK) {
+        || CffiHelpUnionCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiHelpInterfaceCmd(ipCtxP, objv[1]) == TCL_OK) {
         return TCL_OK;
     }
 

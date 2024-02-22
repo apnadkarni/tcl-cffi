@@ -1331,4 +1331,83 @@ FNPACK(4)
 
 #endif
 
+struct BaseInterface;
+struct DerivedInterface;
 
+int BaseInterfaceGet(struct BaseInterface *);
+int BaseInterfaceSet(struct BaseInterface *, int a);
+void BaseInterfaceDelete(struct BaseInterface *);
+int DerivedInterfaceSetMax(struct DerivedInterface *tiP, int a, int b);
+
+typedef struct BaseInterfaceVtable {
+    int (*get)(struct BaseInterface *);
+    int (*set)(struct BaseInterface *, int a);
+    void (*delete)(struct BaseInterface *);
+} BaseInterfaceVtable;
+
+BaseInterfaceVtable baseVtable = {
+    BaseInterfaceGet,
+    BaseInterfaceSet,
+    BaseInterfaceDelete
+};
+
+typedef struct DerivedInterfaceVtable {
+    BaseInterfaceVtable base;
+    int (*setmax)(struct DerivedInterface *, int a, int b);
+} DerivedInterfaceVtable;
+
+DerivedInterfaceVtable derivedVtable = {
+    BaseInterfaceGet,
+    BaseInterfaceSet,
+    BaseInterfaceDelete,
+    DerivedInterfaceSetMax
+};
+
+typedef struct BaseInterface {
+    BaseInterfaceVtable *vtable;
+    int baseValue;
+} BaseInterface;
+
+typedef struct DerivedInterface {
+    DerivedInterfaceVtable *vtable;
+    int baseValue;
+} DerivedInterface;
+
+DLLEXPORT BaseInterface *BaseInterfaceNew(int val) {
+    struct BaseInterface *tiP;
+    tiP = (struct BaseInterface *) malloc(sizeof(*tiP));
+    tiP->vtable = &baseVtable;
+    tiP->baseValue = val;
+    return tiP;
+}
+
+int BaseInterfaceGet(struct BaseInterface *tiP)
+{
+    return tiP->baseValue;
+}
+int BaseInterfaceSet(struct BaseInterface *tiP, int newValue)
+{
+    int old = tiP->baseValue;
+    tiP->baseValue = newValue;
+    return old;
+}
+
+void BaseInterfaceDelete(struct BaseInterface *tiP)
+{
+    free(tiP);
+}
+
+DLLEXPORT DerivedInterface *DerivedInterfaceNew(int val) {
+    struct DerivedInterface *tiP;
+    tiP = (struct DerivedInterface *) malloc(sizeof(*tiP));
+    tiP->vtable = &derivedVtable;
+    tiP->baseValue = val;
+    return tiP;
+}
+
+int DerivedInterfaceSetMax(struct DerivedInterface *tiP, int a, int b)
+{
+    int old  = tiP->baseValue;
+    tiP->baseValue = a > b ? a : b;
+    return old;
+}

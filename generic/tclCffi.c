@@ -363,6 +363,8 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::Union", CffiUnionObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
+        ip, CFFI_NAMESPACE "::Interface", CffiInterfaceObjCmd, ipCtxP, NULL);
+    Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::call", CffiCallObjCmd, ipCtxP, NULL);
 #ifdef CFFI_HAVE_CALLBACKS
     Tcl_CreateObjCommand(

@@ -10,7 +10,7 @@
 void CffiLibCtxUnref(CffiLibCtx *ctxP)
 {
     if (ctxP->nRefs <= 1) {
-        /* Note cdlP->vmCtxP is interp-specific and not to be deleted here. */
+        /* Note ctxP->ipCtxP is interp-specific and not to be deleted here. */
 #ifdef CFFI_USE_TCLLOAD
         Tcl_FSUnloadFile(NULL, ctxP->libH);
 #else
@@ -18,7 +18,7 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP)
 #endif
         if (ctxP->pathObj)
             Tcl_DecrRefCount(ctxP->pathObj);
-        ckfree(ctxP);
+        Tcl_Free(ctxP);
     }
     else
         ctxP->nRefs -= 1;

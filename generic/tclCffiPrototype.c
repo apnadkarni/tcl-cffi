@@ -104,7 +104,8 @@ CffiFindDynamicCountParam(Tcl_Interp *ip, CffiProto *protoP, Tcl_Obj *nameObj)
  * fnNameObj - name of the function or prototype definition
  * returnTypeObj - return type of the function in format expected by
  *            CffiTypeAndAttrsParse
- * paramsObj - parameter definition list consisting of alternating parameter
+ * numParamElements - size of paramElements
+ * paramElements - parameter definition array consisting of alternating 
  *            names and type definitions in the format expected by
  *            <CffiTypeAndAttrsParse>.
  * protoPP   - location to hold a pointer to the allocated internal prototype
@@ -121,34 +122,33 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                    CffiABIProtocol abi,
                    Tcl_Obj *fnNameObj,
                    Tcl_Obj *returnTypeObj,
-                   Tcl_Obj *paramsObj,
+                   Tcl_Size numParamElements,
+                   Tcl_Obj **paramElements,
                    CffiProto **protoPP)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     CffiProto *protoP;
-    Tcl_Obj **objs;
-    Tcl_Size i, j, nobjs;
+    Tcl_Size i, j;
     int need_pass2;
     int isVarArgs;
 
-    CHECK(Tcl_ListObjGetElements(ip, paramsObj, &nobjs, &objs));
-    if (nobjs & 1) {
+    if (numParamElements & 1) {
         /*
-         * Odd number of parameters. Only allowed if last param is varargs.
+         * Odd number. Only allowed if last param is varargs.
          * And in that case, there has to be at least one fixed param
          * (libffi restriction)
          */
-        if (strcmp(Tcl_GetString(objs[nobjs-1]), "...")) {
+        if (strcmp(Tcl_GetString(paramElements[numParamElements-1]), "...")) {
             return Tclh_ErrorInvalidValue(
-                ip, paramsObj, "Parameter type missing.");
+                ip, paramElements[numParamElements-1], "Parameter type missing.");
         }
 #ifdef CFFI_HAVE_VARARGS
         if (abi != CffiDefaultABI()) {
             return Tclh_ErrorGeneric(
                 ip, NULL, "Varargs not supported for this calling convention.");
         }
-        nobjs -= 1; /* Ignore the ... */
-        if (nobjs == 0) {
+        numParamElements -= 1; /* Ignore the ... */
+        if (numParamElements == 0) {
             /* The ... is the only parameter */
             return Tclh_ErrorInvalidValue(
                 ip,
@@ -168,9 +168,9 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
 
     /*
      * Parameter list is alternating name, type elements. Thus number of
-     * parameters is nobjs/2
+     * parameters is numParamElements/2
      */
-    protoP = CffiProtoAllocate(nobjs / 2);
+    protoP = CffiProtoAllocate(numParamElements / 2);
     protoP->abi = abi;
     if (CffiTypeAndAttrsParse(ipCtxP,
                               returnTypeObj,
@@ -189,9 +189,9 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
     protoP->nParams = 0; /* Update as we go along  */
     need_pass2      = 0;
     /* Params are list {name type name type ...} */
-    for (i = 0, j = 0; i < nobjs; i += 2, ++j) {
+    for (i = 0, j = 0; i < numParamElements; i += 2, ++j) {
         if (CffiTypeAndAttrsParse(ipCtxP,
-                                  objs[i + 1],
+                                  paramElements[i + 1],
                                   CFFI_F_TYPE_PARSE_PARAM,
                                   &protoP->params[j].typeAttrs)
             != TCL_OK) {
@@ -231,8 +231,8 @@ CffiPrototypeParse(CffiInterpCtx *ipCtxP,
             /* Mark that return value is through a parameter */
             protoP->returnType.typeAttrs.flags |= CFFI_F_ATTR_RETVAL;
         }
-        Tcl_IncrRefCount(objs[i]);
-        protoP->params[j].nameObj = objs[i];
+        Tcl_IncrRefCount(paramElements[i]);
+        protoP->params[j].nameObj = paramElements[i];
         protoP->nParams += 1; /* Update incrementally for error cleanup after return */
         if (CffiTypeIsVLA(&protoP->params[j].typeAttrs.dataType))
             need_pass2 = 1;
@@ -318,7 +318,13 @@ CffiPrototypeDefineCmd(CffiInterpCtx *ipCtxP,
 
     CHECK(CffiNameSyntaxCheck(ipCtxP->interp, objv[2]));
 
-    CHECK(CffiPrototypeParse(ipCtxP, abi, objv[2], objv[3], objv[4], &protoP));
+    Tcl_Obj **paramObjs;
+    Tcl_Size nparams;
+
+    CHECK(Tcl_ListObjGetElements(ip, objv[4], &nparams, &paramObjs));
+
+    CHECK(CffiPrototypeParse(
+        ipCtxP, abi, objv[2], objv[3], nparams, paramObjs, &protoP));
     CffiProtoRef(protoP);
     if (CffiNameObjAdd(ip,
                        &ipCtxP->scope.prototypes,

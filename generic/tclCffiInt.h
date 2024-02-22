@@ -8,6 +8,7 @@
 #include "tcl.h"
 #include <sys/types.h>
 #include <stddef.h>
+#include <assert.h>
 
 #include "tclhBase.h"
 #include "tclhObj.h"
@@ -533,6 +534,37 @@ typedef struct CffiArgument {
 #define CFFI_F_IGNORE_OUTPUT 0x2 /* Do not store output variable */
 } CffiArgument;
 
+
+typedef struct CffiInterfaceMember {
+    CffiProto *protoP;
+    Tcl_Obj *methodNameObj;
+} CffiInterfaceMember;
+
+/* Struct: CffiInterface
+ * Contains a COM style interface definition.
+ */
+typedef struct CffiInterface {
+    CffiInterpCtx *ipCtxP;
+    Tcl_Obj *nameObj;
+    struct CffiInterface *baseIfcP;
+    int nRefs;
+    int nMethods; /* Size of vtable[] */
+    int nInheritedMethods; /* Number of inherited methods in vtable */
+    CffiInterfaceMember *vtable;
+} CffiInterface;
+CFFI_INLINE void CffiInterfaceRef(CffiInterface *ifcP) {
+    ifcP->nRefs += 1;
+}
+
+/* Struct: CffiMethod
+ * Contains a method definition for an interface
+ */
+typedef struct CffiMethod {
+    CffiInterface *ifcP;   /* Containing interface */
+    Tcl_Obj *cmdNameObj;   /* Name of Tcl command. May be NULL */
+    int vtableSlot;        /* Method slot in interface vtable */
+} CffiMethod;
+
 /* Struct: CffiCall
  * Complete context for a call invocation
  */
@@ -778,7 +810,8 @@ CffiResult CffiPrototypeParse(CffiInterpCtx *ipCtxP,
                               CffiABIProtocol abi,
                               Tcl_Obj *fnNameObj,
                               Tcl_Obj *returnTypeObj,
-                              Tcl_Obj *paramsObj,
+                              Tcl_Size nparams,
+                              Tcl_Obj **paramObjs,
                               CffiProto **protoPP);
 void CffiProtoUnref(CffiProto *protoP);
 void CffiPrototypesCleanup(CffiInterpCtx *ipCtxP);
@@ -1041,10 +1074,7 @@ CffiResult CffiFunctionCall(ClientData cdata,
                             int objArgIndex, /* Where in objv[] args start */
                             int objc,
                             Tcl_Obj *const objv[]);
-CffiResult CffiFunctionInstanceCmd(ClientData cdata,
-                                   Tcl_Interp *ip,
-                                   int objc,
-                                   Tcl_Obj *const objv[]);
+Tcl_ObjCmdProc CffiFunctionInstanceCmd;
 void CffiFunctionCleanup(CffiFunction *fnP);
 CFFI_INLINE void CffiFunctionRef(CffiFunction *fnP) {
     fnP->nRefs += 1;
@@ -1065,18 +1095,22 @@ CffiResult CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                                         CffiABIProtocol callMode,
                                         int flags);
 
+Tcl_ObjCmdProc CffiMethodInstanceCmd;
+Tcl_ObjCmdProc CffiInterfaceInstanceCmd;
+
 Tcl_ObjCmdProc CffiAliasObjCmd;
-Tcl_ObjCmdProc CffiEnumObjCmd;
-Tcl_ObjCmdProc CffiWrapperObjCmd;
+Tcl_ObjCmdProc CffiArenaObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
+Tcl_ObjCmdProc CffiEnumObjCmd;
 Tcl_ObjCmdProc CffiHelpObjCmd;
+Tcl_ObjCmdProc CffiInterfaceObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;
 Tcl_ObjCmdProc CffiPointerObjCmd;
 Tcl_ObjCmdProc CffiPrototypeObjCmd;
 Tcl_ObjCmdProc CffiStructObjCmd;
-Tcl_ObjCmdProc CffiUnionObjCmd;
 Tcl_ObjCmdProc CffiTypeObjCmd;
-Tcl_ObjCmdProc CffiArenaObjCmd;
+Tcl_ObjCmdProc CffiUnionObjCmd;
+Tcl_ObjCmdProc CffiWrapperObjCmd;
 
 #ifdef CFFI_HAVE_CALLBACKS
 Tcl_ObjCmdProc CffiCallbackObjCmd;

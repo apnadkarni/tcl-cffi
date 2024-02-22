@@ -71,6 +71,7 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffiEnum.obj \
 	$(TMP_DIR)\tclCffiFunction.obj \
 	$(TMP_DIR)\tclCffiHelp.obj \
+	$(TMP_DIR)\tclCffiInterface.obj \
 	$(TMP_DIR)\tclCffiLoad.obj \
 	$(TMP_DIR)\tclCffiMemory.obj \
 	$(TMP_DIR)\tclCffiNames.obj \
@@ -113,6 +114,8 @@ PRJ_LIBS = $(EXTDIR)\lib\libffi.lib
 PRJ_LIBS = $(EXTDIR)\lib\ffi.lib
 !endif
 !endif
+
+PRJ_LIBS = $(PRJ_LIBS) rpcrt4.lib
 
 !ifdef CFFI_ASSERT_LEVEL
 PRJ_DEFINES = $(PRJ_DEFINES) -DTCLH_ASSERT_LEVEL=$(CFFI_ASSERT_LEVEL)

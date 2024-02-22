@@ -212,7 +212,7 @@ CffiWrapperDestroyCmd(Tcl_Interp *ip,
     if (Tcl_DeleteCommand(ip, Tcl_GetString(objv[0])) == 0)
         return TCL_OK;
     else
-        return Tclh_ErrorOperFailed(ip, "delete", objv[0], NULL);
+        return Tclh_ErrorOperFailed(ip, "destroy", objv[0], NULL);
 }
 
 
