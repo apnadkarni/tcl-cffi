@@ -296,6 +296,7 @@ CffiHelpObjCmd(ClientData cdata,
         {"functions", 0, 1, "?PATTERN?", CffiHelpFunctionsCmd},
         {"interface", 0, 1, "NAME", CffiHelpInterfaceCmd},
         {"struct", 0, 1, "NAME", CffiHelpStructCmd},
+        {"union", 0, 1, "NAME", CffiHelpUnionCmd},
 	    {NULL}
     };
 
