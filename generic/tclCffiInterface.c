@@ -23,9 +23,9 @@ void CffiInterfaceUnref(CffiInterface *ifcP)
                 CffiProtoUnref(ifcP->vtable[i].protoP);
                 Tcl_DecrRefCount(ifcP->vtable[i].methodNameObj);
             }
-            Tcl_Free(ifcP->vtable);
+            Tcl_Free((char *) ifcP->vtable);
         }
-        Tcl_Free(ifcP);
+        Tcl_Free((char *) ifcP);
     }
 }
 
@@ -181,7 +181,8 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
     Tcl_Size i, nobjs;
     CffiResult ret;
     static const char *options[] = {"-disposemethod", NULL};
-    enum options_e { DISPOSE } opt;
+    enum options_e { DISPOSE };
+    int opt;
     CffiInterpCtx *ipCtxP = ifcP->ipCtxP;
 
     if (ifcP->vtable) {
@@ -192,6 +193,9 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
     assert(objc >= 3);
 
     CHECK(Tcl_ListObjGetElements(ip, objv[2], &nobjs, &objs));
+    if (nobjs == 0) {
+        return Tclh_ErrorInvalidValue(ip, ifcP->nameObj, "Method list is empty.");
+    }
     if (nobjs % 3) {
         return Tclh_ErrorInvalidValue(
             ip, objv[2], "Incomplete method definition list.");
@@ -222,7 +226,8 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
     if (ifcP->baseIfcP)
         baseSlots = ifcP->baseIfcP->nMethods;
 
-    ifcMembers = Tcl_Alloc(sizeof(*ifcMembers) * (baseSlots + (nobjs / 3)));
+    ifcMembers = (CffiInterfaceMember *)Tcl_Alloc(sizeof(*ifcMembers)
+                                                   * (baseSlots + (nobjs / 3)));
 
     Tcl_Obj *params[256]; /* Assume max number of fixed params is 254 */
 
@@ -270,7 +275,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
             temp[0] = selfTypeObj;
             temp[1]   = Tcl_NewStringObj("dispose", 7);
             params[1] = Tcl_NewListObj(2, temp);
-            disposeMethodMatched = 0;
+            disposeMethodMatched = 1;
         } else {
             /* Not the dispose method. First arg is plain pointer */
             params[1] = selfTypeObj;
@@ -294,7 +299,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
         ifcMembers[methodSlot].methodNameObj = objs[i];
         Tcl_IncrRefCount(objs[i]);
 
-        CffiMethod *methodP = Tcl_Alloc(sizeof(*methodP));
+        CffiMethod *methodP = (CffiMethod *)Tcl_Alloc(sizeof(*methodP));
         methodP->cmdNameObj = methodNameObj; /* Already incr ref-ed */
         methodP->ifcP       = ifcP;
         methodP->vtableSlot = methodSlot;
@@ -351,7 +356,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
             Tcl_DecrRefCount(ifcMembers[i].methodNameObj);
         }
         CffiInterfaceUnref(ifcP);
-        Tcl_Free(ifcMembers);
+        Tcl_Free((char *) ifcMembers);
     }
 
     Tcl_DecrRefCount(params[0]);
@@ -401,6 +406,63 @@ static void CffiInterfaceInstanceDeleter(ClientData cdata)
     CffiInterfaceUnref((CffiInterface *)cdata);
 }
 
+static CffiResult
+CffiInterfaceCreateCmd(ClientData cdata,
+                       Tcl_Interp *ip,
+                       int objc,
+                       Tcl_Obj *const objv[])
+{
+    CffiInterface *ifcP;
+    static const char *options[] = {"-inherit", NULL};
+    enum options_e { INHERIT };
+    int opt;
+    CffiInterface *baseIfcP = NULL;
+    int i;
+
+    CFFI_ASSERT(objc >= 3);
+
+    for (i = 3; i < objc; ++i) {
+        if (Tcl_GetIndexFromObj(ip, objv[i], options, "option", 0, &opt) != TCL_OK)
+            return TCL_ERROR;
+        switch (opt) {
+        case INHERIT:
+            ++i;
+            if (i == objc) {
+                Tcl_SetResult(
+                    ip, "No value specified for \"-inherit\".", TCL_STATIC);
+                return TCL_ERROR;
+            }
+            if (CffiInterfaceResolve(ip, Tcl_GetString(objv[i]), &baseIfcP)
+                != TCL_OK) {
+                return TCL_ERROR;
+            }
+            break;
+        }
+    }
+
+    ifcP = (CffiInterface *) Tcl_Alloc(sizeof(*ifcP));
+    ifcP->ipCtxP            = (CffiInterpCtx *)cdata;
+    ifcP->nRefs             = 1;
+    ifcP->nMethods          = 0;
+    ifcP->nInheritedMethods = 0;
+    ifcP->vtable            = NULL;
+    ifcP->nameObj           = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
+    Tcl_IncrRefCount(ifcP->nameObj);
+    ifcP->baseIfcP = baseIfcP;
+    if (baseIfcP) {
+        Tclh_PointerSubtagDefine(
+            ip, ifcP->ipCtxP->tclhCtxP, ifcP->nameObj, baseIfcP->nameObj);
+        CffiInterfaceRef(baseIfcP);
+    }
+    Tcl_CreateObjCommand(ip,
+                         Tcl_GetString(ifcP->nameObj),
+                         CffiInterfaceInstanceCmd,
+                         ifcP,
+                         CffiInterfaceInstanceDeleter);
+    Tcl_SetObjResult(ip, ifcP->nameObj);
+    return TCL_OK;
+}
+
 /* Function: CffiInterfaceObjCmd
  * Implements the script level *Interface* command.
  *
@@ -420,58 +482,14 @@ CffiInterfaceObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    CffiInterface *ifcP;
-    static const char *options[] = {"-inherit", NULL};
-    enum options_e { INHERIT } opt;
-    CffiInterface *baseIfcP = NULL;
-    int i;
+    static const Tclh_SubCommand commands[] = {
+        {"create", 1, 3, "IFCNAME ?-inherit IFCBASE?", CffiInterfaceCreateCmd, 0},
+        {NULL}
+    };
+    int cmdIndex;
 
-    if (objc < 2) {
-        Tcl_WrongNumArgs(ip, 1, objv, "interfacename ?options ...?");
-        return TCL_ERROR;
-
-    }
-
-    for (i = 2; i < objc; ++i) {
-        if (Tcl_GetIndexFromObj(ip, objv[i], options, "option", 0, &opt) != TCL_OK)
-            return TCL_ERROR;
-        switch (opt) {
-        case INHERIT:
-            ++i;
-            if (i == objc) {
-                Tcl_SetResult(
-                    ip, "No value specified for \"-inherit\".", TCL_STATIC);
-                return TCL_ERROR;
-            }
-            if (CffiInterfaceResolve(ip, Tcl_GetString(objv[i]), &baseIfcP)
-                != TCL_OK) {
-                return TCL_ERROR;
-            }
-            break;
-        }
-    }
-
-    ifcP = Tcl_Alloc(sizeof(*ifcP));
-    ifcP->ipCtxP            = (CffiInterpCtx *)cdata;
-    ifcP->nRefs             = 1;
-    ifcP->nMethods          = 0;
-    ifcP->nInheritedMethods = 0;
-    ifcP->vtable            = NULL;
-    ifcP->nameObj           = Tclh_NsQualifyNameObj(ip, objv[1], NULL);
-    Tcl_IncrRefCount(ifcP->nameObj);
-    ifcP->baseIfcP = baseIfcP;
-    if (baseIfcP) {
-        Tclh_PointerSubtagDefine(
-            ip, ifcP->ipCtxP->tclhCtxP, ifcP->nameObj, baseIfcP->nameObj);
-        CffiInterfaceRef(baseIfcP);
-    }
-    Tcl_CreateObjCommand(ip,
-                         Tcl_GetString(ifcP->nameObj),
-                         CffiInterfaceInstanceCmd,
-                         ifcP,
-                         CffiInterfaceInstanceDeleter);
-    Tcl_SetObjResult(ip, ifcP->nameObj);
-    return TCL_OK;
+    CHECK(Tclh_SubCommandLookup(ip, commands, objc, objv, &cmdIndex));
+    return commands[cmdIndex].cmdFn((CffiInterpCtx *)cdata, ip, objc, objv);
 }
 
 /* TBD - should delete dispose the pointer? */

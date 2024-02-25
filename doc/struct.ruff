@@ -13,8 +13,8 @@ oo::class create ${NS}::Struct {
         # in memory etc.
         #
         # The $definition argument is a dictionary mapping field names to the
-        # corresponding types. See [Packed structs][::Concepts::Packed structs] for more
-        # information.
+        # corresponding types. See [Packed structs][::Concepts::Packed structs]
+        # for more information.
         #
         # The name of the created struct is the same as the name of the
         # returned object without the initial `::` global namespace qualifier.

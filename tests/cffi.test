@@ -220,6 +220,32 @@ namespace eval ${NS}::test {
         cffi::help A
     } -result "alias A\x0A  int bitmask"
 
+    test help-interface-0 {help interface} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+    } -body {
+        cffi::help interface BaseInterface
+    } -result "Interface ::cffi::test::BaseInterface\n  Methods:\n    ::cffi::test::BaseInterface: get set delete"
+
+    test help-interface-1 {help interface} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+        Interface create DerivedInterface -inherit BaseInterface
+        DerivedInterface methods {
+            setmax int {a int b int}
+        }
+    } -body {
+        cffi::help interface DerivedInterface
+    } -result "Interface ::cffi::test::DerivedInterface\n  Inherits: ::cffi::test::BaseInterface\n  Methods:\n    ::cffi::test::DerivedInterface: setmax\n    ::cffi::test::BaseInterface: get set delete"
+
     #######
 
     # Test interp deletion - just to ensure no crashes

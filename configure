@@ -4910,6 +4910,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
                      generic/tclCffiEnum.c \
                      generic/tclCffiFunction.c \
                      generic/tclCffiHelp.c \
+                     generic/tclCffiInterface.c \
                      generic/tclCffiLoad.c \
                      generic/tclCffiMemory.c \
                      generic/tclCffiNames.c \

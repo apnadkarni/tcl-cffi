@@ -641,7 +641,7 @@ EXTERN int winstring_multisz(WCHAR *in, int nout, WCHAR *out) {
         totalLen += len + 1;
         from += len+1;
     }
-    if (totalLen <= nout) {
+    if ((int) totalLen <= nout) {
         memmove(out, in, sizeof(WCHAR) * (totalLen+1));
     } else {
        if (nout) {
@@ -1357,11 +1357,8 @@ typedef struct DerivedInterfaceVtable {
 } DerivedInterfaceVtable;
 
 DerivedInterfaceVtable derivedVtable = {
-    BaseInterfaceGet,
-    BaseInterfaceSet,
-    BaseInterfaceDelete,
-    DerivedInterfaceSetMax
-};
+    {BaseInterfaceGet, BaseInterfaceSet, BaseInterfaceDelete},
+    DerivedInterfaceSetMax};
 
 typedef struct BaseInterface {
     BaseInterfaceVtable *vtable;
@@ -1380,7 +1377,6 @@ DLLEXPORT BaseInterface *BaseInterfaceNew(int val) {
     tiP->baseValue = val;
     return tiP;
 }
-
 int BaseInterfaceGet(struct BaseInterface *tiP)
 {
     return tiP->baseValue;
@@ -1391,7 +1387,6 @@ int BaseInterfaceSet(struct BaseInterface *tiP, int newValue)
     tiP->baseValue = newValue;
     return old;
 }
-
 void BaseInterfaceDelete(struct BaseInterface *tiP)
 {
     free(tiP);
@@ -1410,4 +1405,49 @@ int DerivedInterfaceSetMax(struct DerivedInterface *tiP, int a, int b)
     int old  = tiP->baseValue;
     tiP->baseValue = a > b ? a : b;
     return old;
+}
+
+/* Stdcall versions */
+struct BaseInterfaceStdcall;
+int CFFI_STDCALL BaseInterfaceGetStdcall(struct BaseInterfaceStdcall *);
+int CFFI_STDCALL BaseInterfaceSetStdcall(struct BaseInterfaceStdcall *, int a);
+void CFFI_STDCALL BaseInterfaceDeleteStdcall(struct BaseInterfaceStdcall *);
+
+typedef struct BaseInterfaceVtableStdcall {
+    int (CFFI_STDCALL * get)(struct BaseInterfaceStdcall *);
+    int (CFFI_STDCALL * set)(struct BaseInterfaceStdcall *, int a);
+    void (CFFI_STDCALL * delete)(struct BaseInterfaceStdcall *);
+} BaseInterfaceVtableStdcall;
+
+BaseInterfaceVtableStdcall baseVtableStdcall = {
+    BaseInterfaceGetStdcall,
+    BaseInterfaceSetStdcall,
+    BaseInterfaceDeleteStdcall
+};
+
+typedef struct BaseInterfaceStdcall {
+    BaseInterfaceVtableStdcall *vtable;
+    int baseValue;
+} BaseInterfaceStdcall;
+
+DLLEXPORT BaseInterfaceStdcall * CFFI_STDCALL BaseInterfaceNewStdcall(int val) {
+    struct BaseInterfaceStdcall *tiP;
+    tiP = (struct BaseInterfaceStdcall *) malloc(sizeof(*tiP));
+    tiP->vtable = &baseVtableStdcall;
+    tiP->baseValue = val;
+    return tiP;
+}
+int CFFI_STDCALL BaseInterfaceGetStdcall(struct BaseInterfaceStdcall *tiP)
+{
+    return tiP->baseValue;
+}
+int CFFI_STDCALL BaseInterfaceSetStdcall(struct BaseInterfaceStdcall *tiP, int newValue)
+{
+    int old = tiP->baseValue;
+    tiP->baseValue = newValue;
+    return old;
+}
+void CFFI_STDCALL BaseInterfaceDeleteStdcall(struct BaseInterfaceStdcall *tiP)
+{
+    free(tiP);
 }

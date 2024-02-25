@@ -1,0 +1,57 @@
+# (c) 2024 Ashok P. Nadkarni
+# See LICENSE for license terms.
+
+oo::class create ${NS}::Interface {
+    constructor {args} {
+        # Defines an interface consisting of method definitions.
+        #  -inherit BASEINTERFACE - If specified, the interface inherits methods
+        #   from `BASEINTERFACE`
+        #
+        # See [Interfaces][::Concepts::Interfaces] for more information.
+    }
+    method methods {methodlist args} {
+        # Creates Tcl commands wrapping the C functions comprising an interface.
+        #  methodlist - list of function definitions.
+        #  -disposemethod METHODNAMDE - the name of the method, if any, whose
+        #    implicit pointer parameter should be annotated with `dispose`.
+        #
+        # The C functions in the wrapper are presumed to be using the `_cdecl`
+        # calling convention. The created commands are of the form
+        # `INTERFACENAME.METHODNAME`. The first argument to each is typed as
+        # `pointer.INTERFACENAME`.
+        #
+        # The order of the methods in $methodlist must be the same as that in
+        # the corresponding C interface. All functions in the interface are
+        # expected to have a pointer to the interface as the first parameter.
+        #
+        # The $methodlist argument is a flat (not nested) list of function name,
+        # return type and parameter list in the same form as described for the
+        # [::cffi::Wrapper::function] method except that the first parameter
+        # in the C function, the pointer to the object, should not be included.
+        #
+        # See also: [stdmethods]
+    }
+    method stdmethods {methodlist args} {
+        # Creates Tcl commands corresponding to the C functions comprising an
+        # interface.
+        #  methodlist - list of function definitions.
+        #  -disposemethod METHODNAMDE - the name of the method, if any, whose
+        #    implicit pointer parameter should be annotated with `dispose`.
+        #
+        # The C functions are presumed to be using the `_stdcall` calling
+        # convention. The created commands are of the form
+        # `INTERFACENAME.METHODNAME`. The first argument to each is typed as
+        # `pointer.INTERFACENAME`.
+        #
+        # The order of the methods in $methodlist must be the same as that in
+        # the corresponding C interface. All functions in the interface are
+        # expected to have a pointer to the interface as the first parameter.
+        #
+        # The $methodlist argument is a flat (not nested) list of function name,
+        # return type and parameter list in the same form as described for the
+        # [::cffi::Wrapper::function] method except that the first parameter
+        # in the C function, the pointer to the object, should not be included.
+        #
+        # See also: [methods]
+    }
+}

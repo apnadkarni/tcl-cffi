@@ -18,7 +18,7 @@ void CffiLibCtxUnref(CffiLibCtx *ctxP)
 #endif
         if (ctxP->pathObj)
             Tcl_DecrRefCount(ctxP->pathObj);
-        Tcl_Free(ctxP);
+        Tcl_Free((char *)ctxP);
     }
     else
         ctxP->nRefs -= 1;

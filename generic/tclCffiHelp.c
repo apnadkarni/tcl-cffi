@@ -31,7 +31,7 @@ CffiHelpInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
                                Tcl_GetString(ifcP->baseIfcP->nameObj),
                                NULL);
     }
-    Tcl_AppendToObj(resultObj, "\n  Methods: ", -1);
+    Tcl_AppendToObj(resultObj, "\n  Methods:", -1);
 
     while (ifcP) {
         const char *sep = "";

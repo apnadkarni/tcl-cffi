@@ -79,6 +79,7 @@ TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiEnum.c \
                      generic/tclCffiFunction.c \
                      generic/tclCffiHelp.c \
+                     generic/tclCffiInterface.c \
                      generic/tclCffiLoad.c \
                      generic/tclCffiMemory.c \
                      generic/tclCffiNames.c \

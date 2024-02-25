@@ -1,0 +1,188 @@
+# (c) 2024 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains tests for cffi::Interface pertaining to definition and
+# invocation of functions.
+
+source [file join [file dirname [info script]] common.tcl]
+
+# Interface definition tests
+
+namespace eval ${::NS}::test {
+    testsubcmd ${::NS}::Interface
+
+    testnumargs interface-create "cffi::Interface create" "IFCNAME" "?-inherit IFCBASE?"
+    test interface-0 {Create an interface} -cleanup {
+        rename ITest ""
+    } -body {
+        ::cffi::Interface create ITest
+    } -result [namespace current]::ITest
+
+    test interface-1 {Create an interface in global namespace} -cleanup {
+        rename ::ITest ""
+    } -body {
+        ::cffi::Interface create ::ITest
+    } -result ::ITest
+
+    test interface-instance-0 {Interface instance} -body {
+        ::cffi::Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+        testDll function BaseInterfaceNew pointer.BaseInterface {i int}
+        set p [BaseInterfaceNew 42]
+        list [BaseInterface.get $p] \
+            [BaseInterface.set $p 99] \
+            [BaseInterface.get $p] \
+            [BaseInterface.delete $p] \
+            [BaseInterface destroy]
+    } -cleanup {
+        cffi::pointer dispose $p
+        foreach cmd {get set delete} {
+            rename BaseInterface.$cmd ""
+        }
+    } -result [list 42 42 99 {} {}]
+
+    test interface-instance-1 {Interface instance -disposemethod} -body {
+        ::cffi::Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        } -disposemethod delete
+        testDll function BaseInterfaceNew pointer.BaseInterface {i int}
+        set p [BaseInterfaceNew 42]
+        list [BaseInterface.get $p] \
+            [BaseInterface.set $p 99] \
+            [BaseInterface.get $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface.delete $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface destroy]
+    } -cleanup {
+        foreach cmd {get set delete} {
+            rename BaseInterface.$cmd ""
+        }
+    } -result [list 42 42 99 1 {} 0 {}]
+
+    test interface-instance-error-0 {Empty method list} -setup {
+        ::cffi::Interface create ITest
+    } -body {
+        ITest methods {}
+    } -result {Invalid value "::cffi::test::ITest". Method list is empty.} -returnCodes error
+
+    test interface-instance-error-1 {Unknown dispose method} -body {
+        ::cffi::Interface create XIfc
+        list \
+            [catch {XIfc methods {get int {}} -disposemethod delete} result] \
+            $result \
+            [info commands XIfc*]
+    } -cleanup {
+        XIfc destroy
+    } -result {1 {method name "delete" not found or inaccessible. No such method found in method list.} XIfc}
+
+    test interface-instance-error-2 {Void pointer passed to interface} -setup {
+        cffi::Interface create XIfc
+        XIfc methods {get int {}}
+        set p [makeptr 1]
+        ::cffi::pointer safe $p
+    } -cleanup {
+        XIfc destroy
+        ::cffi::pointer dispose $p
+    } -body {
+        XIfc.get $p
+    } -result "Value \"[makeptr 1]\" has the wrong type. Expected pointer to ::cffi::test::XIfc." -returnCodes error
+
+    test interface-instance-error-3 {Wrong pointer type passed to interface} -setup {
+        cffi::Interface create XIfc
+        XIfc methods {get int {}}
+        set p [makeptr 1 TAG]
+        ::cffi::pointer safe $p
+    } -cleanup {
+        XIfc destroy
+        ::cffi::pointer dispose $p
+    } -body {
+        XIfc.get $p
+    } -result "Value \"[makeptr 1 TAG]\" has the wrong type. Expected pointer to ::cffi::test::XIfc." -returnCodes error
+
+    test interface-inherit-0 {Interface inheritance} -setup {
+        testDll function BaseInterfaceNew pointer.BaseInterface {i int}
+        testDll function DerivedInterfaceNew pointer.DerivedInterface {i int}
+    } -body {
+        ::cffi::Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        } -disposemethod delete
+
+        ::cffi::Interface create DerivedInterface -inherit BaseInterface
+        DerivedInterface methods {
+            setmax int {a int b int}
+        }
+
+        set p [DerivedInterfaceNew 42]
+        list [BaseInterface.get $p] \
+            [DerivedInterface.setmax $p 99 100] \
+            [BaseInterface.get $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface.delete $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface destroy] \
+            [DerivedInterface destroy]
+    } -cleanup {
+        foreach cmd {get set delete} {
+            rename BaseInterface.$cmd ""
+        }
+        rename DerivedInterface.setmax ""
+    } -result {42 42 100 1 {} 0 {} {}}
+
+    test interface-inherit-error-0 {Non-existent base} -body {
+        list \
+            [catch {::cffi::Interface create Xifc -inherit NoSuchInterface } result] \
+            $result \
+            [info commands Xifc*]
+    } -result {1 {interface "NoSuchInterface" not found or inaccessible.} {}}
+
+    test interface-instance-stdcall {Interface instance} -body {
+        ::cffi::Interface create BaseInterfaceStdcall
+        BaseInterfaceStdcall stdmethods {
+            get int {}
+            set int {a int}
+            delete void {}
+        } -disposemethod delete
+
+        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+            # VC++ has _, mingw does not
+            set fn _BaseInterfaceNewStdcall@4
+            if {[catch {
+                testDll stdcall [list $fn BaseInterfaceNewStdcall] pointer.BaseInterfaceStdcall {i int}
+            }]} {
+                set fn BaseInterfaceNewStdcall@4
+                testDll stdcall [list $fn BaseInterfaceNewStdcall] pointer.BaseInterfaceStdcall {i int}
+            }
+        } else {
+            testDll function BaseInterfaceNewStdcall pointer.BaseInterfaceStdcall {i int}
+        }
+
+        set p [BaseInterfaceNewStdcall 42]
+        list [BaseInterfaceStdcall.get $p] \
+            [BaseInterfaceStdcall.set $p 99] \
+            [BaseInterfaceStdcall.get $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterfaceStdcall.delete $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterfaceStdcall destroy]
+    } -cleanup {
+        foreach cmd {get set delete} {
+            rename BaseInterfaceStdcall.$cmd ""
+        }
+    } -result [list 42 42 99 1 {} 0 {}]
+}
+
+${NS}::test::testDll destroy
+
+::tcltest::cleanupTests
+namespace delete ${NS}::test

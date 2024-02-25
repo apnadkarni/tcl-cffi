@@ -1642,6 +1642,86 @@ namespace eval Concepts {
         cffi::call $fnptr 1 2
         ```
 
+
+        ## Interfaces
+
+        Interfaces in CFFI are intended to wrap COM interfaces in Windows and
+        described in that context below. However they can be used for similar
+        structures outside of COM and on other platforms. The underlying C type
+        is a structure whose first field is a pointer to a table of functions,
+        the *vtable* (virtual function table). Each of these functions accept a
+        pointer to the structure as their first parameter. The methods are
+        invoked through this virtual table. A limited form of inheritance is
+        supported in this model and also exposed through CFFI.
+
+        An interface in CFFI is defined with [::cffi::Interface]. The COM
+        `IUnknown` interface for example would be defined as
+
+        ```
+        cffi::Interface IUnknown
+        ```
+
+        This creates the `IUnknown` interface as an ensemble command to which
+        methods can be added with either `methods` for functions that use the
+        `_cdecl` calling convention or `stdmethods` for functions that use
+        the `_stdcall` calling convention. COM uses the latter, so in CFFI
+        the methods can be defined as
+
+        ```
+        cffi::alias define HRESULT {long nonnegative winerror}
+        cffi::alias define IID {bytes[16]}
+        IUnknown stdmethods {
+            QueryInterface HRESULT {riid IID ppvObject {pointer out}}
+            AddRef uint {}
+            Release uint {}
+        } -disposemethod Release
+        ```
+
+        Points to note:
+
+        * The order of method definitions must be **exactly** the same as in
+        the corresponding COM interface definition.
+
+        * The first parameter to the method is not explicitly declared in
+        each method. It is implicitly typed as a pointer with a tag being
+        the interface name, `pointer.IUnknown` in the above example.
+
+        * The name of the method for releasing the COM object should be passed
+        with the `-disposemethod` option. COM interface pointers are generally
+        reference counted and should be annotated with `counted` in CFFI.
+        Correspondingly, the implicit pointer in the method indicated by
+        `-disposemethod` will be annotated with `dispose` indicating the
+        reference count on the pointer registration should be decremented.
+
+        The above will result in definition of Tcl commands of the form
+        `InterfaceName.MethodName`, e.g. `IUnknown.QueryInterface`,
+        `IUnknown.AddRef` and so on. The first parameter to any method should be
+        a pointer to the COM object, the remaining being the parameters as
+        defined in the method definition.
+
+        ### Interface inheritance
+
+        In some cases, one interface may inherit from another. In CFFI, this
+        is indicated using the `-inherit` option to `Interface`. Additional
+        methods can be defined on the derived interface in the usual fashion.
+
+        ```
+        cffi::Interface IDispatch -inherit IUnknown
+        IDispatch stdmethods {
+            GetTypeInfoCount HRESULT {ctinfo {int out}}
+            ....
+        }
+        ```
+
+        Methods defined in the inherited interface, `IUnknown.AddRef` etc.,
+        as well as methods defined in `IDispatch` can be invoked on objects
+        supporting the `IDispatch` interface.
+
+        Example:
+
+        TBD
+
+
         ## Callbacks
 
         Some C functions take a parameter that is a pointer to a function that is
