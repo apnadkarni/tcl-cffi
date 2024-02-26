@@ -5,9 +5,17 @@ oo::class create ${NS}::Interface {
     constructor {args} {
         # Defines an interface consisting of method definitions.
         #  -inherit BASEINTERFACE - If specified, the interface inherits methods
-        #   from `BASEINTERFACE`
+        #   from `BASEINTERFACE`.
+        #  -id ID - An id to be associated with the interface. This is for the
+        #   caller's use and CFFI does not make any use of it. For COM, this
+        #   can be used to associate the GUID or IID for the interface. Defaults
+        #   to the empty string.
         #
         # See [Interfaces][::Concepts::Interfaces] for more information.
+    }
+    method id {} {
+        # Returns the id for the interface as passed via the `-id` option
+        # in the interface definition.
     }
     method methods {methodlist args} {
         # Creates Tcl commands wrapping the C functions comprising an interface.

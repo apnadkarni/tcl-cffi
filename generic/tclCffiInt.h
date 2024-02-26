@@ -546,6 +546,7 @@ typedef struct CffiInterfaceMember {
 typedef struct CffiInterface {
     CffiInterpCtx *ipCtxP;
     Tcl_Obj *nameObj;
+    Tcl_Obj *idObj;
     struct CffiInterface *baseIfcP;
     int nRefs;
     int nMethods; /* Size of vtable[] */

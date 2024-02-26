@@ -16,6 +16,8 @@ void CffiInterfaceUnref(CffiInterface *ifcP)
         int i;
         if (ifcP->nameObj)
             Tcl_DecrRefCount(ifcP->nameObj);
+        if (ifcP->idObj)
+            Tcl_DecrRefCount(ifcP->idObj);
         if (ifcP->baseIfcP)
             CffiInterfaceUnref(ifcP->baseIfcP);
         if (ifcP->vtable) {
@@ -392,13 +394,30 @@ CffiInterfaceInstanceCmd(ClientData cdata,
     CffiInterface *ifcP = (CffiInterface *)cdata;
     static const Tclh_SubCommand subCommands[] = {
         {"destroy", 0, 0, "", CffiInterfaceDestroyCmd},
+        {"id", 0, 0, "", NULL},
         {"methods", 1, 3, "", CffiInterfaceMethodsCmd},
         {"stdmethods", 1, 3, "", CffiInterfaceStdMethodsCmd},
         {NULL}};
+    enum cmdOpt { DESTROY, ID, METHODS, STDMETHODS };
     int cmdIndex;
 
     CHECK(Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex));
-    return subCommands[cmdIndex].cmdFn(ip, objc, objv, ifcP);
+    switch (cmdIndex) {
+    case DESTROY:
+        return CffiInterfaceDestroyCmd(ip, objc, objv, ifcP);
+    case ID:
+        Tcl_SetObjResult(ip, ifcP->idObj ? ifcP->idObj : Tcl_NewObj());
+        break;
+    case METHODS:
+    case STDMETHODS:
+        return CffiInterfaceMethodsHelper(
+            ip,
+            objc,
+            objv,
+            ifcP,
+            cmdIndex == METHODS ? CffiDefaultABI() : CffiStdcallABI());
+    }
+    return TCL_OK;
 }
 
 static void CffiInterfaceInstanceDeleter(ClientData cdata)
@@ -413,10 +432,11 @@ CffiInterfaceCreateCmd(ClientData cdata,
                        Tcl_Obj *const objv[])
 {
     CffiInterface *ifcP;
-    static const char *options[] = {"-inherit", NULL};
-    enum options_e { INHERIT };
+    static const char *options[] = {"-inherit", "-id", NULL};
+    enum options_e { INHERIT, ID };
     int opt;
     CffiInterface *baseIfcP = NULL;
+    Tcl_Obj       *idObj    = NULL;
     int i;
 
     CFFI_ASSERT(objc >= 3);
@@ -424,18 +444,23 @@ CffiInterfaceCreateCmd(ClientData cdata,
     for (i = 3; i < objc; ++i) {
         if (Tcl_GetIndexFromObj(ip, objv[i], options, "option", 0, &opt) != TCL_OK)
             return TCL_ERROR;
+        if (i == (objc-1)) {
+            Tcl_SetObjResult(
+                ip,
+                Tcl_ObjPrintf("No value specified for option \"%s\".",
+                              Tcl_GetString(objv[i])));
+            return TCL_ERROR;
+        }
+        ++i;
         switch (opt) {
         case INHERIT:
-            ++i;
-            if (i == objc) {
-                Tcl_SetResult(
-                    ip, "No value specified for \"-inherit\".", TCL_STATIC);
-                return TCL_ERROR;
-            }
             if (CffiInterfaceResolve(ip, Tcl_GetString(objv[i]), &baseIfcP)
                 != TCL_OK) {
                 return TCL_ERROR;
             }
+            break;
+        case ID:
+            idObj = objv[i];
             break;
         }
     }
@@ -446,8 +471,14 @@ CffiInterfaceCreateCmd(ClientData cdata,
     ifcP->nMethods          = 0;
     ifcP->nInheritedMethods = 0;
     ifcP->vtable            = NULL;
-    ifcP->nameObj           = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
+
+    ifcP->nameObj = Tclh_NsQualifyNameObj(ip, objv[2], NULL);
     Tcl_IncrRefCount(ifcP->nameObj);
+
+    ifcP->idObj    = idObj;
+    if (idObj)
+        Tcl_IncrRefCount(idObj);
+
     ifcP->baseIfcP = baseIfcP;
     if (baseIfcP) {
         Tclh_PointerSubtagDefine(

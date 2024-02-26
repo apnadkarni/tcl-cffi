@@ -146,6 +146,33 @@ namespace eval ${::NS}::test {
             [info commands Xifc*]
     } -result {1 {interface "NoSuchInterface" not found or inaccessible.} {}}
 
+    test interface-inherit-error-1 {Unspecified base} -body {
+        list \
+            [catch {::cffi::Interface create Xifc -inherit} result] \
+            $result \
+            [info commands Xifc*]
+    } -result {1 {No value specified for option "-inherit".} {}}
+
+    test interface-id-0 {Unspecified id} -body {
+            ::cffi::Interface create Xifc
+            Xifc id
+    } -cleanup {
+        Xifc destroy
+    } -result {}
+    test interface-id-1 {specified id} -body {
+        ::cffi::Interface create Xifc -id "Some id string"
+        Xifc id
+    } -cleanup {
+        Xifc destroy
+    } -result {Some id string}
+
+    test interface-id-error-1 {Unspecified id option value} -body {
+        list \
+            [catch {::cffi::Interface create Xifc -id} result] \
+            $result \
+            [info commands Xifc*]
+    } -result {1 {No value specified for option "-id".} {}}
+
     test interface-instance-stdcall {Interface instance} -body {
         ::cffi::Interface create BaseInterfaceStdcall
         BaseInterfaceStdcall stdmethods {
