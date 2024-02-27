@@ -181,7 +181,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
 {
     Tcl_Obj **objs;
     Tcl_Size i, nobjs;
-    CffiResult ret;
+    CffiResult ret = TCL_OK;
     static const char *options[] = {"-disposemethod", NULL};
     enum options_e { DISPOSE };
     int opt;
@@ -195,12 +195,15 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
     assert(objc >= 3);
 
     CHECK(Tcl_ListObjGetElements(ip, objv[2], &nobjs, &objs));
-    if (nobjs == 0) {
-        return Tclh_ErrorInvalidValue(ip, ifcP->nameObj, "Method list is empty.");
-    }
     if (nobjs % 3) {
         return Tclh_ErrorInvalidValue(
             ip, objv[2], "Incomplete method definition list.");
+    }
+
+    Tcl_Size baseSlots = ifcP->baseIfcP ? ifcP->baseIfcP->nMethods : 0;
+    Tcl_Size totalSlots = baseSlots + (nobjs / 3);
+    if (totalSlots == 0) {
+        return Tclh_ErrorInvalidValue(ip, ifcP->nameObj, "Method list is empty.");
     }
 
     Tcl_Obj *disposeMethodName = NULL;
@@ -222,14 +225,10 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
         }
     }
 
-    int methodSlot;
+    Tcl_Size methodSlot;
     CffiInterfaceMember *ifcMembers;
-    int baseSlots = 0;
-    if (ifcP->baseIfcP)
-        baseSlots = ifcP->baseIfcP->nMethods;
-
-    ifcMembers = (CffiInterfaceMember *)Tcl_Alloc(sizeof(*ifcMembers)
-                                                   * (baseSlots + (nobjs / 3)));
+    ifcMembers =
+        (CffiInterfaceMember *)Tcl_Alloc(sizeof(*ifcMembers) * totalSlots);
 
     Tcl_Obj *params[256]; /* Assume max number of fixed params is 254 */
 
@@ -304,7 +303,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
         CffiMethod *methodP = (CffiMethod *)Tcl_Alloc(sizeof(*methodP));
         methodP->cmdNameObj = methodNameObj; /* Already incr ref-ed */
         methodP->ifcP       = ifcP;
-        methodP->vtableSlot = methodSlot;
+        methodP->vtableSlot = (int) methodSlot;
         CffiInterfaceRef(ifcP);
 
         Tcl_CreateObjCommand(ip,
@@ -335,8 +334,8 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
             }
         }
 
-        ifcP->nMethods = methodSlot;
-        ifcP->nInheritedMethods = baseSlots;
+        ifcP->nMethods = (int) methodSlot;
+        ifcP->nInheritedMethods = (int) baseSlots;
         ifcP->vtable   = ifcMembers;
     }
     else {
@@ -438,6 +437,7 @@ CffiInterfaceCreateCmd(ClientData cdata,
     CffiInterface *baseIfcP = NULL;
     Tcl_Obj       *idObj    = NULL;
     int i;
+    const char *s;
 
     CFFI_ASSERT(objc >= 3);
 
@@ -454,8 +454,9 @@ CffiInterfaceCreateCmd(ClientData cdata,
         ++i;
         switch (opt) {
         case INHERIT:
-            if (CffiInterfaceResolve(ip, Tcl_GetString(objv[i]), &baseIfcP)
-                != TCL_OK) {
+            /* Empty interface names same as no inheritance */
+            s = Tcl_GetString(objv[i]);
+            if (*s && CffiInterfaceResolve(ip, s, &baseIfcP) != TCL_OK) {
                 return TCL_ERROR;
             }
             break;

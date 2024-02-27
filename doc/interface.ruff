@@ -5,7 +5,8 @@ oo::class create ${NS}::Interface {
     constructor {args} {
         # Defines an interface consisting of method definitions.
         #  -inherit BASEINTERFACE - If specified, the interface inherits methods
-        #   from `BASEINTERFACE`.
+        #   from `BASEINTERFACE`. An empty value for `BASEINTERFACE` is treated
+        #   as though the option was not specified.
         #  -id ID - An id to be associated with the interface. This is for the
         #   caller's use and CFFI does not make any use of it. For COM, this
         #   can be used to associate the GUID or IID for the interface. Defaults

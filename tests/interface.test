@@ -139,6 +139,83 @@ namespace eval ${::NS}::test {
         rename DerivedInterface.setmax ""
     } -result {42 42 100 1 {} 0 {} {}}
 
+    test interface-inherit-1 {Interface inherit empty string} -body {
+        ::cffi::Interface create BaseInterface -inherit ""
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+        testDll function BaseInterfaceNew pointer.BaseInterface {i int}
+        set p [BaseInterfaceNew 42]
+        list [BaseInterface.get $p] \
+            [BaseInterface.set $p 99] \
+            [BaseInterface.get $p] \
+            [BaseInterface.delete $p] \
+            [BaseInterface destroy]
+    } -cleanup {
+        cffi::pointer dispose $p
+        foreach cmd {get set delete} {
+            rename BaseInterface.$cmd ""
+        }
+    } -result [list 42 42 99 {} {}]
+
+    test interface-inherit-2 {Interface inheritance with no local methods} -setup {
+        testDll function BaseInterfaceNew pointer.BaseInterface {i int}
+        testDll function DerivedInterfaceNew pointer.DerivedInterface {i int}
+    } -body {
+        ::cffi::Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        } -disposemethod delete
+
+        ::cffi::Interface create DerivedInterface -inherit BaseInterface
+
+        set p [DerivedInterfaceNew 42]
+        list [BaseInterface.get $p] \
+            [BaseInterface.set $p 100] \
+            [BaseInterface.get $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface.delete $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface destroy] \
+            [DerivedInterface destroy]
+    } -cleanup {
+        foreach cmd {get set delete} {
+            rename BaseInterface.$cmd ""
+        }
+    } -result {42 42 100 1 {} 0 {} {}}
+
+    test interface-inherit-3 {Interface inheritance empty method list} -setup {
+        testDll function BaseInterfaceNew pointer.BaseInterface {i int}
+        testDll function DerivedInterfaceNew pointer.DerivedInterface {i int}
+    } -body {
+        ::cffi::Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        } -disposemethod delete
+
+        ::cffi::Interface create DerivedInterface -inherit BaseInterface
+        DerivedInterface methods {}
+        set p [DerivedInterfaceNew 42]
+        list [BaseInterface.get $p] \
+            [BaseInterface.set $p 100] \
+            [BaseInterface.get $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface.delete $p] \
+            [::cffi::pointer isvalid $p] \
+            [BaseInterface destroy] \
+            [DerivedInterface destroy]
+    } -cleanup {
+        foreach cmd {get set delete} {
+            rename BaseInterface.$cmd ""
+        }
+    } -result {42 42 100 1 {} 0 {} {}}
+
     test interface-inherit-error-0 {Non-existent base} -body {
         list \
             [catch {::cffi::Interface create Xifc -inherit NoSuchInterface } result] \
