@@ -647,7 +647,7 @@ namespace eval Cookbook {
 
         ##### Raw pointer input parameters
 
-        ``` -caption "Syntax for input raw pointer parameters" diagram
+        ``` -caption "Syntax for raw pointer input parameters" diagram
                     +- -+ +-   -+ +-     -+ +-              -+ +-    -+ +-              -+
         pointer     |in | |byref| |counted| |dispose         | |nullok| |{default PTRVAL}|
         pointer.TAG +- -+ +-   -+ |unsafe | |disposeonsuccess| +-    -+ +-              -+

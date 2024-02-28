@@ -712,7 +712,7 @@ EXTERN int jis0208_inout(char *in)
 EXTERN int bytes_out(int n, unsigned char *in, unsigned char *out)
 {
     int i;
-    if (out == NULL)
+    if (out == NULL || in == NULL)
         return 0;
     for (i = 0; i < n; ++i)
         out[i] = in[i];

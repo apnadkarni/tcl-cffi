@@ -16,12 +16,13 @@
     <rect x='0' y='0' width='480' height='126' style='fill: #ffffff'/>
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M455.0 105.0 L465.0 105.0 L465.0 21.0 L455.0 21.0 ' />
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M275.0 21.0 L265.0 21.0 L265.0 105.0 L275.0 105.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M165.0 21.0 L155.0 21.0 L155.0 63.0 L165.0 63.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M235.0 63.0 L245.0 63.0 L245.0 21.0 L235.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M165.0 21.0 L155.0 21.0 L155.0 77.0 L165.0 77.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M235.0 77.0 L245.0 77.0 L245.0 21.0 L235.0 21.0 ' />
     <text x='10' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[pointer]]></text>
     <text x='10' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[pointer.TAG]]></text>
     <text x='170' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[counted]]></text>
     <text x='170' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[unsafe]]></text>
+    <text x='170' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[pinned]]></text>
     <text x='280' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[nullok]]></text>
     <text x='280' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[lasterror]]></text>
     <text x='280' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[errno]]></text>

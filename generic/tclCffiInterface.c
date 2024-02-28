@@ -515,7 +515,7 @@ CffiInterfaceObjCmd(ClientData cdata,
                   Tcl_Obj *const objv[])
 {
     static const Tclh_SubCommand commands[] = {
-        {"create", 1, 3, "IFCNAME ?-inherit IFCBASE?", CffiInterfaceCreateCmd, 0},
+        {"create", 1, 5, "IFCNAME ?-id ID? ?-inherit IFCBASE?", CffiInterfaceCreateCmd, 0},
         {NULL}
     };
     int cmdIndex;

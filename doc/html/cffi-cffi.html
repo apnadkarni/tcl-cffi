@@ -752,7 +752,7 @@ cffi::help functions ::libzip::*
 <tr><td><code>pointer</code></td><td>Pointer to be unregistered.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>Note that the command only unregisters the pointer. It does not do anything in terms of releases any resources associated with the pointer.</p>
-<p class='ruff'>The command differs from [pointer unregister] in that</p>
+<p class='ruff'>The command differs from <a href="cffi-cffi.html#::cffi::pointer dispose" title="pointer dispose" class='ruff_cmd'>pointer dispose</a> in that</p>
 <ul class='ruff'>
 <li>it unregisters a counted pointer even if its reference count was greater than 1.</li>
 <li>it unregisters pinned pointers</li>
@@ -806,7 +806,7 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
 <tr><td><code>pointer</code></td><td>Pointer to be pinned. This may or may not be already registered as safe.</td></tr>
 </table>
-<h5 class='ruff'>Description</h5><p class='ruff'>Once a pointer is pinned, it is unaffected by any <a href="cffi-cffi.html#::cffi::pointer safe" title="pointer safe" class='ruff_cmd'>pointer safe</a>, <a href="cffi-cffi.html#::cffi::pointer counted" title="pointer counted" class='ruff_cmd'>pointer counted</a> or [pointed dispose] calls. It can however be invalidated by <a href="cffi-cffi.html#::cffi::pointer invalidate" title="pointer invalidate" class='ruff_cmd'>pointer invalidate</a>.</p>
+<h5 class='ruff'>Description</h5><p class='ruff'>Once a pointer is pinned, it is unaffected by any <a href="cffi-cffi.html#::cffi::pointer safe" title="pointer safe" class='ruff_cmd'>pointer safe</a>, <a href="cffi-cffi.html#::cffi::pointer counted" title="pointer counted" class='ruff_cmd'>pointer counted</a> or <a href="cffi-cffi.html#::cffi::pointer dispose" title="pointer dispose" class='ruff_cmd'>pointer dispose</a> calls. It can however be invalidated by <a href="cffi-cffi.html#::cffi::pointer invalidate" title="pointer invalidate" class='ruff_cmd'>pointer invalidate</a>.</p>
 <p class='ruff'>A pinned pointer has no associated tag even if the passed pointer has one. It will thus match any pointer with the same address component irrespective of the tag. The primary use of pinned pointers is to deal with &quot;pseudo handles&quot; in the Windows API.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns <code>$pointer</code> itself.</p>
 <h3 class='ruffproc'><a name='::cffi::pointer safe'>pointer safe</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -971,6 +971,52 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::type frombinary" title="type frombinary" class='ruff_cmd'>type frombinary</a></p>
 <h2 class='ruff'><a name='::cffi-Classes'></a>Classes<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
+<h3 class='ruffclass'><a name='::cffi::Interface'>Interface</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
+<tr><td><a href="cffi-cffi.html#::cffi::Interface::constructor" title="constructor" class='ruff_cmd'>constructor</a></td><td>Constructor for the class.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Interface::id" title="id" class='ruff_cmd'>id</a></td><td>Returns the id for the interface as passed via the <code>-id</code> option in the interface definition.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Interface::methods" title="methods" class='ruff_cmd'>methods</a></td><td>Creates Tcl commands wrapping the C functions comprising an interface.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::Interface::stdmethods" title="stdmethods" class='ruff_cmd'>stdmethods</a></td><td>Creates Tcl commands corresponding to the C functions comprising an interface.</td></tr>
+</table>
+<h4 class='ruffmethod'><a name='::cffi::Interface::constructor'>constructor</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Interface" title="::cffi::Interface" class='ruff_cmd'>::cffi::Interface</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Interface'>Interface</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Defines an interface consisting of method definitions.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>Interface create OBJNAME</span> <span class='ruff_arg'>?args?</span><br><span class='ruff_cmd'>Interface new</span> <span class='ruff_arg'>?args?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>-id ID</code></td><td>An id to be associated with the interface. This is for the caller's use and CFFI does not make any use of it. For COM, this can be used to associate the GUID or IID for the interface. Defaults to the empty string.</td></tr>
+<tr><td><code>-inherit BASEINTERFACE</code></td><td>If specified, the interface inherits methods from <code>BASEINTERFACE</code>. An empty value for <code>BASEINTERFACE</code> is treated as though the option was not specified.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>See <a href="cffi-Concepts.html#::Concepts-Interfaces" title="Interfaces" >Interfaces</a> for more information.</p>
+<h4 class='ruffmethod'><a name='::cffi::Interface::id'>id</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Interface" title="::cffi::Interface" class='ruff_cmd'>::cffi::Interface</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Interface'>Interface</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the id for the interface as passed via the <code>-id</code> option in the interface definition.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT id</span> </div>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the id for the interface as passed via the <code>-id</code> option in the interface definition.</p>
+<h4 class='ruffmethod'><a name='::cffi::Interface::methods'>methods</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Interface" title="::cffi::Interface" class='ruff_cmd'>::cffi::Interface</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Interface'>Interface</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Creates Tcl commands wrapping the C functions comprising an interface.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT methods</span> <span class='ruff_arg'>methodlist ?args?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>methodlist</code></td><td>List of function definitions.</td></tr>
+<tr><td><code>-disposemethod METHODNAMDE</code></td><td>The name of the method, if any, whose implicit pointer parameter should be annotated with <code>dispose</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The C functions in the wrapper are presumed to be using the <code>_cdecl</code> calling convention. The created commands are of the form <code>INTERFACENAME.METHODNAME</code>. The first argument to each is typed as <code>pointer.INTERFACENAME</code>.</p>
+<p class='ruff'>The order of the methods in <code>$methodlist</code> must be the same as that in the corresponding C interface. All functions in the interface are expected to have a pointer to the interface as the first parameter.</p>
+<p class='ruff'>The <code>$methodlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi-cffi.html#::cffi::Wrapper::function" title="::cffi::Wrapper::function" class='ruff_cmd'>::cffi::Wrapper::function</a> method except that the first parameter in the C function, the pointer to the object, should not be included.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Interface::stdmethods" title="stdmethods" class='ruff_cmd'>stdmethods</a></p>
+<h4 class='ruffmethod'><a name='::cffi::Interface::stdmethods'>stdmethods</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi::Interface" title="::cffi::Interface" class='ruff_cmd'>::cffi::Interface</a>]</span><span class='ruff-uplink'><a href='cffi-cffi.html#::cffi::Interface'>Interface</a>, <a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
+<div style='clear:both;'></div>
+<p class='ruff'>Creates Tcl commands corresponding to the C functions comprising an interface.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>OBJECT stdmethods</span> <span class='ruff_arg'>methodlist ?args?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>methodlist</code></td><td>List of function definitions.</td></tr>
+<tr><td><code>-disposemethod METHODNAMDE</code></td><td>The name of the method, if any, whose implicit pointer parameter should be annotated with <code>dispose</code>.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The C functions are presumed to be using the <code>_stdcall</code> calling convention. The created commands are of the form <code>INTERFACENAME.METHODNAME</code>. The first argument to each is typed as <code>pointer.INTERFACENAME</code>.</p>
+<p class='ruff'>The order of the methods in <code>$methodlist</code> must be the same as that in the corresponding C interface. All functions in the interface are expected to have a pointer to the interface as the first parameter.</p>
+<p class='ruff'>The <code>$methodlist</code> argument is a flat (not nested) list of function name, return type and parameter list in the same form as described for the <a href="cffi-cffi.html#::cffi::Wrapper::function" title="::cffi::Wrapper::function" class='ruff_cmd'>::cffi::Wrapper::function</a> method except that the first parameter in the C function, the pointer to the object, should not be included.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::Interface::methods" title="methods" class='ruff_cmd'>methods</a></p>
 <h3 class='ruffclass'><a name='::cffi::Struct'>Struct</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <h5 class='ruff'>Method summary</h5><table class='ruff_deflist'>
@@ -1469,7 +1515,12 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::type info'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> info</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>type info</span> <span class='ruff_arg'>typedecl ?args?</span></pre>Returns a dictionary containing various information about a type declaration
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::type size'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> size</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>type size</span> <span class='ruff_arg'>type ?args?</span></pre>Returns the size of a type in terms of the number of bytes of memory occupied by that type.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::type tobinary'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tobinary</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>type tobinary</span> <span class='ruff_arg'>typespec value</span></pre>Converts a script level value to a native representation.
-</span></li><li class='ruff-toc2'><a href='#::cffi-Classes'>Classes</a></li><li class='ruff-toc3'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::constructor'>constructor</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>Struct create OBJNAME</span> <span class='ruff_arg'>definition ?args?</span>
+</span></li><li class='ruff-toc2'><a href='#::cffi-Classes'>Classes</a></li><li class='ruff-toc3'><a href='cffi-cffi.html#::cffi::Interface'>Interface</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Interface::constructor'>constructor</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>Interface create OBJNAME</span> <span class='ruff_arg'>?args?</span>
+<span class='ruff_cmd'>Interface new</span> <span class='ruff_arg'>?args?</span></pre>Defines an interface consisting of method definitions.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Interface::id'>id</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT id</span> </pre>Returns the id for the interface as passed via the <code>-id</code> option in the interface definition.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Interface::methods'>methods</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT methods</span> <span class='ruff_arg'>methodlist ?args?</span></pre>Creates Tcl commands wrapping the C functions comprising an interface.
+</span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Interface::stdmethods'>stdmethods</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT stdmethods</span> <span class='ruff_arg'>methodlist ?args?</span></pre>Creates Tcl commands corresponding to the C functions comprising an interface.
+</span></li><li class='ruff-toc3'><a href='cffi-cffi.html#::cffi::Struct'>Struct</a></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::constructor'>constructor</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>Struct create OBJNAME</span> <span class='ruff_arg'>definition ?args?</span>
 <span class='ruff_cmd'>Struct new</span> <span class='ruff_arg'>definition ?args?</span></pre>Constructs a script level object that maps to a C struct definition.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::allocate'>allocate</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT allocate</span> <span class='ruff_arg'>?args?</span></pre>Allocates memory for one or more C structs.
 </span></li><li class='ruff-toc4 ruff-tip'><a href='cffi-cffi.html#::cffi::Struct::describe'>describe</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>OBJECT describe</span> </pre>Returns a human-readable description of the C struct definition.

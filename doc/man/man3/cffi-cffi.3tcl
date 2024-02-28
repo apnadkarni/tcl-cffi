@@ -181,6 +181,16 @@ cffi - Commands in namespace cffi
 .br
 \fBtype tobinary\fP \fItypespec value\fP
 .br
+\fBInterface create OBJNAME\fP \fI?args?\fP
+.br
+\fBInterface new\fP \fI?args?\fP
+.br
+\fBOBJECT id\fP
+.br
+\fBOBJECT methods\fP \fImethodlist ?args?\fP
+.br
+\fBOBJECT stdmethods\fP \fImethodlist ?args?\fP
+.br
 \fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
 .br
 \fBStruct new\fP \fIdefinition ?args?\fP
@@ -2403,7 +2413,7 @@ Note that the command only unregisters the pointer\&. It does
 not do anything in terms of releases any resources associated
 with the pointer\&.
 .PP
-The command differs from \fIpointer unregister\fP in that
+The command differs from \fIpointer dispose\fP in that
 .TP
 \(bu
 it unregisters a counted pointer even if its reference count was greater than 1\&.
@@ -2535,7 +2545,7 @@ Pointer to be pinned\&. This may or may not be already registered as safe\&.
 \fBDescription\fR
 .PP
 Once a pointer is pinned, it is unaffected by any \fIpointer safe\fP,
-\fIpointer counted\fP or \fIpointed dispose\fP calls\&. It can however be
+\fIpointer counted\fP or \fIpointer dispose\fP calls\&. It can however be
 invalidated by \fIpointer invalidate\fP\&.
 .PP
 A pinned pointer has no associated tag even if the passed pointer
@@ -3031,6 +3041,145 @@ Returns a Tcl binary containing the native representation\&.
 .SH CLASSES
 .PP
 .RS -4n
+\fBInterface\fR (::cffi)
+.RE
+.PP
+\fBMethod summary\fR
+.RS 4n
+.TP
+constructor
+Constructor for the class\&.
+.TP
+id
+Returns the id for the interface as passed via the -id option in the interface definition\&.
+.TP
+methods
+Creates Tcl commands wrapping the C functions comprising an interface\&.
+.TP
+stdmethods
+Creates Tcl commands corresponding to the C functions comprising an interface\&.
+.RE
+.PP
+.RS -4n
+\fBconstructor\fR (::cffi::Interface)
+.RE
+.PP
+Defines an interface consisting of method definitions\&.
+.RS 4n\fBInterface create OBJNAME\fP \fI?args?\fP
+.br
+\fBInterface new\fP \fI?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+-id ID
+An id to be associated with the interface\&. This is for the caller's use and CFFI does not make any use of it\&. For COM, this can be used to associate the GUID or IID for the interface\&. Defaults to the empty string\&.
+.TP
+-inherit BASEINTERFACE
+If specified, the interface inherits methods from BASEINTERFACE\&. An empty value for BASEINTERFACE is treated as though the option was not specified\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+See \fIInterfaces\fP for more information\&.
+.PP
+.RS -4n
+\fBid\fR (::cffi::Interface)
+.RE
+.PP
+Returns the id for the interface as passed via the -id option
+in the interface definition\&.
+.RS 4n\fBOBJECT id\fP
+.br
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the id for the interface as passed via the -id option
+in the interface definition\&.
+.PP
+.RS -4n
+\fBmethods\fR (::cffi::Interface)
+.RE
+.PP
+Creates Tcl commands wrapping the C functions comprising an interface\&.
+.RS 4n\fBOBJECT methods\fP \fImethodlist ?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+methodlist
+List of function definitions\&.
+.TP
+-disposemethod METHODNAMDE
+The name of the method, if any, whose implicit pointer parameter should be annotated with dispose\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The C functions in the wrapper are presumed to be using the _cdecl
+calling convention\&. The created commands are of the form
+INTERFACENAME\&.METHODNAME\&. The first argument to each is typed as
+pointer\&.INTERFACENAME\&.
+.PP
+The order of the methods in \fI$methodlist\fP must be the same as that in
+the corresponding C interface\&. All functions in the interface are
+expected to have a pointer to the interface as the first parameter\&.
+.PP
+The \fI$methodlist\fP argument is a flat (not nested) list of function name,
+return type and parameter list in the same form as described for the
+\fI::cffi::Wrapper::function\fP method except that the first parameter
+in the C function, the pointer to the object, should not be included\&.
+.PP
+\fBSee also\fR
+.PP
+\fIstdmethods\fP
+.PP
+.RS -4n
+\fBstdmethods\fR (::cffi::Interface)
+.RE
+.PP
+Creates Tcl commands corresponding to the C functions comprising an
+interface\&.
+.RS 4n\fBOBJECT stdmethods\fP \fImethodlist ?args?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+methodlist
+List of function definitions\&.
+.TP
+-disposemethod METHODNAMDE
+The name of the method, if any, whose implicit pointer parameter should be annotated with dispose\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The C functions are presumed to be using the _stdcall calling
+convention\&. The created commands are of the form
+INTERFACENAME\&.METHODNAME\&. The first argument to each is typed as
+pointer\&.INTERFACENAME\&.
+.PP
+The order of the methods in \fI$methodlist\fP must be the same as that in
+the corresponding C interface\&. All functions in the interface are
+expected to have a pointer to the interface as the first parameter\&.
+.PP
+The \fI$methodlist\fP argument is a flat (not nested) list of function name,
+return type and parameter list in the same form as described for the
+\fI::cffi::Wrapper::function\fP method except that the first parameter
+in the C function, the pointer to the object, should not be included\&.
+.PP
+\fBSee also\fR
+.PP
+\fImethods\fP
+.PP
+.RS -4n
 \fBStruct\fR (::cffi)
 .RE
 .PP
@@ -3132,8 +3281,8 @@ functions, allocate memory, encode and decode native C structs
 in memory etc\&.
 .PP
 The \fI$definition\fP argument is a dictionary mapping field names to the
-corresponding types\&. See \fIPacked structs\fP for more
-information\&.
+corresponding types\&. See \fIPacked structs\fP
+for more information\&.
 .PP
 The name of the created struct is the same as the name of the
 returned object without the initial :: global namespace qualifier\&.

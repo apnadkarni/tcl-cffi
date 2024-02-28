@@ -16,8 +16,8 @@
     <rect x='0' y='0' width='1000' height='98' style='fill: #ffffff'/>
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M155.0 77.0 L145.0 77.0 L145.0 21.0 L155.0 21.0 ' />
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M205.0 77.0 L215.0 77.0 L215.0 21.0 L205.0 21.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M245.0 21.0 L235.0 21.0 L235.0 63.0 L245.0 63.0 ' />
-    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M305.0 63.0 L315.0 63.0 L315.0 21.0 L305.0 21.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M245.0 21.0 L235.0 21.0 L235.0 77.0 L245.0 77.0 ' />
+    <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M305.0 77.0 L315.0 77.0 L315.0 21.0 L305.0 21.0 ' />
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M345.0 21.0 L335.0 21.0 L335.0 63.0 L345.0 63.0 ' />
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M495.0 21.0 L505.0 21.0 L505.0 63.0 L495.0 63.0 ' />
     <path stroke='#000000' stroke-width='1.0' stroke-linecap='round' stroke-linejoin='round' fill='none' d='M535.0 63.0 L525.0 63.0 L525.0 21.0 L535.0 21.0 ' />
@@ -33,6 +33,7 @@
     <text x='150' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[retval]]></text>
     <text x='240' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[counted]]></text>
     <text x='240' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[unsafe]]></text>
+    <text x='240' y='68' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[pinned]]></text>
     <text x='340' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[dispose]]></text>
     <text x='340' y='54' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[disposeonsuccess]]></text>
     <text x='530' y='40' font-family='Courier' font-size='14' stroke='none' fill='#000000' ><![CDATA[nullok]]></text>
