@@ -705,11 +705,12 @@ namespace eval Concepts {
 
         #### Strings as NULL pointers
 
-        Some API's allow for `char*` pointer parameters or struct fields to be
-        NULL. If these are wrapped as `string`, `unistring` or `winstring`, the
-        `nullifempty` annotation can be used to specify that empty string values
-        should be passed or stored as NULL pointers as opposed to pointers to an
-        empty string.
+        Some API's allow for `char*` pointer parameters fields to be NULL. If
+        these are wrapped as one of the string type `string`, `unistring`,
+        `winstring` or one of the character array types `chars`, `unichars` or
+        `winchars`, the `nullifempty` annotation can be used to specify that
+        empty string values should be passed or stored as NULL pointers as
+        opposed to pointers to an empty string.
 
         ### Binary strings
 
@@ -766,8 +767,13 @@ namespace eval Concepts {
         no other context. The function receives the data as retrieved by
         Tcl's Tcl_GetByteArrayFromObj function.
 
-        The `binary` type also has property that zero length binary strings
-        map to NULL pointers being passed to the function.
+        As for `chars`, the `bytes` type can also be annotated with `nullifempty`
+        in which case binaries strings of zero length are passed as NULL pointers.
+        Without the annotation, a binary string of zero length will raise an
+        error.
+
+        In the case of the `binary` type, the `nullifempty` annotation is superfluous.
+        Zero length binary strings typed as `binary` are always passed as NULL pointers.
 
         ### Structs
 

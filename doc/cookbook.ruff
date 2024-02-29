@@ -1110,27 +1110,39 @@ namespace eval Cookbook {
         binary strings so there is no character encoding/decoding transformation
         applied and nul characters have no special treatment.
 
+        Binary strings can be typed as `binary` or as an array of `bytes`. In many
+        cases the two are interchangeable. As a general rule, `bytes` is to be
+        prefered when the function expects an array of bytes whose length is
+        passed through another parameter while `binary` is more directed when
+        the function does not need any additional information to deduce the size
+        of the passed data.
+
         ##### Input binary string parameters
 
         ``` -caption "Syntax for input binary string parameters" diagram
                +- -+ +-   -+ +-         -+ +-               -+
         binary |in | |byref| |nullifempty| |{default DEFAULT}|
                +- -+ +-   -+ +-         -+ +-               -+
+
+                 +-  -+ +-          -+ +-                -+
+        bytes[N] |in  | |nullifempty | |{default DEFAULT} |
+                 +-  -+ +-          -+ +-                -+
         ```
 
-        * The usual C declarations that map to `binary` are `char *`,
+        * The usual corresponding C declarations are `char *`,
         `unsigned char *` and `void *`. Further, input parameters have the
         `const` attribute.
 
         * The `in` annotation is optional because it is the default if none of
         `out`, `retval` or `inout` annotations is present.
 
-        * The `byref` annotation should be specified iff the value is being
-        passed by reference, i.e. the function parameter is a pointer to the
-        pointer to the array of bytes string (double indirection). This is rare
-        for passing binary values that are input only. In either case, whether
-        the `byref` parameter is present or not, the value at script level is
-        still specified directly and not through a variable.
+        * The `byref` annotation is only applicable to the `binary` type and
+        should be specified iff the value is being passed by reference, i.e. the
+        function parameter is a pointer to the pointer to the array of bytes
+        string (double indirection). This is rare for passing binary values that
+        are input only. In either case, whether the `byref` parameter is present
+        or not, the value at script level is still specified directly and not
+        through a variable.
 
         * Some C functions accept a NULL pointer for optional parameters. The
         `nullifempty` annotation identifies such parameters. In this case,

@@ -108,6 +108,8 @@
     {                                                             \
         type_ sum;                                                \
         int i;                                                    \
+        if (arr == NULL)                                          \
+            return (type_)-1;                                     \
         for (i = 0, sum = 0; i < n; ++i)                          \
             sum += arr[i];                                        \
         return sum;                                               \
@@ -116,6 +118,8 @@
     {                                                             \
         type_ sum;                                                \
         int i;                                                    \
+        if (arr == NULL)                                          \
+            return (type_)-1;                                     \
         for (i = 0, sum = 0; i < n; ++i)                          \
             sum += arr[i];                                        \
         return sum;                                               \
@@ -162,8 +166,9 @@
     EXTERN int token_##_len(type_ *in)               \
     {                                                \
         int len = 0;                                 \
-        while (*in++)                                \
-            ++len;                                   \
+        if (in)                                      \
+            while (*in++)                            \
+                ++len;                               \
         return len;                                  \
     }                                                \
     EXTERN int token_##_inbyref_len(type_ **inP)     \

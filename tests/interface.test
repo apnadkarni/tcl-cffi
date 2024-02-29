@@ -11,7 +11,7 @@ source [file join [file dirname [info script]] common.tcl]
 namespace eval ${::NS}::test {
     testsubcmd ${::NS}::Interface
 
-    testnumargs interface-create "cffi::Interface create" "IFCNAME" "?-inherit IFCBASE?"
+    testnumargs interface-create "cffi::Interface create" "IFCNAME" "?-id ID? ?-inherit IFCBASE?"
     test interface-0 {Create an interface} -cleanup {
         rename ITest ""
     } -body {

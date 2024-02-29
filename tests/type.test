@@ -846,6 +846,7 @@ namespace eval cffi::test {
                 foreach {attr expected} {
                     "" "in byref"  "in"  "in byref" "out" "out byref" "inout" "inout byref" "byref" "in byref"
                     "in byref" "in byref" "byref out" "out byref" "inout byref" "inout byref"
+                    "nullifempty" "in byref nullifempty" "in nullifempty" "in byref nullifempty"
                     "{default 0}" "in byref {default 0}"
                     "out storeonerror" "out byref storeonerror"
                     "out storealways" "out byref storealways"
@@ -884,7 +885,8 @@ namespace eval cffi::test {
                     testinvalidattr "$type\[2\]" $parse_mode $errorMessages(typeparsemode)
                     testinvalidattr "$type\[NUMELEMS\]" $parse_mode $errorMessages(typeparsemode)
                 }
-                # field mode array tests - failure
+                testinvalidattr [list $type\[2\] nullifempty] $parse_mode $errorMessages(attrparsemode)
+
                 foreach attr {in out inout retval} {
                     testinvalidattr "$type\[2\] $attr" $parse_mode $errorMessages(attrparsemode)
                     testinvalidattr "$type\[NUMELEMS\] $attr" $parse_mode $errorMessages(attrparsemode)
@@ -895,12 +897,10 @@ namespace eval cffi::test {
             testinvalidattr $type $parse_mode $errorMessages(scalarchars)
 
             # Invalid attributes for type
-            foreach attr [list {*}$pointerAttrs {*}$errorAttrs nullifempty structsize bitmask {enum E}] {
+            foreach attr [list {*}$pointerAttrs {*}$errorAttrs structsize bitmask {enum E}] {
                 if {$attr eq "novaluechecks"} continue; # Skip novaluechecks from pointerAttrs
                 testinvalidattr [list $type\[2\] $attr] $parse_mode $errorMessages(attrtype)
             }
-            testinvalidattr [list $type\[2\] in nullifempty] $parse_mode $errorMessages(attrtype)
-            testinvalidattr [list $type\[2\] retval nullifempty] $parse_mode $errorMessages(attrtype)
 
             # array invalid count spec failure
             foreach count {[0] [-2] [] [2x] \[2 [2]x} {

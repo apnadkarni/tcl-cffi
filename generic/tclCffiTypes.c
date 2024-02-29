@@ -141,17 +141,17 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(chars),
      DCSIG(POINTER),
      CFFI_K_TYPE_CHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(char)},
     {TOKENANDLEN(unichars),
      DCSIG(POINTER),
      CFFI_K_TYPE_UNICHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(Tcl_UniChar)},
     {TOKENANDLEN(bytes),
      DCSIG(POINTER),
      CFFI_K_TYPE_BYTE_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(unsigned char)},
     {TOKENANDLEN(union), 0, CFFI_K_TYPE_UNION, 0, 0},
 #ifdef _WIN32
@@ -163,7 +163,7 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
     {TOKENANDLEN(winchars),
      DCSIG(POINTER),
      CFFI_K_TYPE_WINCHAR_ARRAY,
-     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_MULTISZ
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_MULTISZ
          | CFFI_F_ATTR_DISCARD,
      sizeof(WCHAR)},
 #endif
@@ -1028,6 +1028,9 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
     static const char *variableSizeNotAllowedMsg =
         "Variable sized types are not allowed in this type declaration "
         "context.";
+    static const char *annotationInvalidForContextMsg =
+        "A type annotation is not valid for the declaration context.";
+
     const char *message;
 
     message = paramAnnotClashMsg;
@@ -1311,7 +1314,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         if (cffiAttrs[i].attrFlag & flags) {
             /* Attribute is present, check if allowed by parse mode */
             if (! (cffiAttrs[i].parseModes & parseMode)) {
-                message = "A type annotation is not valid for the declaration context.";
+                message = annotationInvalidForContextMsg;
                 goto invalid_format;
             }
         }
@@ -1495,6 +1498,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 || CffiTypeIsVLA(&typeAttrP->dataType)) {
                 message = "Fields of type chars, unichars, winchars or bytes must be fixed size "
                           "arrays.";
+                goto invalid_format;
+            }
+            if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
+                message = annotationInvalidForContextMsg;
                 goto invalid_format;
             }
             break;
@@ -2061,7 +2068,7 @@ CffiNativeValueFromObj(CffiInterpCtx *ipCtxP,
                 break;
 #endif
             case CFFI_K_TYPE_BYTE_ARRAY:
-                CHECK(CffiBytesFromObjSafe(ip, valueObj, valueP, count));
+                CHECK(CffiBytesFromObjSafe(ip, valueObj, valueP, count, NULL));
                 break;
             default:
                 /* Store each contained element */
@@ -2972,6 +2979,7 @@ CffiWinCharsFromObjSafe(
  * fromObj - *Tcl_Obj* containing value to be stored
  * toP - buffer to store the encoded string
  * toSize - size of buffer
+ * numCopiedP - location to store number copied to destination. May be NULL.
  *
  * The function leaves the output buffer unmodified on error.
  *
@@ -2980,7 +2988,11 @@ CffiWinCharsFromObjSafe(
  * in the interpreter.
  */
 CffiResult
-CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_Size toSize)
+CffiBytesFromObjSafe(Tcl_Interp *ip,
+                     Tcl_Obj *fromObj,
+                     unsigned char *toP,
+                     Tcl_Size toSize,
+                     Tcl_Size *numCopiedP)
 {
     Tcl_Size fromLen;
     unsigned char *fromP;
@@ -2993,6 +3005,8 @@ CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_S
                                       "specified maximum buffer size.");
     }
     memmove(toP, fromP, fromLen);
+    if (numCopiedP)
+        *numCopiedP = fromLen;
     return TCL_OK;
 }
 

@@ -955,6 +955,11 @@ namespace eval ${NS}::test {
         test function-$type-out-1 "$type out empty string" -body {
             list [$fn "" result] $result
         } -result {0 {}}
+        test function-$type-in-nullifempty "$type in nullifempty" -setup {
+            testDll function pointer_to_pointer {pointer unsafe nullok} [list inparam "$type\[$buflen\] nullifempty"]
+        } -body {
+            pointer_to_pointer ""
+        } -result [makeptr 0]
         testDll function $fn int [list input "$type\[$largebuflen\]" output [list $type\[$largebuflen\] out]]
         test function-$type-out-2 "$type out" -body {
             list [$fn $largeval result] $result
@@ -1013,7 +1018,7 @@ namespace eval ${NS}::test {
         } else {
             set fn ${type}_to_void
         }
-        foreach attr [linsert $pointerAttrs end nullifempty] {
+        foreach attr [linsert $pointerAttrs end] {
             if {$attr eq "novaluechecks"} continue; # Skip novaluechecks from pointerAttrs
             test function-param-$type-$attr-error-0 "$type invalid attribute" -body {
                 testDll function $fn void [list param [list $type\[2\] $attr]]
@@ -1102,6 +1107,30 @@ namespace eval ${NS}::test {
     } -body {
         uchar_array_count_in $val $len
     } -result 6
+    test function-bytes-in-zero-size-0 "zero size array" -body {
+        testDll function pointer_to_pointer {pointer unsafe nullok} {buf bytes[0]}
+    } -result {Invalid value "bytes[0]". Invalid array size or extra trailing characters. Error defining function pointer_to_pointer.} -returnCodes error
+    test function-bytes-in-zero-size-1 "zero size dynamic array" -setup {
+        testDll function uchar_array_in uchar {n int buf bytes[n]}
+    } -body {
+        uchar_array_in 0 ""
+    } -result {Passing a zero size array requires the novaluechecks annotation.} -returnCodes error
+    test function-bytes-in-zero-size-2 "zero size dynamic array, nullok" -setup {
+        testDll function uchar_array_in uchar {n int buf {bytes[n] nullok}}
+    } -body {
+        uchar_array_in 0 ""
+    } -result 255
+    test function-bytes-in-zero-size-3 "zero length byte array" -setup {
+        testDll function pointer_to_pointer {pointer unsafe} {buf bytes[10]}
+    } -body {
+        pointer_to_pointer ""
+    } -result {Invalid value "". Passing an 0-length array requires the nullifempty annotation.} -returnCodes error
+    test function-bytes-in-zero-size-4 "zero length byte array, nullifempty" -setup {
+        testDll function pointer_to_pointer {pointer unsafe nullok} {buf {bytes[10] nullifempty}}
+    } -body {
+        pointer_to_pointer ""
+    } -result [makeptr 0]
+
     test function-bytes-out-0 "bytes out" -setup {
         testDll function bytes_out int [list n int input bytes\[$len\] output [list bytes\[$len\] out]]
     } -body {

@@ -319,6 +319,42 @@ void CffiArgCleanup(CffiCall *callP, int arg_index)
 
 }
 
+/* Function: CffiNullifyEmptyArrayInParam
+ * Checks if a input param array with no elements should be passed as
+ * NULL or raise an error.
+ *
+ * If the array is not empty, or not an input param the function does nothing.
+ * Otherwise,
+ *   if CFFI_F_ATTR_NULLIFEMPTY is set
+ *       stores NULL in *arrayAddressP
+ *   else
+ *       raises an error.
+ *
+ * Parameters:
+ * ip - interpreter, may be NULL.
+ * attrFlags - CFFI_F_ATTR_* flags. CFFI_F_ATTR_{IN,NULLIFEMPTY} being material.
+ * arrayAddressP - location to overwrite with NULL if array has no
+ *   elements and NULLIFEMPTY is set.
+ *
+ * Returns:
+ * TCL_OK or TCL_ERROR.
+ */
+static CffiResult
+CffiNullifyEmptyArrayInParam(Tcl_Interp *ip, int attrFlags, void **arrayAddressP)
+{
+    if (attrFlags & CFFI_F_ATTR_IN) {
+        if ((attrFlags & CFFI_F_ATTR_NULLIFEMPTY) == 0) {
+            return Tclh_ErrorInvalidValueStr(
+                ip,
+                "",
+                "Passing an 0-length array requires the nullifempty "
+                "annotation.");
+        }
+        *arrayAddressP = NULL;
+    }
+    return TCL_OK;
+}
+
 /* Function: CffiArgPrepare
  * Prepares a argument for a DCCall
  *
@@ -592,7 +628,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
                 if (valueObjNeedsDecr)
                     Tcl_DecrRefCount(valueObj);
                 return CffiErrorType(
-                    ipCtxP->interp, baseType, __FILE__, __LINE__);
+                    ip, baseType, __FILE__, __LINE__);
             }
         }
         else if (argP->arraySize == 0 || passOutputPointerAsNull) {
@@ -801,6 +837,24 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         CHECK(CffiArgPrepareChars(callP, arg_index, valueObj, &argP->value));
+        if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+            && *(char *)argP->value.u.ptr == 0) {
+            /* Terminating nul is variable length because of encoding */
+            int isEmptyString = 1;
+            int i;
+            const char *p = (char *)argP->value.u.ptr;
+            Tcl_Size nulLength =
+                Tclh_GetEncodingNulLength(typeAttrsP->dataType.u.encoding);
+            for (i = 1; i < nulLength; ++i) {
+                if (p[i]) {
+                    isEmptyString = 0;
+                    break;
+                }
+            }
+            if (isEmptyString)
+                argP->value.u.ptr = NULL;
+        }
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
@@ -810,7 +864,12 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         CHECK(CffiArgPrepareUniChars(callP, arg_index, valueObj, &argP->value));
-        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+            && *(Tcl_UniChar *)argP->value.u.ptr == 0) {
+                argP->value.u.ptr = NULL;
+        }
+        /* BYREF but really a pointer so STOREARGVAL, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
 
@@ -820,7 +879,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         if (argP->arraySize == 0 || passOutputPointerAsNull)
             goto pass_null_array;
         CHECK(CffiArgPrepareWinChars(callP, arg_index, valueObj, &argP->value));
-        /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
+        if ((flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY))
+                == (CFFI_F_ATTR_IN | CFFI_F_ATTR_NULLIFEMPTY)
+            && *(WCHAR *)argP->value.u.ptr == 0) {
+                argP->value.u.ptr = NULL;
+        }
+
+        /* BYREF but really a pointer so STOREARGBYVAL, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
         break;
 #endif
@@ -849,8 +914,13 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
         argP->value.u.ptr = Tclh_LifoAlloc(&ipCtxP->memlifo, argP->arraySize);
         if (flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT)) {
             /* NOTE: because of shimmering possibility, we need to copy */
+            Tcl_Size numCopied;
             CHECK(CffiBytesFromObjSafe(
-                ipCtxP->interp, valueObj, argP->value.u.ptr, argP->arraySize));
+                ip, valueObj, argP->value.u.ptr, argP->arraySize, &numCopied));
+            if (numCopied == 0) {
+                CHECK(CffiNullifyEmptyArrayInParam(
+                    ip, flags, &argP->value.u.ptr));
+            }
         }
         /* BYREF but really a pointer so STOREARG, not STOREARGBYREF */
         STOREARGBYVAL(CffiStoreArgPointer, ptr);
@@ -870,7 +940,6 @@ success:
 
 pass_null_array:
     /* Zero size array, pass as NULL */
-    CFFI_ASSERT(argP->arraySize == 0);
     CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
     if ((flags & CFFI_F_ATTR_NOVALUECHECKS) == 0 && !passOutputPointerAsNull) {
         if (valueObjNeedsDecr)

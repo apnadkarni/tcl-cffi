@@ -682,8 +682,11 @@ CffiResult CffiStructResolve(Tcl_Interp *ip,
                              const char *nameP,
                              CffiBaseType baseType,
                              CffiStruct **structPP);
-CffiResult
-CffiBytesFromObjSafe(Tcl_Interp *ip, Tcl_Obj *fromObj, unsigned char *toP, Tcl_Size toSize);
+CffiResult CffiBytesFromObjSafe(Tcl_Interp *ip,
+                                Tcl_Obj *fromObj,
+                                unsigned char *toP,
+                                Tcl_Size toSize,
+                                Tcl_Size *numCopiedP);
 CffiResult CffiUniCharsFromObjSafe(Tcl_Interp *ip,
                                Tcl_Obj *fromObj,
                                Tcl_UniChar *toP,
