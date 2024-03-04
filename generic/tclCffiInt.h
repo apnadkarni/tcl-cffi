@@ -19,6 +19,7 @@
 #include "tclhCmd.h"
 #include "tclhLifo.h"
 #include "tclhEncoding.h"
+#include "tclhUuid.h"
 
 /*
  * Which back end system are we using? Currently only two supported. At most
@@ -137,6 +138,7 @@ typedef enum CffiBaseType {
     CFFI_K_TYPE_UNICHAR_ARRAY,
     CFFI_K_TYPE_BYTE_ARRAY,
     CFFI_K_TYPE_UNION,
+    CFFI_K_TYPE_UUID,
 #ifdef _WIN32
     CFFI_K_TYPE_WINSTRING,
     CFFI_K_TYPE_WINCHAR_ARRAY,
@@ -304,6 +306,7 @@ typedef struct CffiValue {
     float flt;
     double dbl;
     void *ptr;
+    Tclh_UUID uuid;
 #ifdef CFFI_USE_LIBFFI
     ffi_arg ffi_val;
 #endif

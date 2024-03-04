@@ -252,7 +252,7 @@ namespace eval ${NS}::test {
         cffi::prototype function proto int [list s struct.::S]
     } -constraints structbyval -body {
         set fnptr [cffi::callback new [namespace current]::proto [namespace current]::cb 0]
-    } -result {Invalid value "s". Struct parameter types in callbacks must be byref.} -returnCodes error
+    } -result {Invalid value "s". Parameter types struct and uuid in callbacks must be byref.} -returnCodes error
     test callback-new-struct-error-1 "Pass struct by value - error" -setup {
         cffi::prototype clear
         cffi::Struct create ::S {i int d double}

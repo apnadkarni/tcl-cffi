@@ -511,12 +511,14 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 #ifdef CFFI_HAVE_STRUCT_BYVAL
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
+                    && baseType != CFFI_K_TYPE_UUID
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
                     && baseType != CFFI_K_TYPE_BYTE_ARRAY));
 #else
     CFFI_ASSERT((flags & CFFI_F_ATTR_BYREF)
                 || (CffiTypeIsNotArray(&typeAttrsP->dataType)
+                    && baseType != CFFI_K_TYPE_UUID
                     && baseType != CFFI_K_TYPE_CHAR_ARRAY
                     && baseType != CFFI_K_TYPE_UNICHAR_ARRAY
                     && baseType != CFFI_K_TYPE_STRUCT
@@ -588,6 +590,7 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
     case CFFI_K_TYPE_ULONGLONG:
     case CFFI_K_TYPE_FLOAT:
     case CFFI_K_TYPE_DOUBLE:
+    case CFFI_K_TYPE_UUID:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
 #ifdef _WIN32
@@ -624,6 +627,10 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
 #ifdef _WIN32
             case CFFI_K_TYPE_WINSTRING: PUSHARG(CffiStoreArgPointer, ptr); break;
 #endif
+            case CFFI_K_TYPE_UUID:
+                CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
+                STOREARGBYREF(uuid);
+                break;
             default:
                 if (valueObjNeedsDecr)
                     Tcl_DecrRefCount(valueObj);
@@ -1062,6 +1069,7 @@ CffiArgPostProcess(CffiCall *callP, int arg_index, Tcl_Obj **resultObjP)
     case CFFI_K_TYPE_FLOAT:
     case CFFI_K_TYPE_DOUBLE:
     case CFFI_K_TYPE_POINTER:
+    case CFFI_K_TYPE_UUID:
     case CFFI_K_TYPE_ASTRING:
     case CFFI_K_TYPE_UNISTRING:
 #ifdef _WIN32
@@ -2215,6 +2223,7 @@ CffiFunctionCall(ClientData cdata,
         break;
 #endif
         /* FALLTHRU */
+    case CFFI_K_TYPE_UUID:
     default:
         /* Really, should not even come here since should have been caught in
          * prototype parsing */

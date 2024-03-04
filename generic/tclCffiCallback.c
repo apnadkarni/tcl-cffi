@@ -172,6 +172,7 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
     case CFFI_K_TYPE_WINSTRING:
 #endif
     case CFFI_K_TYPE_STRUCT:
+    case CFFI_K_TYPE_UUID:
         if (isReturn) {
             return Tclh_ErrorInvalidValue(
                 ipCtxP->interp,
@@ -179,12 +180,18 @@ CffiCallbackCheckType(CffiInterpCtx *ipCtxP,
                 "Non-scalar parameter type not permitted as callback return "
                 "value.");
         }
-        if (typeAttrsP->dataType.baseType == CFFI_K_TYPE_STRUCT
-            && !(typeAttrsP->flags & CFFI_F_ATTR_BYREF)) {
-            return Tclh_ErrorInvalidValue(
-                ipCtxP->interp,
-                paramP->nameObj,
-                "Struct parameter types in callbacks must be byref.");
+        switch (typeAttrsP->dataType.baseType) {
+        case CFFI_K_TYPE_STRUCT:
+        case CFFI_K_TYPE_UUID:
+            if (!(typeAttrsP->flags & CFFI_F_ATTR_BYREF)) {
+                return Tclh_ErrorInvalidValue(
+                    ipCtxP->interp,
+                    paramP->nameObj,
+                    "Parameter types struct and uuid in callbacks must be byref.");
+            }
+            break;
+        default:
+            break;
         }
         return TCL_OK;
 

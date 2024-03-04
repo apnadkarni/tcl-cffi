@@ -32,6 +32,7 @@ namespace eval cffi::test {
              unichars [list $unicharSize $unicharSize] \
              winchars [list 2 2] \
              bytes {1 1} \
+             uuid [list 16 [expr {$::tcl_platform(platform) eq "windows" ? 4 : 1}]] \
             ]
 
     testnumargs type-size "cffi::type size" "TYPE" "?-vlacount VLACOUNT?"
@@ -138,11 +139,11 @@ namespace eval cffi::test {
     basictypetest chars
     basictypetest unichars
     basictypetest bytes
+    basictypetest uuid
     if {$::tcl_platform(platform) eq "windows"} {
         basictypetest winstring
         basictypetest winchars
     }
-
 
     proc testinvalidattr {typedecl parse_mode expected_message args} {
         variable typeInfo
@@ -1283,6 +1284,67 @@ namespace eval cffi::test {
     test type-size-union-1 "Union array size" -body {
         type size {union.::TestUnion[2]}
     } -result 16
+
+    ###
+    # uuid
+    proc testuuid {typeattrs parse_mode expected_typeattrs {count 0}} {
+        variable typeInfo
+        set alignment [expr {$::tcl_platform(platform) eq "windows" ? 4 : 1}] 
+        if {"lasterror" in $typeattrs || "winerror" in $typeattrs} {
+            set constraints win
+        } else {
+            set constraints {}
+        }
+        set type uuid
+        if {$count} {
+            append type \[$count\]
+        }
+        set typedecl "$type $typeattrs"
+        set testlabel type-info-[join $typedecl -]
+
+        test $testlabel-$parse_mode-0 "type info $parse_mode, $typedecl" -constraints $constraints -body {
+            cffi::type info $typedecl $parse_mode
+        } -result [list Size [expr {$count ? ($count * 16) : 16}] Count [expr {$count == 0 ? -1 : $count}] Alignment $alignment Definition [list $type {*}$expected_typeattrs] BaseSize 16] -match dict
+    }
+
+    # uuid - Parse mode param
+    foreach {attr expected} [list  \
+                                 "out"   "out byref" \
+                                 "inout" "inout byref" \
+                                 "byref" "in byref" \
+                                 "in byref"       "in byref" \
+                                 "byref out"      "out byref" \
+                                 "inout byref"    "inout byref" \
+                                 "out storeonerror" "out byref storeonerror" \
+                                 "out storealways" "out byref storealways" \
+                                 "inout storeonerror" "inout byref storeonerror" \
+                                 "inout storealways" "inout byref storealways" \
+                                 "retval" "out retval byref" \
+                                 "retval out" "out retval byref" \
+                                 "byref nullifempty" "in byref nullifempty" \
+                                 "out nullifempty" "out byref nullifempty" \
+                                 [list byref [list default $testValues(uuid)]] [list in byref [list default $testValues(uuid)]]] {
+        testuuid $attr param $expected
+    }
+
+    testinvalidattr "uuid" param $errorMessages(needbyref)
+    testinvalidattr "uuid in" param $errorMessages(needbyref)
+    foreach attr [list {*}$pointerAttrs {*}$requirementAttrs {*}$errorAttrs {*}$errorHandlerAttrs bitmask [list {enum E}] saveerrors] {
+        if {$attr ne "novaluechecks"} {
+            testinvalidattr "uuid $attr" param $errorMessages(attrtype)
+            testinvalidattr "uuid byref $attr" param $errorMessages(attrtype)
+        } else {
+            testinvalidattr "uuid $attr" param $errorMessages(needbyref)
+        }
+    }
+
+    # uuid - field
+    testuuid "" field ""
+
+    # uuid - return
+    testinvalidattr "uuid" return $errorMessages(typeparsemode)
+    testinvalidattr "uuid byref" return $errorMessages(typeparsemode)
+
 
     ###
     # Verify commands work with aliases

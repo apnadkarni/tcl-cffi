@@ -404,6 +404,12 @@ CffiResult CffiDyncallAggrInit(CffiInterpCtx *ipCtxP, CffiStruct *structP)
                         elemCount,
                         fldP->fieldType.dataType.u.structP->dcAggrP);
             break;
+        case CFFI_K_TYPE_UUID:
+            dcAggrField(dcAggrP,
+                        DC_SIGCHAR_UCHAR,
+                        fldP->offset,
+                        elemCount * sizeof(Tclh_UUID));
+            break;
         case CFFI_K_TYPE_BINARY: /* FALLTHRU */
         default:
             CffiErrorType(ipCtxP->interp,
@@ -526,16 +532,31 @@ CffiDyncallReloadArg(CffiCall *callP,
                       typeAttrsP->dataType.u.structP->dcAggrP,
                       argP->value.u.ptr);
 #else
-            CFFI_ASSERT(0); /* Should not have reached here */
+            /* Should have been caught at definition time */
+            goto passByValuePanic;
 #endif
         }
         break;
+    case CFFI_K_TYPE_UUID:
+        if (typeAttrsP->flags & CFFI_F_ATTR_BYREF)
+            dcArgPointer(vmP, argP->value.u.ptr);
+        else {
+            /* Should have been caught at definition time */
+            goto passByValuePanic;
+        }
+        break;
     default:
-        CFFI_PANIC("CffiLoadArg: unknown typei %d",
+        CFFI_PANIC("CffiLoadArg: unknown type %d",
                    typeAttrsP->dataType.baseType);
         break;
     }
 #undef STORE_
+
+    return;
+
+passByValuePanic:
+    CFFI_PANIC("Parameter of type %d passed by value.",
+               typeAttrsP->dataType.baseType);
 }
 
 #ifdef CFFI_HAVE_CALLBACKS
@@ -686,10 +707,7 @@ CffiDyncallCallbackArgToObj(CffiCallback *cbP,
             CffiStruct *structP;
             structP = typeAttrsP->dataType.u.structP;
             if (!(typeAttrsP->flags & CFFI_F_ATTR_NOVALUECHECKS) || CffiStructIsVariableSize(structP)) {
-                return Tclh_ErrorInvalidValue(
-                    cbP->ipCtxP->interp,
-                    NULL,
-                    "Pointer passed to callback is NULL.");
+                goto nullPtrError;
             }
             valueP = Tclh_LifoAlloc(&cbP->ipCtxP->memlifo, structP->size);
             CHECK(CffiStructObjDefault(cbP->ipCtxP, structP, valueP));
@@ -697,6 +715,20 @@ CffiDyncallCallbackArgToObj(CffiCallback *cbP,
         /* TBD - Why not call CffiStructToObj directly here? */
         return CffiNativeValueToObj(
             cbP->ipCtxP, typeAttrsP, valueP, 0, -1, argObjP);
+
+    case CFFI_K_TYPE_UUID:
+        CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
+        /* args[argIndex] is the location of the pointer to the uuid */
+        valueP = dcbArgPointer(dcArgsP);
+        if (valueP == NULL) {
+            if (!(typeAttrsP->flags & CFFI_F_ATTR_NOVALUECHECKS)) {
+                goto nullPtrError;
+            }
+            valueP = Tclh_LifoAlloc(&cbP->ipCtxP->memlifo, sizeof(Tclh_UUID));
+            memset(valueP, 0, sizeof(Tclh_UUID));
+        }
+        *argObjP = Tclh_UuidWrap((Tclh_UUID *)valueP);
+        return TCL_OK;
 
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
@@ -718,6 +750,10 @@ CffiDyncallCallbackArgToObj(CffiCallback *cbP,
 
     return CffiNativeScalarToObj(
         cbP->ipCtxP, typeAttrsP, valueP, 0, argObjP);
+
+nullPtrError:
+    return Tclh_ErrorInvalidValue(
+        cbP->ipCtxP->interp, NULL, "Pointer passed to callback is NULL.");
 
 #undef EXTRACT_
 }
@@ -779,6 +815,7 @@ CffiDyncallCallbackStoreResult(CffiInterpCtx *ipCtxP,
     case CFFI_K_TYPE_WINSTRING:
 #endif
     case CFFI_K_TYPE_STRUCT:
+    case CFFI_K_TYPE_UUID:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
 #ifdef _WIN32

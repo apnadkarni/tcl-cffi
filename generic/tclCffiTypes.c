@@ -154,6 +154,12 @@ const struct CffiBaseTypeInfo cffiBaseTypes[] = {
      CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
      sizeof(unsigned char)},
     {TOKENANDLEN(union), 0, CFFI_K_TYPE_UNION, 0, 0},
+    {TOKENANDLEN(uuid),
+     DCSIG(AGGREGATE),
+     CFFI_K_TYPE_UUID,
+     CFFI_F_ATTR_PARAM_MASK | CFFI_F_ATTR_NULLIFEMPTY
+         | CFFI_F_ATTR_NOVALUECHECKS | CFFI_F_ATTR_DISCARD,
+     sizeof(Tclh_UUID)},
 #ifdef _WIN32
     {TOKENANDLEN(winstring),
      DCSIG(STRING),
@@ -315,6 +321,7 @@ CffiCheckVarargType(Tcl_Interp *ip,
     case CFFI_K_TYPE_UCHAR:
     case CFFI_K_TYPE_SHORT:
     case CFFI_K_TYPE_USHORT:
+    case CFFI_K_TYPE_UUID:
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_FLOAT:
         return Tclh_ErrorInvalidValue(
@@ -722,7 +729,7 @@ CffiTypeParse(CffiInterpCtx *ipCtxP, Tcl_Obj *typeObj, CffiType *typeP)
     case CFFI_K_TYPE_WINSTRING:
     case CFFI_K_TYPE_WINCHAR_ARRAY:
 #endif
-    default: /* Numerics */
+    default: /* Numerics and uuid */
         if (tagLen) {
             message = "Tags are not permitted for this base type.";
             goto invalid_type;
@@ -940,6 +947,14 @@ CffiTypeLayoutInfo(CffiInterpCtx *ipCtxP,
         alignment = structP->alignment;
         CffiStructSizeForVLACount(ipCtxP, structP, vlaCount, &baseSize, &fixedSize);
         CFFI_ASSERT(baseSize > 0);
+    }
+    else if (baseType == CFFI_K_TYPE_UUID) {
+        baseSize  = typeP->baseTypeSize;
+        struct dummy {
+            char c;
+            Tclh_UUID uuid;
+        };
+        alignment = offsetof(struct dummy, uuid);
     }
     else {
         baseSize  = typeP->baseTypeSize;
@@ -1256,6 +1271,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                 && baseType != CFFI_K_TYPE_WINSTRING
 #endif
                 && baseType != CFFI_K_TYPE_BINARY
+                && baseType != CFFI_K_TYPE_UUID
                 && baseType != CFFI_K_TYPE_STRUCT
                 && !CffiTypeIsArray(&typeAttrP->dataType)) {
             message = "A type annotation is not valid for the data type.";
@@ -1380,13 +1396,14 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
                     flags |=
                         CFFI_F_ATTR_BYREF; /* Arrays always by reference */
                     break;
+                case CFFI_K_TYPE_UUID:
+                    if ((flags & CFFI_F_ATTR_BYREF) == 0)
+                        goto byvalue_not_allowed;
+                    break;
                 case CFFI_K_TYPE_STRUCT:
                     if ((flags & CFFI_F_ATTR_BYREF) == 0) {
 #ifndef CFFI_HAVE_STRUCT_BYVAL
-                        message = "Passing of structs by value is not "
-                                  "supported. Annotate with \"byref\" to pass by "
-                                  "reference if function expects a pointer.";
-                        goto invalid_format;
+                        goto byvalue_not_allowed;
 #endif
                         if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
                             message =
@@ -1436,6 +1453,7 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
         case CFFI_K_TYPE_WINCHAR_ARRAY:
 #endif
         case CFFI_K_TYPE_BYTE_ARRAY:
+        case CFFI_K_TYPE_UUID:
             message = typeInvalidForContextMsg;
             goto invalid_format;
         case CFFI_K_TYPE_STRUCT:
@@ -1544,6 +1562,10 @@ CffiTypeAndAttrsParse(CffiInterpCtx *ipCtxP,
 
     return TCL_OK;
 
+byvalue_not_allowed:
+    message = "Pass by value is not "
+              "supported for this type. Annotate with \"byref\" to pass by "
+              "reference if function expects a pointer.";
 invalid_format:
     /* NOTE: jump source should have incremented ref count if errorObj was
      * passed directly or indirectly from caller (ok if errorObj is NULL) */
@@ -1823,6 +1845,10 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
                                         (indx * len) + (char *)valueBaseP,
                                         memlifoP));
             }
+            break;
+        case CFFI_K_TYPE_UUID:
+            CHECK(Tclh_UuidUnwrap(ip, valueObj, &value.u.uuid));
+            *(indx + (Tclh_UUID *)valueBaseP) = value.u.uuid;
             break;
         case CFFI_K_TYPE_POINTER:
             CHECK(CffiPointerFromObj(ipCtxP, typeAttrsP, valueObj, &value.u.ptr));
@@ -2251,6 +2277,10 @@ CffiNativeScalarToObj(CffiInterpCtx *ipCtxP,
         }
         break;
 #endif
+    case CFFI_K_TYPE_UUID:
+        valueObj = Tclh_UuidWrap(indx + (Tclh_UUID *)valueBaseP);
+        ret      = TCL_OK;
+        break;
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:

@@ -161,6 +161,7 @@ CffiTypeToLibffiType(Tcl_Interp *ip,
             != TCL_OK)
             return TCL_ERROR;
         break;
+    case CFFI_K_TYPE_UUID:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:
 #ifdef _WIN32
@@ -326,6 +327,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
      */
 
     /* TODO - why the type_ and fld_ parameters? */
+    /* TODO - why no check for NULL? */
 #define EXTRACT_(type_, fld_)                                                  \
     do {                                                                       \
         if (typeAttrsP->flags & CFFI_F_ATTR_BYREF) {                           \
@@ -358,6 +360,12 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
 #endif
         EXTRACT_(void *, ptr);
         break;
+    case CFFI_K_TYPE_UUID:
+        CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
+        valueP = *(void **)args[argIndex];
+        if (valueP == NULL)
+            goto nullPointerError;
+        break;
     case CFFI_K_TYPE_STRUCT:
         CFFI_ASSERT(typeAttrsP->flags & CFFI_F_ATTR_BYREF);
         /* args[argIndex] is the location of the pointer to the struct */
@@ -366,10 +374,7 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
             CffiStruct *structP;
             structP = typeAttrsP->dataType.u.structP;
             if (!(typeAttrsP->flags & CFFI_F_ATTR_NOVALUECHECKS) || CffiStructIsVariableSize(structP)) {
-                return Tclh_ErrorInvalidValue(
-                    cbP->ipCtxP->interp,
-                    NULL,
-                    "Pointer passed to callback is NULL.");
+                goto nullPointerError;
             }
             valueP = Tclh_LifoAlloc(&cbP->ipCtxP->memlifo, structP->size);
             CHECK(CffiStructObjDefault(cbP->ipCtxP, structP, valueP));
@@ -393,6 +398,10 @@ CffiLibffiCallbackArgToObj(CffiCallback *cbP,
 
     return CffiNativeScalarToObj(
         cbP->ipCtxP, typeAttrsP, valueP, 0, argObjP);
+
+nullPointerError:
+    return Tclh_ErrorInvalidValue(
+        cbP->ipCtxP->interp, NULL, "Pointer passed to callback is NULL.");
 
 #undef EXTRACT_
 }
@@ -462,6 +471,7 @@ CffiLibffiCallbackStoreResult(CffiInterpCtx *ipCtxP,
 #ifdef _WIN32
     case CFFI_K_TYPE_WINSTRING:
 #endif
+    case CFFI_K_TYPE_UUID:
     case CFFI_K_TYPE_STRUCT:
     case CFFI_K_TYPE_CHAR_ARRAY:
     case CFFI_K_TYPE_UNICHAR_ARRAY:

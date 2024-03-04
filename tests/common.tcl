@@ -65,7 +65,7 @@ namespace eval cffi::test {
     }
     variable pointerTypes {pointer}
 
-    variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes]
+    variable baseTypes [concat $voidTypes $numericTypes $pointerTypes $stringTypes $charArrayTypes uuid]
 
     proc makeptr {p {tag {}}} {
         set width [expr {$::tcl_platform(pointerSize) * 2}]
@@ -147,7 +147,7 @@ namespace eval cffi::test {
         set testValues(winstring) $testStrings(unicode)
         set testValues(winchars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
     }
-
+    set testValues(uuid) 01020304-0506-0708-090a-0b0c0d0e0f00
 
     variable badValues
     foreach type $numericTypes {
@@ -187,7 +187,7 @@ namespace eval cffi::test {
         namesyntax {Invalid name syntax.}
         attrparamdir {One or more annotations are invalid for the parameter direction.}
         defaultdisallowed {Defaults are not allowed in this declaration context.}
-        structbyref {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.}
+        needbyref {Pass by value is not supported for this type. Annotate with "byref" to pass by reference if function expects a pointer.}
         store {Annotations "storeonerror" and "storealways" not allowed for "in" parameters.}
         fieldvararray {Fields cannot be arrays of variable size.}
         retvaluse {The "retval" annotation can only be used in parameter definitions in functions with void or integer return types with error checking annotations. Error defining function *}

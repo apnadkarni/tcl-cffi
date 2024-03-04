@@ -62,7 +62,7 @@ namespace eval cffi::test {
 
             set tinfo [cffi::type info $type]
             dict with tinfo {}
-
+            set structSize [expr {$Alignment+$Size}]
             test struct-info-$type-0 "struct new $type" -cleanup {
                 $s destroy
             } -body {
@@ -82,26 +82,26 @@ namespace eval cffi::test {
             } -body {
                 cffi::Struct create S "c schar fld $type"
                 S info
-            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset $Size Definition $typeAndAttr]]] -match dict
+            } -result [list Size $structSize Alignment $Alignment Flags 0 Fields [list c [list Size 1 Offset 0 Definition schar] fld [list Size $Size Offset $Alignment Definition $typeAndAttr]]] -match dict
 
             test struct-size-$type-1 "struct create {schar $type}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "c schar fld $type"
                 S size
-            } -result [expr {2*$Size}]
+            } -result $structSize
             test struct-info-$type-2 "struct create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "fld $type c uchar"
                 S info
-            } -result [list Size [expr {2*$Size}] Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
+            } -result [list Size $structSize Alignment $Alignment Flags 0 Fields [list fld [list Size $Size Offset 0 Definition $typeAndAttr] c [list Size 1 Offset $Size Definition uchar] ]] -match dict
             test struct-size-$type-2 "struct create {$type uchar}" -cleanup {
                 S destroy
             } -body {
                 cffi::Struct create S "fld $type c uchar"
                 S size
-            } -result [expr {2*$Size}]
+            } -result $structSize
 
             test struct-$type-info-varsize-0 "struct info varsize" -setup {
                 cffi::Struct create S "count uchar arr $type\[count\]"
@@ -115,11 +115,11 @@ namespace eval cffi::test {
                 cffi::Struct create S "count schar fld $type\[count\]"
                 S info -vlacount 2
             } -result [list \
-                        Size [expr {3*$Size}] \
+                        Size [expr {$Alignment + 2*$Size}] \
                         Alignment $Alignment \
                         Flags 2 Fields [list \
                                             count [list Size 1 Offset 0 Definition schar] \
-                                            fld [list Size [expr {2*$Size}] Offset $Size Definition $varsizeArrType]]]
+                                            fld [list Size [expr {2*$Size}] Offset $Alignment Definition $varsizeArrType]]]
 
             test struct-$type-size-varsize-0 "struct size varsize" -setup {
                 cffi::Struct create S "count uchar arr $type\[count\]"
@@ -132,7 +132,7 @@ namespace eval cffi::test {
             } -body {
                 cffi::Struct create S "count schar fld $type\[count\]"
                 S size -vlacount 2
-            } -result [expr {3*$Size}]
+            } -result [expr {$Alignment+2*$Size}]
 
         }
         test struct-info-$type-3 "struct create {schar $type\[2\]}" -cleanup {
@@ -141,18 +141,18 @@ namespace eval cffi::test {
             cffi::Struct create S "c schar fld $type\[2\] c2 schar"
             S info
         } -result [list \
-                       Size [expr {4*$Size}] \
+                       Size [expr {$Alignment+2*$Size+$Alignment}] \
                        Alignment $Alignment \
                        Flags 0 Fields [list \
                                            c [list Size 1 Offset 0 Definition schar] \
-                                           fld [list Size [expr {2*$Size}] Offset $Size Definition $arrType] \
-                                           c2 [list Size 1 Offset [expr {3*$Size}] Definition schar]]]
+                                           fld [list Size [expr {2*$Size}] Offset $Alignment Definition $arrType] \
+                                           c2 [list Size 1 Offset [expr {$Alignment+2*$Size}] Definition schar]]]
         test struct-size-$type-3 "struct create {schar $type\[2\]}" -cleanup {
             S destroy
         } -body {
             cffi::Struct create S "c schar fld $type\[2\] c2 schar"
             S size
-        } -result [expr {4*$Size}]
+        } -result [expr {$Alignment+2*$Size+$Alignment}]
     
 
     }
