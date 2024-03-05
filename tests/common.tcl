@@ -28,6 +28,18 @@ if {[catch {package require $NS}]} {
 namespace eval cffi::test {
     namespace import ::tcltest::test ::tcltest::testConstraint
 
+    if {$::tcl_platform(platform) eq "windows"} {
+        proc onwindows {} {return 1}
+    } else {
+        proc onwindows {} {return 0}
+    }
+
+    if {$::tcl_platform(pointerSize) == 4} {
+        proc pointer32 {} {return 1}
+    } else {
+        proc pointer32 {} {return 0}
+    }
+
     testConstraint structbyval [cffi::pkgconfig get structbyval]
 
     variable testDllPath [file normalize [file join [file dirname $::cffi::dll_path] cffitest[info sharedlibextension]]]
@@ -40,8 +52,7 @@ namespace eval cffi::test {
     } else {
         tcltest::testConstraint libffi 1
     }
-    if {$::tcl_platform(platform) eq "windows" &&
-        $::tcl_platform(pointerSize) == 4} {
+    if {[onwindows] && [pointer32]} {
         tcltest::testConstraint win32 1
     } else {
         tcltest::testConstraint notwin32 1
@@ -59,7 +70,7 @@ namespace eval cffi::test {
     variable numericTypes [concat $intTypes $realTypes]
     variable stringTypes {string unistring binary}
     variable charArrayTypes {chars unichars bytes}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend stringTypes winstring
         lappend charArrayTypes winchars
     }
@@ -143,7 +154,7 @@ namespace eval cffi::test {
     set testValues(binary) $testStrings(bytes)
     set testValues(struct.::StructValue) {c 42 i 4242}
     set testValues(union.::UnionValue) \x01\x02\x03\x04
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         set testValues(winstring) $testStrings(unicode)
         set testValues(winchars\[[expr {[string length $testStrings(unicode)]+1}]\]) $testStrings(unicode)
     }
@@ -163,7 +174,7 @@ namespace eval cffi::test {
     variable stringAttrs {novaluechecks nullifempty}
     variable requirementAttrs {zero nonzero nonnegative positive}
     variable errorHandlerAttrs {errno}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend errorAttrs winerror lasterror
         lappend errorHandlerAttrs winerror lasterror
     }
@@ -199,7 +210,7 @@ namespace eval cffi::test {
         jis string.jis0208
         uni unistring
     }
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend structDef win winstring
     }
     cffi::Struct create ::StructWithStrings $structDef
@@ -207,7 +218,7 @@ namespace eval cffi::test {
     proc makeStructWithStrings {} {
         variable testStrings
         set struct [list s $testStrings(ascii) utf8 $testStrings(unicode) jis $testStrings(jis0208) uni $testStrings(unicode)]
-        if {$::tcl_platform(platform) eq "windows"} {
+        if {[onwindows]} {
             lappend struct win $testStrings(unicode)
         }
         return $struct
@@ -233,7 +244,7 @@ namespace eval cffi::test {
         s struct.cffi::test::InnerTestStruct
         d double
     }
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend def wchars {winchars[13]}
     }
     cffi::Struct create ::TestStruct $def
@@ -261,7 +272,7 @@ namespace eval cffi::test {
                         f -0.25 \
                         s [list c INNER] \
                         d 0.125]
-        if {$::tcl_platform(platform) eq "windows"} {
+        if {[onwindows]} {
             lappend values wchars WCHARS
         }
         set mismatches {}

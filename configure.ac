@@ -116,7 +116,7 @@ else
     # Ensure no empty else clauses
     CLEANFILES="$CLEANFILES pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
-    #TEA_ADD_LIBS([-lsuperfly])
+    TEA_ADD_LIBS([-luuid])
 fi
 
 #--------------------------------------------------------------------

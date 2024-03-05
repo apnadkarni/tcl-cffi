@@ -1008,7 +1008,7 @@ namespace eval cffi::test {
         longlong -5 ulonglong 5 float 0.5 double 1.5
         chars[3] ab unichars[3] de
     }
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend matrix {winchars[3]} fg
     }
 
@@ -1079,7 +1079,7 @@ namespace eval cffi::test {
         } -result [list fld [dict get [cffi::type info $type] Size]]
     }
     set matrix {float double pointer chars[2] unichars[2] string unistring binary struct.::TestStruct}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend matrix winstring {winchars[2]}
     }
     foreach type $matrix {
@@ -1561,7 +1561,7 @@ namespace eval cffi::test {
     set testvals {
         c 256 i notanint shrt 100000 uint -1 ushrt -1 l notanint uc -1 ul -1 chars toolongastring ll notanint unic toolongastring ull -1 b morethan3bytes f notanumber s {unknownfield 104} d notanumber
     }
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend testvals wchars toolongastring
     }
     foreach {fld val} $testvals {
@@ -2084,17 +2084,17 @@ namespace eval cffi::test {
 
     ###
     # Extras, might already be tested elsewhere
-    test type-pointer-field-0 "pointer fields are always unsafe" -setup {
+    test struct-pointer-field-0 "pointer fields are always unsafe" -setup {
         cffi::Struct create S {p pointer}
     } -body {
         dict get [S info] Fields p Definition
     } -result {pointer unsafe}
-    test type-pointer-field-1 "pointer fields are always unsafe" -setup {
+    test struct-pointer-field-1 "pointer fields are always unsafe" -setup {
         cffi::Struct create S {p {pointer counted}}
     } -body {
         dict get [S info] Fields p Definition
     } -result {pointer unsafe}
-    test type-pointer-field-1 "pointer fields are always unsafe" -setup {
+    test struct-pointer-field-1 "pointer fields are always unsafe" -setup {
         cffi::Struct create S {p {pointer pinned}}
     } -body {
         dict get [S info] Fields p Definition
@@ -2128,9 +2128,45 @@ namespace eval cffi::test {
     } -body {
         ::D fromnative $p
     } -result {Value * has the wrong type. Expected pointer to ::D.} -returnCodes error -match glob
+
+    ###
+    # struct guids
+    test struct-uuid-getnative-0 "struct uuid field" -setup {
+        cffi::Struct create S {c uchar u uuid}
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        set p [S new [list c 42 u $testValues(uuid)]]
+        S getnative $p u
+    } -result $testValues(uuid)
+
+    test struct-uuid-describe-0 "struct uuid describe" -setup {
+        cffi::Struct create S {c uchar u uuid}
+    } -cleanup {
+        S destroy
+    } -body {
+        S describe
+    } -result "Struct ::cffi::test::S nRefs=1 size=[expr {[onwindows] ? 20 : 17}] alignment=[expr {[onwindows] ? 4 : 1}] flags=0 nFields=2\n  uchar c offset=0 size=1\n  uuid u offset=[expr {[onwindows] ? 4 : 1}] size=16"
+
+    test struct-uuid-info-0 "struct uuid info" -setup {
+        cffi::Struct create S {c uchar u uuid}
+    } -cleanup {
+        S destroy
+    } -body {
+        S info
+    } -result [expr {[onwindows] ? "Size 20 Alignment 4 Flags 0 Fields {c {Size 1 Offset 0 Definition uchar} u {Size 16 Offset 4 Definition uuid}}" : "Size 17 Alignment 1 Flags 0 Fields {c {Size 1 Offset 0 Definition uchar} u {Size 16 Offset 1 Definition uuid}}"}]
+
+    test struct-uuid-setnative-0 "struct uuid field" -setup {
+        cffi::Struct create S {c uchar u {uuid {default 5d549ebb-f6e9-4995-af96-095f54fbf1dc}}}
+    } -cleanup {
+        S free $p
+        S destroy
+    } -body {
+        set p [S new [list c 42]]
+        list [S getnative $p u] [S setnative $p u $testValues(uuid)] [S fromnative $p]
+    } -result {5d549ebb-f6e9-4995-af96-095f54fbf1dc {} {c 42 u 01020304-0506-0708-090a-0b0c0d0e0f00}}
 }
-
-
 
 ::tcltest::cleanupTests
 namespace delete cffi::test

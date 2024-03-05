@@ -116,7 +116,7 @@ namespace eval ${NS}::test {
 
     # string, unistring, winstring
     set matrix [list string $testStrings(ascii) string.utf-8 $testStrings(unicode) string.jis0208 $testStrings(jis0208) unistring $testStrings(unicode)]
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend matrix winstring $testStrings(unicode)
     }
     foreach {type val} $matrix {
@@ -311,7 +311,7 @@ namespace eval ${NS}::test {
         cffi::prototype stdcall proto double {ch schar uch uchar shrt short ushrt ushort i int ui uint l long ul ulong ll longlong ull ulonglong f float d double}
         set caller manyargs_callback_stdcall
         set param_defs {ch schar uch uchar shrt short ushrt ushort i int ui uint l long ul ulong ll longlong ull ulonglong f float d double fnptr pointer.proto}
-        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+        if {[onwindows] && [pointer32]} {
             # VC++ and mingw64 follow different naming conventions
             if {[catch {
                 testDll stdcall [list _${caller}@64 $caller] double $param_defs

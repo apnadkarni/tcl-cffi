@@ -939,7 +939,7 @@ namespace eval cffi::test {
     }
 
     set matrix {string string.utf-8 unistring}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend matrix winstring
     }
     foreach type $matrix {
@@ -1289,7 +1289,7 @@ namespace eval cffi::test {
     # uuid
     proc testuuid {typeattrs parse_mode expected_typeattrs {count 0}} {
         variable typeInfo
-        set alignment [expr {$::tcl_platform(platform) eq "windows" ? 4 : 1}] 
+        set alignment [expr {$::tcl_platform(platform) eq "windows" ? 4 : 1}]
         if {"lasterror" in $typeattrs || "winerror" in $typeattrs} {
             set constraints win
         } else {

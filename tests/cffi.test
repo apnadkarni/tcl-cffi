@@ -159,7 +159,7 @@ namespace eval ${NS}::test {
   f: float
   s: struct.::cffi::test::InnerTestStruct
   d: double}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         append desc \n {  wchars: {winchars[13]}}
     }
 

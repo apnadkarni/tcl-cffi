@@ -736,7 +736,7 @@ namespace eval cffi::test {
     } -result $val
 
     set matrix {string unistring binary}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
        lappend matrix winstring
     }
     foreach type $matrix {
@@ -784,7 +784,7 @@ namespace eval cffi::test {
         cffi::memory get $p unistring
     } -result $testValues(unistring)
 
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         test memory-get-winstring-0 "get winstring" -setup {
             unset -nocomplain s
             unset -nocomplain p
@@ -942,6 +942,22 @@ namespace eval cffi::test {
                 set p [cffi::memory new $type\[4\] [list 1 $val]]
                 cffi::memory get $p $type\[4\]
             } -result [expr {$type in $realTypes? [list 1.0 $val 0.0 0.0] : [list 1 $val 0 0]}]
+        } elseif {$type eq "uuid"} {
+            test memory-new-$type-array-0 "new $type array" -cleanup {
+                if {[info exists p]} {cffi::memory free $p}
+            } -body {
+                unset -nocomplain p
+                set p [cffi::memory new $type\[2\] [list 5d549ebb-f6e9-4995-af96-095f54fbf1dc $val]]
+                cffi::memory get $p $type\[2\]
+            } -result [list 5d549ebb-f6e9-4995-af96-095f54fbf1dc $val]
+            test memory-new-$type-array-1 "new $type array fill extra elements with zeroes" -cleanup {
+                if {[info exists p]} {cffi::memory free $p}
+            } -body {
+                unset -nocomplain p
+                set p [cffi::memory new $type\[2\] [list $val]]
+                cffi::memory get $p $type\[2\]
+            } -result [list $val 00000000-0000-0000-0000-000000000000]
+            
         }
         if {[info exists badValues($type)]} {
             test memory-new-$type-badvalue-0 "new $type bad value" -body {
@@ -1001,7 +1017,7 @@ namespace eval cffi::test {
     } -result [list {c 0 i 0} $val]
 
     set matrix {string unistring binary}
-    if {$::tcl_platform(platform) eq "windows"} {
+    if {[onwindows]} {
         lappend matrix winstring
     }
 

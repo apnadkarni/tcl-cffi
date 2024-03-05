@@ -1708,6 +1708,42 @@ CffiIntValueToObj(const CffiTypeAndAttrs *typeAttrsP,
     return NULL;
 }
 
+/* Function: CffiUuidFromObj
+ * Unwraps a wrapped UUID based on type attributes
+ *
+ * ipCtxP - interpreter context
+ * typeAttrsP - type attributes. The base type is used without
+ *   considering the BYREF flag.
+ * valueObj - the *Tcl_Obj* containing the wrapped uuid
+ * uuidP - location to store UUID
+ *
+ * Returns:
+ * *TCL_OK* on success with the UUID store in *uuidP
+ * *TCL_ERROR* on error with message stored in the interpreter.
+ */
+static CffiResult
+CffiUuidFromObj(CffiInterpCtx *ipCtxP,
+                const CffiTypeAndAttrs *typeAttrsP,
+                Tcl_Obj *valueObj,
+                Tclh_UUID *uuidP)
+{
+    if (Tclh_UuidUnwrap(ipCtxP->interp, valueObj, uuidP) != TCL_OK) {
+        if ((typeAttrsP->flags & CFFI_F_ATTR_NULLIFEMPTY) == 0) {
+            return TCL_ERROR;
+        }
+        /* Don't use Tcl_Obj length functions to avoid shimmering */
+        Tcl_Size len;
+        (void)Tcl_GetStringFromObj(valueObj, &len);
+        if (len != 0)
+            return TCL_ERROR;
+
+        /* Empty string -> null uuid */
+        memset(uuidP, 0, sizeof(*uuidP));
+        Tcl_ResetResult(ipCtxP->interp); /* Clear error message */
+    }
+    return TCL_OK;
+}
+
 /* Function: CffiNativeScalarFromObj
  * Stores a native scalar value from Tcl_Obj wrapper
  *
@@ -1847,7 +1883,7 @@ CffiNativeScalarFromObj(CffiInterpCtx *ipCtxP,
             }
             break;
         case CFFI_K_TYPE_UUID:
-            CHECK(Tclh_UuidUnwrap(ip, valueObj, &value.u.uuid));
+            CHECK(CffiUuidFromObj(ipCtxP, typeAttrsP, valueObj, &value.u.uuid));
             *(indx + (Tclh_UUID *)valueBaseP) = value.u.uuid;
             break;
         case CFFI_K_TYPE_POINTER:

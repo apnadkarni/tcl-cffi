@@ -13,7 +13,7 @@ namespace eval ${NS}::test {
     testnumargs prototype-stdcall "prototype stdcall" "NAME RETURNTYPE PARAMDEFS" ""
 
     proc getstdcalladdr {} {
-        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+        if {[onwindows] && [pointer32]} {
             # VC++ has _, mingw does not
             set fn _stdcalltest@16
             if {[catch {testDll addressof _stdcalltest@16} addr]} {

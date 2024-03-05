@@ -27,6 +27,15 @@
 #define CFFI_STDCALL
 #endif
 
+#ifdef _WIN32
+typedef UUID uuid_t;
+#else
+#include <uuid/uuid.h>
+typedef struct UUID {
+    uuid_t bytes;
+} UUID;
+#endif
+
 #define FNSTR2NUM(name_, fmt_, type_)           \
     EXTERN type_ name_ (char *s) {              \
         type_ val;                              \
@@ -1456,3 +1465,32 @@ void CFFI_STDCALL BaseInterfaceDeleteStdcall(struct BaseInterfaceStdcall *tiP)
 {
     free(tiP);
 }
+
+DLLEXPORT void copyUuid(const UUID *from, UUID *to)
+{
+    if (from)
+        *to = *from;
+    else
+        memset(to, 0, sizeof(*to));
+}
+
+DLLEXPORT void incrUuid(UUID *uuidP)
+{
+    unsigned char *p = (unsigned char *)uuidP;
+    p[0] += 1;
+    p[4] += 1;
+    p[6] += 1;
+    p[15] += 1;
+}
+
+DLLEXPORT void reverseUuidArray(int n, const UUID *from, UUID *to)
+{
+    if (from == NULL || n <= 0)
+        return;
+
+    int i;
+    for (i = 0; i < n; ++i) {
+        to[n-i-1] = from[i];
+    }
+}
+

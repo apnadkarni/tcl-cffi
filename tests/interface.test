@@ -258,7 +258,7 @@ namespace eval ${::NS}::test {
             delete void {}
         } -disposemethod delete
 
-        if {$::tcl_platform(platform) eq "windows" && $::tcl_platform(pointerSize) == 4} {
+        if {[onwindows] && [pointer32]} {
             # VC++ has _, mingw does not
             set fn _BaseInterfaceNewStdcall@4
             if {[catch {
