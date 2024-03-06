@@ -1013,6 +1013,29 @@ namespace eval Concepts {
         As in C care must be taken that the same field is retrieved from a
         union as was stored in it.
 
+        ### UUID's
+
+        The `uuid` type maps to the UUID structure on Windows and `uuid_t` on
+        Unix-y platforms. Although the type could also have been modeled using
+        a `struct` or `bytes` array, a separate type allows for a more natural
+        string representation than either of those.
+
+        ```
+        % cffi::Wrapper create ole32 ole32
+        ::ole32
+        % ole32 stdcall CLSIDFromProgID {long nonnegative lasterror} {p winstring u {uuid retval}}
+        ::CLSIDFromProgID
+        % CLSIDFromProgID Shell.Application
+        13709620-c279-11ce-a49e-444553540000
+        ```
+
+        **Caution:** The string representation used is platform-dependent for
+        compatibility with applications on that platform (COM in particular).
+        When sharing UUID's between platforms, use of the binary form may be
+        preferable. The `type tobinary` command can be used for this purpose.
+
+        Parameters of type `uuid` can only be passed by reference.
+
         ## Type aliases
 
         Type aliases provide a convenient way to bind data types and one or more
