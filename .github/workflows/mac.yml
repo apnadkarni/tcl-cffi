@@ -17,7 +17,7 @@ jobs:
     - name: Install Tcl and libffi
       run: |
         brew update
-        brew install tcl-tk libffi || true
+        brew install tcl-tk libffi ossp-uuid || true
 
     - name: Install dyncall
       run: |
