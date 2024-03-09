@@ -139,6 +139,8 @@ cffi - Commands in namespace cffi
 .br
 \fBpointer dispose\fP \fIpointer\fP
 .br
+\fBpointer info\fP \fIpointer\fP
+.br
 \fBpointer invalidate\fP \fIpointer\fP
 .br
 \fBpointer isnull\fP \fIpointer\fP
@@ -2143,6 +2145,9 @@ Registers a pointer as a counted pointer\&.
 \fIdispose\fP
 Unregisters a safe or counted pointer\&.
 .TP
+\fIinfo\fP
+Returns a dictionary containing registration information about a pointer\&.
+.TP
 \fIinvalidate\fP
 Unregisters a safe, counted or pinned pointer irrespective its reference count\&.
 .TP
@@ -2351,9 +2356,21 @@ Pointer to be registered\&.
 .PP
 \fBDescription\fR
 .PP
-A counted pointer may be registered multiple times\&. An error
-is raised if the pointer is NULL or already registered as
-an uncounted pointer\&.
+In the case that the pointer is already registered, behavior depends
+on the existing registration:
+.TP
+\(bu
+If the pointer is already registered as a pinned pointer, the command has no effect\&.
+.TP
+\(bu
+If the pointer is already registered as a counted pointer, the command has no effect if the tag is the same as the registered tag or can be implicitly cast to it\&. Otherwise the registered tag is replaced\&.
+.TP
+\(bu
+If the pointer is registered as an uncounted pointer, the registration, including tag, is overwritten as a counted pointer with a reference count of 1\&.
+.PP
+In the case that the pointer is registered with a different tag, if
+the pointer tag cannot be implicitly cast to the registered tag, the
+registered tag is replaced by the pointer tag\&.
 .PP
 See \fIPointers\fP for more on counted
 pointers and registration\&.
@@ -2389,6 +2406,35 @@ is a null pointer in which case it is ignored without error\&.
 .PP
 See \fIPointers\fP for more on pointer
 safety and registration\&.
+.PP
+.RS -4n
+\fBpointer info\fR (::cffi)
+.RE
+.PP
+Returns a dictionary containing registration information about a pointer\&.
+.RS 4n\fBpointer info\fP \fIpointer\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer for which registration information is required\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary always contains the keys Tag containing the
+pointer tag and Registration containing one of the values
+none, safe, pinned or counted\&. If the Registration value
+is not unregistered, the dictionary contains the additional keys
+RegisteredTag, holding the tag of the pointer in the registry, and
+Match which may have one of the values exact, derived or mismatch\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary containing registration information about a pointer\&.
 .PP
 .RS -4n
 \fBpointer invalidate\fR (::cffi)
@@ -2539,7 +2585,7 @@ Pins a pointer as permanently safe\&.
 .RS 4n
 .TP
 pointer
-Pointer to be pinned\&. This may or may not be already registered as safe\&.
+Pointer to be pinned\&. This may or may not be already registered\&.
 .RE
 .PP
 \fBDescription\fR
@@ -2575,9 +2621,17 @@ Pointer to be registered\&.
 .PP
 \fBDescription\fR
 .PP
-It is not an error if the pointer is already registered\&. However,
-it is an error if the pointer is already registered with a different
-tag\&.
+In the case that the pointer is already registered, behavior depends
+on the existing registration:
+.TP
+\(bu
+If the pointer is already registered as a pinned pointer, the command has no effect\&.
+.TP
+\(bu
+If the pointer is already registered as a safe (uncounted) pointer the command has no effect if the tag is the same as the registered tag or can be implicitly cast to it\&. Otherwise the registered tag is replaced\&.
+.TP
+\(bu
+If the pointer is registered as a counted pointer, the registration, including tag, is overwritten\&.
 .PP
 See \fIPointers\fP for more on pointer
 safety and registration\&.

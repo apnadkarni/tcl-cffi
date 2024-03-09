@@ -130,6 +130,7 @@ CffiPointerObjCmd(ClientData cdata,
         {"compare", 2, 2, "POINTER POINTER", NULL},
         {"counted", 1, 1, "POINTER", NULL},
         {"dispose", 1, 1, "POINTER", NULL},
+        {"info", 1, 1, "POINTER", NULL},
         {"invalidate", 1, 1, "POINTER", NULL},
         {"isnull", 1, 1, "POINTER", NULL},
         {"isvalid", 1, 1, "POINTER", NULL},
@@ -150,6 +151,7 @@ CffiPointerObjCmd(ClientData cdata,
         COMPARE,
         COUNTED,
         DISPOSE,
+        INFO,
         INVALIDATE,
         ISNULL,
         ISVALID,
@@ -227,6 +229,14 @@ CffiPointerObjCmd(ClientData cdata,
         break;
     case UNCASTABLE:
         return CffiPointerUncastableCmd(ipCtxP, objv[2]);
+    case INFO:
+        objP = Tclh_PointerObjInfo(ip, ipCtxP->tclhCtxP, objv[2]);
+        if (objP) {
+            Tcl_SetObjResult(ip, objP);
+            return TCL_OK;
+        } else
+            return TCL_ERROR;
+
     default:
         break;
     }

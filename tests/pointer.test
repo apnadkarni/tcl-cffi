@@ -252,10 +252,10 @@ namespace eval ${NS}::test {
         list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p}] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
     } -result {1 0 1 {} 0}
     test pointer-safe-error-0 "pointer safe after counted" -body {
-        set p [makeptr 1 TAG]
+        set p [makeptr 1 ::TAG]
         cffi::pointer counted $p
         list [cffi::pointer isvalid $p] [catch {cffi::pointer safe $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
-    } -result [list 1 1 1 {} 0 {Registered counted pointer already exists. Attempt to register an uncounted pointer.}]
+    } -result [list 1 0 1 {} 0 [makeptr 1 ::TAG]]
 
     ###
     # pointer counted
@@ -277,15 +277,16 @@ namespace eval ${NS}::test {
         list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
     } -result {1 {} 1 {} 0}
     test pointer-counted-error-0 "pointer counted after safe" -body {
-        set p [makeptr 1 TAG]
+        set p [makeptr 1 ::TAG]
         cffi::pointer safe $p
         list [cffi::pointer isvalid $p] [catch {cffi::pointer counted $p} result] [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] $result
-    } -result [list 1 1 1 {} 0 {Registered uncounted pointer already exists. Attempt to register a counted pointer.}]
+    } -result [list 1 0 1 {} 0 [makeptr 1 ::TAG]]
     test pointer-counted-error-1 "pointer counted tag conflict" -body {
-        set p [makeptr 1 TAG]
+        set p [makeptr 1 ::TAG]
+        set p2 [makeptr 1 ::TAG2]
         cffi::pointer counted $p
-        list [catch {cffi::pointer counted [makeptr 1 TAG2]} result] [cffi::pointer dispose $p] $result
-    } -result {1 {} {Value has the wrong type. Expected pointer^TAG, got pointer^TAG2.}}
+        list [catch {cffi::pointer counted $p2} result] [cffi::pointer dispose $p2] $result
+    } -result [list 0 {} [makeptr 1 ::TAG2]]
 
     ###
     # pointer dispose
@@ -736,7 +737,6 @@ namespace eval ${NS}::test {
             [cffi::pointer isvalid $p]
     } -result [list [pointer1] 1 {} 1 [pointer1] {} 1 [pointer1] {} 1 {} 0]
 
-
     test pointer-pinned-4 "Cast should not change tag of pinned pointer" -body {
         set p [pointer1]
         list [cffi::pointer pin $p] \
@@ -779,6 +779,160 @@ namespace eval ${NS}::test {
         cffi::pointer pin $p
         list [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p]
     } -result {1 {} 0}
+
+    ###
+    # pointer info
+    # Only unregistered pointers. Registered pointers info tested
+    # as part of re-registering test set
+
+    test pointer-info-unregistered-0 {unregistered pointer info} -body {
+        cffi::pointer info [pointer1]
+    } -result {Tag {} Registration none}
+
+    test pointer-info-unregistered-1 {unregistered pointer info tagged} -body {
+        cffi::pointer info [pointer1 ::T]
+    } -result {Tag ::T Registration none}
+
+    ###
+    # Tests for pointer re-registering.
+
+    proc testregistration {id comment oldptr newptr oldreg newreg result args} {
+        set setup {
+            purge_pointers
+            pointer $oldreg $oldptr
+        }
+        set cleanup {
+            unset -nocomplain pa
+            purge_pointers
+        }
+        set filteredArgs {}
+        set args [foreach {opt val} $args {
+            if {$val eq {}} continue
+            if {$opt eq "-setup"} {
+                append setup \n $val
+                continue
+            }
+            if {$opt eq "-cleanup"} {
+                append cleanup \n $val
+                continue
+            }
+            lappend filteredArgs $opt $val
+        }]
+        test pointer-register-$oldreg-$newreg-$id $comment -body {
+            cffi::pointer $newreg $newptr
+            cffi::pointer info $newptr
+        } -setup $setup -cleanup $cleanup -result $result -match dict {*}$filteredArgs
+    }
+    testregistration untagged "unregistered -> safe" [pointer1] [pointer1] invalidate safe {
+        Tag {} Registration safe Match exact RegisteredTag {}
+    }
+    testregistration tagged "unregistered -> safe" [pointer1 ::T] [pointer1 ::T] invalidate safe {
+        Tag ::T Registration safe Match exact RegisteredTag ::T
+    }
+    testregistration untagged "unregistered -> counted" [pointer1] [pointer1] invalidate counted {
+        Tag {} Registration counted Match exact RegisteredTag {}
+    }
+    testregistration tagged "unregistered -> counted" [pointer1 ::T] [pointer1 ::T] invalidate counted {
+        Tag ::T Registration counted Match exact RegisteredTag ::T
+    }
+    testregistration untagged "unregistered -> pinned" [pointer1] [pointer1] invalidate pin {
+        Tag {} Registration pinned Match exact RegisteredTag {}
+    }
+    testregistration tagged "unregistered -> pinned" [pointer1 ::T] [pointer1 ::T] invalidate pin {
+        Tag ::T Registration pinned Match derived RegisteredTag {}
+    }
+
+    # {safe,counted,pinned}->safe,counted,pinned
+    # notag->notag
+    # notag->tag
+    # tag->notag
+    # tag->tag
+    # tag->tag2
+    # inherited tags
+    foreach {oldreg newreg oldtag newtag result setup cleanup} {
+        #*->    safe *    *    *  * *
+
+        safe    safe ""   ""  {Tag {} Registration safe Match exact RegisteredTag {}} {} {}
+        counted safe ""   ""  {Tag {} Registration safe Match exact RegisteredTag {}} {} {}
+        pin     safe ""   ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+
+        safe    safe ""   ::T {Tag ::T Registration safe Match derived RegisteredTag {}} {} {}
+        counted safe ""   ::T {Tag ::T Registration safe Match exact RegisteredTag ::T} {} {}
+        pin     safe ""   ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    safe ::T  ""  {Tag {} Registration safe Match exact RegisteredTag {}} {} {}
+        counted safe ::T  ""  {Tag {} Registration safe Match exact RegisteredTag {}} {} {}
+        pin     safe ::T  ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+
+        safe    safe ::T  ::T {Tag ::T Registration safe Match exact RegisteredTag ::T} {} {}
+        counted safe ::T  ::T {Tag ::T Registration safe Match exact RegisteredTag ::T} {} {}
+        pin     safe ::T  ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    safe ::T  ::T2 {Tag ::T2 Registration safe Match exact RegisteredTag ::T2} {} {}
+        counted safe ::T  ::T2 {Tag ::T2 Registration safe Match exact RegisteredTag ::T2} {} {}
+        pin     safe ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    safe ::T  ::T2 {Tag ::T2 Registration safe Match derived RegisteredTag ::T} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+        counted safe ::T  ::T2 {Tag ::T2 Registration safe Match exact RegisteredTag ::T2} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+        pin     safe ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+
+        #*->    counted *    *    * * *
+
+        safe    counted ""   ""  {Tag {} Registration counted Match exact RegisteredTag {}} {} {}
+        counted counted ""   ""  {Tag {} Registration counted Match exact RegisteredTag {}} {} {}
+        pin     counted ""   ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+
+        safe    counted ""   ::T {Tag ::T Registration counted Match exact RegisteredTag ::T} {} {}
+        counted counted ""   ::T {Tag ::T Registration counted Match derived RegisteredTag {}} {} {}
+        pin     counted ""   ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    counted ::T  ""  {Tag {} Registration counted Match exact RegisteredTag {}} {} {}
+        counted counted ::T  ""  {Tag {} Registration counted Match exact RegisteredTag {}} {} {}
+        pin     counted ::T  ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+
+        safe    counted ::T  ::T {Tag ::T Registration counted Match exact RegisteredTag ::T} {} {}
+        counted counted ::T  ::T {Tag ::T Registration counted Match exact RegisteredTag ::T} {} {}
+        pin     counted ::T  ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    counted ::T  ::T2 {Tag ::T2 Registration counted Match exact RegisteredTag ::T2} {} {}
+        counted counted ::T  ::T2 {Tag ::T2 Registration counted Match exact RegisteredTag ::T2} {} {}
+        pin     counted ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    counted ::T  ::T2 {Tag ::T2 Registration counted Match exact RegisteredTag ::T2} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+        counted counted ::T  ::T2 {Tag ::T2 Registration counted Match derived RegisteredTag ::T} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+        pin     counted ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+
+        #*->    pin *    *    * * *
+
+        safe    pin ""   ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+        counted pin ""   ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+        pin     pin ""   ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+
+        safe    pin ""   ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+        counted pin ""   ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+        pin     pin ""   ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    pin ::T  ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+        counted pin ::T  ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+        pin     pin ::T  ""  {Tag {} Registration pinned Match exact RegisteredTag {}} {} {}
+
+        safe    pin ::T  ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+        counted pin ::T  ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+        pin     pin ::T  ::T {Tag ::T Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    pin ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {} {}
+        counted pin ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {} {}
+        pin     pin ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {} {}
+
+        safe    pin ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+        counted pin ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+        pin     pin ::T  ::T2 {Tag ::T2 Registration pinned Match derived RegisteredTag {}} {cffi::pointer castable ::T2 ::T} {cffi::pointer uncastable ::T2}
+    } {
+        if {[string index $oldreg 0] eq "#"} {
+            continue
+        }
+        testregistration $oldtag-$newtag "$oldreg $oldtag -> $newreg $newtag" [pointer1 $oldtag] [pointer1 $newtag] $oldreg $newreg $result -setup $setup -cleanup $cleanup
+    }
 }
 
 ::tcltest::cleanupTests

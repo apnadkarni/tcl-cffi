@@ -412,7 +412,7 @@ proc cffi::test::testnumargs {label cmd {fixed {}} {optional {}} args} {
 
 proc cffi::test::purge_pointers {} {
     foreach ptr [cffi::pointer list] {
-        cffi::pointer dispose $ptr
+        cffi::pointer invalidate $ptr
     }
 }
 proc cffi::test::make_counted_pointers args {

@@ -551,14 +551,15 @@ LIBC function getcwd {string errno} {buf {chars[size] out} size size_t}
 <h4 class='ruff'><a name='::Cookbook-Binary string parameters'></a>Binary string parameters<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h4>
 <div style='clear:both;'></div>
 <p class='ruff'>Binary strings are similar to strings except that instead of treating pointers at the C level as character strings in Tcl, they treat them as binary strings so there is no character encoding/decoding transformation applied and nul characters have no special treatment.</p>
+<p class='ruff'>Binary strings can be typed as <code>binary</code> or as an array of <code>bytes</code>. In many cases the two are interchangeable. As a general rule, <code>bytes</code> is to be prefered when the function expects an array of bytes whose length is passed through another parameter while <code>binary</code> is more directed when the function does not need any additional information to deduce the size of the passed data.</p>
 <h5 class='ruff'>Input binary string parameters</h5>
 <figure id='::Cookbook-Syntax for input binary string parameters' class='ruff-figure'>
 <img src='assets/Syntax-for-input-binary-string-parameters.svg'></img>
 <figcaption class='ruff-caption'>Figure 21. Syntax for input binary string parameters</figcaption>
 </figure><ul class='ruff'>
-<li>The usual C declarations that map to <code>binary</code> are <code>char *</code>, <code>unsigned char *</code> and <code>void *</code>. Further, input parameters have the <code>const</code> attribute.</li>
+<li>The usual corresponding C declarations are <code>char *</code>, <code>unsigned char *</code> and <code>void *</code>. Further, input parameters have the <code>const</code> attribute.</li>
 <li>The <code>in</code> annotation is optional because it is the default if none of <code>out</code>, <code>retval</code> or <code>inout</code> annotations is present.</li>
-<li>The <code>byref</code> annotation should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the pointer to the array of bytes string (double indirection). This is rare for passing binary values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
+<li>The <code>byref</code> annotation is only applicable to the <code>binary</code> type and should be specified iff the value is being passed by reference, i.e. the function parameter is a pointer to the pointer to the array of bytes string (double indirection). This is rare for passing binary values that are input only. In either case, whether the <code>byref</code> parameter is present or not, the value at script level is still specified directly and not through a variable.</li>
 <li>Some C functions accept a NULL pointer for optional parameters. The <code>nullifempty</code> annotation identifies such parameters. In this case, passing an zero-length binary string as the script level argument will result in a NULL pointer being passed to the function.</li>
 <li>The <code>default</code> annotation may be used to supply a default value to be passed if no argument is supplied for the parameter when the function is invoked. All succeeding parameter in the parameter list must also have default annotations.</li>
 </ul>

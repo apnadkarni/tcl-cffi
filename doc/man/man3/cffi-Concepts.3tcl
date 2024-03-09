@@ -797,11 +797,12 @@ AeDebug CLOCK COLORS CONSOLE CURSORS DESKTOP \&.\&.\&.
 .PP
 \fBStrings as NULL pointers\fR
 .PP
-Some API's allow for char* pointer parameters or struct fields to be
-NULL\&. If these are wrapped as string, unistring or winstring, the
-nullifempty annotation can be used to specify that empty string values
-should be passed or stored as NULL pointers as opposed to pointers to an
-empty string\&.
+Some API's allow for char* pointer parameters fields to be NULL\&. If
+these are wrapped as one of the string type string, unistring,
+winstring or one of the character array types chars, unichars or
+winchars, the nullifempty annotation can be used to specify that
+empty string values should be passed or stored as NULL pointers as
+opposed to pointers to an empty string\&.
 .SS "BINARY STRINGS"
 .PP
 While the string, unistring, winstring, chars, unichars and
@@ -863,8 +864,13 @@ used in type declaration for input parameters to a function and in
 no other context\&. The function receives the data as retrieved by
 Tcl's Tcl_GetByteArrayFromObj function\&.
 .PP
-The binary type also has property that zero length binary strings
-map to NULL pointers being passed to the function\&.
+As for chars, the bytes type can also be annotated with nullifempty
+in which case binaries strings of zero length are passed as NULL pointers\&.
+Without the annotation, a binary string of zero length will raise an
+error\&.
+.PP
+In the case of the binary type, the nullifempty annotation is superfluous\&.
+Zero length binary strings typed as binary are always passed as NULL pointers\&.
 .SS STRUCTS
 .PP
 C structs are wrapped through the \fI::cffi::Struct\fP class\&. This
@@ -1123,6 +1129,30 @@ the union and storing a different field would look like
 .PP
 As in C care must be taken that the same field is retrieved from a
 union as was stored in it\&.
+.SS UUID'S
+.PP
+The uuid type maps to the UUID structure on Windows and uuid_t on
+Unix-y platforms\&. Although the type could also have been modeled using
+a struct or bytes array, a separate type allows for a more natural
+string representation than either of those\&.
+.PP
+.RS 4n
+.nf
+% cffi::Wrapper create ole32 ole32
+::ole32
+% ole32 stdcall CLSIDFromProgID {long nonnegative lasterror} {p winstring u {uuid retval}}
+::CLSIDFromProgID
+% CLSIDFromProgID Shell\&.Application
+13709620-c279-11ce-a49e-444553540000
+.fi
+.RE
+.PP
+\fBCaution:\fP The string representation used is platform-dependent for
+compatibility with applications on that platform (COM in particular)\&.
+When sharing UUID's between platforms, use of the binary form may be
+preferable\&. The type tobinary command can be used for this purpose\&.
+.PP
+Parameters of type uuid can only be passed by reference\&.
 .SH "TYPE ALIASES"
 .PP
 Type aliases provide a convenient way to bind data types and one or more
