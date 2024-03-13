@@ -97,6 +97,10 @@ cffi - Commands in namespace cffi
 .br
 \fBmemory fromstring\fP \fIvalue ?encoding?\fP
 .br
+\fBmemory fromunistring\fP \fIvalue\fP
+.br
+\fBmemory fromwinstring\fP \fIvalue\fP
+.br
 \fBmemory get\fP \fIpointer typespec ?index?\fP
 .br
 \fBmemory get!\fP \fIpointer typespec ?index?\fP
@@ -114,6 +118,14 @@ cffi - Commands in namespace cffi
 \fBmemory tostring\fP \fIpointer ?encoding? ?offset?\fP
 .br
 \fBmemory tostring!\fP \fIpointer ?encoding? ?offset?\fP
+.br
+\fBmemory tounistring\fP \fIpointer ?offset?\fP
+.br
+\fBmemory tounistring!\fP \fIpointer ?offset?\fP
+.br
+\fBmemory towinstring\fP \fIpointer ?offset?\fP
+.br
+\fBmemory towinstring!\fP \fIpointer ?offset?\fP
 .br
 \fBpkgconfig\fP \fIsubcommand \&.\&.\&.\fP
 .br
@@ -1513,6 +1525,12 @@ Allocates memory and copied the passed Tcl binary string into it\&.
 \fIfromstring\fP
 Allocates memory and stores a Tcl string in it in the specified encoding\&.
 .TP
+\fIfromunistring\fP
+Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars\&.
+.TP
+\fIfromwinstring\fP
+Allocates memory and stores a Tcl string as a sequence of winchars\&.
+.TP
 \fIget\fP
 Converts a native value in memory into a Tcl script level value\&.
 .TP
@@ -1539,6 +1557,18 @@ Returns the content of a memory block as a Tcl string\&.
 .TP
 \fItostring!\fP
 Returns the content of a memory block as a Tcl string\&.
+.TP
+\fItounistring\fP
+Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string\&.
+.TP
+\fItounistring!\fP
+Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string\&.
+.TP
+\fItowinstring\fP
+Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string\&.
+.TP
+\fItowinstring!\fP
+Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string\&.
 .RE
 .PP
 Refer
@@ -1694,6 +1724,62 @@ Returns a safe pointer to the allocated memory\&.
 \fBSee also\fR
 .PP
 \fImemory tostring\fP, \fImemory tostring!\fP
+.PP
+.RS -4n
+\fBmemory fromunistring\fR (::cffi)
+.RE
+.PP
+Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars\&.
+.RS 4n\fBmemory fromunistring\fP \fIvalue\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+value
+Tcl string value\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned memory must be eventually freed by calling \fImemory free\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tounistring\fP, \fImemory tounistring!\fP
+.PP
+.RS -4n
+\fBmemory fromwinstring\fR (::cffi)
+.RE
+.PP
+Allocates memory and stores a Tcl string as a sequence of winchars\&.
+.RS 4n\fBmemory fromwinstring\fP \fIvalue\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+value
+Tcl string value\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned memory must be eventually freed by calling \fImemory free\fP\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a safe pointer to the allocated memory\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory towinmemory towinstring!\fP
 .PP
 .RS -4n
 \fBmemory get\fR (::cffi)
@@ -1994,13 +2080,13 @@ Returns the content of a memory block as a Tcl string\&.
 .RS 4n
 .TP
 pointer
-Pointer to memory\&.
+Pointer to memory\&. Need not be a safe pointer\&.
 .TP
 encoding
 The encoding to use for conversion\&. If unspecified or the empty string, the system encoding is used\&. Optional, default ""\&.
 .TP
 offset
-Offset from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
+Offset from \fI$pointer\fP of area to value\&. May be negative\&. Optional, default 0\&.
 .RE
 .PP
 \fBDescription\fR
@@ -2015,6 +2101,122 @@ Returns the content of a memory block as a Tcl string\&.
 \fBSee also\fR
 .PP
 \fImemory tostring!\fP, \fImemory fromstring\fP
+.PP
+.RS -4n
+\fBmemory tounistring\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of Tcl_UniChars as a Tcl string\&.
+.RS 4n\fBmemory tounistring\fP \fIpointer ?offset?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to memory\&.
+.TP
+offset
+Offset in Tcl_UniChar units from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of Tcl_UniChars as a Tcl string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tounistring!\fP, \fImemory fromunistring\fP
+.PP
+.RS -4n
+\fBmemory tounistring!\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of Tcl_UniChars as a Tcl string\&.
+.RS 4n\fBmemory tounistring!\fP \fIpointer ?offset?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory\&. Need not be a safe pointer\&.
+.TP
+offset
+Offset in Tcl_UniChar units from \fI$pointer\fP of area to value\&. May be negative\&. Optional, default 0\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of Tcl_UniChars as a Tcl string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory tounistring\fP, \fImemory fromunistring\fP
+.PP
+.RS -4n
+\fBmemory towinstring\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of winchars as a Tcl string\&.
+.RS 4n\fBmemory towinstring\fP \fIpointer ?offset?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Safe pointer to memory\&.
+.TP
+offset
+Offset in WCHAR units from \fI$pointer\fP of area to value\&. May be negative for unsafe pointers\&. Optional, default 0\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of winchars as a Tcl string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory towinstring!\fP, \fImemory fromwinstring\fP
+.PP
+.RS -4n
+\fBmemory towinstring!\fR (::cffi)
+.RE
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of winchars as a Tcl string\&.
+.RS 4n\fBmemory towinstring!\fP \fIpointer ?offset?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+pointer
+Pointer to memory\&. Need not be a safe pointer\&.
+.TP
+offset
+Offset in WCHAR units from \fI$pointer\fP of area to value\&. May be negative\&. Optional, default 0\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns the content of a memory block containing a nul-terminated
+sequence of winchars as a Tcl string\&.
+.PP
+\fBSee also\fR
+.PP
+\fImemory towinstring!\fP, \fImemory fromwinstring\fP
 .PP
 .RS -4n
 \fBpkgconfig\fR (::cffi)

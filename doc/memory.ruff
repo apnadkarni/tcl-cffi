@@ -45,6 +45,27 @@ namespace eval ${NS}::memory {
         #
         # Returns a safe pointer to the allocated memory.
     }
+    proc fromunistring {value} {
+        # Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars.
+        #  value - Tcl string value
+        #
+        # The returned memory must be eventually freed by calling [memory free].
+        #
+        # See also: "memory tounistring" "memory tounistring!"
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
+    proc fromwinstring {value} {
+        # Allocates memory and stores a Tcl string as a sequence of winchars.
+        #  value - Tcl string value
+        #
+        # The returned memory must be eventually freed by calling [memory free].
+        #
+        # See also: "memory towinstring" "memory towinstring!"
+        #
+        # Returns a safe pointer to the allocated memory.
+    }
+
     proc get {pointer typespec {index 0}} {
         # Converts a native value in memory into a Tcl script level value
         #  pointer - base address of memory location. The pointer must be a
@@ -170,19 +191,57 @@ namespace eval ${NS}::memory {
         #
         # See also: "memory tostring!" "memory fromstring"
     }
+    proc tounistring {pointer {offset 0}} {
+        # Returns the content of a memory block containing a nul-terminated
+        # sequence of Tcl_UniChars as a Tcl string.
+        #  pointer - safe pointer to memory
+        #  offset - offset in Tcl_UniChar units from $pointer of area to value.
+        #    May be negative for unsafe pointers.
+        #
+        # See also: "memory tounistring!" "memory fromunistring"
+    }
+    proc towinstring {pointer {offset 0}} {
+        # Returns the content of a memory block containing a nul-terminated
+        # sequence of winchars as a Tcl string.
+        #  pointer - safe pointer to memory
+        #  offset - offset in WCHAR units from $pointer of area to value.
+        #    May be negative for unsafe pointers.
+        #
+        # See also: "memory towinstring!" "memory fromwinstring"
+    }
+
     proc tostring! {pointer {encoding {}} {offset 0}} {
         # Returns the content of a memory block as a Tcl string.
-        #  pointer - pointer to memory
+        #  pointer - pointer to memory. Need not be a safe pointer.
         #  encoding - the encoding to use for conversion. If unspecified or
         #    the empty string, the system encoding is used.
-        #  offset - offset from $pointer of area to value. May be negative
-        #    for unsafe pointers.
+        #  offset - offset from $pointer of area to value. May be negative.
         #
         # Unlike the [memory tostring] method, this does not check the validity
         # of $pointer and should be used with care.
         #
         # See also: "memory tostring!" "memory fromstring"
     }
+
+    proc tounistring! {pointer {offset 0}} {
+        # Returns the content of a memory block containing a nul-terminated
+        # sequence of Tcl_UniChars as a Tcl string.
+        #  pointer - pointer to memory. Need not be a safe pointer.
+        #  offset - offset in Tcl_UniChar units from $pointer of area to value.
+        #    May be negative.
+        #
+        # See also: "memory tounistring" "memory fromunistring"
+    }
+    proc towinstring! {pointer {offset 0}} {
+        # Returns the content of a memory block containing a nul-terminated
+        # sequence of winchars as a Tcl string.
+        #  pointer - pointer to memory. Need not be a safe pointer.
+        #  offset - offset in WCHAR units from $pointer of area to value.
+        #    May be negative.
+        #
+        # See also: "memory towinstring!" "memory fromwinstring"
+    }
+
     proc fill {pointer bytevalue count {offset 0}} {
         # Fills memory with a specified value
         #  pointer - safe pointer to memory

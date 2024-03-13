@@ -288,6 +288,90 @@ CffiMemoryToBinaryCmd(CffiInterpCtx *ipCtxP,
     return TCL_OK;
 }
 
+/* Function: CffiMemoryFromUniStringCmd
+ * Implements the *memory fromunistring* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[]. 3 including command and subcommand.
+ * objv - argument array.
+ * flags - unused
+ *
+ * Allocates memory and copies the string in *objv[2]*.
+ *
+ * Returns:
+ * *TCL_OK* on success with wrapped pointer to the allocated memory as
+ * interpreter result, *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryFromUniStringCmd(CffiInterpCtx *ipCtxP,
+                           int objc,
+                           Tcl_Obj *const objv[],
+                           CffiFlags flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    CffiResult ret;
+    Tcl_Obj *ptrObj;
+    char *p;
+    Tcl_Size len;
+    Tcl_UniChar *uniP;
+
+    CFFI_ASSERT(objc == 3);
+
+    uniP = Tcl_GetUnicodeFromObj(objv[2], &len);
+    p   = ckalloc(sizeof(Tcl_UniChar) * (len+1));
+    memmove(p, uniP, sizeof(Tcl_UniChar)*(len+1));
+
+    ret = Tclh_PointerRegister(ip, ipCtxP->tclhCtxP, p, NULL, &ptrObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ip, ptrObj);
+    else
+        ckfree(p);
+    return ret;
+}
+
+/* Function: CffiMemoryFromWinStringCmd
+ * Implements the *memory fromwinstring* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[]. 3 including command and subcommand.
+ * objv - argument array.
+ * flags - unused
+ *
+ * Allocates memory and copies the string in *objv[2]*.
+ *
+ * Returns:
+ * *TCL_OK* on success with wrapped pointer to the allocated memory as
+ * interpreter result, *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryFromWinStringCmd(CffiInterpCtx *ipCtxP,
+                           int objc,
+                           Tcl_Obj *const objv[],
+                           CffiFlags flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    CffiResult ret;
+    Tcl_Obj *ptrObj;
+    Tcl_Size len;
+    WCHAR *wsP;
+
+    CFFI_ASSERT(objc == 3);
+
+    wsP  = Tclh_ObjToWinCharsAlloc(ipCtxP->tclhCtxP, objv[2], &len);
+    if (wsP == NULL) {
+        return Tclh_ErrorGeneric(ip, NULL, "Could not convert to winstring");
+    }
+    ret = Tclh_PointerRegister(ip, ipCtxP->tclhCtxP, wsP, NULL, &ptrObj);
+    if (ret == TCL_OK)
+        Tcl_SetObjResult(ip, ptrObj);
+    else
+        ckfree(wsP);
+    return ret;
+}
+
+
 /* Function: CffiMemoryFromStringCmd
  * Implements the *memory fromstring* script level command.
  *
@@ -352,6 +436,117 @@ CffiMemoryFromStringCmd(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+/* Function: CffiMemoryToUniStringCmd
+ * Implements the *memory tounistring* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[]. Should be 3-4 including command
+ *        and subcommand.
+ * objv - argument array.
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
+ *        checked for validity.
+ *
+ * The memory pointed to by *objv[2]* is treated as a null-terminated string
+ * of Tcl_UniChars. The returned string is the string at offset 0 or at the
+ * offset specified by objv[3] if present.
+ *
+ * The passed in pointer should be registered unless the CFFI_F_ALLOW_UNSAFE
+ * of *flags* is set. A *NULL* pointer will raise an error.
+ *
+ * Returns:
+ * *TCL_OK* on success with Tcl string value as interpreter result,
+ * *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryToUniStringCmd(CffiInterpCtx *ipCtxP,
+                         int objc,
+                         Tcl_Obj *const objv[],
+                         CffiFlags flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    void *pv;
+    Tcl_Size off;
+
+    if (flags & CFFI_F_ALLOW_UNSAFE)
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
+    else
+        CHECK(Tclh_PointerObjVerify(
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL, NULL));
+
+    if (pv == NULL)
+        return Tclh_ErrorPointerNull(ip);
+
+    if (objc == 3)
+        off = 0;
+    else {
+        CHECK(Tclh_ObjToSizeInt(ip, objv[3], &off));
+    }
+    if (off < 0 && !(flags & CFFI_F_ALLOW_UNSAFE)) {
+        return Tclh_ErrorInvalidValue(
+            ip, NULL, "Negative offsets are not allowed for safe pointers.");
+    }
+
+    Tcl_SetObjResult(ip, Tcl_NewUnicodeObj(off + (Tcl_UniChar *)pv, -1));
+    return TCL_OK;
+}
+
+#ifdef _WIN32
+/* Function: CffiMemoryToWinStringCmd
+ * Implements the *memory towinstring* script level command.
+ *
+ * Parameters:
+ * ip - interpreter
+ * objc - count of elements in objv[]. Should be 3-4 including command
+ *        and subcommand.
+ * objv - argument array.
+ * flags - if the CFFI_F_ALLOW_UNSAFE is set, the pointer is treated as unsafe and not
+ *        checked for validity.
+ *
+ * The memory pointed to by *objv[2]* is treated as a null-terminated string
+ * of WCHAR. The returned string is the string at offset 0 or at the
+ * offset specified by objv[3] if present.
+ *
+ * The passed in pointer should be registered unless the CFFI_F_ALLOW_UNSAFE
+ * of *flags* is set. A *NULL* pointer will raise an error.
+ *
+ * Returns:
+ * *TCL_OK* on success with Tcl string value as interpreter result,
+ * *TCL_ERROR* on failure with error message in interpreter.
+ */
+static CffiResult
+CffiMemoryToWinStringCmd(CffiInterpCtx *ipCtxP,
+                         int objc,
+                         Tcl_Obj *const objv[],
+                         CffiFlags flags)
+{
+    Tcl_Interp *ip = ipCtxP->interp;
+    void *pv;
+    Tcl_Size off;
+
+    if (flags & CFFI_F_ALLOW_UNSAFE)
+        CHECK(Tclh_PointerUnwrap(ip, objv[2], &pv));
+    else
+        CHECK(Tclh_PointerObjVerify(
+            ip, ipCtxP->tclhCtxP, objv[2], &pv, NULL, NULL));
+
+    if (pv == NULL)
+        return Tclh_ErrorPointerNull(ip);
+
+    if (objc == 3)
+        off = 0;
+    else {
+        CHECK(Tclh_ObjToSizeInt(ip, objv[3], &off));
+    }
+    if (off < 0 && !(flags & CFFI_F_ALLOW_UNSAFE)) {
+        return Tclh_ErrorInvalidValue(
+            ip, NULL, "Negative offsets are not allowed for safe pointers.");
+    }
+    Tcl_SetObjResult(
+        ip, Tclh_ObjFromWinChars(ipCtxP->tclhCtxP, off + (WCHAR *)pv, -1));
+    return TCL_OK;
+}
+#endif
 
 /* Function: CffiMemoryToStringCmd
  * Implements the *memory tostring* script level command.
@@ -428,7 +623,7 @@ CffiMemoryToStringCmd(CffiInterpCtx *ipCtxP,
     if (encoding)
         Tcl_FreeEncoding(encoding);
 
-    /* Should optimize this by direct transfer of ds storage - See TclDStringToObj */
+    /* TODO - Should optimize this by direct transfer of ds storage - See TclDStringToObj */
     Tcl_SetObjResult(
         ip,
         Tcl_NewStringObj(Tcl_DStringValue(&ds), Tcl_DStringLength(&ds)));
@@ -620,6 +815,8 @@ CffiMemoryObjCmd(ClientData cdata,
         {"free", 1, 1, "POINTER", CffiMemoryFreeCmd, 0},
         {"frombinary", 1, 2, "BINARY ?TAG?", CffiMemoryFromBinaryCmd, 0},
         {"fromstring", 1, 2, "STRING ?ENCODING?", CffiMemoryFromStringCmd, 0},
+        {"fromunistring", 1, 1, "STRING", CffiMemoryFromUniStringCmd, 0},
+        {"fromwinstring", 1, 1, "STRING", CffiMemoryFromWinStringCmd, 0},
         {"new", 2, 3, "TYPE INITIALIZER ?TAG?", CffiMemoryNewCmd, 0},
         {"set", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 0},
         {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, CFFI_F_ALLOW_UNSAFE},
@@ -631,6 +828,12 @@ CffiMemoryObjCmd(ClientData cdata,
         {"tobinary!", 2, 3, "POINTER SIZE ?OFFSET?", CffiMemoryToBinaryCmd, CFFI_F_ALLOW_UNSAFE},
         {"tostring", 1, 3, "POINTER ?ENCODING? ?OFFSET?", CffiMemoryToStringCmd, 0},
         {"tostring!", 1, 3, "POINTER ?ENCODING? ?OFFSET?", CffiMemoryToStringCmd, CFFI_F_ALLOW_UNSAFE},
+        {"tounistring", 1, 2, "POINTER ?OFFSET?", CffiMemoryToUniStringCmd, 0},
+        {"tounistring!", 1, 2, "POINTER ?OFFSET?", CffiMemoryToUniStringCmd, CFFI_F_ALLOW_UNSAFE},
+#ifdef _WIN32
+        {"towinstring", 1, 2, "POINTER ?OFFSET?", CffiMemoryToWinStringCmd, 0},
+        {"towinstring!", 1, 2, "POINTER ?OFFSET?", CffiMemoryToWinStringCmd, CFFI_F_ALLOW_UNSAFE},
+#endif
         {NULL}
     };
     int cmdIndex;

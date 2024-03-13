@@ -446,6 +446,8 @@ cffi::help functions ::libzip::*
 <tr><td><a href="cffi-cffi.html#::cffi::memory free" title="free" class='ruff_cmd'>free</a></td><td>Frees the memory referenced by the passed pointer.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory frombinary" title="frombinary" class='ruff_cmd'>frombinary</a></td><td>Allocates memory and copied the passed Tcl binary string into it.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory fromstring" title="fromstring" class='ruff_cmd'>fromstring</a></td><td>Allocates memory and stores a Tcl string in it in the specified encoding.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory fromunistring" title="fromunistring" class='ruff_cmd'>fromunistring</a></td><td>Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory fromwinstring" title="fromwinstring" class='ruff_cmd'>fromwinstring</a></td><td>Allocates memory and stores a Tcl string as a sequence of winchars.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory get" title="get" class='ruff_cmd'>get</a></td><td>Converts a native value in memory into a Tcl script level value.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory get!" title="get!" class='ruff_cmd'>get!</a></td><td>Converts a native value in memory into a Tcl script level value.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory new" title="new" class='ruff_cmd'>new</a></td><td>Allocates memory for a type and initializes it.</td></tr>
@@ -455,6 +457,10 @@ cffi::help functions ::libzip::*
 <tr><td><a href="cffi-cffi.html#::cffi::memory tobinary!" title="tobinary!" class='ruff_cmd'>tobinary!</a></td><td>Returns the content of a memory block as a Tcl binary string.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory tostring" title="tostring" class='ruff_cmd'>tostring</a></td><td>Returns the content of a memory block as a Tcl string.</td></tr>
 <tr><td><a href="cffi-cffi.html#::cffi::memory tostring!" title="tostring!" class='ruff_cmd'>tostring!</a></td><td>Returns the content of a memory block as a Tcl string.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory tounistring" title="tounistring" class='ruff_cmd'>tounistring</a></td><td>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory tounistring!" title="tounistring!" class='ruff_cmd'>tounistring!</a></td><td>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory towinstring" title="towinstring" class='ruff_cmd'>towinstring</a></td><td>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.</td></tr>
+<tr><td><a href="cffi-cffi.html#::cffi::memory towinstring!" title="towinstring!" class='ruff_cmd'>towinstring!</a></td><td>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.</td></tr>
 </table>
 <p class='ruff'>Refer to the documentation of each subcommand for details.</p>
 <h3 class='ruffproc'><a name='::cffi::memory allocate'>memory allocate</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
@@ -509,6 +515,26 @@ cffi::help functions ::libzip::*
 <h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tostring" title="memory tostring" class='ruff_cmd'>memory tostring</a>, <a href="cffi-cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a></p>
+<h3 class='ruffproc'><a name='::cffi::memory fromunistring'>memory fromunistring</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory fromunistring</span> <span class='ruff_arg'>value</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>value</code></td><td>Tcl string value.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tounistring" title="memory tounistring" class='ruff_cmd'>memory tounistring</a>, <a href="cffi-cffi.html#::cffi::memory tounistring!" title="memory tounistring!" class='ruff_cmd'>memory tounistring!</a></p>
+<h3 class='ruffproc'><a name='::cffi::memory fromwinstring'>memory fromwinstring</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Allocates memory and stores a Tcl string as a sequence of winchars.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory fromwinstring</span> <span class='ruff_arg'>value</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>value</code></td><td>Tcl string value.</td></tr>
+</table>
+<h5 class='ruff'>Description</h5><p class='ruff'>The returned memory must be eventually freed by calling <a href="cffi-cffi.html#::cffi::memory free" title="memory free" class='ruff_cmd'>memory free</a>.</p>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns a safe pointer to the allocated memory.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'>[memory towinmemory towinstring!]</p>
 <h3 class='ruffproc'><a name='::cffi::memory get'>memory get</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>Converts a native value in memory into a Tcl script level value</p>
@@ -607,13 +633,53 @@ cffi::help functions ::libzip::*
 <p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
 <div class='ruff_synopsis'><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></div>
 <h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>Pointer to memory.</td></tr>
+<tr><td><code>pointer</code></td><td>Pointer to memory. Need not be a safe pointer.</td></tr>
 <tr><td><code>encoding</code></td><td>The encoding to use for conversion. If unspecified or the empty string, the system encoding is used. Optional, default <code>&quot;&quot;</code>.</td></tr>
-<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
+<tr><td><code>offset</code></td><td>Offset from <code>$pointer</code> of area to value. May be negative. Optional, default <code>0</code>.</td></tr>
 </table>
 <h5 class='ruff'>Description</h5><p class='ruff'>Unlike the <a href="cffi-cffi.html#::cffi::memory tostring" title="memory tostring" class='ruff_cmd'>memory tostring</a> method, this does not check the validity of <code>$pointer</code> and should be used with care.</p>
 <h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block as a Tcl string.</p>
 <h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tostring!" title="memory tostring!" class='ruff_cmd'>memory tostring!</a>, <a href="cffi-cffi.html#::cffi::memory fromstring" title="memory fromstring" class='ruff_cmd'>memory fromstring</a></p>
+<h3 class='ruffproc'><a name='::cffi::memory tounistring'>memory tounistring</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tounistring</span> <span class='ruff_arg'>pointer ?offset?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
+<tr><td><code>offset</code></td><td>Offset in Tcl_UniChar units from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tounistring!" title="memory tounistring!" class='ruff_cmd'>memory tounistring!</a>, <a href="cffi-cffi.html#::cffi::memory fromunistring" title="memory fromunistring" class='ruff_cmd'>memory fromunistring</a></p>
+<h3 class='ruffproc'><a name='::cffi::memory tounistring!'>memory tounistring!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory tounistring!</span> <span class='ruff_arg'>pointer ?offset?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Pointer to memory. Need not be a safe pointer.</td></tr>
+<tr><td><code>offset</code></td><td>Offset in Tcl_UniChar units from <code>$pointer</code> of area to value. May be negative. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory tounistring" title="memory tounistring" class='ruff_cmd'>memory tounistring</a>, <a href="cffi-cffi.html#::cffi::memory fromunistring" title="memory fromunistring" class='ruff_cmd'>memory fromunistring</a></p>
+<h3 class='ruffproc'><a name='::cffi::memory towinstring'>memory towinstring</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory towinstring</span> <span class='ruff_arg'>pointer ?offset?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Safe pointer to memory.</td></tr>
+<tr><td><code>offset</code></td><td>Offset in WCHAR units from <code>$pointer</code> of area to value. May be negative for unsafe pointers. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory towinstring!" title="memory towinstring!" class='ruff_cmd'>memory towinstring!</a>, <a href="cffi-cffi.html#::cffi::memory fromwinstring" title="memory fromwinstring" class='ruff_cmd'>memory fromwinstring</a></p>
+<h3 class='ruffproc'><a name='::cffi::memory towinstring!'>memory towinstring!</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.</p>
+<div class='ruff_synopsis'><span class='ruff_cmd'>memory towinstring!</span> <span class='ruff_arg'>pointer ?offset?</span></div>
+<h5 class='ruff'>Parameters</h5><table class='ruff_deflist'>
+<tr><td><code>pointer</code></td><td>Pointer to memory. Need not be a safe pointer.</td></tr>
+<tr><td><code>offset</code></td><td>Offset in WCHAR units from <code>$pointer</code> of area to value. May be negative. Optional, default <code>0</code>.</td></tr>
+</table>
+<h5 class='ruff'>Return value</h5><p class='ruff'>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.</p>
+<h5 class='ruff'>See also</h5><p class='ruff'><a href="cffi-cffi.html#::cffi::memory towinstring!" title="memory towinstring!" class='ruff_cmd'>memory towinstring!</a>, <a href="cffi-cffi.html#::cffi::memory fromwinstring" title="memory fromwinstring" class='ruff_cmd'>memory fromwinstring</a></p>
 <h3 class='ruffproc'><a name='::cffi::pkgconfig'>pkgconfig</a><span class='ns_scope'> [<a href="cffi-cffi.html#::cffi" title="::cffi" class='ruff_cmd'>::cffi</a>]</span><span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>A command ensemble.</p>
@@ -1494,6 +1560,8 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory free'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> free</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory free</span> <span class='ruff_arg'>pointer</span></pre>Frees the memory referenced by the passed pointer
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory frombinary'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> frombinary</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory frombinary</span> <span class='ruff_arg'>bin_value ?tag?</span></pre>Allocates memory and copied the passed Tcl binary string into it.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fromstring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> fromstring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory fromstring</span> <span class='ruff_arg'>value ?encoding?</span></pre>Allocates memory and stores a Tcl string in it in the specified encoding.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fromunistring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> fromunistring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory fromunistring</span> <span class='ruff_arg'>value</span></pre>Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory fromwinstring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> fromwinstring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory fromwinstring</span> <span class='ruff_arg'>value</span></pre>Allocates memory and stores a Tcl string as a sequence of winchars.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory get'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> get</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory get</span> <span class='ruff_arg'>pointer typespec ?index?</span></pre>Converts a native value in memory into a Tcl script level value
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory get!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> get!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory get!</span> <span class='ruff_arg'>pointer typespec ?index?</span></pre>Converts a native value in memory into a Tcl script level value
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory new'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> new</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory new</span> <span class='ruff_arg'>typespec initializer ?tag?</span></pre>Allocates memory for a type and initializes it.
@@ -1503,6 +1571,10 @@ cffi::help functions ::libzip::*
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tobinary!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tobinary!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tobinary!</span> <span class='ruff_arg'>pointer size ?offset?</span></pre>Returns the content of a memory block as a Tcl binary string.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tostring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tostring</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></pre>Returns the content of a memory block as a Tcl string.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tostring!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tostring!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tostring!</span> <span class='ruff_arg'>pointer ?encoding? ?offset?</span></pre>Returns the content of a memory block as a Tcl string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tounistring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tounistring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tounistring</span> <span class='ruff_arg'>pointer ?offset?</span></pre>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory tounistring!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> tounistring!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory tounistring!</span> <span class='ruff_arg'>pointer ?offset?</span></pre>Returns the content of a memory block containing a nul-terminated sequence of Tcl_UniChars as a Tcl string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory towinstring'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> towinstring</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory towinstring</span> <span class='ruff_arg'>pointer ?offset?</span></pre>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.
+</span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::memory towinstring!'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> towinstring!</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>memory towinstring!</span> <span class='ruff_arg'>pointer ?offset?</span></pre>Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig'>pkgconfig</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pkgconfig</span> <span class='ruff_arg'>subcommand ...</span></pre>A command ensemble.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig get'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> get</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pkgconfig get</span> <span class='ruff_arg'>key</span></pre>Gets the value of a configuration key.
 </span></li><li class='ruff-toc3 ruff-tip'><a href='cffi-cffi.html#::cffi::pkgconfig list'><span style='visibility:hidden'>&nbsp;&nbsp;&nbsp;</span> list</a><span class='ruff-tiptext'><pre><span class='ruff_cmd'>pkgconfig list</span> </pre>Returns the list of keys containing information about the package configuration.
