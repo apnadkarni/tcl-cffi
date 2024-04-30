@@ -330,6 +330,7 @@ CffiMemoryFromUniStringCmd(CffiInterpCtx *ipCtxP,
     return ret;
 }
 
+#ifdef _WIN32
 /* Function: CffiMemoryFromWinStringCmd
  * Implements the *memory fromwinstring* script level command.
  *
@@ -370,7 +371,7 @@ CffiMemoryFromWinStringCmd(CffiInterpCtx *ipCtxP,
         ckfree(wsP);
     return ret;
 }
-
+#endif
 
 /* Function: CffiMemoryFromStringCmd
  * Implements the *memory fromstring* script level command.
@@ -816,7 +817,9 @@ CffiMemoryObjCmd(ClientData cdata,
         {"frombinary", 1, 2, "BINARY ?TAG?", CffiMemoryFromBinaryCmd, 0},
         {"fromstring", 1, 2, "STRING ?ENCODING?", CffiMemoryFromStringCmd, 0},
         {"fromunistring", 1, 1, "STRING", CffiMemoryFromUniStringCmd, 0},
+#ifdef _WIN32
         {"fromwinstring", 1, 1, "STRING", CffiMemoryFromWinStringCmd, 0},
+#endif
         {"new", 2, 3, "TYPE INITIALIZER ?TAG?", CffiMemoryNewCmd, 0},
         {"set", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, 0},
         {"set!", 3, 4, "POINTER TYPE VALUE ?INDEX?", CffiMemorySetCmd, CFFI_F_ALLOW_UNSAFE},

@@ -207,9 +207,10 @@ namespace eval cffi::test {
 
     testnumargs memory-tostring "cffi::memory tostring" "POINTER" "?ENCODING? ?OFFSET?"
     testnumargs memory-tostring! "cffi::memory tostring" "POINTER" "?ENCODING? ?OFFSET?"
-    testnumargs memory-towinstring "cffi::memory towinstring" "POINTER" "?OFFSET?"
+    testnumargs memory-towinstring "cffi::memory towinstring" "POINTER" "?OFFSET?" -constraints win
     testnumargs memory-tounistring "cffi::memory tounistring" "POINTER" "?OFFSET?"
     testnumargs memory-fromstring "cffi::memory fromstring" "STRING" "?ENCODING?"
+    testnumargs memory-fromwinstring "cffi::memory fromwinstring" "STRING" "" -constraints win
     set num -1
     test memory-string-[incr num] "To/from string - safe, no optional args" -body {
         unset -nocomplain p
@@ -283,7 +284,7 @@ namespace eval cffi::test {
                     [cffi::pointer isvalid $p] \
                     [cffi::memory towinstring $p] \
                     [cffi::memory free $p]
-            } -result [list 1 $val {}]
+            } -result [list 1 $val {}] -constraints win
 
             test memory-string!-$num "To/from string! - unsafe $encoding" -body {
                 unset -nocomplain p
@@ -314,7 +315,7 @@ namespace eval cffi::test {
                     [cffi::memory towinstring! $p] \
                     [cffi::pointer compare $p [cffi::pointer safe $p]] \
                     [cffi::memory free $p]
-            } -result [list 0 $val 1 {}]
+            } -result [list 0 $val 1 {}] -constraints win
 
             test memory-string-[incr num] "To/from long string - safe $encoding" -body {
                 unset -nocomplain p
@@ -339,7 +340,7 @@ namespace eval cffi::test {
                     [cffi::pointer isvalid $p] \
                     [cffi::memory towinstring $p] \
                     [cffi::memory free $p]
-            } -result [list 1 [string repeat $val $repeat] {}]
+            } -result [list 1 [string repeat $val $repeat] {}] -constraints win
 
             test memory-string!-$num "To/from long string! - unsafe $encoding" -body {
                 unset -nocomplain p
@@ -372,7 +373,7 @@ namespace eval cffi::test {
         cffi::memory towinstring $p 1
     } -cleanup {
         if {[info exists p]} {cffi::memory free $p}
-    } -result bc
+    } -result bc -constraints win
     test memory-string-[incr num] "memory tostring encoding offset" -body {
         unset -nocomplain p
         set p [cffi::memory fromstring abc]
@@ -419,7 +420,7 @@ namespace eval cffi::test {
         cffi::memory towinstring! [pointer_unsafe_add $p 2] -1
     } -cleanup {
         if {[info exists p]} {cffi::memory free $p}
-    } -result abc
+    } -result abc -constraints win
 
     test memory-tostring-error-0 "tostring null pointer" -body {
         cffi::memory tostring 0^ 1
@@ -429,7 +430,7 @@ namespace eval cffi::test {
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-towinstring-error-0 "towinstring null pointer" -body {
         cffi::memory towinstring 0^ 1
-    } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp -constraints win
     test memory-tostring-error-1 "memory tostring negative offset" -body {
         unset -nocomplain p
         set p [cffi::memory fromstring abc]
@@ -450,7 +451,7 @@ namespace eval cffi::test {
         cffi::memory towinstring $p -1
     } -cleanup {
         if {[info exists p]} {cffi::memory free $p}
-    } -result {Invalid value. Negative offsets are not allowed for safe pointers.} -returnCodes error
+    } -result {Invalid value. Negative offsets are not allowed for safe pointers.} -returnCodes error -constraints win
 
     test memory-tostring!-error-0 "tostring! null pointer" -body {
         cffi::memory tostring! 0^ 1
@@ -460,7 +461,7 @@ namespace eval cffi::test {
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-towinstring!-error-0 "towinstring! null pointer" -body {
         cffi::memory towinstring! 0^ 1
-    } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
+    } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp -constraints win
 
     ###
     # memory fill
