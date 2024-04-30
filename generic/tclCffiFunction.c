@@ -681,8 +681,6 @@ CffiArgPrepare(CffiCall *callP, int arg_index, Tcl_Obj *valueObj)
             if (flags & CFFI_F_ATTR_NULLIFEMPTY) {
                 Tcl_Size dict_size;
                 CFFI_ASSERT(flags & CFFI_F_ATTR_BYREF);
-                CFFI_ASSERT(flags & (CFFI_F_ATTR_IN | CFFI_F_ATTR_INOUT));
-                CFFI_ASSERT(valueObj);
 
                 if (passOutputPointerAsNull)
                     dict_size = 0;
