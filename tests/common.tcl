@@ -11,19 +11,7 @@ if {[namespace exists ${NS}::test]} {
     return
 }
 
-if {[catch {package require $NS}]} {
-    if {$::tcl_platform(platform) eq "windows"} {
-        if {$tcl_platform(pointerSize) == 8} {
-            set BINDIR ../win/Release_AMD64_VC1933
-        } else {
-            set BINDIR ../win/Release_VC1933
-        }
-    } else {
-        set BINDIR ../build
-    }
-    lappend auto_path $BINDIR
-    package require $NS
-}
+package require $NS
 
 namespace eval cffi::test {
     namespace import ::tcltest::test ::tcltest::testConstraint
