@@ -4,27 +4,29 @@
 
 package ifneeded @PACKAGE_NAME@ @PACKAGE_VERSION@ \
     [list apply [list {dir} {
-        set dllname "@PKG_LIB_FILE@"
-        set package "@PACKAGE_NAME@"
-        set package_ns ::$package
-        set package_init_name [string totitle $package]
-
-        # First try to load from current directory. If that fails, try from
-        # arch-specific subdirectories
-        set path [file join $dir $dllname]
-        if {[catch {uplevel #0 [list load $path $package_init_name]}]} {
-            package require platform
-            foreach platform [platform::patterns [platform::identify]] {
-                if {$platform eq "tcl"} continue
-                set path [file join $dir $platform $dllname]
-                if {![catch {uplevel #0 [list load $path $package_init_name]}]} {
-                    break
-                }
+        package require platform
+        set package_ns ::@PACKAGE_NAME@
+        set initName [string totitle @PACKAGE_NAME@]
+        if {[package vsatisfies [package require Tcl] 9]} {
+            set fileName "@PKG_LIB_FILE9@"
+        } else {
+            set fileName "@PKG_LIB_FILE8@"
+        }
+        set platformId [platform::identify]
+        set searchPaths [list [file join $dir $platformId] \
+                             {*}[lmap platformId [platform::patterns $platformId] {
+                                 file join $dir $platformId
+                             }] \
+                             $dir]
+        foreach path $searchPaths {
+            set lib [file join $path $fileName]
+            if {[file exists $lib]} {
+                uplevel #0 [list load $lib $initName]
+                # Load was successful
+                set ${package_ns}::dll_path $lib
+                set ${package_ns}::package_dir $dir
+                return
             }
         }
-        if {[namespace exists $package_ns]} {
-            # Load was successful
-            set ${package_ns}::dll_path $path
-            set ${package_ns}::package_dir $dir
-        }
+        error "Could not locate $fileName in directories [join $searchPaths {, }]"
     }] $dir]
