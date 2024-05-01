@@ -20,7 +20,6 @@ dnl	to configure the system for the local environment.
 #-----------------------------------------------------------------------
 
 AC_INIT([cffi],[2.0b0])
-PACKAGE_LIB_PREFIX=tcl
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
