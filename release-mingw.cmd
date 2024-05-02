@@ -1,30 +1,33 @@
 setlocal
 
+set TCLROOT=d:/tcl
 set MINGWROOT=c:\msys64
 set DISTRO=%~dp0\dist\latest-mingw
 set CFFIVER=2.0b0
 
-call :build d:/Tcl/90/mingw-x64-debug mingw64 --enable-64bit
-call :build d:/Tcl/90/mingw-x86-debug mingw32
-call :build d:/Tcl/86/mingw-x64 mingw64 --enable-64bit
-call :build d:/Tcl/86/mingw-x86 mingw32
+call :build 90 mingw64 --enable-64bit
+call :build 90 mingw32
+call :build 86 mingw64 --enable-64bit
+call :build 86 mingw32
 
-xcopy /S /I /Y d:\Tcl\90\mingw-x64-debug\lib\tclcffi%CFFIVER% "%DISTRO%"
-xcopy /S /I /Y d:\Tcl\90\mingw-x86-debug\lib\tclcffi%CFFIVER% "%DISTRO%"
-xcopy /S /I /Y d:\Tcl\86\mingw-x64\lib\tclcffi%CFFIVER% "%DISTRO%"
-xcopy /S /I /Y d:\Tcl\86\mingw-x86\lib\tclcffi%CFFIVER% "%DISTRO%"
+xcopy /S /I /Y d:\Tcl\90\mingw64\lib\tclcffi%CFFIVER% "%DISTRO%"
+xcopy /S /I /Y d:\Tcl\90\mingw32\lib\tclcffi%CFFIVER% "%DISTRO%"
+xcopy /S /I /Y d:\Tcl\86\mingw64\lib\tclcffi%CFFIVER% "%DISTRO%"
+xcopy /S /I /Y d:\Tcl\86\mingw32\lib\tclcffi%CFFIVER% "%DISTRO%"
 goto done
 
-:: Usage: build tclpath mingw32|mingw64 ?other configure options?
+:: Usage: build 86|90 mingw32|mingw64 ?other configure options?
 :build
-::call :resetdir build\%2
-pushd build\%2
+set builddir=build\%1-%2
+set tcldir="%TCLROOT%/%1/%2"
+call :resetdir %builddir%
+pushd %builddir%
 :: The --prefix option is required because otherwise mingw's config.site file
 :: overrides the prefix in tclConfig.sh resulting in man pages installed in
 :: the system directory.
-if NOT EXIST Makefile call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "../../configure --prefix=""%1"" --with-tcl=%1/lib --with-tclinclude=%1/include LIBS=""-static-libgcc"" %3" || echo %1 %2 configure failed && goto abort
+if NOT EXIST Makefile call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "../../configure --prefix=""%tcldir%"" --with-tcl=""%tcldir%/lib"" --with-tclinclude=""%tcldir%/include""  LIBS=""-static-libgcc"" %3" || echo %1 %2 configure failed && goto abort
 call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c make || echo %1 %2 make failed && goto abort
-call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "make install" || echo %1 %2 make install failed && goto abort
+call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "make install-strip" || echo %1 %2 make install failed && goto abort
 popd
 goto :eof
 

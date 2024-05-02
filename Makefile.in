@@ -409,6 +409,7 @@ distclean: clean
 
 install-lib-binaries: binaries
 	@$(INSTALL_DATA_DIR) "$(DESTDIR)$(pkglibdir)"
+	@$(INSTALL_DATA) $(srcdir)/LICENSE "$(DESTDIR)$(pkglibdir)"
 	@list='$(lib_BINARIES)'; for p in $$list; do \
 	  if test -f $$p; then \
 	    ext=`echo $$p|sed -e "s/.*\.//"`; \
