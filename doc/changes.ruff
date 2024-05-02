@@ -1,0 +1,100 @@
+namespace eval {Change log} {
+    variable _ruff_preamble {
+        ## Changes in v2.0
+
+        ### Platform and backends
+
+        - Support for Tcl 9
+
+        - The `dyncall` backend now requires dyncall 1.4 and adds support for
+          callbacks, variable arguments and passing of structs by value.
+
+        ### Type declarations and annotations
+
+        - New class `Interface` for modeling COM objects.
+
+        - New class `Union` to support C unions.
+
+        - New base type `uuid`.
+
+        - Array type declarations can now use aliases as the base type.
+
+        - New `type` subcommands `tobinary` and `frombinary` to construct or
+          deconstruct a binary string for any type declaration.
+
+        - The `nullifempty` annotation may also be applied for types `bytes`,
+          `chars` and `unichars`.
+
+        - The `nullifempty` annotation may be used for optional `out` parameters
+          to indicate they are optional.
+
+        - Added `saveerrors` annotation to save errno and Win32 error values and
+          the `savederrors` command to retrieve them.
+
+        - New `discard` annotation to discard the result of a function call.
+
+        - New annotation `multisz` to support MULTI_SZ strings on Windows.
+
+        ### Memory management
+
+        - New `memory` subcommands `towinstring`, `fromwinstring`, `tounistring`
+          and `fromunistring`.
+
+        - New command `memory arena` for stack-like memory allocation at script
+          level.
+
+        ### Structs
+
+        - New option `-pack` for `Struct` to control alignment and padding.
+
+        - Added method `size` for structs and unions.
+
+        - Allow last field in a struct to be a variable size array.
+
+        ### Enums
+
+        - Integer values for enum types that are bitmasks are no longer
+          automatically mapped to list of enum members. Note enum members are
+          still implicitly converted to integer values. *Incompatible change*
+
+        - New `enum` subcommand `alias` to couple an enum definition as an alias.
+
+        - New `enum` subcommand `names` to return names of enum members.
+
+        ### Pointers
+
+        - `pointer castable` can now take multiple arguments.
+
+        - Pointer definitions within a struct or union have an implicit
+        `unsafe` annotation.
+
+        ### Function definitions
+
+        - New syntax for comments within `functions` and `stdcalls` definitions.
+
+        - Output struct parameters can be passed as undefined variables.
+
+        - Annotation `retval` can be applied to parameters to `void` functions.
+
+        - Added option `-ignoremissing` to `Wrapper` methods `functions` and
+          `stdcalls` to not raise error in case of missing shared library
+          functions.
+
+        - Lengths of variable size array parameters can be passed through
+          `byref` or `inout` parameters.
+
+        - On error exceptions, the `errorCode` variable now includes the numeric
+          error code when one of the error handling annotations is present.
+
+
+        ### Miscellaneous
+
+        - Enhanced `help` command.
+
+        - Built-in aliases are now loaded in the `::cffi::c` namespace and
+          implicitly included in the search path.
+
+        - Various [bug fixes](https://github.com/apnadkarni/tcl-cffi/milestone/13?closed=1).
+
+    }
+}

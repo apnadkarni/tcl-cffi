@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 2\&.0a0 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.0b0 "cffi" "Tcl CFFI package"
 .SH NAME
 cffi - Commands in namespace cffi
 .SH SYNOPSIS
@@ -1779,7 +1779,7 @@ Returns a safe pointer to the allocated memory\&.
 .PP
 \fBSee also\fR
 .PP
-\fImemory towinmemory towinstring!\fP
+\fImemory towinstring\fP, \fImemory towinstring!\fP
 .PP
 .RS -4n
 \fBmemory get\fR (::cffi)

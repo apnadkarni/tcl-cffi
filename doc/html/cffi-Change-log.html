@@ -1,0 +1,91 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>Tcl CFFI package</title>
+<link rel='stylesheet' type='text/css' href='assets/ruff-min.css' />
+<script type='text/javascript' src='assets/ruff-min.js'></script>
+</head>
+<body>
+<div class='ruff-layout'>
+<header class='ruff-layout-header ruff-hd'>
+<a style='text-decoration:none;' href='cffi.html'>Tcl CFFI package (v2.0b0)</a>
+
+
+            <div id="ruffButtonBar">
+            <button id="ruffNavMove" onclick="ruffMoveNavPane()"></button>
+            <button id="ruffToggleTheme" onclick="ruffNextTheme()"></button>
+            </div>
+        </header><main class='ruff-layout-main ruff-bd'><h1 class='ruff'><a name='Change log'></a>Change log<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h1>
+<div style='clear:both;'></div>
+<h2 class='ruff'><a name='::Change log-Changes in v2.0'></a>Changes in v2.0<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
+<div style='clear:both;'></div>
+<h3 class='ruff'><a name='::Change log-Platform and backends'></a>Platform and backends<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>Support for Tcl 9</li>
+<li>The <code>dyncall</code> backend now requires dyncall 1.4 and adds support for callbacks, variable arguments and passing of structs by value.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Type declarations and annotations'></a>Type declarations and annotations<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>New class <code>Interface</code> for modeling COM objects.</li>
+<li>New class <code>Union</code> to support C unions.</li>
+<li>New base type <code>uuid</code>.</li>
+<li>Array type declarations can now use aliases as the base type.</li>
+<li>New <code>type</code> subcommands <code>tobinary</code> and <code>frombinary</code> to construct or deconstruct a binary string for any type declaration.</li>
+<li>The <code>nullifempty</code> annotation may also be applied for types <code>bytes</code>, <code>chars</code> and <code>unichars</code>.</li>
+<li>The <code>nullifempty</code> annotation may be used for optional <code>out</code> parameters to indicate they are optional.</li>
+<li>Added <code>saveerrors</code> annotation to save errno and Win32 error values and the <code>savederrors</code> command to retrieve them.</li>
+<li>New <code>discard</code> annotation to discard the result of a function call.</li>
+<li>New annotation <code>multisz</code> to support MULTI_SZ strings on Windows.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Memory management'></a>Memory management<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>New <code>memory</code> subcommands <code>towinstring</code>, <code>fromwinstring</code>, <code>tounistring</code> and <code>fromunistring</code>.</li>
+<li>New command <code>memory arena</code> for stack-like memory allocation at script level.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Structs'></a>Structs<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>New option <code>-pack</code> for <code>Struct</code> to control alignment and padding.</li>
+<li>Added method <code>size</code> for structs and unions.</li>
+<li>Allow last field in a struct to be a variable size array.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Enums'></a>Enums<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>Integer values for enum types that are bitmasks are no longer automatically mapped to list of enum members. Note enum members are still implicitly converted to integer values. <em>Incompatible change</em></li>
+<li>New <code>enum</code> subcommand <code>alias</code> to couple an enum definition as an alias.</li>
+<li>New <code>enum</code> subcommand <code>names</code> to return names of enum members.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Pointers'></a>Pointers<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li><code>pointer castable</code> can now take multiple arguments.</li>
+<li>Pointer definitions within a struct or union have an implicit <code>unsafe</code> annotation.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Function definitions'></a>Function definitions<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>New syntax for comments within <code>functions</code> and <code>stdcalls</code> definitions.</li>
+<li>Output struct parameters can be passed as undefined variables.</li>
+<li>Annotation <code>retval</code> can be applied to parameters to <code>void</code> functions.</li>
+<li>Added option <code>-ignoremissing</code> to <code>Wrapper</code> methods <code>functions</code> and <code>stdcalls</code> to not raise error in case of missing shared library functions.</li>
+<li>Lengths of variable size array parameters can be passed through <code>byref</code> or <code>inout</code> parameters.</li>
+<li>On error exceptions, the <code>errorCode</code> variable now includes the numeric error code when one of the error handling annotations is present.</li>
+</ul>
+<h3 class='ruff'><a name='::Change log-Miscellaneous'></a>Miscellaneous<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
+<div style='clear:both;'></div>
+<ul class='ruff'>
+<li>Enhanced <code>help</code> command.</li>
+<li>Built-in aliases are now loaded in the <code>::cffi::c</code> namespace and implicitly included in the search path.</li>
+<li>Various <a href="https://github.com/apnadkarni/tcl-cffi/milestone/13?closed=1" >bug fixes</a>.</li>
+</ul>
+</main><nav class='ruff-nav'><ul ><li class='ruff-toc1'><a style='padding-top:2px;' href='cffi.html'>Start page</a></li>
+<li class='ruff-toc1'><a href='cffi-docindex.html' accesskey='i'>Index</a></li>
+<hr>
+<li class='ruff-toc1'><a href='cffi-Concepts.html'>Concepts</a></li>
+<li class='ruff-toc1'><a href='cffi-Cookbook.html'>Cookbook</a></li>
+<li class='ruff-toc1'><a class='ruff-highlight' href='cffi-Change-log.html'>Change log</a></li>
+<li class='ruff-toc1'><a href='cffi-cffi.html'>cffi</a></li>
+<hr><li class='ruff-toc2'><a href='#::Change log-Changes in v2.0'>Changes in v2.0</a></li><li class='ruff-toc3'><a href='#::Change log-Platform and backends'>Platform and backends</a></li><li class='ruff-toc3'><a href='#::Change log-Type declarations and annotations'>Type declarations and annotations</a></li><li class='ruff-toc3'><a href='#::Change log-Memory management'>Memory management</a></li><li class='ruff-toc3'><a href='#::Change log-Structs'>Structs</a></li><li class='ruff-toc3'><a href='#::Change log-Enums'>Enums</a></li><li class='ruff-toc3'><a href='#::Change log-Pointers'>Pointers</a></li><li class='ruff-toc3'><a href='#::Change log-Function definitions'>Function definitions</a></li><li class='ruff-toc3'><a href='#::Change log-Miscellaneous'>Miscellaneous</a></li></ul></nav><footer class='ruff-layout-footer ruff-ft'><div style='float: right;'>Document generated by <a href='https://ruff.magicsplat.com'>Ruff!</a></div><div>&copy; Ashok P. Nadkarni</div></footer>
+</div></body></html>
