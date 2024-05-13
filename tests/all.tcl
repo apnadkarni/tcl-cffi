@@ -5,7 +5,7 @@ package require tcltest
 
 tcltest::configure -testdir [file dirname [file normalize [info script]]]
 # Avoid running temp Emacs and others
-configure -notfile "*#*"
+tcltest::configure -notfile "*#*"
 
 if {[info exists env(TEMP)]} {
     tcltest::configure -tmpdir $::env(TEMP)/cffi-test/[clock seconds]
