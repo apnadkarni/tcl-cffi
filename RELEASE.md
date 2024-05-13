@@ -21,7 +21,8 @@ Update Docs
 ## Windows binaries
 
 Edit release-mingw.cmd to update Tcl paths and CFFIVER.
-Run release-mingw.cmd from the top level.
+Run release-mingw.cmd from the top level. Distribution will be
+in dist/mingw-CFFIVER directory.
 
 Ensure the ldd output does not show dependency on libffi.dll
 

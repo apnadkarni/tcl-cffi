@@ -91,6 +91,8 @@ jobs:
       run: |
         cd win
         nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
+      env:
+        ERROR_ON_FAILURES: 1
 
     - name: Make with dyncall
       shell: cmd
@@ -104,5 +106,7 @@ jobs:
       run: |
         cd win
         nmake /f makefile.vc OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
+      env:
+        ERROR_ON_FAILURES: 1
 
 

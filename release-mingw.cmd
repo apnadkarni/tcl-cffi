@@ -1,9 +1,10 @@
 setlocal
 
+set CFFIVER=%1
+if "x%CFFIVER%" == "x" set /P CFFIVER="Enter cffi version: "
 set TCLROOT=d:/tcl
 set MINGWROOT=c:\msys64
-set DISTRO=%~dp0\dist\latest-mingw
-set CFFIVER=2.0b0
+set DISTRO=%~dp0\dist\mingw\cffi-%CFFIVER%
 
 call :build 90 mingw64 --enable-64bit
 call :build 90 mingw32

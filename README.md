@@ -34,6 +34,6 @@ Limitations in the current version include
 
 - No support for *asynchronous* callbacks
 
-## Change log
+## Version history
 
-See [Changes](changes.md).
+See the [Change log](CHANGES.md).

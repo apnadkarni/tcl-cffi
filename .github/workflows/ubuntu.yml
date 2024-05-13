@@ -78,6 +78,8 @@ jobs:
       run: |
         cd build-dyncall
         make test
+      env:
+        ERROR_ON_FAILURES: 1
 
     - name: Configure with libffi
       run: |
@@ -94,3 +96,5 @@ jobs:
       run: |
         cd build-libffi
         make test
+      env:
+        ERROR_ON_FAILURES: 1

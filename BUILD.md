@@ -6,12 +6,12 @@ but requires one of two back end libraries that implement FFI:
 - `libffi` (v3.4.2 or later strongly recommended)
 - `dyncall`
 
-When choosing a back end, consider that the `dyncall` library 
-at the time of writing does not support
-returning or passing C structs to functions by value. However, most C API's pass
-structs by reference (pointers) so this limitation may not matter. The `dyncall`
-library is easier to build so that is another thing to consider if your platform
-does not include `libffi** with its package manager.
+When choosing a back end, consider that the `dyncall` library at the time of
+writing does not support returning or passing C structs to functions by value
+except on x64. However, most C API's pass structs by reference (pointers) so
+this limitation may not matter. The `dyncall` library is easier to build so that
+is another thing to consider if your platform does not include `libffi** with
+its package manager.
 
 ## Building on Unix-like systems
 
@@ -252,7 +252,7 @@ or include the `-s` flag in `LDFLAGS` on the `configure` commands above.
 ### Building with MinGW-w64/gcc using `dyncall` back end
 
 From a MinGW-w64 (not msys2) 64-bit shell, run the following commands at the top level
-`dyncall` directory. 
+`dyncall` directory.
 
 ```
 $ mkdir build-mingw-x64

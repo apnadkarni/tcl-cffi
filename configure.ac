@@ -27,7 +27,7 @@ AC_INIT([cffi],[2.0b0])
 # as well as PKG_LIB_FILE and PKG_STUB_LIB_FILE.
 #--------------------------------------------------------------------
 
-TEA_INIT()
+TEA_INIT(3.13)
 
 AC_CONFIG_AUX_DIR(tclconfig)
 
