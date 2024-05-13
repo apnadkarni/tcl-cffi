@@ -4,6 +4,9 @@ package require tcltest
 # (currently none)
 
 tcltest::configure -testdir [file dirname [file normalize [info script]]]
+# Avoid running temp Emacs and others
+configure -notfile "*#*"
+
 if {[info exists env(TEMP)]} {
     tcltest::configure -tmpdir $::env(TEMP)/cffi-test/[clock seconds]
 } else {
@@ -15,5 +18,16 @@ if {[info exists env(TEMP)]} {
 }
 
 eval tcltest::configure $argv
-tcltest::runAllTests
-puts "All done."
+
+set ErrorOnFailures [info exists env(ERROR_ON_FAILURES)]
+# NOTE: Do NOT unset ERROR_ON_FAILURES if recursing to subdirectories
+unset -nocomplain env(ERROR_ON_FAILURES)
+if {[tcltest::runAllTests] && $ErrorOnFailures} {exit 1}
+
+# if calling direct only (avoid rewrite exit if inlined or interactive):
+if { [info exists ::argv0] && [file tail $::argv0] eq [file tail [info script]]
+     && !([info exists ::tcl_interactive] && $::tcl_interactive)
+ } {
+    proc exit args {}
+}
+
