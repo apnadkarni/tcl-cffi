@@ -258,7 +258,7 @@ namespace eval ${NS}::test {
         cffi::Struct create ::S {i int d double}
     } -constraints !structbyval -body {
         cffi::prototype function proto int [list s struct.::S]
-    } -result {Invalid value "struct.::S". Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -returnCodes error
+    } -result "Invalid value \"struct.::S\". $errorMessages(needbyref)" -returnCodes error
 
     test callback-new-manyargs-0 "Callback with many arguments" -setup {
         cffi::prototype clear

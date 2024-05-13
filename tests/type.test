@@ -1127,10 +1127,10 @@ namespace eval cffi::test {
                 teststruct "struct.::TestStruct $attrs" param $expected
             }
             testinvalidattr "struct.TestStruct in novaluechecks" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints structbyval
-            testinvalidattr "struct.TestStruct in novaluechecks" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
+            testinvalidattr "struct.TestStruct in novaluechecks" $parse_mode $errorMessages(needbyref) -constraints !structbyval
 
             testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Structs cannot have nullifempty attribute when passed as an argument by value.} -constraints structbyval
-            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
+            testinvalidattr "struct.TestStruct in nullifempty" $parse_mode $errorMessages(needbyref) -constraints !structbyval
 
         } else {
             foreach attr {in out inout} {
@@ -1167,7 +1167,7 @@ namespace eval cffi::test {
         } elseif {$parse_mode eq "field"} {
             testinvalidattr "struct.TestStruct novaluechecks" $parse_mode {A type annotation is not valid for this data type without the byref annotation.} -constraints !structbyval -match glob
         } else {
-            testinvalidattr "struct.TestStruct novaluechecks" $parse_mode {Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -constraints !structbyval
+            testinvalidattr "struct.TestStruct novaluechecks" $parse_mode $errorMessages(needbyref) -constraints !structbyval
         }
 
         # Array tests
@@ -1254,7 +1254,7 @@ namespace eval cffi::test {
     } -result {Invalid value "union.::TestUnion". Unions cannot be passed by value.} -returnCodes error
     test type-info-union-param-0.b "Unions cannot be parameters" -constraints !structbyval -body {
         type info union.::TestUnion param
-    } -result {Invalid value "union.::TestUnion". Passing of structs by value is not supported. Annotate with "byref" to pass by reference if function expects a pointer.} -returnCodes error
+    } -result "Invalid value \"union.::TestUnion\". $errorMessages(needbyref)" -returnCodes error
 
     test type-info-union-param-1 "Unions by reference" -body {
         type info {union.::TestUnion byref} param
