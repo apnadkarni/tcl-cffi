@@ -2,9 +2,7 @@
 
 A manual process that should be automated. Some day ...
 
-Assumes release tagged as in working directory ...
-
-Assumes version set in environment variable CFFIVER (e.g. 1.0.7)
+Assumes release as in working directory ...
 
 ## Preliminaries
 
@@ -20,25 +18,15 @@ Update Docs
 
 ## Windows binaries
 
-Edit release-mingw.cmd to update Tcl paths and CFFIVER.
-Run release-mingw.cmd from the top level. Distribution will be
-in dist/mingw-CFFIVER directory.
-
-Ensure the ldd output does not show dependency on libffi.dll
-
-Test the distribution with Tcl 8.6 built with VC++ 6. May need
-to copy cffitest.dll for the appropriate architecture.
-
-```
-set TCLLIBPATH=d:/tcl/lib
-cd tests
-d:\tcl\archive\868-vc6\x64\bin\tclsh86t.exe all.tcl
-d:\tcl\archive\868-vc6\x86\bin\tclsh86t.exe all.tcl
-```
+Run release.cmd to generate Windows binary distribution under `dist/latest`.
+This will build the binaries for Tcl 8.6 and 9 for both x86 and x64.
 
 Copy README.md and LICENSE into distribution directory.
 
-Zip up the distribution from d:\tcl\lib\cffi$CFFIVER
+Rename `latest` to `cffiVERSION` and zip it.
+
+Unzip into distribution into each of the 8.6 and 9.0 directories for
+x86 and x64. Test that the package loads successfully.
 
 ## Windows sources
 

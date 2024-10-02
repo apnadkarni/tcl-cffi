@@ -18,8 +18,10 @@ its package manager.
 **NOTE**
 
 If not building against the system-installed Tcl, you may need to add
-the option `--with-tclinclude=/path/to/private/tcl/install/include`.
-This is particularly important if the private and system Tcl versions differ.
+the options `--with-tcl=/path/to/private/tcl/install/lib` and
+`--with-tclinclude=/path/to/private/tcl/install/include`.
+This is particularly important if the private and system Tcl versions differ,
+for example when the system Tcl is 8.6 and your private Tcl is 9.0
 
 ### Building on Unix using `libffi` back end
 
