@@ -58,6 +58,7 @@ The above assumes Tcl is also installed in standard system locations. The
 
 The above commands will statically link `libffi`. To use the `libffi` shared
 library, add the `--disable-staticffi` option to the `configure` command.
+This may be necessary with some `libffi` distributions to avoid link errors.
 
 If `libffi` include files and libraries are not in a standard location in
 the compiler or linker search paths, the `CFLAGS` and / or `LDFLAGS` environment
