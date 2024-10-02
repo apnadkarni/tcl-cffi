@@ -50,6 +50,7 @@ DLLSUBDIR = win32-x86_64
 !else
 DLLSUBDIR = win32-ix86
 !endif
+BIN_INSTALL_DIR = $(SCRIPT_INSTALL_DIR)\$(DLLSUBDIR)
 
 !ifndef EXTDIR
 EXTDIR = $(ROOT)\external-libs\win\$(BUILDDIRTOP)
@@ -138,10 +139,14 @@ pkgindex: default-pkgindex-tea
 # an additional target for our documentation. Note this *adds* a target
 # since no commands are listed after it. The original targets for
 # install (from targets.vc) will remain.
-install: $(PRJLIB) default-install-docs-html default-install-scripts
-	@echo Installing binaries to '$(LIB_INSTALL_DIR)\$(DLLSUBDIR)'
-	@if not exist "$(LIB_INSTALL_DIR)\$(DLLSUBDIR)" mkdir "$(LIB_INSTALL_DIR)\$(DLLSUBDIR)"
-	@$(CPY) $(PRJLIB) "$(LIB_INSTALL_DIR)\$(DLLSUBDIR)" >NUL
+install: $(PRJLIB)
+	@echo Installing to '$(SCRIPT_INSTALL_DIR)'
+	@if not exist "$(SCRIPT_INSTALL_DIR)" mkdir "$(SCRIPT_INSTALL_DIR)"
+	@if not exist "$(BIN_INSTALL_DIR)" mkdir "$(BIN_INSTALL_DIR)"
+	@$(CPY) $(PRJLIB) "$(BIN_INSTALL_DIR)" >NUL
+	@$(CPY) $(OUT_DIR)\pkgIndex.tcl "$(SCRIPT_INSTALL_DIR)"
+	@$(CPY) $(ROOT)\LICENSE "$(SCRIPT_INSTALL_DIR)"
+
 
 $(PRJ_OBJS): $(HEADERS) $(ROOT)\configure.ac
 

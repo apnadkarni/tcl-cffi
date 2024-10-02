@@ -1,26 +1,33 @@
 setlocal
 
-set CFFIVER=%1
-if "x%CFFIVER%" == "x" set /P CFFIVER="Enter cffi version: "
-set TCLROOT=d:/tcl
 set MINGWROOT=c:\msys64
-set DISTRO=%~dp0\dist\mingw\cffi-%CFFIVER%
 
-call :build 90 mingw64 --enable-64bit
-call :build 90 mingw32
-call :build 86 mingw64 --enable-64bit
-call :build 86 mingw32
+call :getversion
+call _ver.bat
+del _ver.bat
 
-xcopy /S /I /Y d:\Tcl\90\mingw64\lib\tclcffi%CFFIVER% "%DISTRO%"
-xcopy /S /I /Y d:\Tcl\90\mingw32\lib\tclcffi%CFFIVER% "%DISTRO%"
-xcopy /S /I /Y d:\Tcl\86\mingw64\lib\tclcffi%CFFIVER% "%DISTRO%"
-xcopy /S /I /Y d:\Tcl\86\mingw32\lib\tclcffi%CFFIVER% "%DISTRO%"
+if "x%XVER%" == "x" set /P XVER="Enter cffi version: "
+set TCLROOT=c:\tcl
+set TCL9VER=9.0.0
+set TCL8VER=8.6.10
+set DISTRO=%~dp0\dist\mingw\cffi-%XVER%
+
+
+call :build %TCL9VER% mingw64 --enable-64bit
+call :build %TCL9VER% mingw32
+call :build %TCL8VER% mingw64 --enable-64bit
+call :build %TCL8VER% mingw32
+
+xcopy /S /I /Y %TCLROOT%\%TCL9VER%\mingw64\lib\tclcffi%XVER% "%DISTRO%"
+xcopy /S /I /Y %TCLROOT%\%TCL9VER%\mingw32\lib\tclcffi%XVER% "%DISTRO%"
+xcopy /S /I /Y %TCLROOT%\%TCL8VER%\mingw64\lib\tclcffi%XVER% "%DISTRO%"
+xcopy /S /I /Y %TCLROOT%\%TCL8VER%\mingw32\lib\tclcffi%XVER% "%DISTRO%"
 goto done
 
 :: Usage: build 86|90 mingw32|mingw64 ?other configure options?
 :build
 set builddir=build\%1-%2
-set tcldir="%TCLROOT%/%1/%2"
+set tcldir="%TCLROOT:\=/%/%1/%2"
 call :resetdir %builddir%
 pushd %builddir%
 :: The --prefix option is required because otherwise mingw's config.site file
@@ -30,6 +37,11 @@ if NOT EXIST Makefile call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -her
 call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c make || echo %1 %2 make failed && goto abort
 call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "make install-strip" || echo %1 %2 make install failed && goto abort
 popd
+goto :eof
+
+:getversion
+echo
+call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -mingw64 -l -c "echo set XVER=$(grep AC_INIT configure.ac | grep -oP ',\[\K.*(?=])') > _ver.bat" || echo %1 %2 make failed && goto abort
 goto :eof
 
 :resetdir
