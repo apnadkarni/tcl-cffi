@@ -674,7 +674,7 @@ EXTERN const WCHAR *winstring_multisz_reflect(WCHAR *p) {
     return p;
 }
 EXTERN const WCHAR **winstring_multisz_return_byref(WCHAR **out) {
-    static WCHAR *s = winchar_multisz_test_string;
+    static const WCHAR *s = winchar_multisz_test_string;
     return &s;
 }
 
@@ -1246,7 +1246,7 @@ int formatVarargs(char *buf, int bufSize, const char *fmt,...)
         if (inout->count < in->count)                                      \
             count = inout->count;                                          \
         for (i = 0; i < count; ++i)                                        \
-            inout->values[i] = (valueType_)((long long)in->values[i] + 1); \
+            inout->values[i] = (valueType_)(intptr_t) ((long long)in->values[i] + 1); \
     }                                                                      \
     DLLEXPORT void copyNestedVarSizeStruct##countType_##valueType_(        \
         StructWithNestedVLA##countType_##valueType_ *in,                   \
@@ -1259,7 +1259,7 @@ int formatVarargs(char *buf, int bufSize, const char *fmt,...)
             count = inout->nested.count;                                   \
         for (i = 0; i < count; ++i)                                        \
             inout->nested.values[i] =                                      \
-                (valueType_)((long long)in->nested.values[i] + 1);         \
+                (valueType_)(intptr_t)((long long)in->nested.values[i] + 1);         \
     }
 
 typedef void *voidpointer;

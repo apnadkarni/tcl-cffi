@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 2\&.0b0 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.0b1 "cffi" "Tcl CFFI package"
 .SH NAME
 Introduction - Tcl CFFI package
 .SH "GETTING STARTED"
