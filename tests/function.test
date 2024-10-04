@@ -312,7 +312,7 @@ namespace eval ${NS}::test {
         testDll function [list string_to_$to_type binary_to_$to_type] $to_type [list param binary]
 
         test pointer_to_${to_type}-0 "$to_type (safe pointer = 1)" -body {
-            pointer_to_${to_type} 1^
+            pointer_to_${to_type} 0x1^
         } -result 1
         test pointer_novaluechecks_unsafe_to_${to_type}-0 "$to_type (unsafe pointer = 0)" -body {
             pointer_novaluechecks_unsafe_to_${to_type} NULL
@@ -753,13 +753,13 @@ namespace eval ${NS}::test {
     test function-winstring-multisz-5 "multisz winstring NULL" -setup {
         testDll function pointer_to_pointer {winstring multisz} {p {pointer unsafe novaluechecks}}
     } -constraints win -body {
-        pointer_to_pointer 0^
+        pointer_to_pointer 0x0^
     } -result {Invalid value "". Function returned an error value.} -returnCodes error
 
     test function-winstring-multisz-6 "multisz winstring novaluechecks" -setup {
         testDll function pointer_to_pointer {winstring multisz novaluechecks} {p {pointer unsafe novaluechecks}}
     } -constraints win -body {
-        pointer_to_pointer 0^
+        pointer_to_pointer 0x0^
     } -result {}
 
     # string.encoding
@@ -1304,14 +1304,14 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::pointer dispose $p
     } -body {
-        set p [pointer_retval 1^]
+        set p [pointer_retval 0x1^]
         list [cffi::pointer isvalid $p] $p
     } -result [list 1 [makeptr 2]]
 
     test function-pointer-retval-1 "pointer retval unsafe" -setup {
         testDll function pointer_retval {int nonzero} {inp {pointer unsafe} p {pointer unsafe retval}}
     } -body {
-        set p [pointer_retval 1^]
+        set p [pointer_retval 0x1^]
         list [cffi::pointer isvalid $p] $p
     } -result [list 0 [makeptr 2]]
 
@@ -1320,7 +1320,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         cffi::pointer dispose $p
     } -body {
-        set p [pointer_retval 1^]
+        set p [pointer_retval 0x1^]
         list [cffi::pointer isvalid $p] $p
     } -result [list 1 [scoped_ptr 2 TAG]]
 
@@ -1349,38 +1349,38 @@ namespace eval ${NS}::test {
 
     # pointer param safety attributes
     test function-pointer-param-safety-0 "pointer safe to unsafe" -setup {
-        cffi::pointer safe 1^
+        cffi::pointer safe 0x1^
     } -cleanup {
-        cffi::pointer dispose 1^
+        cffi::pointer dispose 0x1^
     } -body {
         testDll function pointer_noop void {p {pointer unsafe}}
-        pointer_noop 1^
+        pointer_noop 0x1^
     } -result ""
 
     test function-pointer-param-safety-1 "pointer unsafe to safe" -body {
         testDll function pointer_noop void {p pointer}
-        pointer_noop 1^
-    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
+        pointer_noop 0x1^
+    } -result "Invalid value \"0x1^\". Pointer validation failed: not registered." -returnCodes error
 
     test function-pointer-param-safety-2 "pointer unsafe to unsafe" -body {
         testDll function pointer_noop void {p {pointer unsafe}}
-        pointer_noop 1^
+        pointer_noop 0x1^
     } -result ""
 
     test function-pointer-param-safety-3 "pointer unsafe to counted" -body {
         testDll function pointer_noop void {p {pointer counted}}
-        pointer_noop 1^
-    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
+        pointer_noop 0x1^
+    } -result "Invalid value \"0x1^\". Pointer validation failed: not registered." -returnCodes error
 
     test function-pointer-param-safety-3.1 "pointer unsafe to pinned" -body {
         testDll function pointer_noop void {p {pointer pinned}}
-        pointer_noop 1^
-    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error
+        pointer_noop 0x1^
+    } -result "Invalid value \"0x1^\". Pointer validation failed: not registered." -returnCodes error
 
     test function-pointer-param-safety-4 "pointer unsafe dispose" -body {
         testDll function pointer_noop void {p {pointer dispose}}
-        pointer_noop 1^
-    } -result "Invalid value \"1^\". Pointer validation failed: not registered." -returnCodes error -match glob
+        pointer_noop 0x1^
+    } -result "Invalid value \"0x1^\". Pointer validation failed: not registered." -returnCodes error -match glob
 
     test function-pointer-param-safety-5 "pointer unsafe dispose conflict" -body {
         testDll function pointer_noop void {p {pointer dispose unsafe}}
@@ -1391,27 +1391,27 @@ namespace eval ${NS}::test {
     } -result "Invalid value \"pointer counted unsafe\". $errorMessages(attrconflict)* Error defining function *" -match glob -returnCodes error
 
     test function-pointer-param-safety-7 "pointer counted" -setup {
-        cffi::pointer counted 1^
+        cffi::pointer counted 0x1^
     } -body {
         testDll function pointer_noop void {p {pointer counted}}
-        pointer_noop 1^
-        pointer_noop 1^; # Should not increase reference count when passed as parameter
-        list [cffi::pointer isvalid 1^] [cffi::pointer dispose 1^] [cffi::pointer isvalid 1^]
+        pointer_noop 0x1^
+        pointer_noop 0x1^; # Should not increase reference count when passed as parameter
+        list [cffi::pointer isvalid 0x1^] [cffi::pointer dispose 0x1^] [cffi::pointer isvalid 0x1^]
     } -result {1 {} 0}
 
     test function-pointer-param-safety-8 "pointer safe dispose" -setup {
-        cffi::pointer safe 1^
+        cffi::pointer safe 0x1^
     } -body {
         testDll function pointer_noop void {p {pointer dispose}}
-        list [pointer_noop 1^] [cffi::pointer isvalid 1^]
+        list [pointer_noop 0x1^] [cffi::pointer isvalid 0x1^]
     } -result {{} 0}
 
     test function-pointer-param-safety-9 "pointer counted dispose" -setup {
-        cffi::pointer counted 1^
-        cffi::pointer counted 1^
+        cffi::pointer counted 0x1^
+        cffi::pointer counted 0x1^
     } -body {
         testDll function pointer_noop void {p {pointer dispose counted}}
-        list [pointer_noop 1^] [cffi::pointer isvalid 1^] [pointer_noop 1^] [cffi::pointer isvalid 1^]
+        list [pointer_noop 0x1^] [cffi::pointer isvalid 0x1^] [pointer_noop 0x1^] [cffi::pointer isvalid 0x1^]
     } -result {{} 1 {} 0}
 
     test function-pointer-param-safety-10 "pointer safe dispose - after param checks" -setup {
@@ -1489,10 +1489,10 @@ namespace eval ${NS}::test {
     } -result {1 0 0}
 
     test function-pointer-param-safety-17 "pointer pinned dispose" -setup {
-        cffi::pointer pin 1^
+        cffi::pointer pin 0x1^
     } -body {
         testDll function pointer_noop void {p {pointer dispose counted}}
-        list [pointer_noop 1^] [cffi::pointer isvalid 1^] [pointer_noop 1^] [cffi::pointer isvalid 1^] [cffi::pointer invalidate 1^] [cffi::pointer isvalid 1^]
+        list [pointer_noop 0x1^] [cffi::pointer isvalid 0x1^] [pointer_noop 0x1^] [cffi::pointer isvalid 0x1^] [cffi::pointer invalidate 0x1^] [cffi::pointer isvalid 0x1^]
     } -result {{} 1 {} 1 {} 0}
 
     test function-pointer-param-in-null-0 "pass null pointer - fail" -body {
@@ -1534,85 +1534,85 @@ namespace eval ${NS}::test {
     # pointer tags
     test function-pointer-param-tag-0 "pointer tag safe" -setup {
         testDll function pointer_noop void {p pointer.::TAG}
-        cffi::pointer safe 1^::TAG
+        cffi::pointer safe 0x1^::TAG
     } -cleanup {
-        cffi::pointer dispose 1^::TAG
+        cffi::pointer dispose 0x1^::TAG
     } -body {
-        pointer_noop 1^::TAG
+        pointer_noop 0x1^::TAG
     } -result ""
 
     test function-pointer-param-tag-1 "pointer tag unsafe" -body {
         testDll function pointer_noop void {p {pointer.TAG unsafe}}
-        pointer_noop 1^[namespace current]::TAG
+        pointer_noop 0x1^[namespace current]::TAG
     } -result ""
 
     test function-pointer-param-tag-2 "pointer tag safe - wrong type" -body {
         testDll function pointer_noop void {p pointer.TAG}
-        pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
+        pointer_noop 0x1^TAG2
+    } -result {Value "0x1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     test function-pointer-param-tag-3 "pointer tag unsafe - wrong type" -body {
         testDll function pointer_noop void {p {pointer.TAG unsafe}}
-        pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
+        pointer_noop 0x1^TAG2
+    } -result {Value "0x1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     test function-pointer-param-tag-4 "pointer tag counted" -setup {
         testDll function pointer_noop void {p {pointer.::TAG counted}}
-        cffi::pointer counted 1^::TAG
+        cffi::pointer counted 0x1^::TAG
     } -cleanup {
-        cffi::pointer dispose 1^::TAG
+        cffi::pointer dispose 0x1^::TAG
     } -body {
-        pointer_noop 1^::TAG
+        pointer_noop 0x1^::TAG
     } -result ""
 
     test function-pointer-param-tag-5 "pointer tag counted - wrong type" -body {
         testDll function pointer_noop void {p {pointer.TAG counted}}
-        pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
+        pointer_noop 0x1^TAG2
+    } -result {Value "0x1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     # tag dispose
     test function-pointer-param-tag-6 "pointer tag dispose" -setup {
         testDll function pointer_noop void {p {pointer.TAG dispose}}
         set tag [namespace current]::TAG
-        cffi::pointer safe 1^$tag
+        cffi::pointer safe 0x1^$tag
     } -body {
-        list [pointer_noop 1^$tag] [cffi::pointer isvalid 1^$tag]
+        list [pointer_noop 0x1^$tag] [cffi::pointer isvalid 0x1^$tag]
     } -result [list {} 0]
 
     test function-pointer-param-tag-7 "pointer tag dispose - wrong type" -body {
         testDll function pointer_noop void {p {pointer.TAG dispose}}
-        pointer_noop 1^TAG2
-    } -result {Value "1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
+        pointer_noop 0x1^TAG2
+    } -result {Value "0x1^TAG2" has the wrong type. Expected pointer to ::cffi::test::TAG.} -returnCodes error
 
     test function-pointer-param-tag-8 "pointer tag safe passed to untagged" -setup {
         testDll function pointer_noop void {p pointer}
-        cffi::pointer safe 1^TAG
+        cffi::pointer safe 0x1^TAG
     } -cleanup {
-        cffi::pointer dispose 1^TAG
+        cffi::pointer dispose 0x1^TAG
     } -body {
-        pointer_noop 1^TAG
+        pointer_noop 0x1^TAG
     } -result ""
 
     test function-pointer-param-tag-9 "pointer untagged safe passed to tagged" -setup {
         testDll function pointer_noop void {p pointer.TAG}
-        cffi::pointer safe 1^
+        cffi::pointer safe 0x1^
     } -cleanup {
-        cffi::pointer dispose 1^
+        cffi::pointer dispose 0x1^
     } -body {
-        list [catch {pointer_noop 1^} result] $result
-    } -result {1 {Value "1^" has the wrong type. Expected pointer to ::cffi::test::TAG.}}
+        list [catch {pointer_noop 0x1^} result] $result
+    } -result {1 {Value "0x1^" has the wrong type. Expected pointer to ::cffi::test::TAG.}}
 
     test function-pointer-param-tag-10 "pointer tag unsafe passed to untagged" -setup {
         testDll function pointer_noop void {p {pointer unsafe}}
     } -body {
-        pointer_noop 1^TAG
+        pointer_noop 0x1^TAG
     } -result ""
 
     test function-pointer-param-tag-11 "pointer untagged unsafe passed to tagged" -setup {
         testDll function pointer_noop void {p {pointer.TAG unsafe}}
     } -body {
-        list [catch {pointer_noop 1^} result] $result
-    } -result {1 {Value "1^" has the wrong type. Expected pointer to ::cffi::test::TAG.}}
+        list [catch {pointer_noop 0x1^} result] $result
+    } -result {1 {Value "0x1^" has the wrong type. Expected pointer to ::cffi::test::TAG.}}
 
     # Pointer param error attributes
     foreach attr [linsert $requirementAttrs end nullifempty] {
@@ -1875,7 +1875,7 @@ namespace eval ${NS}::test {
         unset -nocomplain outstruct
     } -body {
         testDll function nestedStructArrayCopy void {from {struct.StructWithNestedStructArray byref} to {struct.StructWithNestedStructArray out}}
-        nestedStructArrayCopy {s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p {1^ 2^ 3^}} outstruct
+        nestedStructArrayCopy {s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p {0x1^ 0x2^ 0x3^}} outstruct
         set outstruct
     } -result [list s {{c 0 i 1 s 2} {c 3 i 4 s 5} {c 6 i 7 s 8}} p [make_unsafe_pointers 1 2 3]]
 
@@ -2120,7 +2120,7 @@ namespace eval ${NS}::test {
     } -cleanup {
         S destroy
     } -body {
-        set in {count 2 values {1^ 2^}}
+        set in {count 2 values {0x1^ 0x2^}}
         set out {count 2}
         copyVarSizeStructintvoidpointer $in out
         set out
@@ -2425,7 +2425,7 @@ namespace eval ${NS}::test {
         test function-return-$type-byref-error-1 "return $type byref - return pointer null" -body {
             set fn pointer_to_pointer
             testDll function $fn [list $type byref] [list param {pointer unsafe novaluechecks}]
-            $fn 0^
+            $fn 0x0^
         } -result {Invalid value. Function returned NULL pointer} -returnCodes error
 
         test function-return-$type-array-0 "return type $type\[\]" -body {
@@ -2498,19 +2498,19 @@ namespace eval ${NS}::test {
         # safe
         test function-return-$type-safe-0 "return type $type safe" -body {
             testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
         test function-return-$type-safe-dup-0 "return type $type safe - dup" -cleanup {
             cffi::pointer dispose $p
         } -body {
             testDll function pointer_to_pointer [list $type] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
-            list [cffi::pointer isvalid $p] [catch {pointer_to_pointer 1^} result] [cffi::pointer isvalid $p]
+            set p [pointer_to_pointer 0x1^]
+            list [cffi::pointer isvalid $p] [catch {pointer_to_pointer 0x1^} result] [cffi::pointer isvalid $p]
         } -result {1 0 1}
         test function-return-$type-byref-safe-0 "return type $type byref safe" -body {
             testDll function pointer_ret_byref [list $type byref] {p {pointer unsafe}}
-            set p [pointer_ret_byref 1^]
+            set p [pointer_ret_byref 0x1^]
             list $p [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result [list [makeptr 1 $tag] 1 {} 0]
 
@@ -2518,8 +2518,8 @@ namespace eval ${NS}::test {
         test function-return-$type-counted-0 "return type $type counted" -cleanup {
         } -body {
             testDll function pointer_to_pointer [list $type counted] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
-            set p2 [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
+            set p2 [pointer_to_pointer 0x1^]
             list [string equal $p $p2] \
                 [cffi::pointer tag $p] \
                 [cffi::pointer isvalid $p] \
@@ -2532,8 +2532,8 @@ namespace eval ${NS}::test {
         test function-return-$type-pinned-0 "return type $type pinned" -cleanup {
         } -body {
             testDll function pointer_to_pointer [list $type pinned] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
-            set p2 [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
+            set p2 [pointer_to_pointer 0x1^]
             list [string equal $p $p2] \
                 [cffi::pointer isvalid $p] \
                 [cffi::pointer dispose $p] \
@@ -2546,12 +2546,12 @@ namespace eval ${NS}::test {
         # unsafe
         test function-return-$type-unsafe-0 "return type $type unsafe" -body {
             testDll function pointer_to_pointer [list $type unsafe] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
             list [cffi::pointer isvalid $p]
         } -result 0
         test function-return-$type-byref-unsafe-0 "return type $type byref unsafe" -body {
             testDll function pointer_ret_byref [list $type byref unsafe] {p {pointer unsafe}}
-            set p [pointer_ret_byref 1^]
+            set p [pointer_ret_byref 0x1^]
             list $p [cffi::pointer isvalid $p]
         } -result [list [makeptr 1 $tag] 0]
 
@@ -2559,121 +2559,121 @@ namespace eval ${NS}::test {
         test function-return-$type-discard-0 "return $type discard" -setup {
             testDll function pointer_to_pointer [list $type unsafe discard] {p {pointer unsafe}}
         } -body {
-            pointer_to_pointer 1^
+            pointer_to_pointer 0x1^
         } -result {}
         test function-return-$type-discard-1 "return $type discard - error" -setup {
             testDll function pointer_to_pointer [list $type unsafe discard] {p {pointer novaluechecks unsafe}}
         } -body {
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result {Invalid value. Function returned an error value.} -returnCodes error
 
         # Pointer error attributes
         # safe
         test function-return-$type-novaluechecks-0 "return type $type novaluechecks" -body {
             testDll function pointer_to_pointer [list $type novaluechecks] {p {pointer unsafe}}
-            set p [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
         test function-return-$type-null-0 "return type $type - null" -body {
             testDll function pointer_to_pointer [list $type] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-novaluechecks-null-0 "return type $type - NULL" -body {
             testDll function pointer_to_pointer [list $type novaluechecks] {p {pointer novaluechecks unsafe}}
-            set p [pointer_to_pointer 0^]
+            set p [pointer_to_pointer 0x0^]
             list [cffi::pointer isvalid $p] $p
         } -result [list 0 [makeptr 0 $tag]]
 
         test function-return-$type-byref-novaluechecks-null-0 "return type $type byref - novaluechecks" -body {
             testDll function pointer_ret_byref [list $type byref novaluechecks] {p {pointer unsafe novaluechecks}}
-            pointer_ret_byref 0^
+            pointer_ret_byref 0x0^
         } -result [makeptr 0 $tag]
         test function-return-$type-byref-novaluechecks-null-1 "return type $type byref - null" -body {
             testDll function pointer_ret_byref [list $type byref] {p {pointer unsafe novaluechecks}}
-            pointer_ret_byref 0^
+            pointer_ret_byref 0x0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-byref-novaluechecks-null-2 "return type $type byref - null" -body {
             # The returned pointer to be dereferenced is itself NULL
             testDll function pointer_to_pointer [list $type byref] {p {pointer unsafe novaluechecks}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result "Invalid value. Function returned NULL pointer" -returnCodes error -match glob
 
         test function-return-$type-errno-0 "return type $type - errno" -body {
             testDll function pointer_errno [list $type errno] {p {pointer unsafe novaluechecks}}
-            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+            list [catch {pointer_errno 0x0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
         test function-return-$type-lasterror-0 "return type $type - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type lasterror] {p {pointer unsafe novaluechecks}}
-            list [catch {pointer_lasterror 0^} result] $result
+            list [catch {pointer_lasterror 0x0^} result] $result
         } -result {1 {The data is invalid.}}
 
         # counted
         test function-return-$type-counted-novaluechecks-0 "return type $type counted" -body {
             testDll function pointer_to_pointer [list $type novaluechecks counted] {p {pointer novaluechecks unsafe}}
-            set p [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p]
         } -result {1 {} 0}
         test function-return-$type-counted-null-0 "return type $type counted novaluechecks - null" -body {
             testDll function pointer_to_pointer [list $type counted] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-counted-novaluechecks-null-0 "return type $type counted novaluechecks - NULL" -body {
             testDll function pointer_to_pointer [list $type novaluechecks counted] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result [makeptr 0 $tag]
         test function-return-$type-counted-errno-0 "return type $type counted - errno" -body {
             testDll function pointer_errno [list $type counted errno] {p {pointer novaluechecks unsafe}}
-            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+            list [catch {pointer_errno 0x0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
         test function-return-$type-counted-lasterror-0 "return type $type counted - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type counted lasterror] {p {pointer novaluechecks unsafe}}
-            list [catch {pointer_lasterror 0^} result] $result
+            list [catch {pointer_lasterror 0x0^} result] $result
         } -result {1 {The data is invalid.}}
 
         # pinned
         test function-return-$type-pinned-novaluechecks-0 "return type $type pinned" -body {
             testDll function pointer_to_pointer [list $type novaluechecks pinned] {p {pointer novaluechecks unsafe}}
-            set p [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
             list [cffi::pointer isvalid $p] [cffi::pointer dispose $p] [cffi::pointer isvalid $p] [cffi::pointer invalidate $p] [cffi::pointer isvalid $p]
         } -result {1 {} 1 {} 0}
         test function-return-$type-pinned-null-0 "return type $type pinned novaluechecks - null" -body {
             testDll function pointer_to_pointer [list $type pinned] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-pinned-novaluechecks-null-0 "return type $type pinned novaluechecks - NULL" -body {
             testDll function pointer_to_pointer [list $type novaluechecks pinned] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result [makeptr 0 $tag]
         test function-return-$type-pinned-errno-0 "return type $type pinned - errno" -body {
             testDll function pointer_errno [list $type pinned errno] {p {pointer novaluechecks unsafe}}
-            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+            list [catch {pointer_errno 0x0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
         test function-return-$type-pinned-lasterror-0 "return type $type pinned - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type pinned lasterror] {p {pointer novaluechecks unsafe}}
-            list [catch {pointer_lasterror 0^} result] $result
+            list [catch {pointer_lasterror 0x0^} result] $result
         } -result {1 {The data is invalid.}}
 
         # unsafe
         test function-return-$type-unsafe-novaluechecks-0 "return type $type unsafe novaluechecks" -body {
             testDll function pointer_to_pointer [list $type unsafe novaluechecks] {p {pointer novaluechecks unsafe}}
-            set p [pointer_to_pointer 1^]
+            set p [pointer_to_pointer 0x1^]
             cffi::pointer isvalid $p
         } -result 0
         test function-return-$type-unsafe-null-0 "return type $type unsafe - null" -body {
             testDll function pointer_to_pointer [list $type unsafe] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result "Invalid value *. Function returned an error value." -returnCodes error -match glob
         test function-return-$type-unsafe-novaluechecks-null-0 "return type $type unsafe novaluechecks - NULL" -body {
             testDll function pointer_to_pointer [list $type unsafe novaluechecks] {p {pointer novaluechecks unsafe}}
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result [makeptr 0 $tag]
         test function-return-$type-unsafe-errno-0 "return type $type unsafe - errno" -body {
             testDll function pointer_errno [list $type unsafe errno] {p {pointer novaluechecks unsafe}}
-            list [catch {pointer_errno 0^} result] [string equal $result $einvalMessage]
+            list [catch {pointer_errno 0x0^} result] [string equal $result $einvalMessage]
         } -result {1 1}
         test function-return-$type-unsafe-lasterror-0 "return type $type unsafe - lasterror" -constraints win -body {
             testDll function pointer_lasterror [list $type unsafe lasterror] {p {pointer novaluechecks unsafe}}
-            list [catch {pointer_lasterror 0^} result] $result
+            list [catch {pointer_lasterror 0x0^} result] $result
         } -result {1 {The data is invalid.}}
 
         # checks that are not valid for pointers
@@ -2710,12 +2710,12 @@ namespace eval ${NS}::test {
         test function-return-$type-NULL-novaluechecks-0 "return $type NULL - novaluechecks" -setup {
             testDll function pointer_to_pointer "$type novaluechecks" {p {pointer novaluechecks unsafe}}
         } -body {
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result ""
         test function-return-$type-NULL-0 "return $type NULL - error" -setup {
             testDll function pointer_to_pointer "$type" {p {pointer novaluechecks unsafe}}
         } -body {
-            pointer_to_pointer 0^
+            pointer_to_pointer 0x0^
         } -result {Invalid value "". Function returned an error value.} -returnCodes error
     }
     test function-return-string-1 "return string ascii" -setup {
@@ -2818,14 +2818,14 @@ namespace eval ${NS}::test {
     } -body {
         # THe "novaluechecks" annotation should refer to dereferenced pointer, not
         # returned pointer value
-        pointer_to_pointer 0^
+        pointer_to_pointer 0x0^
     } -result {Invalid value. Function returned NULL pointer} -returnCodes error
     test function-return-string-byref-null-1 "return string byref - NULL" -setup {
         testDll function pointer_ret_byref {string byref novaluechecks} {p {pointer novaluechecks unsafe}}
     } -body {
         # THe "novaluechecks" annotation should refer to dereferenced pointer, not
         # returned pointer value
-        pointer_ret_byref 0^
+        pointer_ret_byref 0x0^
     } -result ""
 
     # Return type - struct

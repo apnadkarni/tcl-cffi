@@ -87,7 +87,7 @@ namespace eval cffi::test {
     testnumargs memory-free "cffi::memory free" "POINTER"
 
     test memory-free-0 {free null pointer} -body {
-        cffi::memory free 0^
+        cffi::memory free 0x0^
     } -result ""
 
     test memory_free-error-0 {Double free} -setup {
@@ -187,10 +187,10 @@ namespace eval cffi::test {
     } -result {1.0 2.0}
 
     test memory-tobinary-error-0 "tobinary null pointer" -body {
-        cffi::memory tobinary 0^ 1
+        cffi::memory tobinary 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tobinary!-error-0 "tobinary! null pointer" -body {
-        cffi::memory tobinary! 0^ 1
+        cffi::memory tobinary! 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error
     test memory-tobinary-error-1 {To/From binary offset negative - safe} -setup {
         set bin [binary format ddd 1.0 2.0 3.0]
@@ -423,13 +423,13 @@ namespace eval cffi::test {
     } -result abc -constraints win
 
     test memory-tostring-error-0 "tostring null pointer" -body {
-        cffi::memory tostring 0^ 1
+        cffi::memory tostring 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-tounistring-error-0 "tounistring null pointer" -body {
-        cffi::memory tounistring 0^ 1
+        cffi::memory tounistring 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-towinstring-error-0 "towinstring null pointer" -body {
-        cffi::memory towinstring 0^ 1
+        cffi::memory towinstring 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp -constraints win
     test memory-tostring-error-1 "memory tostring negative offset" -body {
         unset -nocomplain p
@@ -454,13 +454,13 @@ namespace eval cffi::test {
     } -result {Invalid value. Negative offsets are not allowed for safe pointers.} -returnCodes error -constraints win
 
     test memory-tostring!-error-0 "tostring! null pointer" -body {
-        cffi::memory tostring! 0^ 1
+        cffi::memory tostring! 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error
     test memory-tounistring!-error-0 "tounistring! null pointer" -body {
-        cffi::memory tounistring! 0^ 1
+        cffi::memory tounistring! 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp
     test memory-towinstring!-error-0 "towinstring! null pointer" -body {
-        cffi::memory towinstring! 0^ 1
+        cffi::memory towinstring! 0x0^ 1
     } -result {Invalid value. Pointer is NULL.} -returnCodes error -match regexp -constraints win
 
     ###

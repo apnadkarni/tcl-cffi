@@ -410,7 +410,7 @@ namespace eval cffi::test {
     } -cleanup {
         rename ::S {}
     } -body {
-        ::S free 0^::S
+        ::S free 0x0^::S
     } -result ""
 
     ###
@@ -1751,8 +1751,8 @@ namespace eval cffi::test {
     } -result {Field "nosuchfield" not found or inaccessible. No such field in struct definition ::cffi::test::S.} -returnCodes error
 
     test struct-getnativefields-error-3 "unsafe pointer" -body {
-        ::TestStruct getnativefields 1^::TestStruct {}
-    } -result "Invalid value \"1^::TestStruct\". Pointer validation failed: not registered." -returnCodes error
+        ::TestStruct getnativefields 0x1^::TestStruct {}
+    } -result "Invalid value \"0x1^::TestStruct\". Pointer validation failed: not registered." -returnCodes error
 
     test struct-getnativefields-varsize-0 "struct getnativefields - varsize" -setup {
         cffi::Struct create ::S {n int d double[n]}

@@ -38,7 +38,7 @@ namespace eval ${NS}::test {
             cffi::pointer $cmd
         } -result "wrong # args: should be \"cffi::pointer $cmd POINTER\"" -returnCodes error
         test pointer-$cmd-numargs-1 "pointer $cmd too many args" -body {
-            cffi::pointer $cmd 1^ 2^
+            cffi::pointer $cmd 0x1^ 0x2^
         } -result "wrong # args: should be \"cffi::pointer $cmd POINTER\"" -returnCodes error
     }
 
@@ -194,40 +194,40 @@ namespace eval ${NS}::test {
     } -result [list ]
 
     test pointer-list-1 "pointer list" -setup {
-        cffi::pointer safe 1^TAG
-        cffi::pointer safe 2^
+        cffi::pointer safe 0x1^TAG
+        cffi::pointer safe 0x2^
     } -body {
-        list [lsort [cffi::pointer list]] [cffi::pointer dispose 1^TAG] [cffi::pointer dispose 2^] [cffi::pointer list]
+        list [lsort [cffi::pointer list]] [cffi::pointer dispose 0x1^TAG] [cffi::pointer dispose 0x2^] [cffi::pointer list]
     } -result [list [list [makeptr 1 TAG] [makeptr 2]] {} {} {}]
 
     test pointer-list-2 "pointer list for tag" -setup {
-        cffi::pointer safe 1^TAG
-        cffi::pointer safe 2^
-        cffi::pointer safe 3^BAG
+        cffi::pointer safe 0x1^TAG
+        cffi::pointer safe 0x2^
+        cffi::pointer safe 0x3^BAG
     } -cleanup {
-        cffi::pointer dispose 1^TAG
-        cffi::pointer dispose 2^
-        cffi::pointer dispose 3^BAG
+        cffi::pointer dispose 0x1^TAG
+        cffi::pointer dispose 0x2^
+        cffi::pointer dispose 0x3^BAG
     } -body {
         cffi::pointer list TAG
     } -result [list [makeptr 1 TAG]]
 
     test pointer-list-3 "pointer list no matches" -setup {
-        cffi::pointer safe 1^TAG
+        cffi::pointer safe 0x1^TAG
     } -cleanup {
-        cffi::pointer dispose 1^TAG
+        cffi::pointer dispose 0x1^TAG
     } -body {
         cffi::pointer list TAGX
     } -result [list ]
 
     test pointer-list-4 "pointer list for void" -setup {
-        cffi::pointer safe 1^TAG
-        cffi::pointer safe 2^
-        cffi::pointer safe 3^BAG
+        cffi::pointer safe 0x1^TAG
+        cffi::pointer safe 0x2^
+        cffi::pointer safe 0x3^BAG
     } -cleanup {
-        cffi::pointer dispose 1^TAG
-        cffi::pointer dispose 2^
-        cffi::pointer dispose 3^BAG
+        cffi::pointer dispose 0x1^TAG
+        cffi::pointer dispose 0x2^
+        cffi::pointer dispose 0x3^BAG
     } -body {
         cffi::pointer list ""
     } -result [list [makeptr 2]]
