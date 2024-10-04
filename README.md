@@ -43,4 +43,4 @@ Limitations in the current version include
 
 ## Version history
 
-See the [Change log](CHANGES.md).
+See the [Change log](https://github.com/apnadkarni/tcl-cffi/blob/main/CHANGES.md).

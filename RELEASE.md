@@ -28,26 +28,23 @@ Rename `latest` to `cffiVERSION` and zip it.
 Unzip into distribution into each of the 8.6 and 9.0 directories for
 x86 and x64. Test that the package loads successfully.
 
-## Windows sources
+## Source code archives
 
-From the *top* of the source repository
-
-```
-git archive --prefix cffi%CFFIVER%-src/ -o d:\src\cffi%CFFIVER%-src.zip v%CFFIVER%
-```
-
-Extract the archive somewhere and ensure it builds.
-
-## Unix sources
-
-When generating a distribution from Windows, line endings are CR-LF. Rather than
-fixing them after the fact, clone the repository in WSL.
+Clone the repository in WSL.
 
 ```
-git archive --prefix cffi$CFFIVER-src/ -o ../cffi$CFFIVER-src.tgz v$CFFIVER
+cd /tmp
+git clone --recurse-submodules git@github.com:apnadkarni/tcl-cffi.git cffi-u
+cd cffi-u
+git archive --prefix cffi$CFFIVER-src/ v$CFFIVER | (cd /tmp ; tar xf -)
+cd ./tclh
+git archive --prefix cffi$CFFIVER-src/tclh/ HEAD | (cd /tmp ; tar xf -)
+cd /tmp
+tar -czf cffi$CFFIVER-src.tgz cffi$CFFIVER-src
+zip -r cffi$CFFIVER-src.zip cffi$CFFIVER-src
 ```
 
-Extract the archive somewhere and ensure it builds.
+Extract the archives somewhere and ensure it builds.
 
 ## Web site documentation
 
