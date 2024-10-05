@@ -2,19 +2,12 @@ name: mac
 
 on:
   workflow_dispatch:
-    inputs:
-      target:
-        description: 'MacOS runner name'
-        required: true
-        type: choice
-        options:
-          - macos-12
-          - macos-13
+
 jobs:
   build:
     strategy:
       matrix:
-        os: [ ${{ github.event.inputs.target }} ]
+        os: [macos-12]
         tclbranch:
           - core-8-6-13
           - main
