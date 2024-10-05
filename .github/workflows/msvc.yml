@@ -37,7 +37,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.TCLDIR }}
-        key: ${{ runner.os }}-tcl-msvc-${{ env.TCLSUBDIR }}
+        key: ${{ runner.os }}-${{ matrix.os }}-tcl-msvc-${{ env.TCLSUBDIR }}
 
     - name: Checkout Tcl
       if: steps.tcl-msvc-cache.outputs.cache-hit != 'true'
@@ -65,7 +65,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: C:/dyncall/msvc/${{ matrix.arch }}
-        key: ${{ runner.os }}-dyncall-msvc-${{ matrix.arch }}
+        key: ${{ runner.os }}-${{ matrix.os}}-dyncall-msvc-${{ matrix.arch }}
 
     - name: Install dyncall
       if: steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
