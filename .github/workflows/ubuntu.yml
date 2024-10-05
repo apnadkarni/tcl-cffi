@@ -92,7 +92,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib --enable-64bit
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib --enable-64bit --disable-staticffi
 
     - name: Make with libffi
       run: |
