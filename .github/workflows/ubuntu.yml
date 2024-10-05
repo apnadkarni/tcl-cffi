@@ -39,7 +39,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.TCLDIR }}
-        key: ${{ runner.os }}-tcl-${{ env.TCLSUBDIR }}
+        key: ${{ runner.os }}-${{ matrix.os }}-tcl-${{ env.TCLSUBDIR }}
 
     - name: Checkout Tcl
       if: steps.tcl-cache.outputs.cache-hit != 'true'
