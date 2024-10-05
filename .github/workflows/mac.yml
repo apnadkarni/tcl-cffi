@@ -68,7 +68,7 @@ jobs:
       run: |
         mkdir build-dyncall
         cd build-dyncall
-        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include --with-dyncall
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include --with-dyncall
 
     - name: Make with dyncall
       run: |
@@ -86,7 +86,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=/usr/local/opt/tcl-tk/lib LDFLAGS="-L/usr/local/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include" --disable-staticffi
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include" --disable-staticffi
 
     - name: Make with libffi
       run: |
