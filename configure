@@ -5054,7 +5054,7 @@ else
     CLEANFILES="$CLEANFILES pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
 
-    vars="-luuid"
+    vars="-luuid -ltommath"
     for i in $vars; do
 	if test "${TEA_PLATFORM}" = "windows" -a "$GCC" = "yes" ; then
 	    # Convert foo.lib to -lfoo for GCC.  No-op if not *.lib
