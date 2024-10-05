@@ -5,19 +5,53 @@ on:
 
 jobs:
   build:
-    runs-on: macos-12
+    strategy:
+      matrix:
+        os: [macos-12]
+        tclbranch:
+          - core-8-6-13
+          - main
+    runs-on: ${{ matrix.os }}
+    env:
+      TCLSUBDIR: ${{ matrix.tclbranch }}
+      TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
 
     steps:
+
+    - name: Install libffi and uuid
+      run: |
+        brew update
+        brew install libffi ossp-uuid || true
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
       with:
         submodules: true
 
-    - name: Install Tcl and libffi
+    - name: Cache Tcl build
+      id: tcl-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.TCLDIR }}
+        key: ${{ runner.os }}-${{ matrix.os }}-tcl-${{ env.TCLSUBDIR }}
+
+    - name: Checkout Tcl
+      if: steps.tcl-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: tcltk/tcl
+        ref: ${{ matrix.tclbranch }}
+        path: tcl-${{ matrix.tclbranch }}
+
+    - name: Build Tcl
+      if: steps.tcl-cache.outputs.cache-hit != 'true'
+      working-directory: tcl-${{ matrix.tclbranch }}/unix
       run: |
-        brew update
-        brew install tcl-tk libffi ossp-uuid || true
+        mkdir build
+        cd build
+        ../configure --prefix=${{ env.TCLDIR }} || (cat config.log && exit 1)
+        make
+        make install
 
     - name: Install dyncall
       run: |

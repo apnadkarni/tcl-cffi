@@ -28,11 +28,12 @@ for example when the system Tcl is 8.6 and your private Tcl is 9.0
 The first step is to install the `libffi` libraries. Most Unix systems will provide
 this through the package manager as either `libffi` or `libffi-dev`. In addition,
 depending on how your Tcl installation was built, you may also need to install
-`libtommath`.  For example, on Ubuntu, these may be installed as
+`libtommath` and `libuuid`.  For example, on Ubuntu, these may be installed as
 
 ```
 sudo apt install libffi-dev
 sudo apt install libtommath-dev
+sudo apt install uuid-dev
 ```
 
 If not available with the package manager, download sources from
