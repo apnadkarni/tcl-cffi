@@ -5,16 +5,18 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
-
     strategy:
       matrix:
+        os:
+          - windows-2022
+          - windows-2019
         arch:
           - x64
           - x86
         tclbranch:
           - core-8-6-13
           - main
+    runs-on: ${{ matrix.os }}
     env:
       TCLSUBDIR: ${{ matrix.arch }}-${{ matrix.tclbranch }}
       TCLDIR: C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}
