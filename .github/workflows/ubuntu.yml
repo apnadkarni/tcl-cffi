@@ -23,6 +23,12 @@ jobs:
        sudo apt-get update
        sudo apt-get install libtommath-dev
 
+    - name: Install libuuid
+      id: uuid
+      run: |
+       sudo apt-get update
+       sudo apt-get install uuid-dev
+  
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
       with:
