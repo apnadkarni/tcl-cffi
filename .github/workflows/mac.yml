@@ -5,8 +5,11 @@ on:
     inputs:
       target:
         description: 'MacOS runner name'
-        required: false
-        default: "[macos-12, macos-13, macos-14]"
+        required: true
+        type: choice
+        options:
+          - macos-12
+          - macos-13
 jobs:
   build:
     strategy:
