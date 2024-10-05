@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-12]
+        os: [macos-13]
         tclbranch:
           - core-8-6-13
           - main
