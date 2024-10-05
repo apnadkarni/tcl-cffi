@@ -21,7 +21,7 @@ jobs:
     - name: Install libffi and uuid
       run: |
         brew update
-        brew install libffi ossp-uuid || true
+        brew install libffi ossp-uuid libtommath || true
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
