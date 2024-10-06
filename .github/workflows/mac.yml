@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-13, macos-14]
+        os: [macos-14]
         tclbranch:
           - core-8-6-13
           - main
@@ -31,6 +31,11 @@ jobs:
       if: ${{ matrix.os }} != 'macos-14'
       run: |
         brew install ossp-uuid || true
+
+    - name: Find uuid
+      run: |
+        find /usr/lib -name '*uuid*'
+        false
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
