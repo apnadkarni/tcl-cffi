@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-14]
+        os: [macos-12, macos-13, macos-14]
         tclbranch:
           - core-8-6-13
           - main
@@ -22,10 +22,6 @@ jobs:
       run: |
         brew update
         brew install libffi ossp-uuid || true
-
-    - name: Install tommath
-      run: |
-        port install libtommath || true
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
