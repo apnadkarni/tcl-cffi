@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-13, macos-14]
+        os: [macos-14]
         tclbranch:
           - core-8-6-13
           - main
@@ -34,7 +34,7 @@ jobs:
 
     - name: Find uuid
       run: |
-        find /Applications/Xcode_15.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr -name '*uuid*'
+        find /usr/local -name '*uuid*'
         false
 
     - name: Checkout tcl-cffi
