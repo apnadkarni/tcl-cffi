@@ -33,7 +33,7 @@ jobs:
         path-type: minimal
         release: true
         update: false
-        install: mingw-w64-${{matrix.arch}}-gcc make mingw-w64-${{matrix.arch}}-libtommath 
+        install: mingw-w64-${{matrix.arch}}-gcc make
 
     - name: Verify toolchain
       run: |

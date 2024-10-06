@@ -17,11 +17,13 @@ jobs:
       TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
 
     steps:
-    - name: Install libtommath
-      id: tommath
-      run: |
-       sudo apt-get update
-       sudo apt-get install libtommath-dev
+
+    # No longer needed
+    #- name: Install libtommath
+    #  id: tommath
+    #  run: |
+    #   sudo apt-get update
+    #   sudo apt-get install libtommath-dev
 
     - name: Install libuuid
       id: uuid

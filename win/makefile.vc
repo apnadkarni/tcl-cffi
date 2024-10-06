@@ -122,10 +122,6 @@ PRJ_LIBS = $(PRJ_LIBS) rpcrt4.lib
 PRJ_DEFINES = $(PRJ_DEFINES) -DTCLH_ASSERT_LEVEL=$(CFFI_ASSERT_LEVEL)
 !endif
 
-!if (($(TCL_MAJOR_VERSION) > 8) || (($(TCL_MAJOR_VERSION) == 8) && ($(TCL_MINOR_VERSION) >= 7)))
-PRJ_LIBS = $(PRJ_LIBS) $(INSTALLDIR)\lib\tommath.lib
-!endif
-
 # Define the standard targets
 # We do not use the standard predefined install targets because we want
 # to load binaries from platform-specific subdirectories of the package

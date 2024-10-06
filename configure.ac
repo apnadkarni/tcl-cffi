@@ -19,7 +19,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([cffi],[2.0b1])
+AC_INIT([cffi],[2.0b2])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -116,7 +116,7 @@ else
     # Ensure no empty else clauses
     CLEANFILES="$CLEANFILES pkgIndex.tcl"
     #TEA_ADD_SOURCES([unix/unixFile.c])
-    TEA_ADD_LIBS([-luuid -ltommath])
+    TEA_ADD_LIBS([-luuid])
 fi
 
 #--------------------------------------------------------------------
@@ -269,10 +269,11 @@ AC_SUBST(SHLIB_SUFFIX)
 # Needed for linking against tommath on Windows. TCL_TOMMATH_LIB_NAME
 # will be set in tclConfig.sh when required (Windows, Tcl 9)
 #--------------------------------------------------------------------
-if test "X${TCL_TOMMATH_LIB_NAME}" != "X" ; then
-    TCL_TOMMATH_LIB=\${libdir}/${TCL_TOMMATH_LIB_NAME}
-    AC_SUBST(TCL_TOMMATH_LIB)
-fi
+# No longer needed
+#if test "X${TCL_TOMMATH_LIB_NAME}" != "X" ; then
+    #TCL_TOMMATH_LIB=\${libdir}/${TCL_TOMMATH_LIB_NAME}
+#fi
+AC_SUBST(TCL_TOMMATH_LIB)
 
 #--------------------------------------------------------------------
 # Specify files to substitute AC variables in. You may alternatively
