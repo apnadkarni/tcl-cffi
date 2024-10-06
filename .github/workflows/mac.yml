@@ -32,6 +32,13 @@ jobs:
       run: |
         brew install ossp-uuid || true
 
+    - name: Find uuid
+      run: |
+        find /usr/include -name uuid.h
+        cat /usr/include/uuid/uuid.h
+        find /usr/lib -name '*uuid*'
+        false
+
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
       with:
