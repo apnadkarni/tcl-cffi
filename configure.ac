@@ -115,8 +115,9 @@ if test "${TEA_PLATFORM}" = "windows" ; then
 else
     # Ensure no empty else clauses
     CLEANFILES="$CLEANFILES pkgIndex.tcl"
-    #TEA_ADD_SOURCES([unix/unixFile.c])
-    TEA_ADD_LIBS([-luuid])
+    if test "`uname -s`" != "Darwin" ; then
+       TEA_ADD_LIBS([-luuid])
+    fi
 fi
 
 #--------------------------------------------------------------------
