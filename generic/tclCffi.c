@@ -222,7 +222,13 @@ CffiSandboxObjCmd(ClientData cdata,
                   int objc,
                   Tcl_Obj *const objv[])
 {
-    return TCL_OK;
+    int ret;
+    Tcl_WideInt wide;
+    ret = Tclh_ObjToWideInt(ip, objv[1], &wide);
+    if (ret == TCL_OK) {
+        Tcl_SetObjResult(ip, Tcl_NewWideIntObj(wide));
+    }
+    return ret;
 }
 
 static int
