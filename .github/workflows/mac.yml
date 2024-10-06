@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-14]
+        os: [macos-12, macos-13]
         tclbranch:
           - core-8-6-13
           - main
@@ -25,12 +25,6 @@ jobs:
     - name: Install libffi
       run: |
         brew install libffi || true
-
-    # macos 14 should already have a libuuid
-    - name: Install libuuid
-      if: ${{ matrix.os }} != 'macos-14'
-      run: |
-        brew install ossp-uuid || true
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4

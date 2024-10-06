@@ -15,6 +15,8 @@ namespace eval ${NS}::test {
 # Function definition tests
 
 namespace eval ${NS}::test {
+    variable temp
+    variable temp2
 
     testnumargs function "testDll function" "NAME RETURNTYPE PARAMDEFS" ""
 
@@ -3823,6 +3825,19 @@ namespace eval ${NS}::test {
         copyUuid "$testValues(uuid)0" u
         set u
     } -result {Invalid value "01020304-0506-0708-090a-0b0c0d0e0f000". Invalid UUID format.} -returnCodes error
+
+    foreach temp {8 13 18 23} {
+        set temp2 [string replace "01020304-0506-0708-090a-0b0c0d0e0f00" $temp $temp 0]; # "-" -> 0
+        test function-uuid-error-2.$temp "uuid in,out - error - bad separator at position $temp" -setup {
+            testDll function copyUuid void {from {uuid byref} to {uuid out}}
+        } -body [list copyUuid $temp2 u] -result "Invalid value \"$temp2\". Invalid UUID format." -returnCodes error
+    }
+    foreach temp {0 7 9 12 14 17 19 22 24 end} {
+        set temp2 [string replace "01020304-0506-0708-090a-0b0c0d0e0f00" $temp $temp X]; # non-hex
+        test function-uuid-error-3.$temp "uuid in,out - error - non-hex at position $temp" -setup {
+            testDll function copyUuid void {from {uuid byref} to {uuid out}}
+        } -body [list copyUuid $temp2 u] -result "Invalid value \"$temp2\". Invalid UUID format." -returnCodes error
+    }
 
     ###
     # saveerror
