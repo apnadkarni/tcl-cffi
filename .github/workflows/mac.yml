@@ -34,7 +34,7 @@ jobs:
 
     - name: Find uuid
       run: |
-        find /usr/local -name '*uuid*'
+        find /usr/lib -name '*uuid*'
         false
 
     - name: Checkout tcl-cffi
