@@ -34,10 +34,7 @@ jobs:
 
     - name: Find uuid
       run: |
-        echo '#include <uuid/uuid.h>' > x.c && gcc -v -E x.c
-        find /usr/include -name uuid.h
-        cat /usr/include/uuid/uuid.h
-        find /usr/lib -name '*uuid*'
+        find /Applications/Xcode_15.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr -name '*uuid*'
         false
 
     - name: Checkout tcl-cffi
