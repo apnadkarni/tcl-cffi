@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-12, macos-13, macos-14]
+        os: [macos-12, macos-13]
         tclbranch:
           - core-8-6-13
           - main
@@ -32,7 +32,6 @@ jobs:
         uname -a
         uname -v
         uname -r
-        false
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
