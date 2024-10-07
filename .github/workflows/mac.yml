@@ -29,6 +29,7 @@ jobs:
         brew install libffi || true
 
     - name: System information
+      if: ${{ matrix.os == 'macos-14' }}
       run: |
         echo $HOMEBREW_PREFIX/lib
         ls $HOMEBREW_PREFIX/lib
@@ -98,7 +99,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib -L$HOMEBREW_PREFIX/lib" CFLAGS="-I/usr/local/opt/libffi/include -I$HOMEBREW_PREFIX/include" --disable-staticffi
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib -L$HOMEBREW_PREFIX/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include -I$HOMEBREW_PREFIX/opt/libffi/include" --disable-staticffi
 
     - name: Make with libffi
       run: |
