@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-12, macos-13]
+        os: [macos-12, macos-13, macos-14]
         tclbranch:
           - core-8-6-13
           - main
@@ -25,6 +25,14 @@ jobs:
     - name: Install libffi
       run: |
         brew install libffi || true
+
+    - name: System information
+      run: |
+        printenv
+        uname -a
+        uname -v
+        uname -r
+        false
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
