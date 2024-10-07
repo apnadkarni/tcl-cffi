@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-12, macos-13]
+        os: [macos-12, macos-13, macos-14]
         tclbranch:
           - core-8-6-13
           - main
@@ -89,7 +89,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include" --disable-staticffi
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib -L$HOMEBREW_PREFIX/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include -I$HOMEBREW_PREFIX/opt/libffi/include" --disable-staticffi
 
     - name: Make with libffi
       run: |
