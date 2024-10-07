@@ -6,14 +6,12 @@ on:
 jobs:
   build:
     strategy:
-      fail-fast: false
       matrix:
         os: [macos-12, macos-13, macos-14]
         tclbranch:
           - core-8-6-13
           - main
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
     env:
       TCLSUBDIR: ${{ matrix.tclbranch }}
       TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
@@ -27,14 +25,6 @@ jobs:
     - name: Install libffi
       run: |
         brew install libffi || true
-
-    - name: System information
-      if: ${{ matrix.os == 'macos-14' }}
-      run: |
-        echo $HOMEBREW_PREFIX/lib
-        ls $HOMEBREW_PREFIX/lib
-        echo $HOMEBREW_PREFIX/include
-        ls $HOMEBREW_PREFIX/include
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
