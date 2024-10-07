@@ -30,16 +30,10 @@ jobs:
 
     - name: System information
       run: |
-        printenv
-        uname -a
-        uname -v
-        uname -r
-        echo $HOMEBREW_REPOSITORY
-        ls $HOMEBREW_REPOSITORY
-        echo $HOMEBREW_PREFIX
-        ls $HOMEBREW_PREFIX
-        echo $HOMEBREW_CELLAR
-        ls $HOMEBREW_CELLAR
+        echo $HOMEBREW_PREFIX/lib
+        ls $HOMEBREW_PREFIX/lib
+        echo $HOMEBREW_PREFIX/include
+        ls $HOMEBREW_PREFIX/include
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
@@ -104,7 +98,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include" --disable-staticffi
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib -L$HOMEBREW_PREFIX/lib" CFLAGS="-I/usr/local/opt/libffi/include -I$HOMEBREW_PREFIX/include" --disable-staticffi
 
     - name: Make with libffi
       run: |
