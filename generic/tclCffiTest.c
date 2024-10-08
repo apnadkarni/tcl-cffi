@@ -760,7 +760,7 @@ EXTERN int getTestStruct(TestStruct *tsP)
     memset(tsP, 0, sizeof(*tsP));
 
 #define OFF(type, field) (type) offsetof(TestStruct, field)
-    tsP->c     = CHAR_MIN;
+    tsP->c     = SCHAR_MIN;
     tsP->i     = INT_MIN;
     tsP->shrt  = SHRT_MIN;
     tsP->uint  = UINT_MAX;
