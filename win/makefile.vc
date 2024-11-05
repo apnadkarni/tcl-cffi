@@ -131,10 +131,6 @@ DISABLE_TARGET_install = 1
 
 pkgindex: default-pkgindex-tea
 
-# The default install target only installs binaries and scripts so add
-# an additional target for our documentation. Note this *adds* a target
-# since no commands are listed after it. The original targets for
-# install (from targets.vc) will remain.
 install: $(PRJLIB)
 	@echo Installing to '$(SCRIPT_INSTALL_DIR)'
 	@if not exist "$(SCRIPT_INSTALL_DIR)" mkdir "$(SCRIPT_INSTALL_DIR)"
