@@ -1,47 +1,66 @@
 :: Builds release versions
 
-setlocal
-
-set package=cffi
+@setlocal
 
 :: Tcl installations
-set dir90x64=c:\Tcl\9.0.0\x64
-set dir90x86=c:\Tcl\9.0.0\x86
-set dir86x64=c:\Tcl\8.6.10\x64
-set dir86x86=c:\Tcl\8.6.10\x86
+@set dir90x64=c:\Tcl\9.0.0\x64
+@set dir90x86=c:\Tcl\9.0.0\x86
+@set dir86x64=c:\Tcl\8.6.10\x64
+@set dir86x86=c:\Tcl\8.6.10\x86
 
 :: Should not have to change anything after this line
 
-powershell .\release.ps1 %dir90x64% %~dp0\dist\latest x64
-@if ERRORLEVEL 1 goto error_exit
+:: Get package name from configure.{ac,in}
+@if exist configure.in set configure=configure.in
+@if exist configure.ac set configure=configure.ac
 
-powershell .\release.ps1 %dir90x86% %~dp0\dist\latest x86
-@if ERRORLEVEL 1 goto error_exit
+@for /F "usebackq delims=[] tokens=2" %%i in (`findstr "AC_INIT" %configure%`) do @set package=%%i
+@if NOT "x%package%" == "x" goto getversion
+@echo Could not get package name!
+@goto abort
 
-powershell .\release.ps1 %dir86x64% %~dp0\dist\latest x64
-@if ERRORLEVEL 1 goto error_exit
+:getversion
+@for /F "usebackq delims=[], tokens=4" %%i in (`findstr "AC_INIT" %configure%`) do @set version=%%i
+@if NOT "x%version%" == "x" goto setup
+@echo Could not get package version!
+@goto abort
 
-powershell .\release.ps1 %dir86x86% %~dp0\dist\latest x86
-@if ERRORLEVEL 1 goto error_exit
+:setup
 
-echo lappend auto_path dist/latest; puts [package require %package%] ; exit | %dir90x64%\bin\tclsh90.exe
-@if ERRORLEVEL 1 goto error_exit
+@set outdir=%~dp0dist\%package%-%version%
+@set outdiru=%outdir:\=/%
 
-echo lappend auto_path dist/latest; puts [package require %package%] ; exit | %dir90x86%\bin\tclsh90.exe
-@if ERRORLEVEL 1 goto error_exit
+powershell .\release.ps1 %dir90x64% %outdir% x64
+@if ERRORLEVEL 1 goto abort
 
-echo lappend auto_path dist/latest; puts [package require %package%] ; exit | %dir86x64%\bin\tclsh86t.exe
-@if ERRORLEVEL 1 goto error_exit
+powershell .\release.ps1 %dir90x86% %outdir% x86
+@if ERRORLEVEL 1 goto abort
 
-echo lappend auto_path dist/latest; puts [package require %package%] ; exit | %dir86x86%\bin\tclsh86t.exe
-@if ERRORLEVEL 1 goto error_exit
+powershell .\release.ps1 %dir86x64% %outdir% x64
+@if ERRORLEVEL 1 goto abort
 
-goto vamoose
+powershell .\release.ps1 %dir86x86% %outdir% x86
+@if ERRORLEVEL 1 goto abort
 
-:error_exit
-@echo "ERROR: Build failed"
-exit /B 1
+echo lappend auto_path %outdiru%; exit [catch {puts [package require %package%]}] | %dir90x64%\bin\tclsh90.exe
+@if ERRORLEVEL 1 goto abort
+
+echo lappend auto_path %outdiru%; exit [catch {puts [package require %package%]}] | %dir90x86%\bin\tclsh90.exe
+@if ERRORLEVEL 1 goto abort
+
+echo lappend auto_path %outdiru%; exit [catch {puts [package require %package%]}] | %dir86x64%\bin\tclsh86t.exe
+@if ERRORLEVEL 1 goto abort
+
+echo lappend auto_path %outdiru%; exit [catch {puts [package require %package%]}] | %dir86x86%\bin\tclsh86t.exe
+@if ERRORLEVEL 1 goto abort
+
+@goto vamoose
+
+:abort
+@echo ERROR: Build failed!
+@endlocal
+@exit /B 1
 
 :vamoose
-
+@endlocal
 

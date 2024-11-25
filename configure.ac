@@ -19,7 +19,8 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([cffi],[2.0b2])
+# Leave a space after the comma for release.cmd to parse
+AC_INIT([cffi], [2.0.3])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -196,7 +197,7 @@ TEA_ENABLE_SHARED
 
 TEA_CONFIG_CFLAGS
 
-TEA_ADD_CFLAGS([-DTCL_NO_DEPRECATED])
+TEA_ADD_CFLAGS([-DTCL_NO_DEPRECATED -std=c99])
 
 AC_CONFIG_COMMANDS_PRE(
     [# Must define -DFFI_BUILDING when linking statically, see commentary of FFI_API
