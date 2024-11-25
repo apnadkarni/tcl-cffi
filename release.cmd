@@ -21,13 +21,14 @@
 
 :getversion
 @for /F "usebackq delims=[], tokens=4" %%i in (`findstr "AC_INIT" %configure%`) do @set version=%%i
-@if NOT "x%version%" == "x" goto setup
+@if NOT "x%version%" == "x" goto build
 @echo Could not get package version!
 @goto abort
 
-:setup
+:build
 
-@set outdir=%~dp0dist\%package%-%version%
+@set pkgdir=%package%-%version%
+@set outdir=%~dp0dist\%pkgdir%
 @set outdiru=%outdir:\=/%
 
 powershell .\release.ps1 %dir90x64% %outdir% x64
@@ -54,13 +55,14 @@ echo lappend auto_path %outdiru%; exit [catch {puts [package require %package%]}
 echo lappend auto_path %outdiru%; exit [catch {puts [package require %package%]}] | %dir86x86%\bin\tclsh86t.exe
 @if ERRORLEVEL 1 goto abort
 
-@goto vamoose
+cd %outdir%\.. && zip -r %pkgdir%.zip %pkgdir% || goto abort
+
+@endlocal
+@exit /B 0
 
 :abort
 @echo ERROR: Build failed!
 @endlocal
 @exit /B 1
 
-:vamoose
-@endlocal
 

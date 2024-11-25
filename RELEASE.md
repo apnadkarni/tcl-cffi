@@ -8,8 +8,8 @@ Assumes release as in working directory ...
 
 Update Docs
 
-- README.md
-- Generate documentation
+- Update README.md
+- Generate documentation - `cd doc && tclsh makedocs.tcl`
 - Tag release
 - Commit
 - Push to github
@@ -18,24 +18,21 @@ Update Docs
 
 ## Windows binaries
 
-Run release.cmd to generate Windows binary distribution under `dist/latest`.
+Run release.cmd to generate Windows binary distribution under `dist/cffi-VERSION`.
 This will build the binaries for Tcl 8.6 and 9 for both x86 and x64.
-
-Copy README.md and LICENSE into distribution directory.
-
-Rename `latest` to `cffiVERSION` and zip it.
 
 Unzip into distribution into each of the 8.6 and 9.0 directories for
 x86 and x64. Test that the package loads successfully.
 
 ## Source code archives
 
-Clone the repository in WSL.
+Clone the repository in *WSL*.
 
 ```
 cd /tmp
 git clone --recurse-submodules git@github.com:apnadkarni/tcl-cffi.git cffi-u
 cd cffi-u
+CFFIVER=$(egrep AC_INIT configure.ac | egrep -o --color=never '[0-9]\.[0-9][ab.][0-9]')
 git archive --prefix cffi$CFFIVER-src/ v$CFFIVER | (cd /tmp ; tar xf -)
 cd ./tclh
 git archive --prefix cffi$CFFIVER-src/tclh/ HEAD | (cd /tmp ; tar xf -)
