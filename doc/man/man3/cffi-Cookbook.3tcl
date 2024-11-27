@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Cookbook" 3tcl 2\&.0b1 "cffi" "Tcl CFFI package"
+.TH "Cookbook" 3tcl 2\&.0\&.3 "cffi" "Tcl CFFI package"
 .SH NAME
 Cookbook - Commands in namespace Cookbook
 .SH COOKBOOK

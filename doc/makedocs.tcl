@@ -11,7 +11,7 @@ set env(PATH) "$env(PATH);$env(JAVA_HOME)\\bin"
 # Extract version from configure
 proc get_version {ac_path} {
     set fd [open $ac_path]
-    regexp {AC_INIT\(\[cffi\],\[(\d+\.\d+[.ab]\d+)\]\)} [read $fd] -> ver
+    regexp {AC_INIT\(\[cffi\],\s*\[(\d+\.\d+[.ab]\d+)\]\)} [read $fd] -> ver
     close $fd
     return $ver
 }

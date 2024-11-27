@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 2\&.0b1 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.0\&.3 "cffi" "Tcl CFFI package"
 .SH NAME
 cffi - Commands in namespace cffi
 .SH SYNOPSIS

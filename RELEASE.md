@@ -26,7 +26,24 @@ x86 and x64. Test that the package loads successfully.
 
 ## Source code archives
 
-Clone the repository in *WSL*.
+One of the following, both from WSL.
+
+### Method 1
+
+From WSL,
+
+```
+CFFIVER=$(egrep AC_INIT configure.ac | egrep -o --color=never '[0-9]\.[0-9][ab.][0-9]')
+/mnt/c/bin/git-archive-all.sh --tree-ish v$CFFIVER --verbose --format tar /tmp/cffi$CFFIVER-src.tar 
+cd /tmp && tar xvf /tmp/cffi$CFFIVER-src.tar 
+gzip cffi$CFFIVER-src
+zip -r cffi$CFFIVER-src.zip cffi$CFFIVER-src
+```
+
+NOTE: only use tar format above. Directly specifying zip or tgz creates
+separate submodule archives.
+
+### Method 2
 
 ```
 cd /tmp
