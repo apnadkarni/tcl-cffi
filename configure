@@ -8051,7 +8051,7 @@ $as_echo "no" >&6; }
 
 
 
-    PKG_CFLAGS="$PKG_CFLAGS -DTCL_NO_DEPRECATED -std=c99"
+    PKG_CFLAGS="$PKG_CFLAGS -DTCL_NO_DEPRECATED -std=gnu99"
 
 
 
