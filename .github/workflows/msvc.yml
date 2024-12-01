@@ -2,20 +2,41 @@ name: Visual C++
 
 on:
   workflow_dispatch:
+    inputs:
+      tcltag:  # User input for selecting Tcl tag
+        description: 'Tcl version'
+        required: true
+        type: choice
+        options:
+          - '["main"]'
+          - '["core-8-6-13"]'
+          - '["core-8-6-13", "main"]'
+        default: '["core-8-6-13", "main"]'
+      osver:  # User input for selecting OS
+        description: 'OS version'
+        required: true
+        type: choice
+        options:
+          - '["windows-latest"]'
+          - '["windows-2022"]'
+          - '["windows-2019"]'
+          - '["windows-2019", "windows-2022"]'
+        default: '["windows-latest"]'
+      dotest: # Whether tests should be run
+        description: 'Run tests as well'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build:
     strategy:
       matrix:
-        os:
-          - windows-2022
-          - windows-2019
+        os: ${{ fromJSON(github.event.inputs.osver) }}
+        tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
         arch:
           - x64
           - x86
-        tclbranch:
-          - core-8-6-13
-          - main
     runs-on: ${{ matrix.os }}
     env:
       TCLSUBDIR: ${{ matrix.arch }}-${{ matrix.tclbranch }}
@@ -89,6 +110,7 @@ jobs:
         nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
 
     - name: Test with libffi
+      if: github.event.inputs.dotest
       shell: cmd
       run: |
         cd win
@@ -104,6 +126,7 @@ jobs:
         nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
 
     - name: Test with dyncall 
+      if: github.event.inputs.dotest
       shell: cmd
       run: |
         cd win

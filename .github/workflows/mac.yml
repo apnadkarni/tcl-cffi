@@ -2,15 +2,39 @@ name: mac
 
 on:
   workflow_dispatch:
+    inputs:
+      tcltag:  # User input for selecting Tcl tag
+        description: 'Tcl version'
+        required: true
+        options:
+          - '["core-8-6-13"]'
+          - '["main"]'
+          - '["core-8-6-13", "main"]'
+        default: '["core-8-6-13", "main"]'
+        type: choice
+      osver:  # User input for selecting OS
+        description: 'OS version'
+        required: true
+        type: choice
+        options:
+          - '["macos-latest"]'
+          - '["macos-12"]'
+          - '["macos-13"]'
+          - '["macos-14"]'
+          - '["macos-12", "macos-13", "macos-14"]'
+        default: '["macos-latest"]'
+      dotest: # Whether tests should be run
+        description: 'Run tests as well'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build:
     strategy:
       matrix:
-        os: [macos-12, macos-13, macos-14]
-        tclbranch:
-          - core-8-6-13
-          - main
+        os: ${{ fromJSON(github.event.inputs.osver) }}
+        tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
     runs-on: ${{ matrix.os }}
     env:
       TCLSUBDIR: ${{ matrix.tclbranch }}
@@ -79,6 +103,7 @@ jobs:
         make
 
     - name: Test with dyncall
+      if: github.event.inputs.dotest
       run: |
         cd build-dyncall
         make test
@@ -97,6 +122,7 @@ jobs:
         make
 
     - name: Test with libffi
+      if: github.event.inputs.dotest
       run: |
         cd build-libffi
         make test
