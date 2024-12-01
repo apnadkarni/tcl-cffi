@@ -37,7 +37,6 @@ jobs:
         tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
 
     runs-on: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
     env:
       TCLSUBDIR: ${{ matrix.tclbranch }}
       TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
