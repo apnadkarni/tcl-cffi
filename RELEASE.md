@@ -36,11 +36,11 @@ From WSL,
 
 ```
 CFFIVER=$(egrep AC_INIT configure.ac | egrep -o --color=never '[0-9]\.[0-9][ab.][0-9]')
-/mnt/c/bin/git-archive-all.sh --tree-ish v$CFFIVER --verbose --format tar /tmp/cffi$CFFIVER-src.tar 
+/mnt/c/bin/git-archive-all.sh --tree-ish v$CFFIVER --prefix cffi$CFFIVER/ --format tar --verbose /tmp/cffi$CFFIVER-src.tar
 cd /tmp
+tar xf /tmp/cffi$CFFIVER-src.tar
 gzip cffi$CFFIVER-src.tar
-tar xvf /tmp/cffi$CFFIVER-src.tar
-zip -r cffi$CFFIVER-src.zip cffi$CFFIVER-src
+zip -r -q cffi$CFFIVER-src.zip cffi$CFFIVER
 ```
 
 NOTE: only use tar format above. Directly specifying zip or tgz creates
