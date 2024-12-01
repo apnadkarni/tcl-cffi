@@ -57,35 +57,35 @@ int {default 0} byref
 <div style='clear:both;'></div>
 <p class='ruff'>The table below summarizes the available type annotations and the types and contexts in which they are allowed.</p>
 <table class='ruff_deflist'>
-<tr><td><code>bitmask</code></td><td>The parameter, function return or field value is treated as an integer formed by a bitwise-OR of a list of integer values.</td></tr>
-<tr><td><code>byref</code></td><td>The parameter or function return value is passed or returned by reference.</td></tr>
-<tr><td><code>counted</code></td><td>The parameter or function return is a reference counted pointer whose validity is checked. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
-<tr><td><code>default</code></td><td>Specifies a default value to use for a parameter or field.</td></tr>
-<tr><td><code>discard</code></td><td>Specifies that an function return value be discarded and empty result returned.</td></tr>
-<tr><td><code>dispose</code></td><td>The parameter is a pointer that is unregistered irrespective of function return status. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
-<tr><td><code>disposeonsuccess</code></td><td>The parameter is a pointer that is disposed only if function returns successfully. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
-<tr><td><code>enum</code></td><td>The parameter, return value or field is an enumeration.</td></tr>
-<tr><td><code>errno</code></td><td>If the function return value indicates an error condition, the error code is available via the C RTL <code>errno</code> variable.</td></tr>
-<tr><td><code>in</code></td><td>Marks a parameter passed to a function as input to the function. See <a href="cffi-Concepts.html#::Concepts-Input and output parameters" title="Input and output parameters" >Input and output parameters</a>.</td></tr>
-<tr><td><code>inout</code></td><td>Marks a parameter passed to a function as both input and output. See <a href="cffi-Concepts.html#::Concepts-Input and output parameters" title="Input and output parameters" >Input and output parameters</a>.</td></tr>
-<tr><td><code>lasterror</code></td><td>If the function return value indicates an error condition, the error code is available via the Windows <code>GetLastError</code> API.</td></tr>
-<tr><td><code>multisz</code></td><td>The value is a concatenation of multiple nul-terminated strings with an empty string indicating the end. (Windows MULTI_SZ format)</td></tr>
-<tr><td><code>nonnegative</code></td><td>Raise an exception if the function return value is negative.</td></tr>
-<tr><td><code>nonzero</code></td><td>Raise an exception if the function return values is zero.</td></tr>
-<tr><td><code>novaluechecks</code></td><td>Disable value validity checks. The checks depend on the value type. See discussion of specific types for its semantics.</td></tr>
-<tr><td><code>nullifempty</code></td><td>Treat an empty string or struct dictionary value passed as function argument or struct field as a NULL pointer. See <a href="cffi-Concepts.html#::Concepts-Strings as NULL pointers" title="Strings as NULL pointers" >Strings as NULL pointers</a>. In the case of out or inout parameters, specifies that if the variable name passed as the argument is the empty string, a NULL pointer should be passed as the function argument.</td></tr>
-<tr><td><code>nullok</code></td><td>Deprecated. Alias for <code>novaluechecks</code>.</td></tr>
-<tr><td><code>onerror</code></td><td>Specifies an error handler if a function return value indicates an error condition.</td></tr>
-<tr><td><code>out</code></td><td>Marks a parameter as output-only from a function. See <a href="cffi-Concepts.html#::Concepts-Input and output parameters" title="Input and output parameters" >Input and output parameters</a>.</td></tr>
-<tr><td><code>pinned</code></td><td>The parameter or function return is a reference pinned pointer whose validity is checked. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
-<tr><td><code>positive</code></td><td>Raise an exception if a function return value is negative or zero.</td></tr>
-<tr><td><code>retval</code></td><td>Marks the parameter as an output parameter whose value is to be returned as the result of the function. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</td></tr>
-<tr><td><code>storealways</code></td><td>Treat an output parameter as valid regardless of any error indications from the function call.</td></tr>
-<tr><td><code>storeonerror</code></td><td>Treat an output parameter as valid only in the presence of error indication from a function call.</td></tr>
-<tr><td><code>structsize</code></td><td>Default a field value to the size of the containing struct.</td></tr>
-<tr><td><code>unsafe</code></td><td>Do not do any pointer validation on a parameter, return value or field. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
-<tr><td><code>winerror</code></td><td>Treat the function return value as a Windows status code.</td></tr>
-<tr><td><code>zero</code></td><td>Raise an exception if a function return value is not zero.</td></tr>
+<tr><td><nobr><code>bitmask</code></nobr></td><td>The parameter, function return or field value is treated as an integer formed by a bitwise-OR of a list of integer values.</td></tr>
+<tr><td><nobr><code>byref</code></nobr></td><td>The parameter or function return value is passed or returned by reference.</td></tr>
+<tr><td><nobr><code>counted</code></nobr></td><td>The parameter or function return is a reference counted pointer whose validity is checked. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
+<tr><td><nobr><code>default</code></nobr></td><td>Specifies a default value to use for a parameter or field.</td></tr>
+<tr><td><nobr><code>discard</code></nobr></td><td>Specifies that an function return value be discarded and empty result returned.</td></tr>
+<tr><td><nobr><code>dispose</code></nobr></td><td>The parameter is a pointer that is unregistered irrespective of function return status. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
+<tr><td><nobr><code>disposeonsuccess</code></nobr></td><td>The parameter is a pointer that is disposed only if function returns successfully. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
+<tr><td><nobr><code>enum</code></nobr></td><td>The parameter, return value or field is an enumeration.</td></tr>
+<tr><td><nobr><code>errno</code></nobr></td><td>If the function return value indicates an error condition, the error code is available via the C RTL <code>errno</code> variable.</td></tr>
+<tr><td><nobr><code>in</code></nobr></td><td>Marks a parameter passed to a function as input to the function. See <a href="cffi-Concepts.html#::Concepts-Input and output parameters" title="Input and output parameters" >Input and output parameters</a>.</td></tr>
+<tr><td><nobr><code>inout</code></nobr></td><td>Marks a parameter passed to a function as both input and output. See <a href="cffi-Concepts.html#::Concepts-Input and output parameters" title="Input and output parameters" >Input and output parameters</a>.</td></tr>
+<tr><td><nobr><code>lasterror</code></nobr></td><td>If the function return value indicates an error condition, the error code is available via the Windows <code>GetLastError</code> API.</td></tr>
+<tr><td><nobr><code>multisz</code></nobr></td><td>The value is a concatenation of multiple nul-terminated strings with an empty string indicating the end. (Windows MULTI_SZ format)</td></tr>
+<tr><td><nobr><code>nonnegative</code></nobr></td><td>Raise an exception if the function return value is negative.</td></tr>
+<tr><td><nobr><code>nonzero</code></nobr></td><td>Raise an exception if the function return values is zero.</td></tr>
+<tr><td><nobr><code>novaluechecks</code></nobr></td><td>Disable value validity checks. The checks depend on the value type. See discussion of specific types for its semantics.</td></tr>
+<tr><td><nobr><code>nullifempty</code></nobr></td><td>Treat an empty string or struct dictionary value passed as function argument or struct field as a NULL pointer. See <a href="cffi-Concepts.html#::Concepts-Strings as NULL pointers" title="Strings as NULL pointers" >Strings as NULL pointers</a>. In the case of out or inout parameters, specifies that if the variable name passed as the argument is the empty string, a NULL pointer should be passed as the function argument.</td></tr>
+<tr><td><nobr><code>nullok</code></nobr></td><td>Deprecated. Alias for <code>novaluechecks</code>.</td></tr>
+<tr><td><nobr><code>onerror</code></nobr></td><td>Specifies an error handler if a function return value indicates an error condition.</td></tr>
+<tr><td><nobr><code>out</code></nobr></td><td>Marks a parameter as output-only from a function. See <a href="cffi-Concepts.html#::Concepts-Input and output parameters" title="Input and output parameters" >Input and output parameters</a>.</td></tr>
+<tr><td><nobr><code>pinned</code></nobr></td><td>The parameter or function return is a reference pinned pointer whose validity is checked. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
+<tr><td><nobr><code>positive</code></nobr></td><td>Raise an exception if a function return value is negative or zero.</td></tr>
+<tr><td><nobr><code>retval</code></nobr></td><td>Marks the parameter as an output parameter whose value is to be returned as the result of the function. See <a href="cffi-Concepts.html#::Concepts-Output parameters as function result" title="Output parameters as function result" >Output parameters as function result</a>.</td></tr>
+<tr><td><nobr><code>storealways</code></nobr></td><td>Treat an output parameter as valid regardless of any error indications from the function call.</td></tr>
+<tr><td><nobr><code>storeonerror</code></nobr></td><td>Treat an output parameter as valid only in the presence of error indication from a function call.</td></tr>
+<tr><td><nobr><code>structsize</code></nobr></td><td>Default a field value to the size of the containing struct.</td></tr>
+<tr><td><nobr><code>unsafe</code></nobr></td><td>Do not do any pointer validation on a parameter, return value or field. See <a href="cffi-Concepts.html#::Concepts-Pointer safety" title="Pointer safety" >Pointer safety</a>.</td></tr>
+<tr><td><nobr><code>winerror</code></nobr></td><td>Treat the function return value as a Windows status code.</td></tr>
+<tr><td><nobr><code>zero</code></nobr></td><td>Raise an exception if a function return value is not zero.</td></tr>
 </table>
 <p class='ruff'>Later sections will further detail usage of the above.</p>
 <h2 class='ruff'><a name='::Concepts-Data types'></a>Data types<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
@@ -111,23 +111,23 @@ Size 40 Count 10 Alignment 4 Definition {{int[10]}} BaseSize 4
 <div style='clear:both;'></div>
 <p class='ruff'>The following integer types are supported.</p>
 <table class='ruff_deflist'>
-<tr><td><code>schar</code></td><td>C <code>signed char</code></td></tr>
-<tr><td><code>uchar</code></td><td>C <code>unsigned char</code></td></tr>
-<tr><td><code>short</code></td><td>C <code>signed short</code></td></tr>
-<tr><td><code>ushort</code></td><td>C <code>unsigned short</code></td></tr>
-<tr><td><code>int</code></td><td>C <code>signed int</code></td></tr>
-<tr><td><code>uint</code></td><td>C <code>unsigned int</code></td></tr>
-<tr><td><code>long</code></td><td>C <code>signed long</code></td></tr>
-<tr><td><code>ulong</code></td><td>C <code>unsigned long</code></td></tr>
-<tr><td><code>longlong</code></td><td>C <code>signed long long</code></td></tr>
-<tr><td><code>ulonglong</code></td><td>C <code>unsigned long long</code></td></tr>
+<tr><td><nobr><code>schar</code></nobr></td><td>C <code>signed char</code></td></tr>
+<tr><td><nobr><code>uchar</code></nobr></td><td>C <code>unsigned char</code></td></tr>
+<tr><td><nobr><code>short</code></nobr></td><td>C <code>signed short</code></td></tr>
+<tr><td><nobr><code>ushort</code></nobr></td><td>C <code>unsigned short</code></td></tr>
+<tr><td><nobr><code>int</code></nobr></td><td>C <code>signed int</code></td></tr>
+<tr><td><nobr><code>uint</code></nobr></td><td>C <code>unsigned int</code></td></tr>
+<tr><td><nobr><code>long</code></nobr></td><td>C <code>signed long</code></td></tr>
+<tr><td><nobr><code>ulong</code></nobr></td><td>C <code>unsigned long</code></td></tr>
+<tr><td><nobr><code>longlong</code></nobr></td><td>C <code>signed long long</code></td></tr>
+<tr><td><nobr><code>ulonglong</code></nobr></td><td>C <code>unsigned long long</code></td></tr>
 </table>
 <h3 class='ruff'><a name='::Concepts-Floating point types'></a>Floating point types<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
 <p class='ruff'>The following floating point types are supported.</p>
 <table class='ruff_deflist'>
-<tr><td><code>float</code></td><td>C <code>float</code></td></tr>
-<tr><td><code>double</code></td><td>C <code>double</code></td></tr>
+<tr><td><nobr><code>float</code></nobr></td><td>C <code>float</code></td></tr>
+<tr><td><nobr><code>double</code></nobr></td><td>C <code>double</code></td></tr>
 </table>
 <h3 class='ruff'><a name='::Concepts-Arrays'></a>Arrays<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h3>
 <div style='clear:both;'></div>
@@ -299,13 +299,13 @@ Pointer 0x00007fb07ebb7500^ is not registered.
 <p class='ruff'>Strings in C are generally represented in memory as a sequence of null terminated bytes in some specific encoding. They may be declared either as a <code>char *</code> or as an array of <code>char</code> where the size of the array places a limit on the maximum length.</p>
 <p class='ruff'>At the script level, these can be declared in multiple ways:</p>
 <table class='ruff_deflist'>
-<tr><td><code>pointer</code></td><td>As discussed in the previous section, this is a pointer to raw memory. To access the underlying string, the memory referenced by the pointer has to be converted into a Tcl string value with the <a href="cffi-cffi.html#::cffi::memory tostring" title="::cffi::memory tostring" class='ruff_cmd'>::cffi::memory tostring</a> command.</td></tr>
-<tr><td><code>string.ENCODING</code></td><td>Values declared using this type are still pointers at the C level but are converted to and from Tcl strings implicitly at the C API interface itself using the specified encoding. If <code>.ENCODING</code> is left off, the system encoding is used.</td></tr>
-<tr><td><code>unistring</code></td><td>This is similar to <code>string.ENCODING</code> except the values are <code>Tcl_UniChar*</code> at the C level and the encoding is implicitly the one used by Tcl for the <code>Tcl_UniChar</code> data type.</td></tr>
-<tr><td><code>winstring</code></td><td>This is similar to <code>string.ENCODING</code> except the values are <code>WCHAR</code> at the C level and the encoding is implicitly the one UTF-16 as used by the Windows API. This type is only present on Windows.</td></tr>
-<tr><td><code>chars.ENCODING</code></td><td>The value is an array of characters at the C level. The type must always appear as an array, for example, <code>chars.utf-8[10]</code> and not as a scalar <code>chars.utf-8</code>. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding. Following standard C rules, arrays are passed by reference as function arguments and thus an declaration of <code>chars[10]</code> would also be passed into a function as a <code>char*</code>. Within a <code>struct</code> definition on the other hand, it would be stored as an array.</td></tr>
-<tr><td><code>unichars</code></td><td>The value is an array of <code>Tcl_UniChar</code> characters and follows the same rules as <code>chars</code> except that the encoding is always that used by Tcl for the <code>Tcl_UniChar</code> type.</td></tr>
-<tr><td><code>winchars</code></td><td>The value is an array of <code>WCHAR</code> characters and follows the same rules as <code>chars</code> except that the encoding is UTF-16 as used in the Windows API. This type is only present on Windows.</td></tr>
+<tr><td><nobr><code>pointer</code></nobr></td><td>As discussed in the previous section, this is a pointer to raw memory. To access the underlying string, the memory referenced by the pointer has to be converted into a Tcl string value with the <a href="cffi-cffi.html#::cffi::memory tostring" title="::cffi::memory tostring" class='ruff_cmd'>::cffi::memory tostring</a> command.</td></tr>
+<tr><td><nobr><code>string.ENCODING</code></nobr></td><td>Values declared using this type are still pointers at the C level but are converted to and from Tcl strings implicitly at the C API interface itself using the specified encoding. If <code>.ENCODING</code> is left off, the system encoding is used.</td></tr>
+<tr><td><nobr><code>unistring</code></nobr></td><td>This is similar to <code>string.ENCODING</code> except the values are <code>Tcl_UniChar*</code> at the C level and the encoding is implicitly the one used by Tcl for the <code>Tcl_UniChar</code> data type.</td></tr>
+<tr><td><nobr><code>winstring</code></nobr></td><td>This is similar to <code>string.ENCODING</code> except the values are <code>WCHAR</code> at the C level and the encoding is implicitly the one UTF-16 as used by the Windows API. This type is only present on Windows.</td></tr>
+<tr><td><nobr><code>chars.ENCODING</code></nobr></td><td>The value is an array of characters at the C level. The type must always appear as an array, for example, <code>chars.utf-8[10]</code> and not as a scalar <code>chars.utf-8</code>. In this as well, conversion to and from Tcl strings is implicit using the specified encoding, which again defaults to the system encoding. Following standard C rules, arrays are passed by reference as function arguments and thus an declaration of <code>chars[10]</code> would also be passed into a function as a <code>char*</code>. Within a <code>struct</code> definition on the other hand, it would be stored as an array.</td></tr>
+<tr><td><nobr><code>unichars</code></nobr></td><td>The value is an array of <code>Tcl_UniChar</code> characters and follows the same rules as <code>chars</code> except that the encoding is always that used by Tcl for the <code>Tcl_UniChar</code> type.</td></tr>
+<tr><td><nobr><code>winchars</code></nobr></td><td>The value is an array of <code>WCHAR</code> characters and follows the same rules as <code>chars</code> except that the encoding is UTF-16 as used in the Windows API. This type is only present on Windows.</td></tr>
 </table>
 <p class='ruff'>The choice of using <code>pointer</code>, <code>string</code> (or <code>unistring</code>, <code>winstring</code>), or <code>chars</code> (or <code>unichars</code>, <code>winchars</code>) depends on the C declaration and context as well as convenience.</p>
 <ul class='ruff'>
@@ -762,10 +762,10 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 <p class='ruff'>Additional sets of type annotations are provided to solve these issues. The first set of annotations is used to define the error check conditions to be applied to function return values. The second set is used to specify how the error detail is to be retrieved.</p>
 <p class='ruff'>The following annotations for error checking can be used for <strong>integer</strong> return types.</p>
 <table class='ruff_deflist'>
-<tr><td><code>zero</code></td><td>The value must be zero.</td></tr>
-<tr><td><code>nonzero</code></td><td>The value must be non-zero.</td></tr>
-<tr><td><code>nonnegative</code></td><td>The value must be zero or greater.</td></tr>
-<tr><td><code>positive</code></td><td>The value must be greater than zero.</td></tr>
+<tr><td><nobr><code>zero</code></nobr></td><td>The value must be zero.</td></tr>
+<tr><td><nobr><code>nonzero</code></nobr></td><td>The value must be non-zero.</td></tr>
+<tr><td><nobr><code>nonnegative</code></nobr></td><td>The value must be zero or greater.</td></tr>
+<tr><td><nobr><code>positive</code></nobr></td><td>The value must be greater than zero.</td></tr>
 </table>
 <p class='ruff'>The return value from every call to the function is then checked as to whether it satisfies the condition. Failure to do so is treated as an error condition.</p>
 <p class='ruff'>An error condition is also generated when a function returning a pointer returns an null pointer or, <em>on Windows only</em>, the <code>INVALID_HANDLE_VALUE</code> preprocessor constant. This is also true for <code>string</code>, <code>unistring</code> and <code>winstring</code> return types as well as <code>struct</code> types that are returned by reference since those are all pointers beneath the covers. This treatment of null pointers as errors can be overridden with the the <code>novaluechecks</code> annotation. If this annotation is specified and the function returns a NULL pointer,</p>
@@ -776,17 +776,17 @@ DLLOBJ stdcall FNNAME RETTYPE PARAMS
 </ul>
 <p class='ruff'>An error condition arising from one of the error checking annotations or a null pointer results in an exception being generated unless the <code>onerror</code> annotation is specified (see below). However, the default error message generated is generic and does not provide detail about why the error occured. The following error retrieval annotations specify how detail about the error is to be obtained.</p>
 <table class='ruff_deflist'>
-<tr><td><code>errno</code></td><td>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function. <strong>Note:</strong> This annotation should only be used if the wrapped function uses the same C runtime as the <code>cffi</code> extension. The Tcl <code>errorCode</code> variable is set to a list comprising of <code>CFFI</code>, <code>ERRNO</code>, the POSIX name for the error (e.g. <code>ENOENT</code>), the numeric error code, and the error message.</td></tr>
-<tr><td><code>lasterror</code></td><td>(Windows only). The error code and message is retrieved using the Windows <code>GetLastError</code> and <code>FormatMessage</code> functions. The Tcl <code>errorCode</code> variable is set to a list comprising of <code>CFFI</code>, <code>WIN32</code>, the numeric error code, and the error message.</td></tr>
-<tr><td><code>winerror</code></td><td>(Windows only). The numeric return value is itself the Windows error code and the error message is generated with <code>FormatMessage</code>. The Tcl <code>errorCode</code> variable is set to a list comprising of <code>CFFI</code>, <code>WIN32</code>, the numeric error code, and the error message. This annotation can only be used with the <code>zero</code> error checking annotation.</td></tr>
+<tr><td><nobr><code>errno</code></nobr></td><td>The POSIX error is stored in <code>errno</code>. The error message is generated using the C runtime <code>strerror</code> function. <strong>Note:</strong> This annotation should only be used if the wrapped function uses the same C runtime as the <code>cffi</code> extension. The Tcl <code>errorCode</code> variable is set to a list comprising of <code>CFFI</code>, <code>ERRNO</code>, the POSIX name for the error (e.g. <code>ENOENT</code>), the numeric error code, and the error message.</td></tr>
+<tr><td><nobr><code>lasterror</code></nobr></td><td>(Windows only). The error code and message is retrieved using the Windows <code>GetLastError</code> and <code>FormatMessage</code> functions. The Tcl <code>errorCode</code> variable is set to a list comprising of <code>CFFI</code>, <code>WIN32</code>, the numeric error code, and the error message.</td></tr>
+<tr><td><nobr><code>winerror</code></nobr></td><td>(Windows only). The numeric return value is itself the Windows error code and the error message is generated with <code>FormatMessage</code>. The Tcl <code>errorCode</code> variable is set to a list comprising of <code>CFFI</code>, <code>WIN32</code>, the numeric error code, and the error message. This annotation can only be used with the <code>zero</code> error checking annotation.</td></tr>
 </table>
 <p class='ruff'>These annotations can be applied only to integer types except that the <code>errno</code> and <code>lasterror</code> annotations can be used with pointer types as well.</p>
 <p class='ruff'>In addition to the above built-in error handlers, the <code>onerror</code> annotation provides a means for customizing error handling when the error is from a library and not a system error. The annotation takes an additional argument which is a command prefix to be invoked when an error checking annotation is triggered. When this command prefix is invoked, a dictionary with the call information is passed. The dictionary contains the following keys:</p>
 <table class='ruff_deflist'>
-<tr><td><code>Result</code></td><td>The return value from the function that triggered the error handler.</td></tr>
-<tr><td><code>In</code></td><td>A nested dictionary mapping all  <code>in</code> and <code>inout</code> parameter names to the values passed in to the called function.</td></tr>
-<tr><td><code>Out</code></td><td>A dictionary mapping all <code>inout</code> and <code>out</code> parameter names to the values returned on output by the function. These only include output parameters marked as <code>storealways</code> or <code>storeonerror</code>.</td></tr>
-<tr><td><code>Command</code></td><td>The Tcl command for which the error handler was triggered. This key will not be present if the function was invoked with an address through the <a href="cffi-cffi.html#::cffi::call" title="::cffi::call" class='ruff_cmd'>::cffi::call</a> command.</td></tr>
+<tr><td><nobr><code>Result</code></nobr></td><td>The return value from the function that triggered the error handler.</td></tr>
+<tr><td><nobr><code>In</code></nobr></td><td>A nested dictionary mapping all  <code>in</code> and <code>inout</code> parameter names to the values passed in to the called function.</td></tr>
+<tr><td><nobr><code>Out</code></nobr></td><td>A dictionary mapping all <code>inout</code> and <code>out</code> parameter names to the values returned on output by the function. These only include output parameters marked as <code>storealways</code> or <code>storeonerror</code>.</td></tr>
+<tr><td><nobr><code>Command</code></nobr></td><td>The Tcl command for which the error handler was triggered. This key will not be present if the function was invoked with an address through the <a href="cffi-cffi.html#::cffi::call" title="::cffi::call" class='ruff_cmd'>::cffi::call</a> command.</td></tr>
 </table>
 <p class='ruff'>The result of the handler execution is returned as the function call result and may be a normal result or a raised exception. The handler may use <code>upvar</code> for access to the calling script's context including any input or output arguments to the original function call.</p>
 <p class='ruff'>This <code>onerror</code> facility may be used to ignore errors, provide default values as well as raise exceptions with more detailed library-specific information. Note that the use of a <code>onerror</code> handler that returns normally is <strong>not</strong> the same as not specifying any error checking annotations because the function return is still treated as an error condition in terms of the output variables as described in <a href="cffi-Concepts.html#::Concepts-Errors and output parameters" title="Errors and output parameters" >Errors and output parameters</a>.</p>

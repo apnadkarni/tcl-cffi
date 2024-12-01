@@ -12,12 +12,6 @@ and the samples in https://github.com/apnadkarni/tcl-cffi/tree/main/examples.
 
 Source distributions and binary packages for some platforms can be
 downloaded from https://sourceforge.net/projects/magicsplat/files/cffi.
-The binary packages for Windows require the VC++ runtime and UCRT be
-present on the system. These will already be installed on Windows 10 and
-later. For Windows 7 and 8.x, download if necessary from
-https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
-and
-https://support.microsoft.com/en-gb/topic/update-for-universal-c-runtime-in-windows-c0514201-7fe6-95a3-b0a5-287930f3560c.
 
 ## Building
 

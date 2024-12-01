@@ -199,89 +199,89 @@ cffi - Commands in namespace cffi
 .br
 \fBInterface new\fP \fI?args?\fP
 .br
-\fBOBJECT id\fP
+\fBINTERFACEOBJ id\fP
 .br
-\fBOBJECT methods\fP \fImethodlist ?args?\fP
+\fBINTERFACEOBJ methods\fP \fImethodlist ?args?\fP
 .br
-\fBOBJECT stdmethods\fP \fImethodlist ?args?\fP
+\fBINTERFACEOBJ stdmethods\fP \fImethodlist ?args?\fP
 .br
 \fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
 .br
 \fBStruct new\fP \fIdefinition ?args?\fP
 .br
-\fBOBJECT allocate\fP \fI?args?\fP
+\fBSTRUCTOBJ allocate\fP \fI?args?\fP
 .br
-\fBOBJECT describe\fP
+\fBSTRUCTOBJ describe\fP
 .br
-\fBOBJECT fieldpointer\fP \fIpointer fieldname ?tag? ?index?\fP
+\fBSTRUCTOBJ fieldpointer\fP \fIpointer fieldname ?tag? ?index?\fP
 .br
-\fBOBJECT free\fP \fIpointer\fP
+\fBSTRUCTOBJ free\fP \fIpointer\fP
 .br
-\fBOBJECT frombinary\fP \fIbin_value\fP
+\fBSTRUCTOBJ frombinary\fP \fIbin_value\fP
 .br
-\fBOBJECT fromnative\fP \fIpointer ?index?\fP
+\fBSTRUCTOBJ fromnative\fP \fIpointer ?index?\fP
 .br
-\fBOBJECT fromnative!\fP \fIpointer ?index?\fP
+\fBSTRUCTOBJ fromnative!\fP \fIpointer ?index?\fP
 .br
-\fBOBJECT getnative\fP \fIpointer fieldname ?index?\fP
+\fBSTRUCTOBJ getnative\fP \fIpointer fieldname ?index?\fP
 .br
-\fBOBJECT getnative!\fP \fIpointer fieldname ?index?\fP
+\fBSTRUCTOBJ getnative!\fP \fIpointer fieldname ?index?\fP
 .br
-\fBOBJECT getnativefields\fP \fIpointer fieldnames ?index?\fP
+\fBSTRUCTOBJ getnativefields\fP \fIpointer fieldnames ?index?\fP
 .br
-\fBOBJECT getnativefields!\fP \fIpointer fieldnames ?index?\fP
+\fBSTRUCTOBJ getnativefields!\fP \fIpointer fieldnames ?index?\fP
 .br
-\fBOBJECT info\fP \fI?args?\fP
+\fBSTRUCTOBJ info\fP \fI?args?\fP
 .br
-\fBOBJECT name\fP
+\fBSTRUCTOBJ name\fP
 .br
-\fBOBJECT new\fP \fI?initval?\fP
+\fBSTRUCTOBJ new\fP \fI?initval?\fP
 .br
-\fBOBJECT setnative\fP \fIpointer fieldname value ?index?\fP
+\fBSTRUCTOBJ setnative\fP \fIpointer fieldname value ?index?\fP
 .br
-\fBOBJECT setnative!\fP \fIpointer fieldname value ?index?\fP
+\fBSTRUCTOBJ setnative!\fP \fIpointer fieldname value ?index?\fP
 .br
-\fBOBJECT size\fP \fI?args?\fP
+\fBSTRUCTOBJ size\fP \fI?args?\fP
 .br
-\fBOBJECT tobinary\fP \fIdict_value\fP
+\fBSTRUCTOBJ tobinary\fP \fIdict_value\fP
 .br
-\fBOBJECT tonative\fP \fIpointer initializer ?index?\fP
+\fBSTRUCTOBJ tonative\fP \fIpointer initializer ?index?\fP
 .br
-\fBOBJECT tonative!\fP \fIpointer initializer ?index?\fP
+\fBSTRUCTOBJ tonative!\fP \fIpointer initializer ?index?\fP
 .br
 \fBUnion create OBJNAME\fP \fIdefinition ?args?\fP
 .br
 \fBUnion new\fP \fIdefinition ?args?\fP
 .br
-\fBOBJECT decode\fP \fIfield uvalue\fP
+\fBUNIONOBJ decode\fP \fIfield uvalue\fP
 .br
-\fBOBJECT describe\fP
+\fBUNIONOBJ describe\fP
 .br
-\fBOBJECT encode\fP \fIfield value\fP
+\fBUNIONOBJ encode\fP \fIfield value\fP
 .br
-\fBOBJECT info\fP
+\fBUNIONOBJ info\fP
 .br
-\fBOBJECT name\fP
+\fBUNIONOBJ name\fP
 .br
-\fBOBJECT size\fP
+\fBUNIONOBJ size\fP
 .br
 \fBWrapper create OBJNAME\fP \fIpath\fP
 .br
 \fBWrapper new\fP \fIpath\fP
 .br
-\fBOBJECT destroy\fP
+\fBWRAPPEROBJ destroy\fP
 .br
-\fBOBJECT addressof\fP \fIsymbol\fP
+\fBWRAPPEROBJ addressof\fP \fIsymbol\fP
 .br
-\fBOBJECT function\fP \fIfnname fntype parameters\fP
+\fBWRAPPEROBJ function\fP \fIfnname fntype parameters\fP
 .br
-\fBOBJECT functions\fP \fIfnlist ?args?\fP
+\fBWRAPPEROBJ functions\fP \fIfnlist ?args?\fP
 .br
-\fBOBJECT path\fP
+\fBWRAPPEROBJ path\fP
 .br
-\fBOBJECT stdcall\fP \fIfnname fntype parameters\fP
+\fBWRAPPEROBJ stdcall\fP \fIfnname fntype parameters\fP
 .br
-\fBOBJECT stdcalls\fP \fIfnlist ?args?\fP
+\fBWRAPPEROBJ stdcalls\fP \fIfnlist ?args?\fP
 .br
 .SH ::CFFI
 .PP
@@ -303,18 +303,14 @@ package require cffi
 A
 command
 ensemble\&.
-.RS 4n\fBalias\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBalias\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIbody\fP
@@ -336,22 +332,15 @@ Returns a list of aliases that match the specified pattern\&.
 Loads predefined type aliases\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBalias body\fR (::cffi)
 .RE
 .PP
 Returns the resolved body of an alias\&.
-.RS 4n\fBalias body\fP \fIalias_name\fP
+.RS 4n
+\fBalias body\fP \fIalias_name\fP
 .br
 .RE
 .PP
@@ -375,7 +364,8 @@ Returns the resolved body of an alias\&.
 .RE
 .PP
 Deletes all aliases from the interpreter
-.RS 4n\fBalias clear\fP
+.RS 4n
+\fBalias clear\fP
 .br
 .RE
 .PP
@@ -384,7 +374,8 @@ Deletes all aliases from the interpreter
 .RE
 .PP
 Defines one or more type aliases\&.
-.RS 4n\fBalias define\fP \fIname definition\fP
+.RS 4n
+\fBalias define\fP \fIname definition\fP
 .br
 \fBalias define\fP \fIaliasdefs\fP
 .br
@@ -425,7 +416,8 @@ See \fIType aliases\fP for more on type aliases\&.
 .RE
 .PP
 Deletes aliases matching a pattern\&.
-.RS 4n\fBalias delete\fP \fIpattern\fP
+.RS 4n
+\fBalias delete\fP \fIpattern\fP
 .br
 .RE
 .PP
@@ -452,7 +444,8 @@ the scope component of the alias name must match exactly\&.
 .RE
 .PP
 Returns a list of aliases that match the specified pattern\&.
-.RS 4n\fBalias list\fP \fI?pattern?\fP
+.RS 4n
+\fBalias list\fP \fI?pattern?\fP
 .br
 .RE
 .PP
@@ -483,7 +476,8 @@ Returns a list of aliases that match the specified pattern\&.
 .RE
 .PP
 Loads predefined type aliases\&.
-.RS 4n\fBalias load\fP \fIalias_set\fP
+.RS 4n
+\fBalias load\fP \fIalias_set\fP
 .br
 .RE
 .PP
@@ -528,18 +522,14 @@ time_t\&.
 A
 command
 ensemble\&.
-.RS 4n\fBarena\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBarena\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIallocate\fP
@@ -555,22 +545,15 @@ Pops the current frame from the memory arena\&.
 Pushes a new stack frame on the memory arena\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBarena allocate\fR (::cffi)
 .RE
 .PP
 Allocates memory in the current arena frame in the memory arena\&.
-.RS 4n\fBarena allocate\fP \fIsizespec ?tag?\fP
+.RS 4n
+\fBarena allocate\fP \fIsizespec ?tag?\fP
 .br
 .RE
 .PP
@@ -604,7 +587,8 @@ Returns a safe pointer to the allocation\&.
 .RE
 .PP
 Allocates memory in the current arena for a type and initializes it\&.
-.RS 4n\fBarena new\fP \fItypespec initializer ?tag?\fP
+.RS 4n
+\fBarena new\fP \fItypespec initializer ?tag?\fP
 .br
 .RE
 .PP
@@ -643,7 +627,8 @@ Returns a safe pointer to the allocated memory\&.
 .RE
 .PP
 Pops the current frame from the memory arena\&.
-.RS 4n\fBarena popframe\fP
+.RS 4n
+\fBarena popframe\fP
 .br
 .RE
 .PP
@@ -657,7 +642,8 @@ these unregistered\&.
 .RE
 .PP
 Pushes a new stack frame on the memory arena\&.
-.RS 4n\fBarena pushframe\fP \fI?size?\fP
+.RS 4n
+\fBarena pushframe\fP \fI?size?\fP
 .br
 \fBarena pushframe\fP \fIsize ?tag?\fP
 .br
@@ -698,7 +684,8 @@ Returns an empty string if not arguments were specified or a safe pointer\&.
 .RE
 .PP
 Invokes a C function through a function pointer\&.
-.RS 4n\fBcall\fP \fIfnptr ?args?\fP
+.RS 4n
+\fBcall\fP \fIfnptr ?args?\fP
 .br
 .RE
 .PP
@@ -729,18 +716,14 @@ Returns the value returned by the invoked C function\&.
 A
 command
 ensemble\&.
-.RS 4n\fBcallback\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBcallback\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIfree\fP
@@ -750,22 +733,15 @@ Frees a callback pointer\&.
 Wraps a script level command into a C function\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBcallback free\fR (::cffi)
 .RE
 .PP
 Frees a callback pointer
-.RS 4n\fBcallback free\fP \fIcb\fP
+.RS 4n
+\fBcallback free\fP \fIcb\fP
 .br
 .RE
 .PP
@@ -781,7 +757,8 @@ A function pointer allocated with \fIcallback new\fP
 .RE
 .PP
 Wraps a script level command into a C function
-.RS 4n\fBcallback new\fP \fIprotoname cmdprefix error_value\fP
+.RS 4n
+\fBcallback new\fP \fIprotoname cmdprefix error_value\fP
 .br
 .RE
 .PP
@@ -849,18 +826,14 @@ Returns a callback function pointer that can be called from C native code\&.
 A
 command
 ensemble\&.
-.RS 4n\fBenum\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBenum\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIalias\fP
@@ -903,22 +876,15 @@ Returns a list of enumeration member names corresponding to the bits set in \fI$
 Returns the value of an enumeration member\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBenum alias\fR (::cffi)
 .RE
 .PP
 Defines a new enumeration and alias of the same name
-.RS 4n\fBenum alias\fP \fIenumname enumdefs typedecl\fP
+.RS 4n
+\fBenum alias\fP \fIenumname enumdefs typedecl\fP
 .br
 .RE
 .PP
@@ -949,7 +915,8 @@ Returns the fully qualified enumeration name\&.
 .RE
 .PP
 Deletes all enumerations from the interpreter
-.RS 4n\fBenum clear\fP
+.RS 4n
+\fBenum clear\fP
 .br
 .RE
 .PP
@@ -958,7 +925,8 @@ Deletes all enumerations from the interpreter
 .RE
 .PP
 Defines a new enumeration\&.
-.RS 4n\fBenum define\fP \fIenumname enumdefs\fP
+.RS 4n
+\fBenum define\fP \fIenumname enumdefs\fP
 .br
 .RE
 .PP
@@ -988,7 +956,8 @@ Returns the fully qualified enumeration name\&.
 .RE
 .PP
 Deletes enumerations\&.
-.RS 4n\fBenum delete\fP \fIpattern\fP
+.RS 4n
+\fBenum delete\fP \fIpattern\fP
 .br
 .RE
 .PP
@@ -1015,7 +984,8 @@ the scope component of the enumeration name must match exactly\&.
 .RE
 .PP
 Defines an enumeration as bit flags\&.
-.RS 4n\fBenum flags\fP \fIenumname membernames\fP
+.RS 4n
+\fBenum flags\fP \fIenumname membernames\fP
 .br
 .RE
 .PP
@@ -1050,7 +1020,8 @@ Returns the fully qualified enumeration name\&.
 .RE
 .PP
 Lists enumerations\&.
-.RS 4n\fBenum list\fP \fIpattern\fP
+.RS 4n
+\fBenum list\fP \fIpattern\fP
 .br
 .RE
 .PP
@@ -1078,7 +1049,8 @@ the scope component of the enumeration name must match exactly\&.
 .PP
 Returns an integer mask formed by bitwise OR-ing the passed
 enumeration members
-.RS 4n\fBenum mask\fP \fIenumname membernames\fP
+.RS 4n
+\fBenum mask\fP \fIenumname membernames\fP
 .br
 .RE
 .PP
@@ -1106,7 +1078,8 @@ enumeration members
 .RE
 .PP
 Returns a dictionary containing the members in an enumeration\&.
-.RS 4n\fBenum members\fP \fIenumname\fP
+.RS 4n
+\fBenum members\fP \fIenumname\fP
 .br
 .RE
 .PP
@@ -1126,7 +1099,8 @@ Returns a dictionary containing the members in an enumeration\&.
 .RE
 .PP
 Returns the symbolic name of a value in an enumeration\&.
-.RS 4n\fBenum name\fP \fIenumname membervalue ?default?\fP
+.RS 4n
+\fBenum name\fP \fIenumname membervalue ?default?\fP
 .br
 .RE
 .PP
@@ -1158,7 +1132,8 @@ Returns the symbolic name of a value in an enumeration\&.
 .RE
 .PP
 Returns a list containing the names of members in an enumeration\&.
-.RS 4n\fBenum names\fP \fIenumname\fP
+.RS 4n
+\fBenum names\fP \fIenumname\fP
 .br
 .RE
 .PP
@@ -1178,7 +1153,8 @@ Returns a list containing the names of members in an enumeration\&.
 .RE
 .PP
 Defines an enumeration with consecutive member values
-.RS 4n\fBenum sequence\fP \fIenumname membernames ?start?\fP
+.RS 4n
+\fBenum sequence\fP \fIenumname membernames ?start?\fP
 .br
 .RE
 .PP
@@ -1220,7 +1196,8 @@ Returns the fully qualified enumeration name\&.
 .PP
 Returns a list of enumeration member names corresponding to the
 bits set in \fI$mask\fP\&.
-.RS 4n\fBenum unmask\fP \fIenumname mask\fP
+.RS 4n
+\fBenum unmask\fP \fIenumname mask\fP
 .br
 .RE
 .PP
@@ -1256,7 +1233,8 @@ bits set in \fI$mask\fP\&.
 .RE
 .PP
 Returns the value of an enumeration member
-.RS 4n\fBenum value\fP \fIenumname membername ?default?\fP
+.RS 4n
+\fBenum value\fP \fIenumname membername ?default?\fP
 .br
 .RE
 .PP
@@ -1290,18 +1268,14 @@ Returns the value of an enumeration member
 A
 command
 ensemble\&.
-.RS 4n\fBhelp\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBhelp\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIalias\fP
@@ -1323,22 +1297,15 @@ Returns a string describing field types in a \fIStruct\fP\&.
 Returns a string describing field types in a \fIUnion\fP\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBhelp alias\fR (::cffi)
 .RE
 .PP
 Returns a string describing an \fIalias\fP definition\&.
-.RS 4n\fBhelp alias\fP \fINAME\fP
+.RS 4n
+\fBhelp alias\fP \fINAME\fP
 .br
 .RE
 .PP
@@ -1358,7 +1325,8 @@ Returns a string describing an \fIalias\fP definition\&.
 .RE
 .PP
 Returns a string describing an \fIenum\fP definition\&.
-.RS 4n\fBhelp enum\fP \fINAME\fP
+.RS 4n
+\fBhelp enum\fP \fINAME\fP
 .br
 .RE
 .PP
@@ -1379,7 +1347,8 @@ Returns a string describing an \fIenum\fP definition\&.
 .PP
 Returns a string describing the syntax and parameter definitions
 for a CFFI wrapped function\&.
-.RS 4n\fBhelp function\fP \fINAME\fP
+.RS 4n
+\fBhelp function\fP \fINAME\fP
 .br
 .RE
 .PP
@@ -1400,7 +1369,8 @@ for a CFFI wrapped function\&.
 .RE
 .PP
 Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
-.RS 4n\fBhelp functions\fP \fI?PATTERN?\fP
+.RS 4n
+\fBhelp functions\fP \fI?PATTERN?\fP
 .br
 .RE
 .PP
@@ -1433,7 +1403,8 @@ Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
 .RE
 .PP
 Returns a string describing field types in a \fIStruct\fP\&.
-.RS 4n\fBhelp struct\fP \fINAME\fP
+.RS 4n
+\fBhelp struct\fP \fINAME\fP
 .br
 .RE
 .PP
@@ -1453,7 +1424,8 @@ Returns a string describing field types in a \fIStruct\fP\&.
 .RE
 .PP
 Returns a string describing field types in a \fIUnion\fP\&.
-.RS 4n\fBhelp union\fP \fINAME\fP
+.RS 4n
+\fBhelp union\fP \fINAME\fP
 .br
 .RE
 .PP
@@ -1473,7 +1445,8 @@ Returns a string describing field types in a \fIUnion\fP\&.
 .RE
 .PP
 Get the lower and upper limits for an integral base type
-.RS 4n\fBlimits\fP \fItype\fP
+.RS 4n
+\fBlimits\fP \fItype\fP
 .br
 .RE
 .PP
@@ -1496,18 +1469,14 @@ for the specified type\&.
 A
 command
 ensemble\&.
-.RS 4n\fBmemory\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBmemory\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIallocate\fP
@@ -1571,22 +1540,15 @@ Returns the content of a memory block containing a nul-terminated sequence of wi
 Returns the content of a memory block containing a nul-terminated sequence of winchars as a Tcl string\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBmemory allocate\fR (::cffi)
 .RE
 .PP
 Allocates memory of the specified size
-.RS 4n\fBmemory allocate\fP \fIsizespec ?tag?\fP
+.RS 4n
+\fBmemory allocate\fP \fIsizespec ?tag?\fP
 .br
 .RE
 .PP
@@ -1617,7 +1579,8 @@ Returns a safe pointer to the allocated memory\&.
 .RE
 .PP
 Fills memory with a specified value
-.RS 4n\fBmemory fill\fP \fIpointer bytevalue count ?offset?\fP
+.RS 4n
+\fBmemory fill\fP \fIpointer bytevalue count ?offset?\fP
 .br
 .RE
 .PP
@@ -1642,7 +1605,8 @@ Offset from \fI$pointer\fP of area to fill\&. May be negative for unsafe pointer
 .RE
 .PP
 Frees the memory referenced by the passed pointer
-.RS 4n\fBmemory free\fP \fIpointer\fP
+.RS 4n
+\fBmemory free\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -1668,7 +1632,8 @@ a \fIStruct\fP object\&. Null pointers are silently ignored\&.
 .RE
 .PP
 Allocates memory and copied the passed Tcl binary string into it\&.
-.RS 4n\fBmemory frombinary\fP \fIbin_value ?tag?\fP
+.RS 4n
+\fBmemory frombinary\fP \fIbin_value ?tag?\fP
 .br
 .RE
 .PP
@@ -1699,7 +1664,8 @@ Returns a safe pointer to the allocated memory\&.
 .RE
 .PP
 Allocates memory and stores a Tcl string in it in the specified encoding\&.
-.RS 4n\fBmemory fromstring\fP \fIvalue ?encoding?\fP
+.RS 4n
+\fBmemory fromstring\fP \fIvalue ?encoding?\fP
 .br
 .RE
 .PP
@@ -1730,7 +1696,8 @@ Returns a safe pointer to the allocated memory\&.
 .RE
 .PP
 Allocates memory and stores a Tcl string as a sequence of Tcl_UniChars\&.
-.RS 4n\fBmemory fromunistring\fP \fIvalue\fP
+.RS 4n
+\fBmemory fromunistring\fP \fIvalue\fP
 .br
 .RE
 .PP
@@ -1758,7 +1725,8 @@ Returns a safe pointer to the allocated memory\&.
 .RE
 .PP
 Allocates memory and stores a Tcl string as a sequence of winchars\&.
-.RS 4n\fBmemory fromwinstring\fP \fIvalue\fP
+.RS 4n
+\fBmemory fromwinstring\fP \fIvalue\fP
 .br
 .RE
 .PP
@@ -1786,7 +1754,8 @@ Returns a safe pointer to the allocated memory\&.
 .RE
 .PP
 Converts a native value in memory into a Tcl script level value
-.RS 4n\fBmemory get\fP \fIpointer typespec ?index?\fP
+.RS 4n
+\fBmemory get\fP \fIpointer typespec ?index?\fP
 .br
 .RE
 .PP
@@ -1827,7 +1796,8 @@ arrays using non-0 indices\&.
 .RE
 .PP
 Converts a native value in memory into a Tcl script level value
-.RS 4n\fBmemory get!\fP \fIpointer typespec ?index?\fP
+.RS 4n
+\fBmemory get!\fP \fIpointer typespec ?index?\fP
 .br
 .RE
 .PP
@@ -1859,7 +1829,8 @@ that command for details\&.
 .RE
 .PP
 Allocates memory for a type and initializes it\&.
-.RS 4n\fBmemory new\fP \fItypespec initializer ?tag?\fP
+.RS 4n
+\fBmemory new\fP \fItypespec initializer ?tag?\fP
 .br
 .RE
 .PP
@@ -1898,7 +1869,8 @@ Returns a safe pointer to the allocated memory\&.
 .PP
 Converts a value as per a type specification and stores it in memory
 in native form
-.RS 4n\fBmemory set\fP \fIpointer typespec value ?index?\fP
+.RS 4n
+\fBmemory set\fP \fIpointer typespec value ?index?\fP
 .br
 .RE
 .PP
@@ -1942,7 +1914,8 @@ arrays to non-0 indices to avoid memory corruption\&.
 .PP
 Converts a value as per a type specification and stores it in memory
 in native form
-.RS 4n\fBmemory set!\fP \fIpointer typespec value ?index?\fP
+.RS 4n
+\fBmemory set!\fP \fIpointer typespec value ?index?\fP
 .br
 .RE
 .PP
@@ -1977,7 +1950,8 @@ command for details\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl binary string\&.
-.RS 4n\fBmemory tobinary\fP \fIpointer size ?offset?\fP
+.RS 4n
+\fBmemory tobinary\fP \fIpointer size ?offset?\fP
 .br
 .RE
 .PP
@@ -2007,7 +1981,8 @@ Returns the content of a memory block as a Tcl binary string\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl binary string\&.
-.RS 4n\fBmemory tobinary!\fP \fIpointer size ?offset?\fP
+.RS 4n
+\fBmemory tobinary!\fP \fIpointer size ?offset?\fP
 .br
 .RE
 .PP
@@ -2042,7 +2017,8 @@ Returns the content of a memory block as a Tcl binary string\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl string\&.
-.RS 4n\fBmemory tostring\fP \fIpointer ?encoding? ?offset?\fP
+.RS 4n
+\fBmemory tostring\fP \fIpointer ?encoding? ?offset?\fP
 .br
 .RE
 .PP
@@ -2072,7 +2048,8 @@ Returns the content of a memory block as a Tcl string\&.
 .RE
 .PP
 Returns the content of a memory block as a Tcl string\&.
-.RS 4n\fBmemory tostring!\fP \fIpointer ?encoding? ?offset?\fP
+.RS 4n
+\fBmemory tostring!\fP \fIpointer ?encoding? ?offset?\fP
 .br
 .RE
 .PP
@@ -2108,7 +2085,8 @@ Returns the content of a memory block as a Tcl string\&.
 .PP
 Returns the content of a memory block containing a nul-terminated
 sequence of Tcl_UniChars as a Tcl string\&.
-.RS 4n\fBmemory tounistring\fP \fIpointer ?offset?\fP
+.RS 4n
+\fBmemory tounistring\fP \fIpointer ?offset?\fP
 .br
 .RE
 .PP
@@ -2137,7 +2115,8 @@ sequence of Tcl_UniChars as a Tcl string\&.
 .PP
 Returns the content of a memory block containing a nul-terminated
 sequence of Tcl_UniChars as a Tcl string\&.
-.RS 4n\fBmemory tounistring!\fP \fIpointer ?offset?\fP
+.RS 4n
+\fBmemory tounistring!\fP \fIpointer ?offset?\fP
 .br
 .RE
 .PP
@@ -2166,7 +2145,8 @@ sequence of Tcl_UniChars as a Tcl string\&.
 .PP
 Returns the content of a memory block containing a nul-terminated
 sequence of winchars as a Tcl string\&.
-.RS 4n\fBmemory towinstring\fP \fIpointer ?offset?\fP
+.RS 4n
+\fBmemory towinstring\fP \fIpointer ?offset?\fP
 .br
 .RE
 .PP
@@ -2195,7 +2175,8 @@ sequence of winchars as a Tcl string\&.
 .PP
 Returns the content of a memory block containing a nul-terminated
 sequence of winchars as a Tcl string\&.
-.RS 4n\fBmemory towinstring!\fP \fIpointer ?offset?\fP
+.RS 4n
+\fBmemory towinstring!\fP \fIpointer ?offset?\fP
 .br
 .RE
 .PP
@@ -2225,18 +2206,14 @@ sequence of winchars as a Tcl string\&.
 A
 command
 ensemble\&.
-.RS 4n\fBpkgconfig\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBpkgconfig\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIget\fP
@@ -2246,22 +2223,15 @@ Gets the value of a configuration key\&.
 Returns the list of keys containing information about the package configuration\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBpkgconfig get\fR (::cffi)
 .RE
 .PP
 Gets the value of a configuration key\&.
-.RS 4n\fBpkgconfig get\fP \fIkey\fP
+.RS 4n
+\fBpkgconfig get\fP \fIkey\fP
 .br
 .RE
 .PP
@@ -2293,7 +2263,8 @@ Identifies the compiler used to build the extension\&.
 .PP
 Returns the list of keys containing information about
 the package configuration\&.
-.RS 4n\fBpkgconfig list\fP
+.RS 4n
+\fBpkgconfig list\fP
 .br
 .RE
 .PP
@@ -2309,18 +2280,14 @@ the package configuration\&.
 A
 command
 ensemble\&.
-.RS 4n\fBpointer\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBpointer\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIaddress\fP
@@ -2378,22 +2345,15 @@ Returns the pointer tag\&.
 Makes pointers with the specified tag uncastable to another type\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBpointer address\fR (::cffi)
 .RE
 .PP
 Returns the address component of the pointer\&.
-.RS 4n\fBpointer address\fP \fIpointer\fP
+.RS 4n
+\fBpointer address\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2413,7 +2373,8 @@ Returns the address component of the pointer\&.
 .RE
 .PP
 Casts a pointer to a new tag\&.
-.RS 4n\fBpointer cast\fP \fIpointer ?TAG?\fP
+.RS 4n
+\fBpointer cast\fP \fIpointer ?TAG?\fP
 .br
 .RE
 .PP
@@ -2447,7 +2408,8 @@ Returns a pointer with the same address and new tag
 .PP
 Specifies that pointers with tag \fI$subtag\fP are acceptable in declarations
 that require \fI$supertag\fP\&.
-.RS 4n\fBpointer castable\fP \fIsubtags supertag\fP
+.RS 4n
+\fBpointer castable\fP \fIsubtags supertag\fP
 .br
 .RE
 .PP
@@ -2471,7 +2433,8 @@ See \fICasting pointers\fP for more information\&.
 .PP
 Returns a list of tags that have been marked as castable with the
 \fIpointer castable\fP command\&.\&.
-.RS 4n\fBpointer castables\fP
+.RS 4n
+\fBpointer castables\fP
 .br
 .RE
 .PP
@@ -2485,7 +2448,8 @@ Returns a list of tags that have been marked as castable with the
 .RE
 .PP
 Validates a pointer and raise an exception if invalid\&.
-.RS 4n\fBpointer check\fP \fIpointer\fP
+.RS 4n
+\fBpointer check\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2521,7 +2485,8 @@ safety and registration\&.
 .RE
 .PP
 Compares if two pointers are the same
-.RS 4n\fBpointer compare\fP \fIptr1 ptr2\fP
+.RS 4n
+\fBpointer compare\fP \fIptr1 ptr2\fP
 .br
 .RE
 .PP
@@ -2545,7 +2510,8 @@ address matches but tags are different and 0 otherwise\&.
 .RE
 .PP
 Registers a pointer as a counted pointer
-.RS 4n\fBpointer counted\fP \fIpointer\fP
+.RS 4n
+\fBpointer counted\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2586,7 +2552,8 @@ Returns the registered pointer\&.
 .RE
 .PP
 Unregisters a safe or counted pointer
-.RS 4n\fBpointer dispose\fP \fIpointer\fP
+.RS 4n
+\fBpointer dispose\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2614,7 +2581,8 @@ safety and registration\&.
 .RE
 .PP
 Returns a dictionary containing registration information about a pointer\&.
-.RS 4n\fBpointer info\fP \fIpointer\fP
+.RS 4n
+\fBpointer info\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2644,7 +2612,8 @@ Returns a dictionary containing registration information about a pointer\&.
 .PP
 Unregisters a safe, counted or pinned pointer irrespective its reference
 count\&.
-.RS 4n\fBpointer invalidate\fP \fIpointer\fP
+.RS 4n
+\fBpointer invalidate\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2680,7 +2649,8 @@ safety and registration\&.
 .RE
 .PP
 Returns true if the pointer is a NULL pointer, false otherwise\&.
-.RS 4n\fBpointer isnull\fP \fIpointer\fP
+.RS 4n
+\fBpointer isnull\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2700,7 +2670,8 @@ Returns true if the pointer is a NULL pointer, false otherwise\&.
 .RE
 .PP
 Validates a pointer\&.
-.RS 4n\fBpointer isvalid\fP \fIpointer\fP
+.RS 4n
+\fBpointer isvalid\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2735,7 +2706,8 @@ safety and registration\&.
 .RE
 .PP
 Returns a list of registered pointers optionally filtered by a tag\&.
-.RS 4n\fBpointer list\fP \fI?tag?\fP
+.RS 4n
+\fBpointer list\fP \fI?tag?\fP
 .br
 .RE
 .PP
@@ -2755,7 +2727,8 @@ Returns a list of registered pointers optionally filtered by a tag\&.
 .RE
 .PP
 Return a pointer for a memory address\&.
-.RS 4n\fBpointer make\fP \fIaddress ?tag?\fP
+.RS 4n
+\fBpointer make\fP \fIaddress ?tag?\fP
 .br
 .RE
 .PP
@@ -2779,7 +2752,8 @@ can use the \fIpointer safe\fP command to mark it as such if so desired\&.
 .RE
 .PP
 Pins a pointer as permanently safe\&.
-.RS 4n\fBpointer pin\fP \fIpointer\fP
+.RS 4n
+\fBpointer pin\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2810,7 +2784,8 @@ Returns \fI$pointer\fP itself\&.
 .RE
 .PP
 Registers a pointer as a safe uncounted pointer\&.
-.RS 4n\fBpointer safe\fP \fIpointer\fP
+.RS 4n
+\fBpointer safe\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2847,7 +2822,8 @@ Returns the registered pointer\&.
 .RE
 .PP
 Returns the pointer tag
-.RS 4n\fBpointer tag\fP \fIpointer\fP
+.RS 4n
+\fBpointer tag\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -2873,7 +2849,8 @@ Returns the pointer tag
 .RE
 .PP
 Makes pointers with the specified tag uncastable to another type
-.RS 4n\fBpointer uncastable\fP \fItag\fP
+.RS 4n
+\fBpointer uncastable\fP \fItag\fP
 .br
 .RE
 .PP
@@ -2891,18 +2868,14 @@ A pointer tag Pointers tagged with \fI$tag\fP will no longer be castable to othe
 A
 command
 ensemble\&.
-.RS 4n\fBprototype\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBprototype\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIdelete\fP
@@ -2918,22 +2891,15 @@ Returns a list of prototypes matching the specified pattern\&.
 Defines a function prototype for calling a function using the stdcall calling convention\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBprototype delete\fR (::cffi)
 .RE
 .PP
 Deletes prototypes matching a pattern\&.
-.RS 4n\fBprototype delete\fP \fIpattern\fP
+.RS 4n
+\fBprototype delete\fP \fIpattern\fP
 .br
 .RE
 .PP
@@ -2956,7 +2922,8 @@ It is not an error if the pattern does not match any prototypes\&.
 .PP
 Defines a function prototype for calling a function using the default
 C calling convention\&.
-.RS 4n\fBprototype function\fP \fIname fntype parameters\fP
+.RS 4n
+\fBprototype function\fP \fIname fntype parameters\fP
 .br
 .RE
 .PP
@@ -2993,7 +2960,8 @@ See \fIPrototypes and function pointers\fP for more details\&.
 .RE
 .PP
 Returns a list of prototypes matching the specified pattern\&.
-.RS 4n\fBprototype list\fP \fI?pattern?\fP
+.RS 4n
+\fBprototype list\fP \fI?pattern?\fP
 .br
 .RE
 .PP
@@ -3019,7 +2987,8 @@ Returns a list of prototypes matching the specified pattern\&.
 .PP
 Defines a function prototype for calling a function using the stdcall
 calling convention\&.
-.RS 4n\fBprototype stdcall\fP \fIname fntype parameters\fP
+.RS 4n
+\fBprototype stdcall\fP \fIname fntype parameters\fP
 .br
 .RE
 .PP
@@ -3057,7 +3026,8 @@ See \fIPrototypes and function pointers\fP for more details\&.
 .PP
 Return errno and GetLastError() values from the last
 CFFI call annotated with saveerrors\&.
-.RS 4n\fBsavederrors\fP
+.RS 4n
+\fBsavederrors\fP
 .br
 .RE
 .PP
@@ -3076,18 +3046,14 @@ latter is always 0 on non-Windows platforms\&.
 A
 command
 ensemble\&.
-.RS 4n\fBtype\fP \fIsubcommand \&.\&.\&.\fP
+.RS 4n
+\fBtype\fP \fIsubcommand \&.\&.\&.\fP
 .br
 .RE
 .PP
 \fBDescription\fR
 .PP
-The
-ensemble
-supports
-the
-following
-subcommands:
+The ensemble supports the following subcommands:
 .RS 4n
 .TP
 \fIcount\fP
@@ -3106,22 +3072,15 @@ Returns the size of a type in terms of the number of bytes of memory occupied by
 Converts a script level value to a native representation\&.
 .RE
 .PP
-Refer
-to
-the
-documentation
-of
-each
-subcommand
-for
-details\&.
+Refer to the documentation of each subcommand for details\&.
 .PP
 .RS -4n
 \fBtype count\fR (::cffi)
 .RE
 .PP
 Returns the count of elements in an array type
-.RS 4n\fBtype count\fP \fItype\fP
+.RS 4n
+\fBtype count\fP \fItype\fP
 .br
 .RE
 .PP
@@ -3145,7 +3104,8 @@ Returns the count of elements in an array type
 .RE
 .PP
 Converts the native binary value to its script level representation\&.
-.RS 4n\fBtype frombinary\fP \fItypespec value\fP
+.RS 4n
+\fBtype frombinary\fP \fItypespec value\fP
 .br
 .RE
 .PP
@@ -3177,7 +3137,8 @@ Returns the script level representation of the value\&.
 .PP
 Returns a dictionary containing various information about a type
 declaration
-.RS 4n\fBtype info\fP \fItypedecl ?args?\fP
+.RS 4n
+\fBtype info\fP \fItypedecl ?args?\fP
 .br
 .RE
 .PP
@@ -3235,7 +3196,8 @@ declaration
 .PP
 Returns the size of a type in terms of the number of bytes of memory
 occupied by that type\&.
-.RS 4n\fBtype size\fP \fItype ?args?\fP
+.RS 4n
+\fBtype size\fP \fItype ?args?\fP
 .br
 .RE
 .PP
@@ -3267,7 +3229,8 @@ occupied by that type\&.
 .RE
 .PP
 Converts a script level value to a native representation\&.
-.RS 4n\fBtype tobinary\fP \fItypespec value\fP
+.RS 4n
+\fBtype tobinary\fP \fItypespec value\fP
 .br
 .RE
 .PP
@@ -3321,7 +3284,8 @@ Creates Tcl commands corresponding to the C functions comprising an interface\&.
 .RE
 .PP
 Defines an interface consisting of method definitions\&.
-.RS 4n\fBInterface create OBJNAME\fP \fI?args?\fP
+.RS 4n
+\fBInterface create OBJNAME\fP \fI?args?\fP
 .br
 \fBInterface new\fP \fI?args?\fP
 .br
@@ -3347,7 +3311,8 @@ See \fIInterfaces\fP for more information\&.
 .PP
 Returns the id for the interface as passed via the -id option
 in the interface definition\&.
-.RS 4n\fBOBJECT id\fP
+.RS 4n
+\fBINTERFACEOBJ id\fP
 .br
 .RE
 .PP
@@ -3361,7 +3326,8 @@ in the interface definition\&.
 .RE
 .PP
 Creates Tcl commands wrapping the C functions comprising an interface\&.
-.RS 4n\fBOBJECT methods\fP \fImethodlist ?args?\fP
+.RS 4n
+\fBINTERFACEOBJ methods\fP \fImethodlist ?args?\fP
 .br
 .RE
 .PP
@@ -3401,7 +3367,8 @@ in the C function, the pointer to the object, should not be included\&.
 .PP
 Creates Tcl commands corresponding to the C functions comprising an
 interface\&.
-.RS 4n\fBOBJECT stdmethods\fP \fImethodlist ?args?\fP
+.RS 4n
+\fBINTERFACEOBJ stdmethods\fP \fImethodlist ?args?\fP
 .br
 .RE
 .PP
@@ -3511,7 +3478,8 @@ Writes the Tcl dictionary representation of a C struct value to memory in native
 .RE
 .PP
 Constructs a script level object that maps to a C struct definition\&.
-.RS 4n\fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
+.RS 4n
+\fBStruct create OBJNAME\fP \fIdefinition ?args?\fP
 .br
 \fBStruct new\fP \fIdefinition ?args?\fP
 .br
@@ -3557,7 +3525,8 @@ This also effectively provides a default zero value for all fields\&.
 .RE
 .PP
 Allocates memory for one or more C structs\&.
-.RS 4n\fBOBJECT allocate\fP \fI?args?\fP
+.RS 4n
+\fBSTRUCTOBJ allocate\fP \fI?args?\fP
 .br
 .RE
 .PP
@@ -3594,7 +3563,8 @@ struct name\&.
 .RE
 .PP
 Returns a human-readable description of the C struct definition\&.
-.RS 4n\fBOBJECT describe\fP
+.RS 4n
+\fBSTRUCTOBJ describe\fP
 .br
 .RE
 .PP
@@ -3614,7 +3584,8 @@ Returns a human-readable description of the C struct definition\&.
 .PP
 Returns a pointer corresponding to the address of a field within a
 native structure
-.RS 4n\fBOBJECT fieldpointer\fP \fIpointer fieldname ?tag? ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ fieldpointer\fP \fIpointer fieldname ?tag? ?index?\fP
 .br
 .RE
 .PP
@@ -3648,7 +3619,8 @@ native structure
 .RE
 .PP
 Frees memory that was allocated for a native C struct\&.
-.RS 4n\fBOBJECT free\fP \fIpointer\fP
+.RS 4n
+\fBSTRUCTOBJ free\fP \fIpointer\fP
 .br
 .RE
 .PP
@@ -3665,7 +3637,8 @@ A pointer returned by \fIallocate\fP
 .PP
 Decodes a Tcl binary string containing a native C struct into
 a Tcl dictionary\&.
-.RS 4n\fBOBJECT frombinary\fP \fIbin_value\fP
+.RS 4n
+\fBSTRUCTOBJ frombinary\fP \fIbin_value\fP
 .br
 .RE
 .PP
@@ -3685,7 +3658,8 @@ Returns the dictionary representation\&.
 .RE
 .PP
 Decodes native C struct(s) in memory into a Tcl dictionary\&.
-.RS 4n\fBOBJECT fromnative\fP \fIpointer ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ fromnative\fP \fIpointer ?index?\fP
 .br
 .RE
 .PP
@@ -3719,7 +3693,8 @@ Returns a dictionary of the decoded struct\&.
 .RE
 .PP
 Decodes native C struct(s) in memory into a Tcl dictionary\&.
-.RS 4n\fBOBJECT fromnative!\fP \fIpointer ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ fromnative!\fP \fIpointer ?index?\fP
 .br
 .RE
 .PP
@@ -3753,7 +3728,8 @@ Returns a dictionary of the decoded struct\&.
 .RE
 .PP
 Returns the value of a field in a native structure in memory
-.RS 4n\fBOBJECT getnative\fP \fIpointer fieldname ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ getnative\fP \fIpointer fieldname ?index?\fP
 .br
 .RE
 .PP
@@ -3784,7 +3760,8 @@ Returns the value of a field in a native structure in memory
 .RE
 .PP
 Returns the value of a field in a native structure in memory
-.RS 4n\fBOBJECT getnative!\fP \fIpointer fieldname ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ getnative!\fP \fIpointer fieldname ?index?\fP
 .br
 .RE
 .PP
@@ -3815,7 +3792,8 @@ Returns the value of a field in a native structure in memory
 .RE
 .PP
 Retrieve values of multiple fields from a native struct in memory\&.
-.RS 4n\fBOBJECT getnativefields\fP \fIpointer fieldnames ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ getnativefields\fP \fIpointer fieldnames ?index?\fP
 .br
 .RE
 .PP
@@ -3841,7 +3819,8 @@ Returns a list of field values in the same order as \fI$fieldnames\fP
 .RE
 .PP
 Retrieve values of multiple fields from a native struct in memory\&.
-.RS 4n\fBOBJECT getnativefields!\fP \fIpointer fieldnames ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ getnativefields!\fP \fIpointer fieldnames ?index?\fP
 .br
 .RE
 .PP
@@ -3867,7 +3846,8 @@ Returns a list of field values in the same order as \fI$fieldnames\fP
 .RE
 .PP
 Returns a dictionary containing information about the struct layout
-.RS 4n\fBOBJECT info\fP \fI?args?\fP
+.RS 4n
+\fBSTRUCTOBJ info\fP \fI?args?\fP
 .br
 .RE
 .PP
@@ -3906,7 +3886,8 @@ Returns a dictionary containing information about the struct layout
 .RE
 .PP
 Returns the name of the struct\&.
-.RS 4n\fBOBJECT name\fP
+.RS 4n
+\fBSTRUCTOBJ name\fP
 .br
 .RE
 .PP
@@ -3924,7 +3905,8 @@ Returns the name of the struct\&.
 .RE
 .PP
 Allocates and initializes a native struct in memory\&.
-.RS 4n\fBOBJECT new\fP \fI?initval?\fP
+.RS 4n
+\fBSTRUCTOBJ new\fP \fI?initval?\fP
 .br
 .RE
 .PP
@@ -3959,7 +3941,8 @@ struct name\&.
 .RE
 .PP
 Sets the value of a field in a native structure in memory
-.RS 4n\fBOBJECT setnative\fP \fIpointer fieldname value ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ setnative\fP \fIpointer fieldname value ?index?\fP
 .br
 .RE
 .PP
@@ -3990,7 +3973,8 @@ raised\&.
 .RE
 .PP
 Sets the value of a field in a native structure in memory
-.RS 4n\fBOBJECT setnative!\fP \fIpointer fieldname value ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ setnative!\fP \fIpointer fieldname value ?index?\fP
 .br
 .RE
 .PP
@@ -4021,7 +4005,8 @@ raised\&.
 .RE
 .PP
 Returns the size of the struct\&.
-.RS 4n\fBOBJECT size\fP \fI?args?\fP
+.RS 4n
+\fBSTRUCTOBJ size\fP \fI?args?\fP
 .br
 .RE
 .PP
@@ -4048,7 +4033,8 @@ Returns the size of the struct\&.
 .PP
 Encodes the Tcl representation of a C struct value into a
 Tcl binary string\&.
-.RS 4n\fBOBJECT tobinary\fP \fIdict_value\fP
+.RS 4n
+\fBSTRUCTOBJ tobinary\fP \fIdict_value\fP
 .br
 .RE
 .PP
@@ -4069,7 +4055,8 @@ Returns the binary string containing the native C struct\&.
 .PP
 Writes the Tcl dictionary representation of a C struct value to memory
 in native form\&.
-.RS 4n\fBOBJECT tonative\fP \fIpointer initializer ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ tonative\fP \fIpointer initializer ?index?\fP
 .br
 .RE
 .PP
@@ -4100,7 +4087,8 @@ The method raises an error if the struct is variable size\&.
 .PP
 Writes the Tcl dictionary representation of a C struct value to memory
 in native form\&.
-.RS 4n\fBOBJECT tonative!\fP \fIpointer initializer ?index?\fP
+.RS 4n
+\fBSTRUCTOBJ tonative!\fP \fIpointer initializer ?index?\fP
 .br
 .RE
 .PP
@@ -4159,7 +4147,8 @@ Returns the size of the union\&.
 .RE
 .PP
 Constructs a script level object that maps to a C union definition\&.
-.RS 4n\fBUnion create OBJNAME\fP \fIdefinition ?args?\fP
+.RS 4n
+\fBUnion create OBJNAME\fP \fIdefinition ?args?\fP
 .br
 \fBUnion new\fP \fIdefinition ?args?\fP
 .br
@@ -4196,7 +4185,8 @@ type is cleared before the field values are initialized\&.
 .RE
 .PP
 Returns a field from a native union\&.
-.RS 4n\fBOBJECT decode\fP \fIfield uvalue\fP
+.RS 4n
+\fBUNIONOBJ decode\fP \fIfield uvalue\fP
 .br
 .RE
 .PP
@@ -4223,7 +4213,8 @@ Returns a field from a native union\&.
 .RE
 .PP
 Returns a human-readable description of the C union definition\&.
-.RS 4n\fBOBJECT describe\fP
+.RS 4n
+\fBUNIONOBJ describe\fP
 .br
 .RE
 .PP
@@ -4240,7 +4231,8 @@ Returns a human-readable description of the C union definition\&.
 .RE
 .PP
 Returns a union in native form with the specified field value\&.
-.RS 4n\fBOBJECT encode\fP \fIfield value\fP
+.RS 4n
+\fBUNIONOBJ encode\fP \fIfield value\fP
 .br
 .RE
 .PP
@@ -4267,7 +4259,8 @@ Returns a union in native form with the specified field value\&.
 .RE
 .PP
 Returns a dictionary containing information about the info layout
-.RS 4n\fBOBJECT info\fP
+.RS 4n
+\fBUNIONOBJ info\fP
 .br
 .RE
 .PP
@@ -4297,7 +4290,8 @@ Returns a dictionary containing information about the info layout
 .RE
 .PP
 Returns the name of the struct\&.
-.RS 4n\fBOBJECT name\fP
+.RS 4n
+\fBUNIONOBJ name\fP
 .br
 .RE
 .PP
@@ -4315,7 +4309,8 @@ Returns the name of the struct\&.
 .RE
 .PP
 Returns the size of the union\&.
-.RS 4n\fBOBJECT size\fP
+.RS 4n
+\fBUNIONOBJ size\fP
 .br
 .RE
 .PP
@@ -4360,7 +4355,8 @@ Creates Tcl commands for multiple C functions within the loaded library that all
 .RE
 .PP
 Wraps a shared library / DLL, loading it in the process\&.
-.RS 4n\fBWrapper create OBJNAME\fP \fIpath\fP
+.RS 4n
+\fBWrapper create OBJNAME\fP \fIpath\fP
 .br
 \fBWrapper new\fP \fIpath\fP
 .br
@@ -4393,7 +4389,8 @@ Returns the name of the created object\&.
 .RE
 .PP
 Destroys the object and releases internal resources\&.
-.RS 4n\fBOBJECT destroy\fP
+.RS 4n
+\fBWRAPPEROBJ destroy\fP
 .br
 .RE
 .PP
@@ -4407,7 +4404,8 @@ holding a reference to it\&.
 .RE
 .PP
 Returns the address of a symbol from the loaded library\&.
-.RS 4n\fBOBJECT addressof\fP \fIsymbol\fP
+.RS 4n
+\fBWRAPPEROBJ addressof\fP \fIsymbol\fP
 .br
 .RE
 .PP
@@ -4431,7 +4429,8 @@ Returns the address of a symbol from the loaded library\&.
 .RE
 .PP
 Creates a Tcl command to invoke a C function in the loaded library\&.
-.RS 4n\fBOBJECT function\fP \fIfnname fntype parameters\fP
+.RS 4n
+\fBWRAPPEROBJ function\fP \fIfnname fntype parameters\fP
 .br
 .RE
 .PP
@@ -4488,7 +4487,8 @@ Returns the name of the created Tcl command\&.
 .RE
 .PP
 Creates Tcl commands for multiple C functions within the loaded library\&.
-.RS 4n\fBOBJECT functions\fP \fIfnlist ?args?\fP
+.RS 4n
+\fBWRAPPEROBJ functions\fP \fIfnlist ?args?\fP
 .br
 .RE
 .PP
@@ -4523,7 +4523,8 @@ being considered a comment\&.
 .PP
 Returns the file system path for the wrapped library or image wrapped
 by the object\&.
-.RS 4n\fBOBJECT path\fP
+.RS 4n
+\fBWRAPPEROBJ path\fP
 .br
 .RE
 .PP
@@ -4545,7 +4546,8 @@ by the object\&.
 .PP
 Creates a Tcl command to invoke a C function that uses the
 __stdcall calling convention from the loaded library\&.\&.
-.RS 4n\fBOBJECT stdcall\fP \fIfnname fntype parameters\fP
+.RS 4n
+\fBWRAPPEROBJ stdcall\fP \fIfnname fntype parameters\fP
 .br
 .RE
 .PP
@@ -4583,7 +4585,8 @@ Returns the name of the created Tcl command\&.
 .PP
 Creates Tcl commands for multiple C functions within the loaded library
 that all use the __stdcall calling convention\&.
-.RS 4n\fBOBJECT stdcalls\fP \fIfnlist ?args?\fP
+.RS 4n
+\fBWRAPPEROBJ stdcalls\fP \fIfnlist ?args?\fP
 .br
 .RE
 .PP

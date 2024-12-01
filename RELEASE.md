@@ -10,8 +10,8 @@ Update Docs
 
 - Update README.md
 - Generate documentation - `cd doc && tclsh makedocs.tcl`
-- Tag release
 - Commit
+- Tag release
 - Push to github
 - Push tag to github
 - Verify CI builds pass
@@ -19,6 +19,8 @@ Update Docs
 ## Windows binaries
 
 Run release.cmd to generate Windows binary distribution under `dist/cffi-VERSION`.
+Alternative, run release-mingw.cmd to generate Windows binaries using MinGW
+instead. The binaries will be under dist/mingw/cffi-VERSION.
 This will build the binaries for Tcl 8.6 and 9 for both x86 and x64.
 
 Unzip into distribution into each of the 8.6 and 9.0 directories for
