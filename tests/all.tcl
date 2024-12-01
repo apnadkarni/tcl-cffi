@@ -19,6 +19,7 @@ if {[info exists env(TEMP)]} {
 
 eval tcltest::configure $argv
 
+# ERROR_ON_FAILURES for github actions
 set ErrorOnFailures [info exists env(ERROR_ON_FAILURES)]
 # NOTE: Do NOT unset ERROR_ON_FAILURES if recursing to subdirectories
 unset -nocomplain env(ERROR_ON_FAILURES)

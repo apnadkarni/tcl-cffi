@@ -49,7 +49,7 @@
 :: The --prefix option is required because otherwise mingw's config.site file
 :: overrides the prefix in tclConfig.sh resulting in man pages installed in
 :: the system directory.
-if NOT EXIST Makefile call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "../../configure --prefix=""%tcldiru%"" --with-tcl=""%tcldiru%/lib"" --with-tclinclude=""%tcldiru%/include""  LIBS=""-static-libgcc"" %3" || echo %1 %2 configure failed && popd && goto abort
+if NOT EXIST Makefile call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "../../configure --prefix=""%tcldiru%"" --with-tcl=""%tcldiru%/lib"" --with-tclinclude=""%tcldiru%/include"" %3" || echo %1 %2 configure failed && popd && goto abort
 @call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c make || echo %1 %2 make failed && goto abort
 @call "%MINGWROOT%\msys2_shell.cmd" -defterm -no-start -here -%2 -l -c "make install-strip" || echo %1 %2 make install failed && popd && goto abort
 @if exist %tcldir%\lib\tcl%package%%version% xcopy /S /I /Y %tcldir%\lib\tcl%package%%version% "%DISTRO%" || goto abort
