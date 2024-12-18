@@ -49,7 +49,7 @@ jobs:
 
     - name: Set Tcl path for Windows
       if: runner.os == 'Windows'
-      run: echo "TCLDIR=C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $GITHUB_ENV
+      run: echo "TCLDIR=C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
 
     - name: Set Tcl path
       if: runner.os != 'Windows'
@@ -64,7 +64,8 @@ jobs:
       id: tcl-cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.TCLDIR }}
+        path: |
+          console.log("${{ env.TCLDIR }}")
         key: ${{ runner.os }}-${{ matrix.os }}-tcl-${{ env.TCLSUBDIR }}
 
     - name: Checkout Tcl
