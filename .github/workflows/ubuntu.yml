@@ -39,7 +39,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       TCLSUBDIR: ${{ matrix.tclbranch }}
-      TCLDIR: /tmp/tcl/${{ matrix.tclbranch }}
 
     steps:
 
@@ -55,7 +54,7 @@ jobs:
       run: |
        sudo apt-get update
        sudo apt-get install uuid-dev
-  
+
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
       with:
@@ -65,7 +64,8 @@ jobs:
       id: tcl-cache
       uses: actions/cache@v4
       with:
-        path: ${{ env.TCLDIR }}
+        path: |
+          console.log("${{ env.TCLDIR }}")
         key: ${{ runner.os }}-${{ matrix.os }}-tcl-${{ env.TCLSUBDIR }}
 
     - name: Checkout Tcl
