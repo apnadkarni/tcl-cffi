@@ -59,6 +59,7 @@ jobs:
         tcl-osver: ${{ matrix.os }}
         tcl-branch: ${{ matrix.tclbranch }}
         tcl-arch: ${{ matrix.arch }}
+        tcl-toolchain: 'vc'
 
     - name: Install libffi
       shell: cmd
