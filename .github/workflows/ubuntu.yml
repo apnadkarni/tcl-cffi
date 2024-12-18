@@ -46,6 +46,13 @@ jobs:
     #   sudo apt-get update
     #   sudo apt-get install libtommath-dev
 
+    - name: Setup Tcl
+      id: setup-tcl-step
+      uses: apnadkarni/setup-tcl@main
+      with:
+        tcl-osver: ${{ matrix.os }}
+        tcl-branch: ${{ matrix.tclbranch }}
+
     - name: Install libuuid
       id: uuid
       run: |
@@ -56,44 +63,6 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: true
-
-    - name: Set Tcl path for Windows
-      if: runner.os == 'Windows'
-      run: |
-        echo "TCLDIR=C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
-        echo "TCLSUBDIR=${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
-
-    - name: Set Tcl path
-      if: runner.os != 'Windows'
-      run: |
-        echo "TCLDIR=/tmp/tcl/${{ matrix.tclbranch }}" >> $GITHUB_ENV
-        echo "TCLSUBDIR=${{ matrix.tclbranch }}" >> $GITHUB_ENV
-
-
-    - name: Cache Tcl build
-      id: tcl-cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.TCLDIR }}
-        key: ${{ runner.os }}-${{ matrix.os }}-tcl-${{ env.TCLSUBDIR }}
-
-    - name: Checkout Tcl
-      if: steps.tcl-cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: tcltk/tcl
-        ref: ${{ matrix.tclbranch }}
-        path: tcl-${{ matrix.tclbranch }}
-
-    - name: Build Tcl
-      if: steps.tcl-cache.outputs.cache-hit != 'true'
-      working-directory: tcl-${{ matrix.tclbranch }}/unix
-      run: |
-        mkdir build
-        cd build
-        ../configure --prefix=${{ env.TCLDIR }} || (cat config.log && exit 1)
-        make
-        make install
 
     - name: Install dyncall
       run: |
