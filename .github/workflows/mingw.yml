@@ -9,10 +9,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - {tclbranch: main, arch: mingw64, cpu: x86_64}
-          - {tclbranch: main, arch: mingw32, cpu: i686}
-          - {tclbranch: core-8-6-13, arch: mingw64, cpu: x86_64}
-          - {tclbranch: core-8-6-13, arch: mingw32, cpu: i686}
+          - {os: windows-latest, tclbranch: main, arch: mingw64, cpu: x86_64}
+          - {os: windows-latest, tclbranch: main, arch: mingw32, cpu: i686}
+          - {os: windows-latest, tclbranch: core-8-6-13, arch: mingw64, cpu: x86_64}
+          - {os: windows-latest, tclbranch: core-8-6-13, arch: mingw32, cpu: i686}
     defaults:
       run:
         shell: msys2 {0}
