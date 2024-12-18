@@ -22,6 +22,15 @@ on:
           - '["windows-2019"]'
           - '["windows-2019", "windows-2022"]'
         default: '["windows-latest"]'
+      arch:
+        description: 'x86 and/or x64'
+        required: false
+        type: choice
+        options:
+          - '["x64"]'
+          - '["x86"]'
+          - '["x64", "x86"]'
+        default: '["x64"]'
       dotest: # Whether tests should be run
         description: 'Run tests as well'
         required: false
@@ -34,9 +43,7 @@ jobs:
       matrix:
         os: ${{ fromJSON(github.event.inputs.osver) }}
         tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
-        arch:
-          - x64
-          - x86
+        arch: ${{ fromJSON(github.event.inputs.arch) }}
     runs-on: ${{ matrix.os }}
     steps:
     # Note msvc defaults to 64-bit
