@@ -54,7 +54,7 @@ jobs:
 
     - name: Setup Tcl
       id: setup-tcl-step
-      uses: apnadkarni/setup-tcl@main
+      uses: apnadkarni/setup-tcl@v1
       with:
         tcl-osver: ${{ matrix.os }}
         tcl-branch: ${{ matrix.tclbranch }}
