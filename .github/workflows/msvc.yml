@@ -38,8 +38,6 @@ jobs:
           - x64
           - x86
     runs-on: ${{ matrix.os }}
-    env:
-      TCLSUBDIR: ${{ matrix.arch }}-${{ matrix.tclbranch }}
     steps:
     # Note msvc defaults to 64-bit
     - name: Init MSVC
@@ -49,11 +47,15 @@ jobs:
 
     - name: Set Tcl path for Windows
       if: runner.os == 'Windows'
-      run: echo "TCLDIR=C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
+      run: |
+        echo "TCLDIR=C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
+        echo "TCLSUBDIR=${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
 
     - name: Set Tcl path
       if: runner.os != 'Windows'
-      run: echo "TCLDIR=/tmp/tcl/${{ matrix.tclbranch }}" >> $GITHUB_ENV
+      run: |
+        echo "TCLDIR=/tmp/tcl/${{ matrix.tclbranch }}" >> $GITHUB_ENV
+        echo "TCLSUBDIR=${{ matrix.tclbranch }}" >> $GITHUB_ENV
 
     - name: Checkout tcl-cffi
       uses: actions/checkout@v4
