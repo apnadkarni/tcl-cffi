@@ -9,14 +9,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - {tclbranch: main, sys: mingw64, arch: x86_64}
-          - {tclbranch: main, sys: mingw32, arch: i686}
-          - {tclbranch: core-8-6-13, sys: mingw64, arch: x86_64}
-          - {tclbranch: core-8-6-13, sys: mingw32, arch: i686}
-    env:
-      TCLSUBDIR: ${{ matrix.sys }}-${{ matrix.tclbranch }}
-      TCLDIR: C:/tcl/${{ matrix.sys }}-${{ matrix.tclbranch }}
-      MSYSTCLDIR: /c/tcl/${{ matrix.sys }}-${{ matrix.tclbranch }}
+          - {os: windows-latest, tclbranch: main, arch: mingw64, cpu: x86_64}
+          - {os: windows-latest, tclbranch: main, arch: mingw32, cpu: i686}
+          - {os: windows-latest, tclbranch: core-8-6-13, arch: mingw64, cpu: x86_64}
+          - {os: windows-latest, tclbranch: core-8-6-13, arch: mingw32, cpu: i686}
     defaults:
       run:
         shell: msys2 {0}
@@ -29,48 +25,32 @@ jobs:
     - name: Set up msys2
       uses: msys2/setup-msys2@v2
       with:
-        msystem: ${{ matrix.sys }}
+        msystem: ${{ matrix.arch }}
         path-type: minimal
         release: true
         update: false
-        install: mingw-w64-${{matrix.arch}}-gcc make
+        install: mingw-w64-${{matrix.cpu}}-gcc make
 
     - name: Verify toolchain
       run: |
         gcc -v
         make -v
 
-    - name: Cache Tcl build
-      id: tcl-cache
-      uses: actions/cache@v4
+    - name: Setup Tcl
+      id: setup-tcl-step
+      uses: apnadkarni/setup-tcl@main
       with:
-        path: ${{ env.TCLDIR }}
-        key: ${{ runner.os }}-tcl-${{ env.TCLSUBDIR }}
-
-    - name: Checkout Tcl
-      if: steps.tcl-cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: tcltk/tcl
-        ref: ${{ matrix.tclbranch }}
-        path: tcl-${{ matrix.tclbranch }}
-
-    - name: Build Tcl
-      if: steps.tcl-cache.outputs.cache-hit != 'true'
-      working-directory: tcl-${{ matrix.tclbranch }}/win
-      run: |
-        mkdir build
-        cd build
-        ../configure --prefix=${{ env.MSYSTCLDIR }} || (cat config.log && exit 1)
-        make
-        make install
+        tcl-osver: ${{ matrix.os }}
+        tcl-branch: ${{ matrix.tclbranch }}
+        tcl-toolchain: 'mingw64'
+        tcl-arch: ${{ matrix.arch }}
 
     - name: Cache dyncall
       id: dyncall-cache
       uses: actions/cache@v4
       with:
         path: C:/dyncall
-        key: ${{ runner.os }}-dyncall-${{ matrix.sys }}
+        key: ${{ runner.os }}-dyncall-${{ matrix.arch }}
 
     - name: Install dyncall
       if: steps.dyncall-cache.outputs.cache-hit != 'true'
@@ -92,7 +72,7 @@ jobs:
       run: |
         mkdir build-dyncall
         cd build-dyncall
-        ../configure --with-tcl=${{ env.MSYSTCLDIR }}/lib --with-tclinclude=${{ env.MSYSTCLDIR }}/include LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include --with-dyncall
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib --with-tclinclude=${{ env.TCLDIR }}/include LDFLAGS=-L/c/dyncall/lib CPPFLAGS=-I/c/dyncall/include --with-dyncall
 
     - name: Make with dyncall
       run: |
@@ -110,7 +90,7 @@ jobs:
       run: |
         mkdir build-libffi
         cd build-libffi
-        ../configure --with-tcl=${{ env.MSYSTCLDIR }}/lib --with-tclinclude=${{ env.MSYSTCLDIR }}/include
+        ../configure --with-tcl=${{ env.TCLDIR }}/lib --with-tclinclude=${{ env.TCLDIR }}/include
 
     - name: Make with libffi
       run: |
