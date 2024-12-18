@@ -45,45 +45,13 @@ jobs:
       with:
         arch: ${{ matrix.arch }}
 
-    - name: Set Tcl path for Windows
-      if: runner.os == 'Windows'
-      run: |
-        echo "TCLDIR=C:/tcl/msvc/${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
-        echo "TCLSUBDIR=${{ matrix.arch }}-${{ matrix.tclbranch }}" >> $env:GITHUB_ENV
-
-    - name: Set Tcl path
-      if: runner.os != 'Windows'
-      run: |
-        echo "TCLDIR=/tmp/tcl/${{ matrix.tclbranch }}" >> $GITHUB_ENV
-        echo "TCLSUBDIR=${{ matrix.tclbranch }}" >> $GITHUB_ENV
-
-    - name: Checkout tcl-cffi
-      uses: actions/checkout@v4
+    - name: Setup Tcl
+      id: setup-tcl-step
+      uses: apnadkarni/setup-tcl@main
       with:
-        submodules: true
-
-    - name: Cache Tcl build
-      id: tcl-cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.TCLDIR }}
-        key: ${{ runner.os }}-${{ matrix.os }}-tcl-${{ env.TCLSUBDIR }}
-
-    - name: Checkout Tcl
-      if: steps.tcl-cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
-      with:
-        repository: tcltk/tcl
-        ref: ${{ matrix.tclbranch }}
-        path: tcl-${{ matrix.tclbranch }}
-
-    - name: Build Tcl
-      if: steps.tcl-cache.outputs.cache-hit != 'true'
-      working-directory: tcl-${{ matrix.tclbranch }}/win
-      shell: cmd
-      run: |
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }}
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} install
+        tcl-osver: ${{ matrix.os }}
+        tcl-branch: ${{ matrix.tclbranch }}
+        tcl-arch: ${{ matrix.arch }}
 
     - name: Install libffi
       shell: cmd
@@ -110,6 +78,11 @@ jobs:
         cd ..
         cmake --build build-msvc-${{ matrix.arch }} --config Release
         cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
+
+    - name: Checkout tcl-cffi
+      uses: actions/checkout@v4
+      with:
+        submodules: true
 
     - name: Make with libffi
       shell: cmd
