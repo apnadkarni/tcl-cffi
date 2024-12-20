@@ -84,14 +84,14 @@ jobs:
 
     - name: Build with dyncall extension
       if: inputs.dyncall
-      uses: apnadkarni/tcl-build-extension@build_opts
+      uses: apnadkarni/tcl-build-extension@build-opts
       with:
         tcl-dotest: ${{ inputs.dotest }}
         ext-config-opts: 'LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall'
 
     - name: Build with libffi extension
       if: inputs.libffi
-      uses: apnadkarni/tcl-build-extension@build_opts
+      uses: apnadkarni/tcl-build-extension@build-opts
       with:
         tcl-dotest: ${{ inputs.dotest }}
         ext-config-opts: '--disable-staticffi'
