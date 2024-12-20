@@ -44,8 +44,8 @@ jobs:
         brew update
 
     - name: Setup Tcl
-      id: setup-tcl-step
-      uses: apnadkarni/setup-tcl@v1
+      id: tcl-setup-step
+      uses: apnadkarni/tcl-setup@v1
       with:
         tcl-osver: ${{ matrix.os }}
         tcl-branch: ${{ matrix.tclbranch }}
