@@ -8,10 +8,13 @@ on:
         required: true
         type: choice
         options:
-          - '["main"]'
+          - '["core-9-0-0"]'
           - '["core-8-6-13"]'
-          - '["core-8-6-13", "main"]'
-        default: '["core-8-6-13", "main"]'
+          - '["main"]'
+          - '["core-8-6-branch"]'
+          - '["core-8-6-13", "core-9-0-0"]'
+          - '["core-8-6-13", "core-9-0-0", "main", "core-8-6-branch"]'
+        default: '["core-8-6-13", "core-9-0-0"]'
       osver:  # User input for selecting OS
         description: 'OS version'
         required: true
@@ -28,6 +31,16 @@ on:
         required: false
         default: true
         type: boolean
+      dyncall: # Build with dyncall
+        description: 'Build dyncall version'
+        required: false
+        default: true
+        type: boolean
+      libffi: # Build with libffi
+        description: 'Build libffi version'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build:
@@ -39,13 +52,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    # No longer needed
-    #- name: Install libtommath
-    #  id: tommath
-    #  run: |
-    #   sudo apt-get update
-    #   sudo apt-get install libtommath-dev
-
     - name: Setup Tcl
       id: tcl-setup-step
       uses: apnadkarni/tcl-setup@v1
@@ -65,6 +71,7 @@ jobs:
         submodules: true
 
     - name: Install dyncall
+      if: inputs.dyncall
       run: |
         wget https://dyncall.org/r1.4/dyncall-1.4.tar.gz
         tar xf dyncall-1.4.tar.gz
@@ -75,40 +82,18 @@ jobs:
         make
         make install
 
-    - name: Configure with dyncall
-      run: |
-        mkdir build-dyncall
-        cd build-dyncall
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall
+    - name: Build with dyncall extension
+      if: inputs.dyncall
+      uses: apnadkarni/tcl-build-extension@build_opts
+      with:
+        tcl-dotest: ${{ inputs.dotest }}
+        ext-config-opts: 'LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall'
 
-    - name: Make with dyncall
-      run: |
-        cd build-dyncall
-        make
+    - name: Build with libffi extension
+      if: inputs.libffi
+      uses: apnadkarni/tcl-build-extension@build_opts
+      with:
+        tcl-dotest: ${{ inputs.dotest }}
+        ext-config-opts: '--disable-staticffi'
+  
 
-    - name: Test with dyncall
-      if: github.event.inputs.dotest
-      run: |
-        cd build-dyncall
-        make test
-      env:
-        ERROR_ON_FAILURES: 1
-
-    - name: Configure with libffi
-      run: |
-        mkdir build-libffi
-        cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib --enable-64bit --disable-staticffi
-
-    - name: Make with libffi
-      run: |
-        cd build-libffi
-        make
-
-    - name: Test with libffi
-      if: github.event.inputs.dotest
-      run: |
-        cd build-libffi
-        make test
-      env:
-        ERROR_ON_FAILURES: 1
