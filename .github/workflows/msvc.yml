@@ -103,13 +103,13 @@ jobs:
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
         run-tests: ${{ inputs.run-tests }}
-        make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md"
+        make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\\installed\\${{ matrix.arch }}-windows-static-md"
 
     - name: Make with libffi
       if: inputs.with-dyncall
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
         run-tests: ${{ inputs.run-tests }}
-        make-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}"
+        make-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\\dyncall\\msvc\\${{ matrix.arch }}"
 
 
