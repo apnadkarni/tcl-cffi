@@ -31,12 +31,12 @@ on:
         required: false
         default: true
         type: boolean
-      dyncall: # Build with dyncall
+      with-dyncall: # Build with dyncall
         description: 'Build dyncall version'
         required: false
         default: true
         type: boolean
-      libffi: # Build with libffi
+      with-libffi: # Build with libffi
         description: 'Build libffi version'
         required: false
         default: true
@@ -77,15 +77,17 @@ jobs:
         make install
 
     - name: Build with libffi extension
-      if: inputs.libffi
+      if: inputs.with-libffi
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
+        build-subdir: 'build-with-libffi'
         run-tests: ${{ inputs.run-tests }}
         config-opts: '--disable-staticffi'
 
     - name: Build with dyncall extension
-      if: inputs.dyncall
+      if: inputs.with-dyncall
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
+        build-subdir: 'build-with-dyncall'
         run-tests: ${{ inputs.run-tests }}
         config-opts: 'LDFLAGS=-L${{ env.TCLEXTRASDIR }}/lib CPPFLAGS=-I{{ env.TCLEXTRASDIR }}/include --with-dyncall'
