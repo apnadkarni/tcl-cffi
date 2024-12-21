@@ -30,7 +30,7 @@ on:
           - '["x64"]'
           - '["x86"]'
           - '["x64", "x86"]'
-        default: '["x64"]'
+        default: '["x64", "x86"]'
       run-tests: # Whether tests should be run
         description: 'Run tests as well'
         required: false
@@ -74,15 +74,15 @@ jobs:
       if: inputs.with-libffi
       shell: cmd
       run: |
-        %VCPKG_INSTALLATION_ROOT%\vcpkg install libffi:${{ matrix.arch }}-windows-static-md
+        %VCPKG_INSTALLATION_ROOT%\vcpkg install libffi:${{ matrix.target-arch }}-windows-static-md
 
     - name: Cache dyncall
       if: inputs.with-dyncall
       id: dyncall-msvc-cache
       uses: actions/cache@v4
       with:
-        path: C:/dyncall/msvc/${{ matrix.arch }}
-        key: ${{ runner.os }}-${{ matrix.os}}-dyncall-msvc-${{ matrix.arch }}
+        path: C:/dyncall/msvc/${{ matrix.target-arch }}
+        key: ${{ runner.os }}-${{ matrix.os}}-dyncall-msvc-${{ matrix.target-arch }}
 
     - name: Install dyncall
       if: inputs.with-dyncall && steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
@@ -91,25 +91,25 @@ jobs:
         curl https://dyncall.org/r1.4/dyncall-1.4.zip --output dyncall-1.4.zip
         7z x dyncall-1.4.zip
         cd dyncall-1.4
-        mkdir build-msvc-${{ matrix.arch }}
-        cd build-msvc-${{ matrix.arch }}
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.arch }} -G"NMake Makefiles" ..
+        mkdir build-msvc-${{ matrix.target-arch }}
+        cd build-msvc-${{ matrix.target-arch }}
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=C:\dyncall\msvc\${{ matrix.target-arch }} -G"NMake Makefiles" ..
         cd ..
-        cmake --build build-msvc-${{ matrix.arch }} --config Release
-        cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
+        cmake --build build-msvc-${{ matrix.target-arch }} --config Release
+        cmake --build build-msvc-${{ matrix.target-arch }} --config Release --target install
 
     - name: Make with libffi
       if: inputs.with-libffi
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
         run-tests: ${{ inputs.run-tests }}
-        make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\\installed\\${{ matrix.arch }}-windows-static-md"
+        make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\\installed\\${{ matrix.target-arch }}-windows-static-md"
 
     - name: Make with libffi
       if: inputs.with-dyncall
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
         run-tests: ${{ inputs.run-tests }}
-        make-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\\dyncall\\msvc\\${{ matrix.arch }}"
+        make-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\\dyncall\\msvc\\${{ matrix.target-arch }}"
 
 
