@@ -53,7 +53,7 @@ jobs:
 
     steps:
     - name: Setup Tcl
-      uses: apnadkarni/tcl-setup@main
+      uses: apnadkarni/tcl-setup@action-debug
       with:
         tcl-tag: ${{ matrix.tcl-tag }}
 
