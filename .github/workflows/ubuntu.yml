@@ -25,7 +25,7 @@ on:
           - '["ubuntu-22.04"]'
           - '["ubuntu-24.04"]'
           - '["ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04"]'
-        default: '["ubuntu-20.04"]'
+        default: '["ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04"]'
       run-tests: # Whether tests should be run
         description: 'Run tests as well'
         required: false
@@ -50,15 +50,11 @@ jobs:
         tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tags) }}
 
     runs-on: ${{ matrix.runner-os }}
-    env:
-      EXTLIBDIR: ${{ runner.temp + '/external-libs/ubuntu/x64' }}
 
     steps:
     - name: Setup Tcl
-      id: tcl-setup-step
       uses: apnadkarni/tcl-setup@main
       with:
-        runner-os: ${{ matrix.runner-os }}
         tcl-tag: ${{ matrix.tcl-tag }}
 
     - name: Install libuuid
@@ -76,16 +72,9 @@ jobs:
         cd dyncall-1.4
         mkdir build
         cd build
-        ../configure --prefix=${{ env.EXTLIBDIR }}
+        ../configure --prefix=${{ env.TCLEXTRASDIR }}
         make
         make install
-
-    - name: Build with dyncall extension
-      if: inputs.dyncall
-      uses: apnadkarni/tcl-build-extension@build-opts
-      with:
-        run-tests: ${{ inputs.run-tests }}
-        config-opts: 'LDFLAGS=-L${{ env.EXTLIBDIR }}/lib CPPFLAGS=-I{{ env.EXTLIBDIR }}/include --with-dyncall'
 
     - name: Build with libffi extension
       if: inputs.libffi
@@ -93,5 +82,10 @@ jobs:
       with:
         run-tests: ${{ inputs.run-tests }}
         config-opts: '--disable-staticffi'
-  
 
+    - name: Build with dyncall extension
+      if: inputs.dyncall
+      uses: apnadkarni/tcl-build-extension@build-opts
+      with:
+        run-tests: ${{ inputs.run-tests }}
+        config-opts: 'LDFLAGS=-L${{ env.TCLEXTRASDIR }}/lib CPPFLAGS=-I{{ env.TCLEXTRASDIR }}/include --with-dyncall'
