@@ -105,7 +105,7 @@ jobs:
         run-tests: ${{ inputs.run-tests }}
         make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\\installed\\${{ matrix.target-arch }}-windows-static-md"
 
-    - name: Make with libffi
+    - name: Make with dyncall
       if: inputs.with-dyncall
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
