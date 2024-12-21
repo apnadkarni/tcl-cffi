@@ -90,4 +90,4 @@ jobs:
       with:
         build-subdir: 'build-with-dyncall'
         run-tests: ${{ inputs.run-tests }}
-        config-opts: 'LDFLAGS=-L${{ env.TCLEXTRASDIR }}/lib CPPFLAGS=-I{{ env.TCLEXTRASDIR }}/include --with-dyncall'
+        config-opts: 'LDFLAGS=-L${{ env.TCLEXTRASDIR }}/lib CPPFLAGS=-I${{ env.TCLEXTRASDIR }}/include --with-dyncall'
