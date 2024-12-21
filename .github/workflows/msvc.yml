@@ -21,7 +21,7 @@ on:
           - '["windows-2022"]'
           - '["windows-2019"]'
           - '["windows-2019", "windows-2022"]'
-        default: '["windows-latest"]'
+        default: '["windows-2019", "windows-2022"]'
       target-architectures:
         description: 'x86 and/or x64'
         required: false
@@ -60,7 +60,7 @@ jobs:
     - name: Init MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: ${{ matrix.arch }}
+        arch: ${{ matrix.target-arch }}
 
     - name: Setup Tcl
       id: tcl-setup-step
