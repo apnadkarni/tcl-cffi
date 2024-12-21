@@ -64,7 +64,7 @@ jobs:
        sudo apt-get install uuid-dev
 
     - name: Install dyncall
-      if: inputs.dyncall
+      if: inputs.with-dyncall
       run: |
         cd ${{ runner.temp }}
         wget https://dyncall.org/r1.4/dyncall-1.4.tar.gz
