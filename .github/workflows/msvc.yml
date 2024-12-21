@@ -3,7 +3,7 @@ name: Visual C++
 on:
   workflow_dispatch:
     inputs:
-      tcltag:  # User input for selecting Tcl tag
+      tcl-tags:  # User input for selecting Tcl tag
         description: 'Tcl version'
         required: true
         type: choice
@@ -12,7 +12,7 @@ on:
           - '["core-8-6-13"]'
           - '["core-8-6-13", "main"]'
         default: '["core-8-6-13", "main"]'
-      osver:  # User input for selecting OS
+      runners:  # User input for selecting OS
         description: 'OS version'
         required: true
         type: choice
@@ -22,7 +22,7 @@ on:
           - '["windows-2019"]'
           - '["windows-2019", "windows-2022"]'
         default: '["windows-latest"]'
-      arch:
+      target-architectures:
         description: 'x86 and/or x64'
         required: false
         type: choice
@@ -31,8 +31,18 @@ on:
           - '["x86"]'
           - '["x64", "x86"]'
         default: '["x64"]'
-      dotest: # Whether tests should be run
+      run-tests: # Whether tests should be run
         description: 'Run tests as well'
+        required: false
+        default: true
+        type: boolean
+      with-dyncall: # Build with dyncall
+        description: 'Build dyncall version'
+        required: false
+        default: true
+        type: boolean
+      with-libffi: # Build with libffi
+        description: 'Build libffi version'
         required: false
         default: true
         type: boolean
@@ -41,9 +51,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: ${{ fromJSON(github.event.inputs.osver) }}
-        tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
-        arch: ${{ fromJSON(github.event.inputs.arch) }}
+        os: ${{ fromJSON(github.event.inputs.runners) }}
+        tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tags) }}
+        target-arch: ${{ fromJSON(github.event.inputs.target-architectures) }}
     runs-on: ${{ matrix.os }}
     steps:
     # Note msvc defaults to 64-bit
@@ -56,17 +66,18 @@ jobs:
       id: tcl-setup-step
       uses: apnadkarni/tcl-setup@v1
       with:
-        tcl-osver: ${{ matrix.os }}
-        tcl-branch: ${{ matrix.tclbranch }}
-        tcl-arch: ${{ matrix.arch }}
-        tcl-toolchain: 'vc'
+        tcl-tag: ${{ matrix.tcl-tag }}
+        target-arch: ${{ matrix.target-arch }}
+        toolchain: 'vc'
 
     - name: Install libffi
+      if: inputs.with-libffi
       shell: cmd
       run: |
         %VCPKG_INSTALLATION_ROOT%\vcpkg install libffi:${{ matrix.arch }}-windows-static-md
 
     - name: Cache dyncall
+      if: inputs.with-dyncall
       id: dyncall-msvc-cache
       uses: actions/cache@v4
       with:
@@ -74,7 +85,7 @@ jobs:
         key: ${{ runner.os }}-${{ matrix.os}}-dyncall-msvc-${{ matrix.arch }}
 
     - name: Install dyncall
-      if: steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
+      if: inputs.with-dyncall && steps.dyncall-msvc-cache.outputs.cache-hit != 'true'
       shell: cmd
       run: |
         curl https://dyncall.org/r1.4/dyncall-1.4.zip --output dyncall-1.4.zip
@@ -87,41 +98,18 @@ jobs:
         cmake --build build-msvc-${{ matrix.arch }} --config Release
         cmake --build build-msvc-${{ matrix.arch }} --config Release --target install
 
-    - name: Checkout tcl-cffi
-      uses: actions/checkout@v4
+    - name: Make with libffi
+      if: inputs.with-libffi
+      uses: apnadkarni/tcl-build-extension@build-opts
       with:
-        submodules: true
+        run-tests: ${{ inputs.run-tests }}
+        make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md"
 
     - name: Make with libffi
-      shell: cmd
-      run: |
-        cd win
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md realclean
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md
-
-    - name: Test with libffi
-      if: github.event.inputs.dotest
-      shell: cmd
-      run: |
-        cd win
-        nmake /f makefile.vc INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\installed\${{ matrix.arch }}-windows-static-md test
-      env:
-        ERROR_ON_FAILURES: 1
-
-    - name: Make with dyncall
-      shell: cmd
-      run: |
-        cd win
-        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} realclean
-        nmake /f makefile.vc  OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}
-
-    - name: Test with dyncall 
-      if: github.event.inputs.dotest
-      shell: cmd
-      run: |
-        cd win
-        nmake /f makefile.vc OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }} test
-      env:
-        ERROR_ON_FAILURES: 1
+      if: inputs.with-dyncall
+      uses: apnadkarni/tcl-build-extension@build-opts
+      with:
+        run-tests: ${{ inputs.run-tests }}
+        make-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\dyncall\msvc\${{ matrix.arch }}"
 
 
