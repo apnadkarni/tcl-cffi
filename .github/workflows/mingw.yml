@@ -2,34 +2,57 @@ name: Mingw
 
 on:
   workflow_dispatch:
+    inputs:
+      tcltag:  # User input for selecting Tcl tag
+        description: 'Tcl version'
+        required: true
+        type: choice
+        options:
+          - '["core-9-0-0"]'
+          - '["core-8-6-13"]'
+          - '["main"]'
+          - '["core-8-6-branch"]'
+          - '["core-8-6-13", "core-9-0-0"]'
+          - '["core-8-6-13", "core-9-0-0", "main", "core-8-6-branch"]'
+        default: '["core-8-6-13", "core-9-0-0"]'
+      msystem:
+        description: 'mingw32 and/or mingw64'
+        required: false
+        type: choice
+        options:
+          - '["mingw64"]'
+          - '["mingw32"]'
+          - '["mingw64", "mingw32"]'
+        default: '["mingw64", "mingw32"]'
+      dotest: # Whether tests should be run
+        description: 'Run tests as well'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build:
     runs-on: windows-latest
     strategy:
       matrix:
-        include:
-          - {os: windows-latest, tclbranch: main, arch: mingw64, cpu: x86_64}
-          - {os: windows-latest, tclbranch: main, arch: mingw32, cpu: i686}
-          - {os: windows-latest, tclbranch: core-8-6-13, arch: mingw64, cpu: x86_64}
-          - {os: windows-latest, tclbranch: core-8-6-13, arch: mingw32, cpu: i686}
+        tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
+        msystem: ${{ fromJSON(github.event.inputs.msystem) }}
+
     defaults:
       run:
         shell: msys2 {0}
-    steps:
-    - name: Checkout tcl-cffi
-      uses: actions/checkout@v4
-      with:
-        submodules: true
 
-    - name: Set up msys2
+    steps:
+
+    - name: Set up msys2 for mingw32
       uses: msys2/setup-msys2@v2
       with:
-        msystem: ${{ matrix.arch }}
+        msystem: ${{ matrix.msystem }}
+        pacboy: "git: make: gcc:p"
         path-type: minimal
         release: true
         update: false
-        install: mingw-w64-${{matrix.cpu}}-gcc make
+        cache: true
 
     - name: Verify toolchain
       run: |
@@ -38,12 +61,9 @@ jobs:
 
     - name: Setup Tcl
       id: tcl-setup-step
-      uses: apnadkarni/tcl-setup@v1
+      uses: apnadkarni/tcl-setup@action-debug
       with:
-        tcl-osver: ${{ matrix.os }}
-        tcl-branch: ${{ matrix.tclbranch }}
-        tcl-toolchain: 'mingw64'
-        tcl-arch: ${{ matrix.arch }}
+        tcl-tag: ${{ matrix.tcl-tag }}
 
     - name: Cache dyncall
       id: dyncall-cache
