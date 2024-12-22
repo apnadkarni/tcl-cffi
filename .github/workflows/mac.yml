@@ -1,18 +1,21 @@
-name: mac
+name: MacOS
 
 on:
   workflow_dispatch:
     inputs:
-      tcltag:  # User input for selecting Tcl tag
+      tcl-tag:  # User input for selecting Tcl tag
         description: 'Tcl version'
         required: true
+        type: choice
         options:
+          - '["core-9-0-0"]'
           - '["core-8-6-13"]'
           - '["main"]'
-          - '["core-8-6-13", "main"]'
-        default: '["core-8-6-13", "main"]'
-        type: choice
-      osver:  # User input for selecting OS
+          - '["core-8-6-branch"]'
+          - '["core-8-6-13", "core-9-0-0"]'
+          - '["core-8-6-13", "core-9-0-0", "main", "core-8-6-branch"]'
+        default: '["core-8-6-13", "core-9-0-0"]'
+      runners:  # User input for selecting OS
         description: 'OS version'
         required: true
         type: choice
@@ -22,9 +25,19 @@ on:
           - '["macos-13"]'
           - '["macos-14"]'
           - '["macos-12", "macos-13", "macos-14"]'
-        default: '["macos-latest"]'
-      dotest: # Whether tests should be run
+        default: '["macos-12", "macos-13", "macos-14"]'
+      run-tests: # Whether tests should be run
         description: 'Run tests as well'
+        required: false
+        default: true
+        type: boolean
+      with-dyncall: # Build with dyncall
+        description: 'Build dyncall version'
+        required: false
+        default: true
+        type: boolean
+      with-libffi: # Build with libffi
+        description: 'Build libffi version'
         required: false
         default: true
         type: boolean
@@ -33,9 +46,9 @@ jobs:
   build:
     strategy:
       matrix:
-        os: ${{ fromJSON(github.event.inputs.osver) }}
-        tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
-    runs-on: ${{ matrix.os }}
+        runner-os: ${{ fromJSON(github.event.inputs.runners) }}
+        tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tags) }}
+    runs-on: ${{ matrix.runner-os }}
 
     steps:
 
@@ -47,64 +60,39 @@ jobs:
       id: tcl-setup-step
       uses: apnadkarni/tcl-setup@v1
       with:
-        tcl-osver: ${{ matrix.os }}
-        tcl-branch: ${{ matrix.tclbranch }}
+        tcl-tag: ${{ matrix.tcl-tag }}
 
     - name: Install libffi
+      if: inputs.with-libffi
       run: |
         brew install libffi || true
 
-    - name: Checkout tcl-cffi
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
     - name: Install dyncall
+      if: inputs.with-dyncall
       run: |
+        cd ${{ runner.temp }}
         wget https://dyncall.org/r1.4/dyncall-1.4.tar.gz
         tar xf dyncall-1.4.tar.gz
         cd dyncall-1.4
         mkdir build
         cd build
-        ../configure --prefix=$GITHUB_WORKSPACE/external-libs/macos
+        ../configure --prefix=${{ env.TCLEXTRASDIR }}
         make
         make install
 
-    - name: Configure with dyncall
-      run: |
-        mkdir build-dyncall
-        cd build-dyncall
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/macos/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/macos/include --with-dyncall
+    - name: Build with dyncall extension
+      if: inputs.with-dyncall
+      uses: apnadkarni/tcl-build-extension@build-opts
+      with:
+        build-subdir: 'build-with-dyncall'
+        run-tests: ${{ inputs.run-tests }}
+        config-opts: 'LDFLAGS=-L${{ env.TCLEXTRASDIR }}/lib CPPFLAGS=-I${{ env.TCLEXTRASDIR }}/include --with-dyncall'
 
-    - name: Make with dyncall
-      run: |
-        cd build-dyncall
-        make
-
-    - name: Test with dyncall
-      if: github.event.inputs.dotest
-      run: |
-        cd build-dyncall
-        make test
-      env:
-        ERROR_ON_FAILURES: 1
-
-    - name: Configure with libffi
-      run: |
-        mkdir build-libffi
-        cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib LDFLAGS="-L/usr/local/opt/libffi/lib -L$HOMEBREW_PREFIX/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include -I$HOMEBREW_PREFIX/opt/libffi/include" --disable-staticffi
-
-    - name: Make with libffi
-      run: |
-        cd build-libffi
-        make
-
-    - name: Test with libffi
-      if: github.event.inputs.dotest
-      run: |
-        cd build-libffi
-        make test
-      env:
-        ERROR_ON_FAILURES: 1
+    - name: Build with libffi extension
+      if: inputs.with-libffi
+      uses: apnadkarni/tcl-build-extension@build-opts
+      with:
+        build-subdir: 'build-with-libffi'
+        run-tests: ${{ inputs.run-tests }}
+        config-opts: 'LDFLAGS="-L/usr/local/opt/libffi/lib -L$HOMEBREW_PREFIX/opt/libffi/lib" CFLAGS="-I/usr/local/opt/libffi/include -I$HOMEBREW_PREFIX/opt/libffi/include" --disable-staticffi'
 
