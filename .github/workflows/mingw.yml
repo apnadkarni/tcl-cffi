@@ -55,7 +55,7 @@ jobs:
     strategy:
       matrix:
         runner-os: ${{ fromJSON(github.event.inputs.runners) }}
-        tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tag) }}
+        tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tags) }}
         msystem: ${{ fromJSON(github.event.inputs.msystems) }}
     runs-on: ${{ matrix.runner-os }}
     defaults:
