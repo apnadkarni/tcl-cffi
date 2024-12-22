@@ -51,10 +51,10 @@ jobs:
   build:
     strategy:
       matrix:
-        os: ${{ fromJSON(github.event.inputs.runners) }}
+        runner-os: ${{ fromJSON(github.event.inputs.runners) }}
         tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tags) }}
         target-arch: ${{ fromJSON(github.event.inputs.target-architectures) }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner-os }}
     steps:
     # Note msvc defaults to 64-bit
     - name: Init MSVC
