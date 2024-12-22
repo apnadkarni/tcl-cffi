@@ -3,7 +3,7 @@ name: MacOS
 on:
   workflow_dispatch:
     inputs:
-      tcl-tag:  # User input for selecting Tcl tag
+      tcl-tags:  # User input for selecting Tcl tag
         description: 'Tcl version'
         required: true
         type: choice
@@ -58,7 +58,7 @@ jobs:
 
     - name: Setup Tcl
       id: tcl-setup-step
-      uses: apnadkarni/tcl-setup@v1
+      uses: apnadkarni/tcl-setup@action-debug
       with:
         tcl-tag: ${{ matrix.tcl-tag }}
 
