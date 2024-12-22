@@ -24,7 +24,7 @@ on:
           - '["windows-2022"]'
           - '["windows-2019"]'
           - '["windows-2019", "windows-2022"]'
-        default: '["windows-2019", "windows-2022"]'
+        default: '["windows-latest"]'
       msystems:
         description: 'mingw32 and/or mingw64'
         required: false
@@ -33,8 +33,7 @@ on:
           - '["mingw64"]'
           - '["mingw32"]'
           - '["mingw64", "mingw32"]'
-        # default: '["mingw64", "mingw32"]'
-        default: '["mingw64"]'
+        default: '["mingw64", "mingw32"]'
       run-tests: # Whether tests should be run
         description: 'Run tests as well'
         required: false
