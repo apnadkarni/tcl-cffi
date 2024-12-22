@@ -14,7 +14,8 @@ on:
           - '["core-8-6-branch"]'
           - '["core-8-6-13", "core-9-0-0"]'
           - '["core-8-6-13", "core-9-0-0", "main", "core-8-6-branch"]'
-        default: '["core-8-6-13", "core-9-0-0"]'
+        # default: '["core-8-6-13", "core-9-0-0"]'
+        default: '["core-8-6-13"]'
       runners:  # User input for selecting OS
         description: 'OS version'
         required: true
@@ -33,7 +34,8 @@ on:
           - '["mingw64"]'
           - '["mingw32"]'
           - '["mingw64", "mingw32"]'
-        default: '["mingw64", "mingw32"]'
+        # default: '["mingw64", "mingw32"]'
+        default: '["mingw64"]'
       run-tests: # Whether tests should be run
         description: 'Run tests as well'
         required: false
