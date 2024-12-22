@@ -102,6 +102,7 @@ jobs:
       if: inputs.with-libffi
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
+        toolchain: 'vc'
         run-tests: ${{ inputs.run-tests }}
         make-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\\installed\\${{ matrix.target-arch }}-windows-static-md"
         test-opts: "INSTALLDIR=${{ env.TCLDIR }} EXTDIR=%VCPKG_INSTALLATION_ROOT%\\installed\\${{ matrix.target-arch }}-windows-static-md"
@@ -110,6 +111,7 @@ jobs:
       if: inputs.with-dyncall
       uses: apnadkarni/tcl-build-extension@build-opts
       with:
+        toolchain: 'vc'
         run-tests: ${{ inputs.run-tests }}
         make-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\\dyncall\\msvc\\${{ matrix.target-arch }}"
         test-opts: "OPTS=dyncall INSTALLDIR=${{ env.TCLDIR }} EXTDIR=c:\\dyncall\\msvc\\${{ matrix.target-arch }}"
