@@ -3,16 +3,19 @@ name: Ubuntu
 on:
   workflow_dispatch:
     inputs:
-      tcltag:  # User input for selecting Tcl tag
+      tcl-tags:  # User input for selecting Tcl tag
         description: 'Tcl version'
         required: true
         type: choice
         options:
-          - '["main"]'
+          - '["core-9-0-0"]'
           - '["core-8-6-13"]'
-          - '["core-8-6-13", "main"]'
-        default: '["core-8-6-13", "main"]'
-      osver:  # User input for selecting OS
+          - '["main"]'
+          - '["core-8-6-branch"]'
+          - '["core-8-6-13", "core-9-0-0"]'
+          - '["core-8-6-13", "core-9-0-0", "main", "core-8-6-branch"]'
+        default: '["core-8-6-13", "core-9-0-0"]'
+      runners:  # User input for selecting OS
         description: 'OS version'
         required: true
         type: choice
@@ -22,9 +25,19 @@ on:
           - '["ubuntu-22.04"]'
           - '["ubuntu-24.04"]'
           - '["ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04"]'
-        default: '["ubuntu-20.04"]'
-      dotest: # Whether tests should be run
+        default: '["ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04"]'
+      run-tests: # Whether tests should be run
         description: 'Run tests as well'
+        required: false
+        default: true
+        type: boolean
+      with-dyncall: # Build with dyncall
+        description: 'Build dyncall version'
+        required: false
+        default: true
+        type: boolean
+      with-libffi: # Build with libffi
+        description: 'Build libffi version'
         required: false
         default: true
         type: boolean
@@ -33,25 +46,16 @@ jobs:
   build:
     strategy:
       matrix:
-        os: ${{ fromJSON(github.event.inputs.osver) }}
-        tclbranch: ${{ fromJSON(github.event.inputs.tcltag) }}
+        runner-os: ${{ fromJSON(github.event.inputs.runners) }}
+        tcl-tag: ${{ fromJSON(github.event.inputs.tcl-tags) }}
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner-os }}
 
     steps:
-    # No longer needed
-    #- name: Install libtommath
-    #  id: tommath
-    #  run: |
-    #   sudo apt-get update
-    #   sudo apt-get install libtommath-dev
-
     - name: Setup Tcl
-      id: setup-tcl-step
-      uses: apnadkarni/setup-tcl@v1
+      uses: apnadkarni/tcl-setup@v1
       with:
-        tcl-osver: ${{ matrix.os }}
-        tcl-branch: ${{ matrix.tclbranch }}
+        tcl-tag: ${{ matrix.tcl-tag }}
 
     - name: Install libuuid
       id: uuid
@@ -59,56 +63,31 @@ jobs:
        sudo apt-get update
        sudo apt-get install uuid-dev
 
-    - name: Checkout tcl-cffi
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
     - name: Install dyncall
+      if: inputs.with-dyncall
       run: |
+        cd ${{ runner.temp }}
         wget https://dyncall.org/r1.4/dyncall-1.4.tar.gz
         tar xf dyncall-1.4.tar.gz
         cd dyncall-1.4
         mkdir build
         cd build
-        ../configure --prefix=$GITHUB_WORKSPACE/external-libs/ubuntu/x64
+        ../configure --prefix=${{ env.TCLEXTRASDIR }}
         make
         make install
 
-    - name: Configure with dyncall
-      run: |
-        mkdir build-dyncall
-        cd build-dyncall
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib --enable-64bit LDFLAGS=-L$GITHUB_WORKSPACE/external-libs/ubuntu/x64/lib CPPFLAGS=-I$GITHUB_WORKSPACE/external-libs/ubuntu/x64/include --with-dyncall
+    - name: Build with libffi extension
+      if: inputs.with-libffi
+      uses: apnadkarni/tcl-build-extension@v1
+      with:
+        build-subdir: 'build-with-libffi'
+        run-tests: ${{ inputs.run-tests }}
+        config-opts: '--disable-staticffi'
 
-    - name: Make with dyncall
-      run: |
-        cd build-dyncall
-        make
-
-    - name: Test with dyncall
-      if: github.event.inputs.dotest
-      run: |
-        cd build-dyncall
-        make test
-      env:
-        ERROR_ON_FAILURES: 1
-
-    - name: Configure with libffi
-      run: |
-        mkdir build-libffi
-        cd build-libffi
-        ../configure --with-tcl=${{ env.TCLDIR }}/lib --enable-64bit --disable-staticffi
-
-    - name: Make with libffi
-      run: |
-        cd build-libffi
-        make
-
-    - name: Test with libffi
-      if: github.event.inputs.dotest
-      run: |
-        cd build-libffi
-        make test
-      env:
-        ERROR_ON_FAILURES: 1
+    - name: Build with dyncall extension
+      if: inputs.with-dyncall
+      uses: apnadkarni/tcl-build-extension@v1
+      with:
+        build-subdir: 'build-with-dyncall'
+        run-tests: ${{ inputs.run-tests }}
+        config-opts: 'LDFLAGS=-L${{ env.TCLEXTRASDIR }}/lib CPPFLAGS=-I${{ env.TCLEXTRASDIR }}/include --with-dyncall'
