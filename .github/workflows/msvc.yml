@@ -64,7 +64,7 @@ jobs:
 
     - name: Setup Tcl
       id: tcl-setup-step
-      uses: apnadkarni/tcl-setup@action-debug
+      uses: apnadkarni/tcl-setup@v1
       with:
         tcl-tag: ${{ matrix.tcl-tag }}
         target-arch: ${{ matrix.target-arch }}
@@ -100,7 +100,7 @@ jobs:
 
     - name: Make with libffi
       if: inputs.with-libffi
-      uses: apnadkarni/tcl-build-extension@build-opts
+      uses: apnadkarni/tcl-build-extension@v1
       with:
         toolchain: 'vc'
         run-tests: ${{ inputs.run-tests }}
@@ -109,7 +109,7 @@ jobs:
 
     - name: Make with dyncall
       if: inputs.with-dyncall
-      uses: apnadkarni/tcl-build-extension@build-opts
+      uses: apnadkarni/tcl-build-extension@v1
       with:
         toolchain: 'vc'
         run-tests: ${{ inputs.run-tests }}

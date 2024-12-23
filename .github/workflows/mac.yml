@@ -57,7 +57,7 @@ jobs:
 
     - name: Setup Tcl
       id: tcl-setup-step
-      uses: apnadkarni/tcl-setup@action-debug
+      uses: apnadkarni/tcl-setup@v1
       with:
         tcl-tag: ${{ matrix.tcl-tag }}
 
@@ -81,7 +81,7 @@ jobs:
 
     - name: Build with dyncall extension
       if: inputs.with-dyncall
-      uses: apnadkarni/tcl-build-extension@build-opts
+      uses: apnadkarni/tcl-build-extension@v1
       with:
         build-subdir: 'build-with-dyncall'
         run-tests: ${{ inputs.run-tests }}
@@ -89,7 +89,7 @@ jobs:
 
     - name: Build with libffi extension
       if: inputs.with-libffi
-      uses: apnadkarni/tcl-build-extension@build-opts
+      uses: apnadkarni/tcl-build-extension@v1
       with:
         build-subdir: 'build-with-libffi'
         run-tests: ${{ inputs.run-tests }}
