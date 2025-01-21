@@ -8,10 +8,15 @@ on:
         required: true
         type: choice
         options:
+          - '["core-9-0-0"]'
+          - '["core-9-0-1"]'
+          - '["core-8-6-10"]'
+          - '["core-8-6-16"]'
           - '["main"]'
-          - '["core-8-6-13"]'
-          - '["core-8-6-13", "main"]'
-        default: '["core-8-6-13", "main"]'
+          - '["core-8-6-branch"]'
+          - '["core-8-6-10", "core-9-0-0"]'
+          - '["core-8-6-10", "core-8-6-16", "core-9-0-0", "core-9-0-1"]'
+        default: '["core-8-6-10", "core-9-0-0"]'
       runners:  # User input for selecting OS
         description: 'OS version'
         required: true
