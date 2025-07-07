@@ -149,4 +149,4 @@ $(PRJ_TEST_OBJS): $(HEADERS)
 # NOTE - we intentionally do NOT link Tcl libraries. The DLL should be
 # loaded outside of the Tcl infrastructure.
 $(PRJ_TEST_DLL): $(PRJ_TEST_OBJS)
-	$(link32) $(dlllflags) -out:$@ $**
+	$(link32) $(dlllflags) ucrt.lib -out:$@ $**
