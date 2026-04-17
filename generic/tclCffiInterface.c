@@ -314,7 +314,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
     }
     /* At this point slots [baseSlots:methodSlot-1] have been initialized */
 
-    if (disposeMethodName && !disposeMethodMatched) {
+    if (ret == TCL_OK && disposeMethodName && !disposeMethodMatched) {
         ret = Tclh_ErrorNotFound(ip,
                                  "method name",
                                  disposeMethodName,
