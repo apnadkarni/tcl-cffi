@@ -20,7 +20,7 @@ dnl	to configure the system for the local environment.
 #-----------------------------------------------------------------------
 
 # Leave a space after the comma for release.cmd to parse
-AC_INIT([cffi], [2.0.3])
+AC_INIT([cffi], [2.0.4])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -197,7 +197,10 @@ TEA_ENABLE_SHARED
 
 TEA_CONFIG_CFLAGS
 
-TEA_ADD_CFLAGS([-DTCL_NO_DEPRECATED -std=gnu99])
+# -DTCL_NO_DEPRECATED removed temporarily to allow for compilation
+# with Tcl 9.1 which hides Tcl_Command.objProc field.
+#TEA_ADD_CFLAGS([-DTCL_NO_DEPRECATED -std=gnu99])
+TEA_ADD_CFLAGS([-std=gnu99])
 
 AC_CONFIG_COMMANDS_PRE(
     [# Must define -DFFI_BUILDING when linking statically, see commentary of FFI_API
