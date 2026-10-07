@@ -249,7 +249,7 @@ namespace eval cffi::test {
     } -body {
         cffi::alias load C
         list [cffi::alias list] [cffi::alias list ::*] [lsort [cffi::alias list ::cffi::c::*]]
-    } -result [list [list] [list ] [lprefixcffic _Bool bool int16_t int32_t int64_t int8_t size_t ssize_t uint16_t uint32_t uint64_t uint8_t]]
+    } -result [list [list] [list ] [lprefixcffic _Bool bool int16_t int32_t int64_t int8_t ptrdiff_t size_t ssize_t uint16_t uint32_t uint64_t uint8_t]]
 
     test alias-load-win-0 "alias load win32" -setup {
         reset_aliases

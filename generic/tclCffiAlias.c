@@ -415,6 +415,7 @@ CffiAddBuiltinAliases(CffiInterpCtx *ipCtxP, Tcl_Obj *objP)
         }
         CffiAliasAddStr(ipCtxP, NS "bool", NS "_Bool", NULL);
         ADDINTTYPE(size_t, NS "size_t");
+        ADDINTTYPE(ptrdiff_t, NS "ptrdiff_t");
 #ifdef _WIN32
         if (sizeof(SSIZE_T) == sizeof(int)) {
             CffiAliasAddStr(ipCtxP, NS "ssize_t", "int", NULL);
