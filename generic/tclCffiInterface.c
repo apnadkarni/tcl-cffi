@@ -22,8 +22,11 @@ void CffiInterfaceUnref(CffiInterface *ifcP)
             CffiInterfaceUnref(ifcP->baseIfcP);
         if (ifcP->vtable) {
             for (i = 0; i < ifcP->nMethods; ++i) {
-                CffiProtoUnref(ifcP->vtable[i].protoP);
-                Tcl_DecrRefCount(ifcP->vtable[i].methodNameObj);
+                CffiInterfaceMember *cimP = &ifcP->vtable[i];
+                CffiProtoUnref(cimP->protoP);
+                Tcl_DecrRefCount(cimP->methodNameObj);
+		if (cimP->docObj)
+                    Tcl_DecrRefCount(cimP->docObj);
             }
             Tcl_Free((char *) ifcP->vtable);
         }
@@ -139,6 +142,7 @@ CffiMethodInstanceCmd(ClientData cdata,
                           methodP->ifcP->vtable[methodP->vtableSlot].protoP,
                           NULL,
                           NULL,
+                          NULL,
                           instanceVtablePtr[methodP->vtableSlot]);
     CffiFunctionRef(fnP);
     ret = CffiFunctionCall(fnP, ip, 1, objc, objv);
@@ -154,7 +158,7 @@ CffiInterfaceDestroyCmd(Tcl_Interp *ip,
                         CffiInterface *ifcP)
 {
     /*
-    * objv[0] is the command name for the DLL. Deleteing
+    * objv[0] is the command name for the DLL. Deleting
     * the command will also release associated resources
     */
     if (Tcl_DeleteCommand(ip, Tcl_GetString(objv[0])) == 0)
@@ -299,6 +303,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
         CffiProtoRef(protoP);
         ifcMembers[methodSlot].methodNameObj = objs[i];
         Tcl_IncrRefCount(objs[i]);
+        ifcMembers[methodSlot].docObj = NULL;
 
         CffiMethod *methodP = (CffiMethod *)Tcl_Alloc(sizeof(*methodP));
         methodP->cmdNameObj = methodNameObj; /* Already incr ref-ed */
@@ -331,6 +336,9 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
                 Tcl_IncrRefCount(ifcMembers[i].methodNameObj);
                 ifcMembers[i].protoP = baseIfcP->vtable[i].protoP;
                 CffiProtoRef(ifcMembers[i].protoP);
+                ifcMembers[i].docObj = baseIfcP->vtable[i].docObj;
+                if (ifcMembers[i].docObj)
+                    Tcl_IncrRefCount(ifcMembers[i].docObj);
             }
         }
 
@@ -355,6 +363,8 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
 
             CffiProtoUnref(ifcMembers[i].protoP);
             Tcl_DecrRefCount(ifcMembers[i].methodNameObj);
+            if (ifcMembers[i].docObj)
+                Tcl_DecrRefCount(ifcMembers[i].docObj);
         }
         CffiInterfaceUnref(ifcP);
         Tcl_Free((char *) ifcMembers);

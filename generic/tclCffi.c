@@ -96,7 +96,7 @@ CffiCallObjCmd(ClientData cdata,
             ip, "Prototype", objv[1], "Function prototype not found.");
     }
 
-    fnP = CffiFunctionNew(ipCtxP, protoP, NULL, NULL, fnAddr);
+    fnP = CffiFunctionNew(ipCtxP, protoP, NULL, NULL, NULL, fnAddr);
     CffiFunctionRef(fnP);
     ret = CffiFunctionCall(fnP, ip, 2, objc, objv);
     CffiFunctionUnref(fnP);

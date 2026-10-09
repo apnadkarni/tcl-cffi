@@ -18,10 +18,10 @@
  * objc - number of elements in *objv*
  * objv - array containing the function definition
  *
- * The *objv[2-4]* array contains the elements function name, return type,
- * and parameters. The parameters is a list of alternating parameter name
- * and type definitions. The return and parameter type definitions are in
- * the form expected by CffiTypeAndAttrsParse.
+ * The *objv[2-5]* array contains the elements function name, return type,
+ * parameters and optional documentation string. The parameters is a list of
+ * alternating parameter name and type definitions. The return and parameter
+ * type definitions are in the form expected by CffiTypeAndAttrsParse.
  *
  * Returns:
  * Returns TCL_OK on success and TCL_ERROR on failure with error message
@@ -33,10 +33,17 @@ CffiWrapperFunctionCmd(Tcl_Interp *ip,
                     Tcl_Obj *const objv[],
                     CffiLibCtx *ctxP)
 {
-    CFFI_ASSERT(objc == 5);
+    CFFI_ASSERT(objc == 5 || objc == 6);
 
-    return CffiDefineOneFunctionFromLib(
-        ip, ctxP, objv[2], objv[3], objv[4], CffiDefaultABI(), 0);
+    return CffiDefineOneFunctionFromLib(ip,
+                                        ctxP,
+                                        objv[2], /* fn name */
+                                        objv[3], /* return type */
+                                        objv[4], /* params */
+                                        objc == 6 ? objv[5]
+                                                  : NULL, /* doc string */
+                                        CffiDefaultABI(),
+                                        0);
 }
 
 /* Function: CffiWrapperStdcallCmd
@@ -48,10 +55,10 @@ CffiWrapperFunctionCmd(Tcl_Interp *ip,
  * objc - number of elements in *objv*
  * objv - array containing the function definition
  *
- * The *objv[2-4]* array contains the elements function name, return type,
- * and parameters. The parameters is a list of alternating parameter name
- * and type definitions. The return and parameter type definitions are in
- * the form expected by CffiTypeAndAttrsParse.
+ * The *objv[2-5]* array contains the elements function name, return type,
+ * parameters and optional doc string. The parameters is a list of
+ * alternating parameter name and type definitions. The return and parameter
+ * type definitions are in the form expected by CffiTypeAndAttrsParse.
  *
  * Irrespective of the function return type definition, the call mode
  * is always set to stdcall.
@@ -68,8 +75,15 @@ CffiWrapperStdcallCmd(Tcl_Interp *ip,
 {
     CFFI_ASSERT(objc == 5);
 
-    return CffiDefineOneFunctionFromLib(
-        ip, ctxP, objv[2], objv[3], objv[4], CffiStdcallABI(), 0);
+    return CffiDefineOneFunctionFromLib(ip,
+                                        ctxP,
+                                        objv[2], /* fn name */
+                                        objv[3], /* return type */
+                                        objv[4], /* params */
+                                        objc == 6 ? objv[5]
+                                                  : NULL, /* doc string */
+                                        CffiStdcallABI(),
+                                        0);
 }
 
 
@@ -126,6 +140,7 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
                                            objs[i],
                                            objs[i + 1],
                                            objs[i + 2],
+                                           NULL,
                                            callMode,
                                            ignoreMissing);
         if (ret != TCL_OK) {
@@ -255,10 +270,10 @@ CffiWrapperInstanceCmd(ClientData cdata,
     static const Tclh_SubCommand subCommands[] = {
         {"addressof", 1, 1, "SYMBOL", CffiWrapperAddressOfCmd},
         {"destroy", 0, 0, "", CffiWrapperDestroyCmd},
-        {"function", 3, 3, "NAME RETURNTYPE PARAMDEFS", CffiWrapperFunctionCmd},
+        {"function", 3, 4, "NAME RETURNTYPE PARAMDEFS ?DOC?", CffiWrapperFunctionCmd},
         {"functions", 1, 2, "FUNCTIONLIST ?-ignoremissing?", CffiWrapperFunctionsCmd},
         {"path", 0, 0, "", CffiWrapperPathCmd},
-        {"stdcall", 3, 3, "NAME RETURNTYPE PARAMDEFS", CffiWrapperStdcallCmd},
+        {"stdcall", 3, 4, "NAME RETURNTYPE PARAMDEFS ?DOC?", CffiWrapperStdcallCmd},
         {"stdcalls", 1, 2, "FUNCTIONLIST ?-ignoremissing?", CffiWrapperStdcallsCmd},
         {NULL}};
     int cmdIndex;

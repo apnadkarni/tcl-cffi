@@ -508,6 +508,7 @@ typedef struct CffiFunction {
     CffiLibCtx *libCtxP;   /* Containing library for bound functions or
                               NULL for free standing functions */
     Tcl_Obj *cmdNameObj;   /* Name of Tcl command. May be NULL */
+    Tcl_Obj *docObj;       /* Function documentation */
     int nRefs;             /* Reference count */
 } CffiFunction;
 
@@ -541,6 +542,7 @@ typedef struct CffiArgument {
 typedef struct CffiInterfaceMember {
     CffiProto *protoP;
     Tcl_Obj *methodNameObj;
+    Tcl_Obj *docObj;       /* Method documentation */
 } CffiInterfaceMember;
 
 /* Struct: CffiInterface
@@ -1075,6 +1077,7 @@ CffiFunction *CffiFunctionNew(CffiInterpCtx *ipCtxP,
                               CffiProto *protoP,
                               CffiLibCtx *libCtxP,
                               Tcl_Obj *cmdNameObj,
+                              Tcl_Obj *docObj,
                               void *fnAddr);
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,
@@ -1099,6 +1102,7 @@ CffiResult CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                                         Tcl_Obj *nameObj,
                                         Tcl_Obj *returnTypeObj,
                                         Tcl_Obj *paramsObj,
+                                        Tcl_Obj *docObj,
                                         CffiABIProtocol callMode,
                                         int flags);
 

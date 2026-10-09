@@ -18,7 +18,7 @@ namespace eval ${NS}::test {
     variable temp
     variable temp2
 
-    testnumargs function "testDll function" "NAME RETURNTYPE PARAMDEFS" ""
+    testnumargs function "testDll function" "NAME RETURNTYPE PARAMDEFS" "?DOC?"
 
     test function-noargs-0 {Basic function definition} -cleanup {
         rename noargs {}
