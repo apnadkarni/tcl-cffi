@@ -389,7 +389,7 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::pointer", CffiPointerObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::help", CffiHelpObjCmd, ipCtxP, NULL);
+        ip, CFFI_NAMESPACE "::help", CffiLookupObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::limits", CffiLimitsObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(

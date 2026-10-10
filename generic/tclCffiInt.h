@@ -1113,7 +1113,7 @@ Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiArenaObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
 Tcl_ObjCmdProc CffiEnumObjCmd;
-Tcl_ObjCmdProc CffiHelpObjCmd;
+Tcl_ObjCmdProc CffiLookupObjCmd;
 Tcl_ObjCmdProc CffiInterfaceObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;
 Tcl_ObjCmdProc CffiPointerObjCmd;
