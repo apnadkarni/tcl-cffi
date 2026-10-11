@@ -279,7 +279,9 @@ CffiRttiAliasCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 }
 
 static CffiResult
-CffiRttiFunctionsCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *patObj)
+CffiRttiFunctionsCmd(CffiInterpCtx *ipCtxP,
+                     Tcl_Obj *patObj,
+                     Tcl_ObjCmdProc *cmdProc)
 {
     Tcl_Obj *resultObj;
     Tcl_Obj *commandsObj;
@@ -317,7 +319,7 @@ CffiRttiFunctionsCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *patObj)
                 if (Tcl_GetCommandInfo(
                         ip, Tcl_GetString(commandObjs[i]), &cmdInfo)
                     && cmdInfo.isNativeObjectProc
-                    && cmdInfo.objProc == CffiFunctionInstanceCmd
+                    && cmdInfo.objProc == cmdProc
                     && cmdInfo.objClientData != NULL) {
                     Tcl_ListObjAppendElement(NULL, resultObj, commandObjs[i]);
                 }
@@ -339,7 +341,16 @@ CffiRttiObjCmd(ClientData cdata,
                Tcl_Obj *const objv[])
 {
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
-    enum cmds { ALIAS, ENUM, FUNCTION, FUNCTIONS, STRUCT, UNION };
+    enum cmds {
+        ALIAS,
+        ENUM,
+        FUNCTION,
+        FUNCTIONS,
+        INTERFACE,
+        INTERFACES,
+        STRUCT,
+        UNION
+    };
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
         {"alias", 0, 1, "NAME", CffiRttiAliasCmd},
@@ -347,6 +358,7 @@ CffiRttiObjCmd(ClientData cdata,
         {"function", 0, 1, "NAME", CffiRttiFunctionCmd},
         {"functions", 0, 1, "?PATTERN?", CffiRttiFunctionsCmd},
         {"interface", 0, 1, "NAME", CffiRttiInterfaceCmd},
+        {"interfaces", 0, 1, "?PATTERN?", CffiRttiFunctionsCmd},
         {"struct", 0, 1, "NAME", CffiRttiStructCmd},
         {"union", 0, 1, "NAME", CffiRttiUnionCmd},
 	    {NULL}
@@ -356,8 +368,12 @@ CffiRttiObjCmd(ClientData cdata,
     if (Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex) == TCL_OK) {
         switch (cmdIndex) {
         case FUNCTIONS:
+        case INTERFACES:
             return subCommands[cmdIndex].cmdFn(ipCtxP,
-                                               objc > 2 ? objv[2] : NULL);
+                                               objc > 2 ? objv[2] : NULL,
+                                               cmdIndex == FUNCTIONS
+                                                   ? CffiFunctionInstanceCmd
+                                                   : CffiInterfaceInstanceCmd);
         default:
             if (objc == 2) {
                 return Tclh_ErrorNumArgs(
