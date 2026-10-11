@@ -1687,7 +1687,7 @@ namespace eval Concepts {
         `IUnknown` interface for example would be defined as
 
         ```
-        cffi::Interface IUnknown
+        cffi::Interface create IUnknown
         ```
 
         This creates the `IUnknown` interface as an ensemble command to which

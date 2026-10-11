@@ -32,6 +32,11 @@ CffiLookupInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
     resultObjs[3]       = ifcP->nameObj;
     resultObjs[4]       = Tcl_NewStringObj("Methods", 7);
     resultObjs[5]       = Tcl_NewListObj(0, NULL);
+    int resultObjCount = 6;
+    if (ifcP->baseIfcP) {
+        resultObjs[resultObjCount++] = Tcl_NewStringObj("Superclass", 10);
+        resultObjs[resultObjCount++] = ifcP->baseIfcP->nameObj;
+    }
     while (ifcP) {
         Tcl_Obj *ifcObjs[2];
         ifcObjs[0] = ifcP->nameObj;
@@ -52,11 +57,6 @@ CffiLookupInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
         Tcl_ListObjAppendElement(
             NULL, resultObjs[5], Tcl_NewListObj(2, ifcObjs));
         ifcP = ifcP->baseIfcP;
-    }
-    int resultObjCount = 6;
-    if (ifcP->baseIfcP) {
-        resultObjs[resultObjCount++] = Tcl_NewStringObj("Superclass", 10);
-        resultObjs[resultObjCount++] = ifcP->baseIfcP->nameObj;
     }
     Tcl_DecrRefCount(docKeyObj);
     Tcl_SetObjResult(ipCtxP->interp,
