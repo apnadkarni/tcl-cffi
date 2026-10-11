@@ -197,7 +197,7 @@ CffiRttiStructOrUnionCmd(CffiInterpCtx *ipCtxP,
     resultObjs[1] = nameObj;
     resultObjs[2] = typeKeyObj;
     resultObjs[3] = Tcl_NewStringObj(
-        baseType == CFFI_K_TYPE_STRUCT ? "struct " : "union ", -1);
+        baseType == CFFI_K_TYPE_STRUCT ? "struct" : "union", -1);
 
     resultObjs[4] = Tcl_NewStringObj("Fields", 6);
     resultObjs[5] = Tcl_NewListObj(structP->nFields, NULL);
@@ -272,7 +272,7 @@ CffiRttiAliasCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
     resultObjs[1] = nameObj;
     resultObjs[2] = Tcl_NewStringObj("Type", 4);
     resultObjs[3] = Tcl_NewStringObj("alias", 5);
-    resultObjs[4] = Tcl_NewStringObj("Alias", 7);
+    resultObjs[4] = Tcl_NewStringObj("Alias", 5);
     resultObjs[5] = CffiTypeAndAttrsUnparse(typeAttrsP);
     Tcl_SetObjResult(ipCtxP->interp, Tcl_NewListObj(6, resultObjs));
     return TCL_OK;
