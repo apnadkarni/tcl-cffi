@@ -343,7 +343,9 @@ CffiRttiObjCmd(ClientData cdata,
     CffiInterpCtx *ipCtxP = (CffiInterpCtx *)cdata;
     enum cmds {
         ALIAS,
+        ALIASES,
         ENUM,
+        ENUMS,
         FUNCTION,
         FUNCTIONS,
         INTERFACE,
@@ -354,26 +356,40 @@ CffiRttiObjCmd(ClientData cdata,
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
         {"alias", 0, 1, "NAME", CffiRttiAliasCmd},
+        {"aliases", 0, 1, "?PATTERN?", NULL},
         {"enum", 0, 1, "NAME", CffiRttiEnumCmd},
+        {"enums", 0, 1, "?PATTERN?", NULL},
         {"function", 0, 1, "NAME", CffiRttiFunctionCmd},
-        {"functions", 0, 1, "?PATTERN?", CffiRttiFunctionsCmd},
+        {"functions", 0, 1, "?PATTERN?", NULL},
         {"interface", 0, 1, "NAME", CffiRttiInterfaceCmd},
-        {"interfaces", 0, 1, "?PATTERN?", CffiRttiFunctionsCmd},
+        {"interfaces", 0, 1, "?PATTERN?", NULL},
         {"struct", 0, 1, "NAME", CffiRttiStructCmd},
         {"union", 0, 1, "NAME", CffiRttiUnionCmd},
 	    {NULL}
     };
+    Tcl_Obj *objP = NULL;
+    CffiResult ret;
 
     /* Slightly convoluted logic since we want "help foo" to check all types */
     if (Tclh_SubCommandLookup(ip, subCommands, objc, objv, &cmdIndex) == TCL_OK) {
         switch (cmdIndex) {
+        case ALIASES:
+        case ENUMS:
+            ret = CffiNameListNames(ip,
+                                    cmdIndex == ALIASES ? &ipCtxP->scope.aliases
+                                                        : &ipCtxP->scope.enums,
+                                    objc > 2 ? Tcl_GetString(objv[2]) : NULL,
+                                    &objP);
+            if (ret == TCL_OK)
+                Tcl_SetObjResult(ip, objP);
+            return ret;
         case FUNCTIONS:
         case INTERFACES:
-            return subCommands[cmdIndex].cmdFn(ipCtxP,
-                                               objc > 2 ? objv[2] : NULL,
-                                               cmdIndex == FUNCTIONS
-                                                   ? CffiFunctionInstanceCmd
-                                                   : CffiInterfaceInstanceCmd);
+            return CffiRttiFunctionsCmd(ipCtxP,
+                                        objc > 2 ? objv[2] : NULL,
+                                        cmdIndex == FUNCTIONS
+                                            ? CffiFunctionInstanceCmd
+                                            : CffiInterfaceInstanceCmd);
         default:
             if (objc == 2) {
                 return Tclh_ErrorNumArgs(
