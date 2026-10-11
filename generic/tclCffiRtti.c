@@ -8,7 +8,7 @@
 #include "tclCffiInt.h"
 
 static CffiResult
-CffiLookupInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+CffiRttiInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 {
     Tcl_CmdInfo cmdInfo;
 
@@ -65,7 +65,7 @@ CffiLookupInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 }
 
 static CffiResult
-CffiLookupFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
+CffiRttiFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
 {
     Tcl_CmdInfo cmdInfo;
     CffiProto *protoP;
@@ -180,7 +180,7 @@ CffiLookupFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
 }
 
 static CffiResult
-CffiLookupStructOrUnionCmd(CffiInterpCtx *ipCtxP,
+CffiRttiStructOrUnionCmd(CffiInterpCtx *ipCtxP,
                            Tcl_Obj *nameObj,
                            CffiBaseType baseType)
 {
@@ -217,19 +217,19 @@ CffiLookupStructOrUnionCmd(CffiInterpCtx *ipCtxP,
 }
 
 static CffiResult
-CffiLookupUnionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+CffiRttiUnionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 {
-    return CffiLookupStructOrUnionCmd(ipCtxP, nameObj, CFFI_K_TYPE_UNION);
+    return CffiRttiStructOrUnionCmd(ipCtxP, nameObj, CFFI_K_TYPE_UNION);
 }
 
 static CffiResult
-CffiLookupStructCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+CffiRttiStructCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 {
-    return CffiLookupStructOrUnionCmd(ipCtxP, nameObj, CFFI_K_TYPE_STRUCT);
+    return CffiRttiStructOrUnionCmd(ipCtxP, nameObj, CFFI_K_TYPE_STRUCT);
 }
 
 static CffiResult
-CffiLookupEnumCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *enumNameObj)
+CffiRttiEnumCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *enumNameObj)
 {
     Tcl_Interp *ip = ipCtxP->interp;
     Tcl_Obj *mapObj;
@@ -260,7 +260,7 @@ CffiLookupEnumCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *enumNameObj)
 }
 
 static CffiResult
-CffiLookupAliasCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
+CffiRttiAliasCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 {
     CffiTypeAndAttrs *typeAttrsP;
 
@@ -279,7 +279,7 @@ CffiLookupAliasCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 }
 
 static CffiResult
-CffiLookupFunctionsCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *patObj)
+CffiRttiFunctionsCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *patObj)
 {
     Tcl_Obj *resultObj;
     Tcl_Obj *commandsObj;
@@ -333,7 +333,7 @@ CffiLookupFunctionsCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *patObj)
 
 
 CffiResult
-CffiLookupObjCmd(ClientData cdata,
+CffiRttiObjCmd(ClientData cdata,
                Tcl_Interp *ip,
                int objc,
                Tcl_Obj *const objv[])
@@ -342,13 +342,13 @@ CffiLookupObjCmd(ClientData cdata,
     enum cmds { ALIAS, ENUM, FUNCTION, FUNCTIONS, STRUCT, UNION };
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
-        {"alias", 0, 1, "NAME", CffiLookupAliasCmd},
-        {"enum", 0, 1, "NAME", CffiLookupEnumCmd},
-        {"function", 0, 1, "NAME", CffiLookupFunctionCmd},
-        {"functions", 0, 1, "?PATTERN?", CffiLookupFunctionsCmd},
-        {"interface", 0, 1, "NAME", CffiLookupInterfaceCmd},
-        {"struct", 0, 1, "NAME", CffiLookupStructCmd},
-        {"union", 0, 1, "NAME", CffiLookupUnionCmd},
+        {"alias", 0, 1, "NAME", CffiRttiAliasCmd},
+        {"enum", 0, 1, "NAME", CffiRttiEnumCmd},
+        {"function", 0, 1, "NAME", CffiRttiFunctionCmd},
+        {"functions", 0, 1, "?PATTERN?", CffiRttiFunctionsCmd},
+        {"interface", 0, 1, "NAME", CffiRttiInterfaceCmd},
+        {"struct", 0, 1, "NAME", CffiRttiStructCmd},
+        {"union", 0, 1, "NAME", CffiRttiUnionCmd},
 	    {NULL}
     };
 
@@ -370,12 +370,12 @@ CffiLookupObjCmd(ClientData cdata,
         return TCL_ERROR;
 
     /* Try each kind in turn */
-    if (CffiLookupFunctionCmd(ipCtxP, objv[1]) == TCL_OK
-        || CffiLookupAliasCmd(ipCtxP, objv[1]) == TCL_OK
-        || CffiLookupEnumCmd(ipCtxP, objv[1]) == TCL_OK
-        || CffiLookupStructCmd(ipCtxP, objv[1]) == TCL_OK
-        || CffiLookupUnionCmd(ipCtxP, objv[1]) == TCL_OK
-        || CffiLookupInterfaceCmd(ipCtxP, objv[1]) == TCL_OK) {
+    if (CffiRttiFunctionCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiRttiAliasCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiRttiEnumCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiRttiStructCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiRttiUnionCmd(ipCtxP, objv[1]) == TCL_OK
+        || CffiRttiInterfaceCmd(ipCtxP, objv[1]) == TCL_OK) {
         return TCL_OK;
     }
 
