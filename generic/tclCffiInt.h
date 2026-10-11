@@ -1108,6 +1108,8 @@ CffiResult CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
 
 Tcl_ObjCmdProc CffiMethodInstanceCmd;
 Tcl_ObjCmdProc CffiInterfaceInstanceCmd;
+Tcl_ObjCmdProc CffiStructInstanceCmd;
+Tcl_ObjCmdProc CffiUnionInstanceCmd;
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiArenaObjCmd;

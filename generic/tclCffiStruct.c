@@ -2543,7 +2543,7 @@ CffiStructDestroyCmd(Tcl_Interp *ip,
  * Returns:
  * TCL_OK or TCL_ERROR, with result in interpreter.
  */
-static CffiResult
+CffiResult
 CffiStructInstanceCmd(ClientData cdata,
                         Tcl_Interp *ip,
                         int objc,
@@ -2725,7 +2725,7 @@ error_exit:
  * Returns:
  * TCL_OK or TCL_ERROR, with result in interpreter.
  */
-static CffiResult
+CffiResult
 CffiUnionInstanceCmd(ClientData cdata,
                      Tcl_Interp *ip,
                      int objc,

@@ -351,7 +351,9 @@ CffiRttiObjCmd(ClientData cdata,
         INTERFACE,
         INTERFACES,
         STRUCT,
-        UNION
+        STRUCTS,
+        UNION,
+        UNIONS
     };
     int cmdIndex;
     static Tclh_SubCommand subCommands[] = {
@@ -364,7 +366,9 @@ CffiRttiObjCmd(ClientData cdata,
         {"interface", 0, 1, "NAME", CffiRttiInterfaceCmd},
         {"interfaces", 0, 1, "?PATTERN?", NULL},
         {"struct", 0, 1, "NAME", CffiRttiStructCmd},
+        {"structs", 0, 1, "?PATTERN?", NULL},
         {"union", 0, 1, "NAME", CffiRttiUnionCmd},
+        {"unions", 0, 1, "?PATTERN?", NULL},
 	    {NULL}
     };
     Tcl_Obj *objP = NULL;
@@ -385,11 +389,17 @@ CffiRttiObjCmd(ClientData cdata,
             return ret;
         case FUNCTIONS:
         case INTERFACES:
-            return CffiRttiFunctionsCmd(ipCtxP,
-                                        objc > 2 ? objv[2] : NULL,
-                                        cmdIndex == FUNCTIONS
-                                            ? CffiFunctionInstanceCmd
-                                            : CffiInterfaceInstanceCmd);
+        case STRUCTS:
+        case UNIONS:
+            return CffiRttiFunctionsCmd(
+                ipCtxP,
+                objc > 2 ? objv[2] : NULL,
+                cmdIndex == FUNCTIONS
+                    ? CffiFunctionInstanceCmd
+                    : (cmdIndex == INTERFACES
+                           ? CffiInterfaceInstanceCmd
+                           : (cmdIndex == STRUCTS ? CffiStructInstanceCmd
+                                                  : CffiUnionInstanceCmd)));
         default:
             if (objc == 2) {
                 return Tclh_ErrorNumArgs(
