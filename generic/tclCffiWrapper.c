@@ -106,33 +106,41 @@ CffiWrapperStdcallCmd(Tcl_Interp *ip,
  */
 static CffiResult
 CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
-                    int objc,
-                    Tcl_Obj *const objv[],
-                    CffiLibCtx *ctxP,
-                    CffiABIProtocol callMode)
+                            int objc,
+                            Tcl_Obj *const objv[],
+                            CffiLibCtx *ctxP,
+                            CffiABIProtocol callMode)
 {
     Tcl_Obj *errorMessages = NULL;
     Tcl_Obj **objs;
     Tcl_Size i, nobjs;
     int ret;
+    enum opts { IGNOREMISSING, DOCUMENTED };
+    static const char *const opts[] = {"-ignoremissing", "-documented", NULL};
+    int cmdIndex;
     int ignoreMissing = 0;
-    static const char * const opts[2] = {"-ignoremissing", NULL};
+    int documented    = 0;
+    int stride;
 
-    CFFI_ASSERT(objc == 3 || objc == 4);
+    CFFI_ASSERT(objc >= 3);
 
-    if (objc == 4) {
-        /* Use this just to get the error message right */
-        CHECK(Tcl_GetIndexFromObj(ip, objv[3], opts, "option", 0, &i));
-        ignoreMissing = 1;
+    for (i = 4; i < objc; ++i) {
+        CHECK(Tcl_GetIndexFromObj(ip, objv[i], opts, "option", 0, &cmdIndex));
+        if (cmdIndex == IGNOREMISSING)
+            ignoreMissing = 1;
+        else
+            documented = 1;
     }
 
     CHECK(Tcl_ListObjGetElements(ip, objv[2], &nobjs, &objs));
-    if (nobjs % 3) {
+    /* functionname, type, params, optional doc */
+    stride = 3 + documented;
+    if (nobjs % stride) {
         return Tclh_ErrorInvalidValue(
             ip, objv[2], "Incomplete function definition list.");
     }
 
-    for (i = 0; i < nobjs; i += 3) {
+    for (i = 0; i < nobjs; i += stride) {
         if (!strcmp("#", Tcl_GetString(objs[i])))
             continue; /* Comment */
         ret = CffiDefineOneFunctionFromLib(ip,
@@ -140,7 +148,7 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
                                            objs[i],
                                            objs[i + 1],
                                            objs[i + 2],
-                                           NULL,
+                                           documented ? objs[i+3] : NULL,
                                            callMode,
                                            ignoreMissing);
         if (ret != TCL_OK) {
@@ -271,10 +279,10 @@ CffiWrapperInstanceCmd(ClientData cdata,
         {"addressof", 1, 1, "SYMBOL", CffiWrapperAddressOfCmd},
         {"destroy", 0, 0, "", CffiWrapperDestroyCmd},
         {"function", 3, 4, "NAME RETURNTYPE PARAMDEFS ?DOC?", CffiWrapperFunctionCmd},
-        {"functions", 1, 2, "FUNCTIONLIST ?-ignoremissing?", CffiWrapperFunctionsCmd},
+        {"functions", 1, 3, "FUNCTIONLIST ?-ignoremissing? ?-documented?", CffiWrapperFunctionsCmd},
         {"path", 0, 0, "", CffiWrapperPathCmd},
         {"stdcall", 3, 4, "NAME RETURNTYPE PARAMDEFS ?DOC?", CffiWrapperStdcallCmd},
-        {"stdcalls", 1, 2, "FUNCTIONLIST ?-ignoremissing?", CffiWrapperStdcallsCmd},
+        {"stdcalls", 1, 3, "FUNCTIONLIST ?-ignoremissing? ?-documented?", CffiWrapperStdcallsCmd},
         {NULL}};
     int cmdIndex;
 

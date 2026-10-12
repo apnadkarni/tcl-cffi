@@ -21,7 +21,7 @@ oo::class create ${NS}::Interface {
     method methods {methodlist args} {
         # Creates Tcl commands wrapping the C functions comprising an interface.
         #  methodlist - list of function definitions.
-        #  -disposemethod METHODNAMDE - the name of the method, if any, whose
+        #  -disposemethod METHODNAME - the name of the method, if any, whose
         #    implicit pointer parameter should be annotated with `dispose`.
         #
         # The C functions in the wrapper are presumed to be using the `_cdecl`
@@ -44,7 +44,7 @@ oo::class create ${NS}::Interface {
         # Creates Tcl commands corresponding to the C functions comprising an
         # interface.
         #  methodlist - list of function definitions.
-        #  -disposemethod METHODNAMDE - the name of the method, if any, whose
+        #  -disposemethod METHODNAME - the name of the method, if any, whose
         #    implicit pointer parameter should be annotated with `dispose`.
         #
         # The C functions are presumed to be using the `_stdcall` calling

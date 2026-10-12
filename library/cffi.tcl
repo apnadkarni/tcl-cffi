@@ -73,6 +73,9 @@ proc cffi::help {args} {
                         }]]
                         lappend text [string cat {    } [join $method_text { }] " " ($ifc_name)]
                     }
+                    if {[dict exists $info Doc]} {
+                        lappend text "[dict get $info Doc]"
+                    }
                     lappend result [join $text \n]
                 }
             }
@@ -85,6 +88,9 @@ proc cffi::help {args} {
                     lappend text "Fields:"
                     foreach field [dict get $info Fields] {
                         lappend text [string cat "    " [dict get $field Name] " : " [dict get $field Type]]
+                    }
+                    if {[dict exists $info Doc]} {
+                        lappend text "[dict get $info Doc]"
                     }
                     lappend result [join $text \n]
                 }

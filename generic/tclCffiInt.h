@@ -353,6 +353,7 @@ typedef enum CffiStructFlags {
  */
 struct CffiStruct {
     Tcl_Obj *name;              /* Struct type name */
+    Tcl_Obj *docObj;		/* Documentation string. May be NULL. */
 #ifdef CFFI_USE_LIBFFI
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
@@ -552,6 +553,7 @@ typedef struct CffiInterface {
     CffiInterpCtx *ipCtxP;
     Tcl_Obj *nameObj;
     Tcl_Obj *idObj;
+    Tcl_Obj *docObj;
     struct CffiInterface *baseIfcP;
     int nRefs;
     int nMethods; /* Size of vtable[] */

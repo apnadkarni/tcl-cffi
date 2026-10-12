@@ -21,7 +21,7 @@ CffiRttiInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
 
     CffiInterface *ifcP = (CffiInterface *)cmdInfo.objClientData;
 
-    Tcl_Obj *resultObjs[8];
+    Tcl_Obj *resultObjs[10];
     Tcl_Obj *nameKeyObj = Tcl_NewStringObj("Name", 4);
     Tcl_Obj *docKeyObj  = Tcl_NewStringObj("Doc", 3);
     Tcl_IncrRefCount(docKeyObj); /* Because may not be used */
@@ -36,6 +36,10 @@ CffiRttiInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
     if (ifcP->baseIfcP) {
         resultObjs[resultObjCount++] = Tcl_NewStringObj("Superclass", 10);
         resultObjs[resultObjCount++] = ifcP->baseIfcP->nameObj;
+    }
+    if (ifcP->docObj) {
+        resultObjs[resultObjCount++] = docKeyObj;
+        resultObjs[resultObjCount++] = ifcP->docObj;
     }
     while (ifcP) {
         Tcl_Obj *ifcObjs[2];
@@ -58,9 +62,9 @@ CffiRttiInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
             NULL, resultObjs[5], Tcl_NewListObj(2, ifcObjs));
         ifcP = ifcP->baseIfcP;
     }
-    Tcl_DecrRefCount(docKeyObj);
     Tcl_SetObjResult(ipCtxP->interp,
                      Tcl_NewListObj(resultObjCount, resultObjs));
+    Tcl_DecrRefCount(docKeyObj);
     return TCL_OK;
 }
 
@@ -191,7 +195,7 @@ CffiRttiStructOrUnionCmd(CffiInterpCtx *ipCtxP,
 
     Tcl_Obj *nameKeyObj    = Tcl_NewStringObj("Name", 4);
     Tcl_Obj *typeKeyObj    = Tcl_NewStringObj("Type", 4);
-    Tcl_Obj *resultObjs[6];
+    Tcl_Obj *resultObjs[8];
 
     resultObjs[0] = nameKeyObj;
     resultObjs[1] = nameObj;
@@ -211,8 +215,15 @@ CffiRttiStructOrUnionCmd(CffiInterpCtx *ipCtxP,
         Tcl_ListObjAppendElement(
             NULL, resultObjs[5], Tcl_NewListObj(4, fieldObjs));
     }
+    int resultObjCount = 6;
+    if (structP->docObj) {
+        resultObjs[resultObjCount] = Tcl_NewStringObj("Doc", 3);
+        resultObjs[resultObjCount + 1] = structP->docObj;
+        resultObjCount += 2;
+    }
 
-    Tcl_SetObjResult(ipCtxP->interp, Tcl_NewListObj(6, resultObjs));
+    Tcl_SetObjResult(ipCtxP->interp,
+                     Tcl_NewListObj(resultObjCount, resultObjs));
     return TCL_OK;
 }
 
