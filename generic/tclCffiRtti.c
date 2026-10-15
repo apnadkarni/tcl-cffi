@@ -34,7 +34,7 @@ CffiRttiInterfaceCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *nameObj)
     resultObjs[5]       = Tcl_NewListObj(0, NULL);
     int resultObjCount = 6;
     if (ifcP->baseIfcP) {
-        resultObjs[resultObjCount++] = Tcl_NewStringObj("Superclass", 10);
+        resultObjs[resultObjCount++] = Tcl_NewStringObj("Super", 5);
         resultObjs[resultObjCount++] = ifcP->baseIfcP->nameObj;
     }
     if (ifcP->docObj) {

@@ -9,14 +9,22 @@ namespace eval cffi {}
 
 proc cffi::help {args} {
     set nargs [llength $args]
+    set types [list alias enum function interface struct union]
     if {$nargs == 2} {
         lassign $args type name
         set types [list $type]
     } elseif {$nargs == 1} {
         lassign $args name
-        set types [list alias enum function interface struct union]
+        if {$name in $types} {
+            error "wrong # args: should be \"cffi::help $name NAME\""
+        }
     } else {
-        error "wrong # args: should \"help ?TYPE? NAME\""
+        lassign $args name
+        if {$name in $types} {
+            error "wrong # args: should be \"cffi::help $name NAME\""
+        } else {
+            error "wrong # args: should \"cffi::help ?TYPE? NAME\""
+        }
     }
     set result {}
     foreach type $types {
@@ -24,16 +32,16 @@ proc cffi::help {args} {
         switch $type {
             alias {
                 catch {
-                    set info [rtti alias $name]
+                    set info [uplevel 1 [list cffi::rtti alias $name]]
                     set name [dict get $info Name]
                     lappend text "Alias: $name"
-                    lappend text "Body: [dict get $info Alias]"
+                    lappend text "  Body: [dict get $info Alias]"
                     lappend result [join $text \n]
                 }
             }
             enum {
                 catch {
-                    set info [rtti enum $name]
+                    set info [uplevel 1 [list cffi::rtti enum $name]]
                     set name [dict get $info Name]
                     lappend text "Enum: $name"
                     lappend text "Members:"
@@ -45,14 +53,22 @@ proc cffi::help {args} {
             }
             function {
                 catch {
-                    set info [rtti function $name]
+                    set info [uplevel 1 [list cffi::rtti function $name]]
                     set name [dict get $info Name]
                     set param_names [lmap param [dict get $info Params] {
                         dict get $param Name
                     }]
-                    lappend text "Command: $name [join $param_names { }]"
+                    set sep " "
+                    if {[llength $param_names] == 0} {
+                        set sep ""
+                    }
                     if {[dict exists $info Return]} {
-                        lappend text "Returns: [dict get $info Return]"
+                        lappend text "Syntax: $name [join $param_names { }]$sep-> [dict get $info Return]"
+                    } else {
+                        lappend text "Syntax: $name$sep[join $param_names { }]"
+                    }
+                    foreach param [dict get $info Params] {
+                        lappend text "  [dict get $param Name]: [dict get $param Type]"
                     }
                     if {[dict exists $info Doc]} {
                         lappend text "[dict get $info Doc]"
@@ -62,10 +78,13 @@ proc cffi::help {args} {
             }
             interface {
                 catch {
-                    set info [rtti interface $name]
+                    set info [uplevel 1 [list cffi::rtti interface $name]]
                     set name [dict get $info Name]
                     lappend text "Interface: $name"
-                    lappend text "Methods:"
+                    if {[dict exists $info Super]} {
+                        lappend text "  Superclass: [dict get $info Super]"
+                    }
+                    lappend text "  Methods:"
                     foreach ifc_methods [dict get $info Methods] {
                         lassign $ifc_methods ifc_name methods
                         set method_text [lsort -dictionary [lmap method $methods {
@@ -82,10 +101,10 @@ proc cffi::help {args} {
             struct -
             union {
                 catch {
-                    set info [rtti $type $name]
+                    set info [uplevel 1 [list cffi::rtti $type $name]]
                     set name [dict get $info Name]
                     lappend text "[string totitle $type]: $name"
-                    lappend text "Fields:"
+                    lappend text "  Fields:"
                     foreach field [dict get $info Fields] {
                         lappend text [string cat "    " [dict get $field Name] " : " [dict get $field Type]]
                     }
