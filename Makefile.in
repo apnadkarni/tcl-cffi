@@ -333,7 +333,7 @@ $(srcdir)/generic/tclCffi.c: tclCffiScripts.c
 tclCffiScripts.$(OBJEXT): tclCffiScripts.c
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
 tclCffiScripts.c: $(srcdir)/tcl/cffi.tcl
-	$(TCLSH) $(srcdir)/tools/file2c.tcl -h tclCffiScripts.h -o `@CYGPATH@ $@` `@CYGPATH@ $<`
+	$(TCLSH) $(srcdir)/tools/file2c.tcl -f -h tclCffiScripts.h -o `@CYGPATH@ $@` `@CYGPATH@ $<`
 
 #========================================================================
 # Distribution creation

@@ -150,7 +150,7 @@ $(TMP_DIR)\tclCffiScripts.obj: $(TMP_DIR)\tclCffiScripts.c
 	$(CCPKGCMD) $(TMP_DIR)\tclCffiScripts.c
 
 $(TMP_DIR)\tclCffiScripts.c: $(ROOT)\tcl\cffi.tcl
-	$(TCLSH_NATIVE) $(ROOT)\tools\file2c.tcl -h $(TMP_DIR)\tclCffiScripts.h -o $(TMP_DIR)\tclCffiScripts.c $(ROOT)\tcl\cffi.tcl
+	$(TCLSH_NATIVE) $(ROOT)\tools\file2c.tcl -f -h $(TMP_DIR)\tclCffiScripts.h -o $(TMP_DIR)\tclCffiScripts.c $(ROOT)\tcl\cffi.tcl
 
 # Build test DLL
 $(PROJECT): testdll
