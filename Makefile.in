@@ -34,7 +34,7 @@
 #========================================================================
 
 PKG_SOURCES	= @PKG_SOURCES@
-PKG_OBJECTS	= @PKG_OBJECTS@
+PKG_OBJECTS	= @PKG_OBJECTS@ tclCffiScripts.$(OBJEXT)
 
 PKG_STUB_SOURCES = @PKG_STUB_SOURCES@
 PKG_STUB_OBJECTS = @PKG_STUB_OBJECTS@
@@ -169,7 +169,7 @@ DEFS		= @DEFS@ $(PKG_CFLAGS)
 
 # Move pkgIndex.tcl to 'BINARIES' var if it is generated in the Makefile
 CONFIG_CLEAN_FILES = Makefile pkgIndex.tcl
-CLEANFILES	= @CLEANFILES@
+CLEANFILES	= @CLEANFILES@ tclCffiScripts.*
 
 CPPFLAGS	= @CPPFLAGS@
 LIBS		= @PKG_LIBS@ @LIBS@ $(TCL_TOMMATH_LIB)
@@ -328,6 +328,12 @@ VPATH = $(srcdir):$(srcdir)/generic:$(srcdir)/unix:$(srcdir)/win:$(srcdir)/macos
 
 .c.@OBJEXT@:
 	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+
+$(srcdir)/generic/tclCffi.c: tclCffiScripts.c
+tclCffiScripts.$(OBJEXT): tclCffiScripts.c
+	$(COMPILE) -c `@CYGPATH@ $<` -o $@
+tclCffiScripts.c: $(srcdir)/tcl/cffi.tcl
+	$(TCLSH) $(srcdir)/tools/file2c.tcl -h tclCffiScripts.h -o `@CYGPATH@ $@` `@CYGPATH@ $<`
 
 #========================================================================
 # Distribution creation

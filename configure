@@ -4906,13 +4906,13 @@ $as_echo "$ac_cv_c_bigendian" >&6; }
                      generic/tclCffiCallback.c \
                      generic/tclCffiEnum.c \
                      generic/tclCffiFunction.c \
-                     generic/tclCffiHelp.c \
                      generic/tclCffiInterface.c \
                      generic/tclCffiLoad.c \
                      generic/tclCffiMemory.c \
                      generic/tclCffiNames.c \
                      generic/tclCffiPointer.c \
                      generic/tclCffiPrototype.c \
+                     generic/tclCffiRtti.c \
                      generic/tclCffiStruct.c \
                      generic/tclCffiTclh.c \
                      generic/tclCffiTypes.c \
@@ -4962,7 +4962,7 @@ $as_echo "$ac_cv_c_bigendian" >&6; }
 
 
 
-    vars="-I${srcdir}/generic -I${srcdir}/tclh/include"
+    vars="-I. -I${srcdir}/generic -I${srcdir}/tclh/include"
     for i in $vars; do
 	PKG_INCLUDES="$PKG_INCLUDES $i"
     done

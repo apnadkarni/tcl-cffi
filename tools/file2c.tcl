@@ -81,6 +81,9 @@ proc main {} {
     puts $outfd " *     [file tail [info nameofexecutable]] $::argv0 $::argv"
     puts $outfd " */"
     puts $outfd ""
+    if {$opts(-h) ne ""} {
+        puts $outfd "#include \"[file tail $opts(-h)]\""
+    }
     foreach {baseName content} $inputs {
         set arrayName [string cat $opts(-p) $baseName]
         if {$opts(-c)} {
@@ -91,7 +94,7 @@ proc main {} {
             lappend headers "extern const unsigned char $arrayName\[];"
         } else {
             puts $outfd [toStringLiteral $arrayName $content]
-            lappend headers "extern const unsigned char $arrayName\[];"
+            lappend headers "extern const char $arrayName\[];"
         }
         lappend headers "extern const size_t ${arrayName}_len;"
     }
@@ -104,6 +107,8 @@ proc main {} {
         puts $hfd " * This file was generated using the command"
         puts $hfd " *     [file tail [info nameofexecutable]] $::argv0 $::argv"
         puts $hfd " */"
+        puts $hfd ""
+        puts $hfd "#include <stddef.h>"
         puts $hfd ""
         puts $hfd [join $headers \n]
         puts $hfd ""
@@ -128,7 +133,7 @@ proc toHexArray {arrayName content} {
     append def "\n    0x0 /* Additional terminating nul */\n"
     append def "\};\n"
     append def "/* Length not including terminating nul */\n"
-    append def "size_t ${arrayName}_len = $len;\n"
+    append def "const size_t ${arrayName}_len = $len;\n"
 }
 
 proc toStringLiteral {arrayName content} {
@@ -141,7 +146,7 @@ proc toStringLiteral {arrayName content} {
     append def [regsub -all -lineanchor {^} [join $lines \n] "    "]
     append def "\n\};\n"
     append def "/* Length not including terminating nul */\n"
-    append def "size_t ${arrayName}_len = $len;\n"
+    append def "const size_t ${arrayName}_len = $len;\n"
 }
 
 proc mapAsString {line} {
