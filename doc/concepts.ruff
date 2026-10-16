@@ -1758,8 +1758,8 @@ namespace eval Concepts {
         elements of some data set in turn. Wrapping such functions involves the
         following steps:
 
-        - Definition of a [prototype][Prototypes and function pointers] as
-        described in the previous section. This must match the declaration of
+        - Definition of a [prototype][Prototypes and function pointers].
+        This must match the declaration of
         the callback function. There are certain restrictions placed on the
         parameter types that can be used with callbacks. These are listed in the
         [::cffi::callback] reference.

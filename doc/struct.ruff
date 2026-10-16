@@ -8,6 +8,8 @@ oo::class create ${NS}::Struct {
         #  -clear - clears memory at initialization. See below.
         #  -pack PACKVALUE - changes alignment and padding used for fields.
         #    See [Packed structs][::Concepts::Packed structs].
+        #  -document DOCSTRING - documentation string that can be retrieved with the
+        #    [rtti] or [help] commands.
         # The created object can be used to pass arguments to and from
         # functions, allocate memory, encode and decode native C structs
         # in memory etc.

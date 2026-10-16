@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 2\&.0\&.3 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.1\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 cffi - Commands in namespace cffi
 .SH SYNOPSIS
@@ -76,8 +76,6 @@ cffi - Commands in namespace cffi
 \fBhelp enum\fP \fINAME\fP
 .br
 \fBhelp function\fP \fINAME\fP
-.br
-\fBhelp functions\fP \fI?PATTERN?\fP
 .br
 \fBhelp struct\fP \fINAME\fP
 .br
@@ -181,6 +179,28 @@ cffi - Commands in namespace cffi
 .br
 \fBprototype stdcall\fP \fIname fntype parameters\fP
 .br
+\fBrtti\fP \fIsubcommand \&.\&.\&.\fP
+.br
+\fBrtti alias\fP \fINAME\fP
+.br
+\fBrtti aliases\fP \fI?PATTERN?\fP
+.br
+\fBrtti enum\fP \fINAME\fP
+.br
+\fBrtti enums\fP \fI?PATTERN?\fP
+.br
+\fBrtti function\fP \fINAME\fP
+.br
+\fBrtti functions\fP \fI?PATTERN?\fP
+.br
+\fBrtti struct\fP \fINAME\fP
+.br
+\fBrtti structs\fP \fI?PATTERN?\fP
+.br
+\fBrtti union\fP \fINAME\fP
+.br
+\fBrtti unions\fP \fI?PATTERN?\fP
+.br
 \fBsavederrors\fP
 .br
 \fBtype\fP \fIsubcommand \&.\&.\&.\fP
@@ -273,7 +293,7 @@ cffi - Commands in namespace cffi
 .br
 \fBWRAPPEROBJ addressof\fP \fIsymbol\fP
 .br
-\fBWRAPPEROBJ function\fP \fIfnname fntype parameters\fP
+\fBWRAPPEROBJ function\fP \fIfnname fntype parameters ?docstring?\fP
 .br
 \fBWRAPPEROBJ functions\fP \fIfnlist ?args?\fP
 .br
@@ -500,7 +520,7 @@ or posix (platform dependent)\&.
 .PP
 The C predefined alias set includes _Bool, bool,
 int8_t uint8_t int16_t uint16_t int32_t
-uint32_t int64_t uint64_t size_t ssize_t
+uint32_t int64_t uint64_t size_t ptrdiff_t ssize_t
 .PP
 The win32 predefined alias set includes BOOL BOOLEAN BYTE
 CHAR DWORD DWORDLONG DWORD_PTR HALF_PTR HANDLE INT
@@ -1287,9 +1307,6 @@ Returns a string describing an \fIenum\fP definition\&.
 \fIfunction\fP
 Returns a string describing the syntax and parameter definitions for a CFFI wrapped function\&.
 .TP
-\fIfunctions\fP
-Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
-.TP
 \fIstruct\fP
 Returns a string describing field types in a \fIStruct\fP\&.
 .TP
@@ -1363,40 +1380,6 @@ Name of a wrapped function\&.
 .PP
 Returns a string describing the syntax and parameter definitions
 for a CFFI wrapped function\&.
-.PP
-.RS -4n
-\fBhelp functions\fR (::cffi)
-.RE
-.PP
-Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
-.RS 4n
-\fBhelp functions\fP \fI?PATTERN?\fP
-.br
-.RE
-.PP
-\fBParameters\fR
-.RS 4n
-.TP
-PATTERN
-Glob pattern to match\&. Optional, default *\&.
-.RE
-.PP
-\fBDescription\fR
-.PP
-Note that like Tcl's info commands the pattern is interpreted relative
-to the current namespace\&. So for example, to obtain the list of
-commands within a namespace, the namespace must also be included
-in the pattern\&. For example,
-.PP
-.RS 4n
-.nf
-cffi::help functions ::libzip::*
-.fi
-.RE
-.PP
-\fBReturn value\fR
-.PP
-Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
 .PP
 .RS -4n
 \fBhelp struct\fR (::cffi)
@@ -3021,6 +3004,365 @@ See \fIPrototypes and function pointers\fP for more details\&.
 \fI::cffi::Wrapper\&.stdcall\fP
 .PP
 .RS -4n
+\fBrtti\fR (::cffi)
+.RE
+.PP
+A
+command
+ensemble\&.
+.RS 4n
+\fBrtti\fP \fIsubcommand \&.\&.\&.\fP
+.br
+.RE
+.PP
+\fBDescription\fR
+.PP
+The ensemble supports the following subcommands:
+.RS 4n
+.TP
+\fIalias\fP
+Returns a dictionary with the metadata of an \fIalias\fP definition\&.
+.TP
+\fIaliases\fP
+Returns a list of \fIalias\fP names matching the pattern PATTERN\&.
+.TP
+\fIenum\fP
+Returns a dictionary with the metadata of an \fIenum\fP definition\&.
+.TP
+\fIenums\fP
+Returns a list of \fIenum\fP names matching the pattern PATTERN\&.
+.TP
+\fIfunction\fP
+Returns a dictionary with the metadata of a function definition\&.
+.TP
+\fIfunctions\fP
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
+.TP
+\fIstruct\fP
+Returns a dictionary with the metadata of a \fIStruct\fP definition\&.
+.TP
+\fIstructs\fP
+Returns a list of \fIStruct\fP names matching the pattern PATTERN\&.
+.TP
+\fIunion\fP
+Returns a dictionary with the metadata of a \fIUnion\fP definition\&.
+.TP
+\fIunions\fP
+Returns a list of \fIUnion\fP names matching the pattern PATTERN\&.
+.RE
+.PP
+Refer to the documentation of each subcommand for details\&.
+.PP
+.RS -4n
+\fBrtti alias\fR (::cffi)
+.RE
+.PP
+Returns a dictionary with the metadata of an \fIalias\fP definition\&.
+.RS 4n
+\fBrtti alias\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of the \fIalias\fP\&. If not fully qualified, this is qualified relative to the caller's namespace\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary has the following keys\&.
+.RS 4n
+.TP
+Alias
+The alias definition\&.
+.TP
+Name
+Fully qualified name of the \fIalias\fP
+.TP
+Type
+The string "alias"
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary with the metadata of an \fIalias\fP definition\&.
+.PP
+.RS -4n
+\fBrtti aliases\fR (::cffi)
+.RE
+.PP
+Returns a list of \fIalias\fP names matching the pattern PATTERN\&.
+.RS 4n
+\fBrtti aliases\fP \fI?PATTERN?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+PATTERN
+Glob pattern to match\&. Optional, default *\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+If PATTERN is not specified, all aliases are returned\&. If pattern
+is specified is it is qualified with the caller's namespace and only
+the tail of the pattern is treated as glob pattern\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of \fIalias\fP names matching the pattern PATTERN\&.
+.PP
+.RS -4n
+\fBrtti enum\fR (::cffi)
+.RE
+.PP
+Returns a dictionary with the metadata of an \fIenum\fP definition\&.
+.RS 4n
+\fBrtti enum\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of the \fIenum\fP\&. If not fully qualified, this is qualified relative to the caller's namespace\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary has the following keys\&.
+.RS 4n
+.TP
+Members
+Dictionary of enum members and their values\&.
+.TP
+Name
+Fully qualified name of the \fIenum\fP
+.TP
+Type
+The string "enum"
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary with the metadata of an \fIenum\fP definition\&.
+.PP
+.RS -4n
+\fBrtti enums\fR (::cffi)
+.RE
+.PP
+Returns a list of \fIenum\fP names matching the pattern PATTERN\&.
+.RS 4n
+\fBrtti enums\fP \fI?PATTERN?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+PATTERN
+Glob pattern to match\&. Optional, default *\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+If PATTERN is not specified, all enums are returned\&. If pattern
+is specified is it is qualified with the caller's namespace and only
+the tail of the pattern is treated as glob pattern\&.
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of \fIenum\fP names matching the pattern PATTERN\&.
+.PP
+.RS -4n
+\fBrtti function\fR (::cffi)
+.RE
+.PP
+Returns a dictionary with the metadata of a function definition\&.
+.RS 4n
+\fBrtti function\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of a wrapped function\&. This resolved in the context of the caller\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary has the following keys\&.
+.RS 4n
+.TP
+Doc
+Documentation string for the function if any (optional)\&.
+.TP
+Name
+Fully qualified name of the function\&.
+.TP
+Params
+List of parameter definitions\&. Each element is a dictionary with keys Name and Type holding the parameter name and its type\&.
+.TP
+Return
+The return type of the function (optional)
+.TP
+Type
+The string "function"
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary with the metadata of a function definition\&.
+.PP
+.RS -4n
+\fBrtti functions\fR (::cffi)
+.RE
+.PP
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
+.RS 4n
+\fBrtti functions\fP \fI?PATTERN?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+PATTERN
+Glob pattern to match\&. The pattern is resolved in the same manner as Tcl's info commands\&. Optional, default *\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of CFFI-wrapped functions matching the pattern PATTERN\&.
+.PP
+.RS -4n
+\fBrtti struct\fR (::cffi)
+.RE
+.PP
+Returns a dictionary with the metadata of a \fIStruct\fP definition\&.
+.RS 4n
+\fBrtti struct\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of the \fIStruct\fP\&. This resolved in the context of the caller\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary has the following keys\&.
+.RS 4n
+.TP
+Doc
+Documentation string for the structure if any (optional)\&.
+.TP
+Name
+Fully qualified name of the \fIStruct\fP
+.TP
+Fields
+List of fields definitions\&. Each element is a dictionary with keys Name and Type holding the field name and its type\&.
+.TP
+Type
+The string "struct"
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary with the metadata of a \fIStruct\fP definition\&.
+.PP
+.RS -4n
+\fBrtti structs\fR (::cffi)
+.RE
+.PP
+Returns a list of \fIStruct\fP names matching the pattern PATTERN\&.
+.RS 4n
+\fBrtti structs\fP \fI?PATTERN?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+PATTERN
+Glob pattern to match\&. The pattern is resolved in the same manner as Tcl's info commands\&. Optional, default *\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of \fIStruct\fP names matching the pattern PATTERN\&.
+.PP
+.RS -4n
+\fBrtti union\fR (::cffi)
+.RE
+.PP
+Returns a dictionary with the metadata of a \fIUnion\fP definition\&.
+.RS 4n
+\fBrtti union\fP \fINAME\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+NAME
+Name of the \fIUnion\fP\&. This resolved in the context of the caller\&.
+.RE
+.PP
+\fBDescription\fR
+.PP
+The returned dictionary has the following keys\&.
+.RS 4n
+.TP
+Doc
+Documentation string for the structure if any (optional)\&.
+.TP
+Name
+Fully qualified name of the \fIUnion\fP
+.TP
+Fields
+List of fields definitions\&. Each element is a dictionary with keys Name and Type holding the field name and its type\&.
+.TP
+Type
+The string "struct"
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a dictionary with the metadata of a \fIUnion\fP definition\&.
+.PP
+.RS -4n
+\fBrtti unions\fR (::cffi)
+.RE
+.PP
+Returns a list of \fIUnion\fP names matching the pattern PATTERN\&.
+.RS 4n
+\fBrtti unions\fP \fI?PATTERN?\fP
+.br
+.RE
+.PP
+\fBParameters\fR
+.RS 4n
+.TP
+PATTERN
+Glob pattern to match\&. The pattern is resolved in the same manner as Tcl's info commands\&. Optional, default *\&.
+.RE
+.PP
+\fBReturn value\fR
+.PP
+Returns a list of \fIUnion\fP names matching the pattern PATTERN\&.
+.PP
+.RS -4n
 \fBsavederrors\fR (::cffi)
 .RE
 .PP
@@ -3337,7 +3679,7 @@ Creates Tcl commands wrapping the C functions comprising an interface\&.
 methodlist
 List of function definitions\&.
 .TP
--disposemethod METHODNAMDE
+-disposemethod METHODNAME
 The name of the method, if any, whose implicit pointer parameter should be annotated with dispose\&.
 .RE
 .PP
@@ -3378,7 +3720,7 @@ interface\&.
 methodlist
 List of function definitions\&.
 .TP
--disposemethod METHODNAMDE
+-disposemethod METHODNAME
 The name of the method, if any, whose implicit pointer parameter should be annotated with dispose\&.
 .RE
 .PP
@@ -3445,7 +3787,7 @@ Retrieve values of multiple fields from a native struct in memory\&.
 getnativefields!
 Retrieve values of multiple fields from a native struct in memory\&.
 .TP
-info
+\fIinfo\fP [URL: https://www\&.tcl-lang\&.org/man/tcl9\&.0/TclCmd/index\&.html]
 Returns a dictionary containing information about the struct layout\&.
 .TP
 name
@@ -3495,7 +3837,7 @@ Defines the layout and type of the C struct fields\&.
 Clears memory at initialization\&. See below\&.
 .TP
 -pack PACKVALUE
-Changes alignment and padding used for fields\&. See \fIStructs\fP\&.
+Changes alignment and padding used for fields\&. See \fIPacked structs\fP\&.
 .RE
 .PP
 \fBDescription\fR
@@ -3505,7 +3847,7 @@ functions, allocate memory, encode and decode native C structs
 in memory etc\&.
 .PP
 The \fI$definition\fP argument is a dictionary mapping field names to the
-corresponding types\&. See \fIPacked structs\fP
+corresponding types\&. See \fIStructs\fP
 for more information\&.
 .PP
 The name of the created struct is the same as the name of the
@@ -4132,7 +4474,7 @@ Returns a human-readable description of the C union definition\&.
 encode
 Returns a union in native form with the specified field value\&.
 .TP
-info
+\fIinfo\fP [URL: https://www\&.tcl-lang\&.org/man/tcl9\&.0/TclCmd/index\&.html]
 Returns a dictionary containing information about the info layout\&.
 .TP
 name
@@ -4430,7 +4772,7 @@ Returns the address of a symbol from the loaded library\&.
 .PP
 Creates a Tcl command to invoke a C function in the loaded library\&.
 .RS 4n
-\fBWRAPPEROBJ function\fP \fIfnname fntype parameters\fP
+\fBWRAPPEROBJ function\fP \fIfnname fntype parameters ?docstring?\fP
 .br
 .RE
 .PP
@@ -4445,6 +4787,9 @@ The type definition for the return value from the function\&.
 .TP
 parameters
 List of alternating parameter name and type definitions\&.
+.TP
+docstring
+Documentation string that can be retrieved with the \fI::cffi::rtti\fP or \fIhelp\fP commands\&. Optional, default ""\&.
 .RE
 .PP
 \fBDescription\fR

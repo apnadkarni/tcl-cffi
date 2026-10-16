@@ -1,7 +1,7 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "cffi" 3tcl 2\&.0\&.3 "cffi" "Tcl CFFI package"
+.TH "cffi" 3tcl 2\&.1\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 Introduction - Tcl CFFI package
 .SH "GETTING STARTED"
@@ -14,7 +14,12 @@ arbitrary functions from any dynamically linked shared library without
 having to write C code\&.
 .PP
 Calling a C function from a shared library (or DLL, using the term
-interchangeably) using cffi involves
+.PP
+.RS 4n
+.nf
+                                        interchangeably) using `cffi` involves
+.fi
+.RE
 .TP
 \(bu
 Loading the library into the process by instantiating a \fI::cffi::Wrapper\fP object\&.
@@ -45,7 +50,7 @@ directory in the repository\&.
 .SH DOWNLOADS
 .PP
 Source distributions and binaries for some platforms are available from
-[URL: https://sourceforge\&.net/projects/magicsplat/files/cffi]\&.
+\fIhttps://sourceforge\&.net/projects/magicsplat/files/cffi\fP\&.
 .SH INSTALLATION
 .PP
 Binary distributions can be extracted into any directory present in
@@ -745,23 +750,28 @@ functionality useful for this purpose\&. See the reference documentation for
 a description\&.
 .SS INTROSPECTION
 .PP
-The package includes a help command ensemble that is useful during
-interactive development\&. The \fI::cffi::help function\fP command describes
-the syntax for a command wrapping a C function\&.
+Introspection is possible through the \fI::cffi::rtti\fP command which returns
+metadata for various program element types\&.
 .PP
 .RS 4n
 .nf
-% cffi::help function GetWindowRect
-Syntax: GetWindowRect hwnd rect
+% cffi::rtti functions Heap*
+HeapAlloc HeapCreate HeapDestroy
+% cffi::rtti function HeapAlloc
+Type function Name HeapAlloc Params {{Name heapPtr Type {pointer\&.::HEAP in}} {Name flags Type {uint in}} {Name size Type {ulonglong in}}} Return pointer
 .fi
 .RE
 .PP
-The \fI::cffi::help functions\fP command lists wrapped functions matching a pattern\&.
+As an aid during interactive development, the \fI::cffi::help\fP command makes
+the same information available in a more friendly format\&.
 .PP
 .RS 4n
 .nf
-% cffi::help functions Heap*
-HeapCreate HeapDestroy
+% cffi::help function HeapAlloc
+Syntax: HeapAlloc heapPtr flags size -> pointer
+heapPtr: pointer\&.::HEAP in
+flags: uint in
+size: ulonglong in
 .fi
 .RE
 .SS LIMITATIONS

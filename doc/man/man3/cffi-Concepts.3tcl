@@ -1,10 +1,10 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Concepts" 3tcl 2\&.0\&.3 "cffi" "Tcl CFFI package"
+.TH "Concepts" 3tcl 2\&.1\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 Concepts - Commands in namespace Concepts
-.SH CONCEPTS
+.SH ::CONCEPTS
 .PP
 This page describes some general concepts behind CFFI\&.
 Basic knowledge of the package as described in
@@ -1752,7 +1752,7 @@ IUnknown interface for example would be defined as
 .PP
 .RS 4n
 .nf
-cffi::Interface IUnknown
+cffi::Interface create IUnknown
 .fi
 .RE
 .PP

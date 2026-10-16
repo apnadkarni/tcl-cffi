@@ -1,0 +1,429 @@
+# (c) 2026 Ashok P. Nadkarni
+# See LICENSE for license terms.
+#
+# This file contains basic version and configuration tests
+
+source [file join [file dirname [info script]] common.tcl]
+
+namespace eval ${NS}::test {
+    testnumargs rtti-functions "cffi::rtti functions" "" "?PATTERN?"
+
+    # help
+    ## help args
+
+    test help-noargs "cffi::help no arguments" -body {
+        cffi::help
+    } -result "wrong # args: should be \"cffi::help ?TYPE? NAME\"" -returnCodes error
+    testnumargs help-function "cffi::help function" "NAME" ""
+    testnumargs help-struct "cffi::help struct" "NAME" ""
+    testnumargs help-union "cffi::help union" "NAME" ""
+    testnumargs help-enum "cffi::help enum" "NAME" ""
+    testnumargs help-alias "cffi::help alias" "NAME" ""
+
+    ## help missing elements
+    test help-notfound "Element does not exist" -body {
+        cffi::help foo
+    } -result "Program element named \"foo\" not found." -returnCodes error
+    foreach type {alias enum function struct union} {
+        test help-$type-notfound "Element does not exist - $type" -body {
+            cffi::help $type foo-$type
+        } -result "Program element named \"foo-$type\" not found." -returnCodes error
+    }
+
+    ## help function
+    test help-function-0 {help no args} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int int {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int -> int"
+
+    test help-function-1 {help with args} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int int {i int s {struct.::TestStruct byref} d {double out}}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
+
+    test help-function-2 {help function alias} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function {int_to_int xx} int {i int s {struct.::TestStruct byref} d {double out}}
+    } -cleanup {
+        rename xx {}
+    } -body {
+        cffi::help function xx
+    } -result "Syntax: xx i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
+    test help-function-3 {help void return} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int void {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int"
+    test help-function-4 {help discard return} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int {int discard} {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int"
+    test help-function-5 {help with retval} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int void {i {int retval} s {struct.::TestStruct byref} d {double out}}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help function int_to_int
+    } -result "Syntax: int_to_int s d -> int\n  s: struct.::TestStruct in byref\n  d: double out byref"
+    test help-function-6 {help implicit} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function int_to_int int {}
+    } -cleanup {
+        rename int_to_int {}
+    } -body {
+        cffi::help int_to_int
+    } -result "Syntax: int_to_int -> int"
+
+    ## help struct
+    set desc {Struct: ::TestStruct
+  Fields:
+    c: schar
+    i: int
+    shrt: short
+    uint: uint
+    ushrt: ushort
+    l: long
+    uc: uchar
+    ul: ulong
+    chars: {chars[11]}
+    ll: longlong
+    unic: {unichars[7]}
+    ull: ulonglong
+    b: {bytes[3]}
+    f: float
+    s: struct.::cffi::test::InnerTestStruct
+    d: double}
+    if {[onwindows]} {
+        append desc \n {    wchars: {winchars[13]}}
+    }
+
+    test help-struct-0 {help struct} -body {
+        cffi::help struct ::TestStruct
+    } -result $desc
+
+    test help-struct-1 {help struct} -body {
+        cffi::help ::TestStruct
+    } -result $desc
+
+
+    ## help union
+    test help-union-0 {help union} -body {
+        cffi::help union ::TestUnion
+    } -result "Union: ::TestUnion\n  Fields:\n    i: int\n    dbl: double\n    uc: uchar"
+    test help-union-1 {help union} -body {
+        cffi::help ::TestUnion
+    } -result "Union: ::TestUnion\n  Fields:\n    i: int\n    dbl: double\n    uc: uchar"
+
+    ## help enum
+    test help-enum-0 {help enum} -setup {
+        cffi::enum define E {a 1 bb 2}
+    } -cleanup {
+        cffi::enum delete E
+    } -body {
+        cffi::help enum E
+    } -result {^Enum: E\nMembers:\n\s*a = 1\n\s*bb = 2$} -match regexp
+
+    test help-enum-1 {help enum} -setup {
+        cffi::enum define E {a 1 bb 2}
+    } -cleanup {
+        cffi::enum delete E
+    } -body {
+        cffi::help E
+    } -result {^Enum: E\nMembers:\n\s*a = 1\n\s*bb = 2$} -match regexp
+
+    ## help alias
+    test help-alias-0 {help alias} -setup {
+        cffi::alias define A {int bitmask}
+    } -cleanup {
+        cffi::alias delete A
+    } -body {
+        cffi::help alias A
+    } -result "Alias: A\n  Body: int bitmask"
+
+    test help-alias-1 {help alias} -setup {
+        cffi::alias define A {int bitmask}
+    } -cleanup {
+        cffi::alias delete A
+    } -body {
+        cffi::help A
+    } -result "Alias: A\n  Body: int bitmask"
+
+    ## help interface
+    test help-interface-0 {help interface} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+    } -body {
+        cffi::help interface BaseInterface
+    } -result "Interface: ::cffi::test::BaseInterface\n  Methods:\n    delete get set (::cffi::test::BaseInterface)"
+
+    test help-interface-1 {help interface} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+        Interface create DerivedInterface -inherit BaseInterface
+        DerivedInterface methods {
+            setmax int {a int b int}
+        }
+    } -body {
+        cffi::help interface DerivedInterface
+    } -result "Interface: ::cffi::test::DerivedInterface\n  Superclass: ::cffi::test::BaseInterface\n  Methods:\n    setmax (::cffi::test::DerivedInterface)\n    delete get set (::cffi::test::BaseInterface)"
+
+    # rtti
+
+    ## rtti functions
+    test rtti-functions-0 {rtti functions} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function {int_to_int uu} int {}
+        testDll function uint_to_uint int {}
+        testDll function uchar_to_uchar int {}
+        testDll stdcall schar_to_schar int {}
+    } -cleanup {
+        rename uu {}
+        rename uint_to_uint {}
+        rename uchar_to_uchar {}
+        rename schar_to_schar {}
+    } -body {
+        lsort [cffi::rtti functions u*]
+    } -result {uchar_to_uchar uint_to_uint uu}
+    test rtti-functions-1 {rtti functions no match} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function uint_to_uint int {}
+    } -cleanup {
+        rename uint_to_uint {}
+    } -body {
+        lsort [cffi::rtti functions x*]
+    } -result {}
+    test rtti-functions-2 {rtti functions no match in namespace} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function uint_to_uint int {}
+        testDll function uchar_to_uchar int {}
+    } -cleanup {
+        rename uint_to_uint {}
+        rename uchar_to_uchar {}
+    } -body {
+        list \
+            [namespace eval :: {lsort [cffi::rtti functions u*]}] \
+            [lsort [cffi::rtti functions u*]]
+    } -result {{} {uchar_to_uchar uint_to_uint}}
+    if {[onwindows]} {
+        append desc \n {  wchars: {winchars[13]}}
+    }
+    test rtti-functions-3 {rtti functions no args} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function uint_to_uint int {}
+    } -cleanup {
+        rename uint_to_uint {}
+    } -body {
+        lsort [cffi::rtti functions]
+    } -result {getTestStructSize uint_to_uint}
+
+    ## rtti structs
+
+    test rtti-structs-0 {rtti structs} -setup {
+        cffi::Struct create ::XGlobal {a int b double}
+        cffi::Struct create XParent {a int b double}
+        namespace eval ns {
+            cffi::Struct create XStruct {a int b double}
+            cffi::Struct create YStruct {a int b double}
+        }
+        namespace eval ns2 {
+            cffi::Struct create ZStruct {a int b double}
+        }
+    } -body {
+        set structs [namespace eval ns {cffi::rtti structs}]
+        # Global and namespace structs included but not other namespaces
+        list [in XStruct $structs] [in YStruct $structs] [in XParent $structs] [in XGlobal $structs] [in ZStruct $structs] [in ZStruct [namespace eval ns2 {cffi::rtti structs}]]
+    } -cleanup {
+        namespace delete ns
+        namespace delete ns2
+        ::XGlobal destroy
+    } -result {1 1 0 1 0 1}
+
+    test rtti-structs-1 {rtti structs - simple pattern} -setup {
+        cffi::Struct create ::XGlobal {a int b double}
+        namespace eval ns {
+            cffi::Struct create X1Struct {a int b double}
+            cffi::Struct create YStruct {a int b double}
+        }
+        namespace eval ns2 {
+            cffi::Struct create X2Struct {a int b double}
+        }
+    } -body {
+        set structs [namespace eval ns {cffi::rtti structs X*}]
+        # Global and namespace structs included but not other namespaces
+        list [in X1Struct $structs] [in YStruct $structs] [in XGlobal $structs] [in X2Struct $structs] [in X2Struct [namespace eval ns2 {cffi::rtti structs}]]
+    } -cleanup {
+        namespace delete ns
+        namespace delete ns2
+        ::XGlobal destroy
+    } -result {1 0 1 0 1}
+
+    test rtti-structs-2 {rtti structs - no match pattern} -body {
+        cffi::rtti structs zz*
+    } -result {}
+
+    ## rtti unions
+
+    test rtti-unions-0 {rtti unions} -setup {
+        cffi::Union create ::XGlobal {a int b double}
+        cffi::Union create XParent {a int b double}
+        namespace eval ns {
+            cffi::Union create XUnion {a int b double}
+            cffi::Union create YUnion {a int b double}
+        }
+        namespace eval ns2 {
+            cffi::Union create ZUnion {a int b double}
+        }
+    } -body {
+        set unions [namespace eval ns {cffi::rtti unions}]
+        # Global and namespace unions included but not other namespaces
+        list [in XUnion $unions] [in YUnion $unions] [in XParent $unions] [in XGlobal $unions] [in ZUnion $unions] [in ZUnion [namespace eval ns2 {cffi::rtti unions}]]
+    } -cleanup {
+        namespace delete ns
+        namespace delete ns2
+        ::XGlobal destroy
+    } -result {1 1 0 1 0 1}
+
+    test rtti-unions-1 {rtti unions - simple pattern} -setup {
+        cffi::Union create ::XGlobal {a int b double}
+        namespace eval ns {
+            cffi::Union create X1Union {a int b double}
+            cffi::Union create YUnion {a int b double}
+        }
+        namespace eval ns2 {
+            cffi::Union create X2Union {a int b double}
+        }
+    } -body {
+        set unions [namespace eval ns {cffi::rtti unions X*}]
+        # Global and namespace unions included but not other namespaces
+        list [in X1Union $unions] [in YUnion $unions] [in XGlobal $unions] [in X2Union $unions] [in X2Union [namespace eval ns2 {cffi::rtti unions}]]
+    } -cleanup {
+        namespace delete ns
+        namespace delete ns2
+        ::XGlobal destroy
+    } -result {1 0 1 0 1}
+
+    test rtti-unions-2 {rtti unions - no match pattern} -body {
+        cffi::rtti unions zz*
+    } -result {}
+
+    ## rtti enums
+
+    test rtti-enums-0 {rtti enums} -setup {
+        set e1 [cffi::enum define ::XGlobal {a 1 b 2}]
+        set e2 [cffi::enum define XParent {a 1 b 2}]
+        set e3 [namespace eval ns {cffi::enum define XEnum {a 1 b 2}}]
+        set e4 [namespace eval ns {cffi::enum define YEnum {a 1 b 2}}]
+        set e5 [namespace eval ns2 {cffi::enum define ZEnum {a 1}}]
+    } -body {
+        set enums [namespace eval ns {cffi::rtti enums}]
+        # With no pattern, ALL enums included
+        list [in $e1 $enums] [in $e2 $enums] [in $e3 $enums] [in $e4 $enums] [in $e5 $enums]
+    } -cleanup {
+        reset_enums
+    } -result {1 1 1 1 1}
+
+    test rtti-enums-1 {rtti enums} -setup {
+        set e1 [cffi::enum define ::XGlobal {a 1 b 2}]
+        set e2 [cffi::enum define XParent {a 1 b 2}]
+        set e3 [namespace eval ns {cffi::enum define XEnum {a 1 b 2}}]
+        set e4 [namespace eval ns {cffi::enum define YEnum {a 1 b 2}}]
+        set e5 [namespace eval ns2 {cffi::enum define ZEnum {a 1}}]
+    } -body {
+        set enums [namespace eval ns {cffi::rtti enums *}]
+        # With no pattern, ALL enums included
+        list [in $e1 $enums] [in $e2 $enums] [in $e3 $enums] [in $e4 $enums] [in $e5 $enums]
+    } -cleanup {
+        reset_enums
+    } -result {0 0 1 1 0}
+
+    test rtti-enums-2 {rtti enums with pattern} -setup {
+        set e1 [namespace eval ns {cffi::enum define X1Enum {a 1 b 2}}]
+        set e2 [namespace eval ns {cffi::enum define X2Enum {a 1 b 2}}]
+        set e3 [namespace eval ns {cffi::enum define YEnum {a 1 b 2}}]
+    } -body {
+        set enums [namespace eval ns {cffi::rtti enums X*}]
+        # With no pattern, ALL enums included
+        list [in $e1 $enums] [in $e2 $enums] [in $e3 $enums]
+    } -cleanup {
+        reset_enums
+    } -result {1 1 0}
+
+    ## rtti aliases
+
+    test rtti-aliases-0 {rtti aliases} -setup {
+        set e1 [cffi::alias define ::XGlobal int]
+        set e2 [cffi::alias define XParent int]
+        set e3 [namespace eval ns {cffi::alias define XAlias int}]
+        set e4 [namespace eval ns {cffi::alias define YAlias int}]
+        set e5 [namespace eval ns2 {cffi::alias define ZAlias int}]
+    } -body {
+        set aliases [namespace eval ns {cffi::rtti aliases}]
+        # With no pattern, ALL aliases included
+        list [in $e1 $aliases] [in $e2 $aliases] [in $e3 $aliases] [in $e4 $aliases] [in $e5 $aliases]
+    } -cleanup {
+        reset_aliases
+    } -result {1 1 1 1 1}
+
+    test rtti-aliases-1 {rtti aliases} -setup {
+        set e1 [cffi::alias define ::XGlobal int]
+        set e2 [cffi::alias define XParent int]
+        set e3 [namespace eval ns {cffi::alias define XAlias int}]
+        set e4 [namespace eval ns {cffi::alias define YAlias int}]
+        set e5 [namespace eval ns2 {cffi::alias define ZAlias int}]
+    } -body {
+        set aliases [namespace eval ns {cffi::rtti aliases *}]
+        # With no pattern, ALL aliases included
+        list [in $e1 $aliases] [in $e2 $aliases] [in $e3 $aliases] [in $e4 $aliases] [in $e5 $aliases]
+    } -cleanup {
+        reset_aliases
+    } -result {0 0 1 1 0}
+
+    test rtti-aliases-2 {rtti aliases with pattern} -setup {
+        set e1 [namespace eval ns {cffi::alias define X1Alias int}]
+        set e2 [namespace eval ns {cffi::alias define X2Alias int}]
+        set e3 [namespace eval ns {cffi::alias define YAlias int}]
+    } -body {
+        set aliases [namespace eval ns {cffi::rtti aliases X*}]
+        # With no pattern, ALL aliases included
+        list [in $e1 $aliases] [in $e2 $aliases] [in $e3 $aliases]
+    } -cleanup {
+        reset_aliases
+    } -result {1 1 0}
+
+    ## function doc
+    ## stdcall doc
+    ## struct doc
+    ## struct members doc
+    ## interface doc
+    ## enum doc
+
+    ## TODO - prototypes, callbacks
+
+}
+
+::tcltest::cleanupTests
+namespace delete cffi::test
