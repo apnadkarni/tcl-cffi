@@ -2818,8 +2818,8 @@ CffiStructOrUnionObjCmd(ClientData cdata,
     CffiStruct *structP = NULL;
     CffiStructCmdCtx *structCtxP;
     static const Tclh_SubCommand structCommands[] = {
-        {"new", 1, 4, "STRUCTDEF ?-clear? ?-pack N? ?-document DOCSTRING?", NULL},
-        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear? ?-pack N? ?-document DOCSTRING?", NULL},
+        {"new", 1, 4, "STRUCTDEF ?-clear? ?-document DOCSTRING? ?-pack N?", NULL},
+        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear? ?-document DOCSTRING? ?-pack N?", NULL},
         {NULL}
     };
     static const Tclh_SubCommand unionCommands[] = {
@@ -2831,8 +2831,8 @@ CffiStructOrUnionObjCmd(ClientData cdata,
     Tcl_Obj *defObj;
     int cmdIndex;
     int optIndex, objIndex;
-    enum OPT { CLEAR, PACK, DOCUMENT };
-    static const char *const structOpts[] = {"-clear", "-pack", "-document", NULL};
+    enum OPT { CLEAR, DOCUMENT, PACK };
+    static const char *const structOpts[] = {"-clear", "-document", "-pack", NULL};
     static const char *const unionOpts[] = {"-clear", "-document", NULL};
     int pack;
     int clear;

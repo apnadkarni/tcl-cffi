@@ -6,6 +6,8 @@
 source [file join [file dirname [info script]] common.tcl]
 
 namespace eval ${NS}::test {
+    variable type
+
     # version
     test version-0 {Version check} -body {
         uplevel #0 package require cffi
@@ -43,12 +45,23 @@ namespace eval ${NS}::test {
     }
 
     # help
-    testsubcmd ::cffi::help
+    test help-noargs "cffi::help no arguments" -body {
+        cffi::help
+    } -result "wrong # args: should be \"cffi::help ?TYPE? NAME\"" -returnCodes error
     testnumargs help-function "cffi::help function" "NAME" ""
-    testnumargs help-function "cffi::help struct" "NAME" ""
-    testnumargs help-function "cffi::help union" "NAME" ""
-    testnumargs help-function "cffi::help enum" "NAME" ""
-    testnumargs help-function "cffi::help alias" "NAME" ""
+    testnumargs help-struct "cffi::help struct" "NAME" ""
+    testnumargs help-union "cffi::help union" "NAME" ""
+    testnumargs help-enum "cffi::help enum" "NAME" ""
+    testnumargs help-alias "cffi::help alias" "NAME" ""
+
+    test help-notfound "Element does not exist" -body {
+        cffi::help foo
+    } -result "Program element named \"foo\" not found." -returnCodes error
+    foreach type {alias enum function struct union} {
+        test help-$type-notfound "Element does not exist - $type" -body {
+            cffi::help $type foo-$type
+        } -result "Program element named \"foo-$type\" not found." -returnCodes error
+    }
 
     test help-function-0 {help no args} -setup {
         # Note bogus params, but no matter, not actually calling
@@ -107,25 +120,26 @@ namespace eval ${NS}::test {
         cffi::help int_to_int
     } -result "Syntax: int_to_int -> int"
 
-    set desc {struct ::TestStruct
-  c: schar
-  i: int
-  shrt: short
-  uint: uint
-  ushrt: ushort
-  l: long
-  uc: uchar
-  ul: ulong
-  chars: {chars[11]}
-  ll: longlong
-  unic: {unichars[7]}
-  ull: ulonglong
-  b: {bytes[3]}
-  f: float
-  s: struct.::cffi::test::InnerTestStruct
-  d: double}
+    set desc {Struct: ::TestStruct
+  Fields:
+    c: schar
+    i: int
+    shrt: short
+    uint: uint
+    ushrt: ushort
+    l: long
+    uc: uchar
+    ul: ulong
+    chars: {chars[11]}
+    ll: longlong
+    unic: {unichars[7]}
+    ull: ulonglong
+    b: {bytes[3]}
+    f: float
+    s: struct.::cffi::test::InnerTestStruct
+    d: double}
     if {[onwindows]} {
-        append desc \n {  wchars: {winchars[13]}}
+        append desc \n {    wchars: {winchars[13]}}
     }
 
     test help-struct-0 {help struct} -body {
@@ -138,11 +152,11 @@ namespace eval ${NS}::test {
 
     test help-union-0 {help union} -body {
         cffi::help union ::TestUnion
-    } -result "union ::TestUnion\x0A  i: int\x0A  dbl: double\x0A  uc: uchar"
+    } -result "Union: ::TestUnion\n  Fields:\n    i: int\n    dbl: double\n    uc: uchar"
 
     test help-union-1 {help union} -body {
         cffi::help ::TestUnion
-    } -result "union ::TestUnion\x0A  i: int\x0A  dbl: double\x0A  uc: uchar"
+    } -result "Union: ::TestUnion\n  Fields:\n    i: int\n    dbl: double\n    uc: uchar"
 
     test help-enum-0 {help enum} -setup {
         cffi::enum define E {a 1 bb 2}
@@ -150,7 +164,7 @@ namespace eval ${NS}::test {
         cffi::enum delete E
     } -body {
         cffi::help enum E
-    } -result {^Enum: E\nMembers:\n\s*a = 1\n\s*bb = 2\n$} -match regexp
+    } -result {^Enum: E\nMembers:\n\s*a = 1\n\s*bb = 2$} -match regexp
 
     test help-enum-1 {help enum} -setup {
         cffi::enum define E {a 1 bb 2}
@@ -158,7 +172,7 @@ namespace eval ${NS}::test {
         cffi::enum delete E
     } -body {
         cffi::help E
-    } -result {^Enum: E\nMembers:\n\s*a = 1\n\s*bb = 2\n$} -match regexp
+    } -result {^Enum: E\nMembers:\n\s*a = 1\n\s*bb = 2$} -match regexp
 
     test help-alias-0 {help alias} -setup {
         cffi::alias define A {int bitmask}
@@ -166,7 +180,7 @@ namespace eval ${NS}::test {
         cffi::alias delete A
     } -body {
         cffi::help alias A
-    } -result "Alias: A\n  Body: int bitmask\n"
+    } -result "Alias: A\n  Body: int bitmask"
 
     test help-alias-1 {help alias} -setup {
         cffi::alias define A {int bitmask}
@@ -174,7 +188,7 @@ namespace eval ${NS}::test {
         cffi::alias delete A
     } -body {
         cffi::help A
-    } -result "Alias: A\n  Body: int bitmask\n"
+    } -result "Alias: A\n  Body: int bitmask"
 
     test help-interface-0 {help interface} -setup {
         Interface create BaseInterface
@@ -185,7 +199,7 @@ namespace eval ${NS}::test {
         }
     } -body {
         cffi::help interface BaseInterface
-    } -result "Interface: ::cffi::test::BaseInterface\n  Methods:\n    delete get set (::cffi::test::BaseInterface)\n"
+    } -result "Interface: ::cffi::test::BaseInterface\n  Methods:\n    delete get set (::cffi::test::BaseInterface)"
 
     test help-interface-1 {help interface} -setup {
         Interface create BaseInterface
@@ -200,7 +214,7 @@ namespace eval ${NS}::test {
         }
     } -body {
         cffi::help interface DerivedInterface
-    } -result "Interface: ::cffi::test::DerivedInterface\n  Superclass: ::cffi::test::BaseInterface\n  Methods:\n    setmax (::cffi::test::DerivedInterface)\n    delete get set (::cffi::test::BaseInterface)\n"
+    } -result "Interface: ::cffi::test::DerivedInterface\n  Superclass: ::cffi::test::BaseInterface\n  Methods:\n    setmax (::cffi::test::DerivedInterface)\n    delete get set (::cffi::test::BaseInterface)"
 
     #######
 

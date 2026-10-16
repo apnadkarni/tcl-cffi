@@ -23,7 +23,7 @@ proc cffi::help {args} {
         if {$name in $types} {
             error "wrong # args: should be \"cffi::help $name NAME\""
         } else {
-            error "wrong # args: should \"cffi::help ?TYPE? NAME\""
+            error "wrong # args: should be \"cffi::help ?TYPE? NAME\""
         }
     }
     set result {}
@@ -106,7 +106,7 @@ proc cffi::help {args} {
                     lappend text "[string totitle $type]: $name"
                     lappend text "  Fields:"
                     foreach field [dict get $info Fields] {
-                        lappend text [string cat "    " [dict get $field Name] " : " [dict get $field Type]]
+                        lappend text [string cat "    " [dict get $field Name] ": " [dict get $field Type]]
                     }
                     if {[dict exists $info Doc]} {
                         lappend text "[dict get $info Doc]"
