@@ -124,7 +124,7 @@ CffiWrapperManyFunctionsCmd(Tcl_Interp *ip,
 
     CFFI_ASSERT(objc >= 3);
 
-    for (i = 4; i < objc; ++i) {
+    for (i = 3; i < objc; ++i) {
         CHECK(Tcl_GetIndexFromObj(ip, objv[i], opts, "option", 0, &cmdIndex));
         if (cmdIndex == IGNOREMISSING)
             ignoreMissing = 1;
