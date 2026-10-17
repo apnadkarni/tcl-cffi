@@ -53,11 +53,13 @@ namespace eval ${NS}::enum {
     proc list {pattern} {
         # Lists enumerations.
         #  pattern - pattern to match.
-        # The command returns the names of all enumerations whose name matches
-        # the specified pattern. The conditions for matching the pattern are:
+        # The command returns the names of all aliases resolved
+        # in the caller's namespace that match the specified pattern.
         #  - the tail of the pattern must match the tail of the enumeration name
         #    using Tcl's glob pattern matching rules.
         #  - the scope component of the enumeration name must match exactly.
+        #
+        # Returns list of enum names.
     }
     proc mask {enumname membernames} {
         # Returns an integer mask formed by bitwise OR-ing the passed

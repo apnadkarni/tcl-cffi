@@ -37,15 +37,15 @@ namespace eval ${NS}::alias {
         # The alias must be one defined in the current [scope][Scopes].
     }
     proc list {{pattern *}} {
-        # Returns a list of aliases that match the specified pattern.
-        #  pattern - pattern to match against aliases
-        # The command returns the alias names that match the specified pattern.
-        # The conditions for matching the pattern are:
+        # Lists aliases.
+        #  pattern - pattern to match.
+        # The command returns the names of all aliases resolved
+        # in the caller's namespace that match the specified pattern.
         #  - the tail of the pattern must match the tail of the alias name
         #    using Tcl's glob pattern matching rules.
-        #  - the scope component of the alias name must match the pattern's
-        #    scope exactly. If the pattern does not include a scope, the
-        #    caller's scope is assumed.
+        #  - the scope component of the alias name must match exactly.
+        #
+        # Returns list of alias names.
     }
     proc delete {pattern} {
         # Deletes aliases matching a pattern.

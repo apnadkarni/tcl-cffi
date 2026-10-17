@@ -38,7 +38,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int -> int"
+    } -result "Syntax: ::cffi::test::int_to_int -> int"
 
     test help-function-1 {help with args} -setup {
         # Note bogus params, but no matter, not actually calling
@@ -47,7 +47,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
+    } -result "Syntax: ::cffi::test::int_to_int i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
 
     test help-function-2 {help function alias} -setup {
         # Note bogus params, but no matter, not actually calling
@@ -56,7 +56,7 @@ namespace eval ${NS}::test {
         rename xx {}
     } -body {
         cffi::help function xx
-    } -result "Syntax: xx i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
+    } -result "Syntax: ::cffi::test::xx i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
     test help-function-3 {help void return} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int void {}
@@ -64,7 +64,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int"
+    } -result "Syntax: ::cffi::test::int_to_int"
     test help-function-4 {help discard return} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int {int discard} {}
@@ -72,7 +72,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int"
+    } -result "Syntax: ::cffi::test::int_to_int"
     test help-function-5 {help with retval} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int void {i {int retval} s {struct.::TestStruct byref} d {double out}}
@@ -80,7 +80,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help function int_to_int
-    } -result "Syntax: int_to_int s d -> int\n  s: struct.::TestStruct in byref\n  d: double out byref"
+    } -result "Syntax: ::cffi::test::int_to_int s d -> int\n  s: struct.::TestStruct in byref\n  d: double out byref"
     test help-function-6 {help implicit} -setup {
         # Note bogus params, but no matter, not actually calling
         testDll function int_to_int int {}
@@ -88,7 +88,7 @@ namespace eval ${NS}::test {
         rename int_to_int {}
     } -body {
         cffi::help int_to_int
-    } -result "Syntax: int_to_int -> int"
+    } -result "Syntax: ::cffi::test::int_to_int -> int"
 
     ## help struct
     set desc {Struct: ::TestStruct
@@ -414,12 +414,120 @@ namespace eval ${NS}::test {
         reset_aliases
     } -result {1 1 0}
 
-    ## function doc
-    ## stdcall doc
-    ## struct doc
+    ## rtti function
+
+    test rtti-function-0 {rtti function} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function {int_to_int uu} int {d double} {Documentation string}
+    } -cleanup {
+        rename uu {}
+    } -body {
+        set rtti [cffi::rtti function uu]
+        list \
+            [dict get $rtti Type] \
+            [dict get $rtti Name] \
+            [dict get $rtti Params] \
+            [dict get $rtti Return] \
+            [dict get $rtti Doc]
+    } -result {function ::cffi::test::uu {{Name d Type {double in}}} int {Documentation string}}
+
+    test rtti-function-1 {rtti function - no params, no doc, no return} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll function uint_to_uint void {}
+    } -cleanup {
+        rename uint_to_uint {}
+    } -body {
+        set rtti [cffi::rtti function uint_to_uint]
+        list \
+            [dict get $rtti Type] \
+            [dict get $rtti Name] \
+            [dict get $rtti Params] \
+            [dict exists $rtti Return] \
+            [dict exists $rtti Doc]
+    } -result {function ::cffi::test::uint_to_uint {} 0 0}
+
+    test rtti-function-2 {rtti function - stdcall} -setup {
+        # Note bogus params, but no matter, not actually calling
+        testDll stdcall stdcalltest int {d double d2 double} {Documentation string}
+    } -cleanup {
+        rename stdcalltest {}
+    } -body {
+        set rtti [cffi::rtti function stdcalltest]
+        list \
+            [dict get $rtti Type] \
+            [dict get $rtti Name] \
+            [dict get $rtti Params] \
+            [dict get $rtti Return] \
+            [dict get $rtti Doc]
+    } -result {function ::cffi::test::stdcalltest {{Name d Type {double in}} {Name d2 Type {double in}}} int {Documentation string}}
+
+    test rtti-function-3 {Multiple functions with doc} -setup {
+        testDll functions {
+            onearg int {a int} {The onearg function}
+            {twoargs twoargs-alias} int {a int b int} {The twoarg function}
+        } -documented
+    } -body {
+        set rtti [cffi::rtti function onearg]
+        set rtti2 [cffi::rtti function onearg]
+        list \
+            [dict get $rtti Type] \
+            [dict get $rtti Name] \
+            [dict get $rtti Params] \
+            [dict get $rtti Return] \
+            [dict get $rtti Doc] \
+            [dict get $rtti2 Type] \
+            [dict get $rtti2 Name] \
+            [dict get $rtti2 Params] \
+            [dict get $rtti2 Return] \
+            [dict get $rtti2 Doc] \
+    } -cleanup {
+        rename onearg {}
+        rename twoargs-alias {}
+    } -result {function ::cffi::test::onearg {{Name a Type {int in}}} int {The onearg function} function ::cffi::test::onearg {{Name a Type {int in}}} int {The onearg function}}
+    test rtti-function-4 {Multiple stdcalls with doc} -setup {
+        # NOT REALLY STDCALLS! Only defined, not called so no matter
+        testDll stdcalls {
+            onearg int {a int} {The onearg function}
+            {twoargs twoargs-alias} int {a int b int} {The twoarg function}
+        } -documented
+    } -body {
+        set rtti [cffi::rtti function onearg]
+        set rtti2 [cffi::rtti function onearg]
+        list \
+            [dict get $rtti Type] \
+            [dict get $rtti Name] \
+            [dict get $rtti Params] \
+            [dict get $rtti Return] \
+            [dict get $rtti Doc] \
+            [dict get $rtti2 Type] \
+            [dict get $rtti2 Name] \
+            [dict get $rtti2 Params] \
+            [dict get $rtti2 Return] \
+            [dict get $rtti2 Doc] \
+    } -cleanup {
+        rename onearg {}
+        rename twoargs-alias {}
+    } -result {function ::cffi::test::onearg {{Name a Type {int in}}} int {The onearg function} function ::cffi::test::onearg {{Name a Type {int in}}} int {The onearg function}}
+
+    ## rtti struct
+    test rtti-struct-0 {rtti struct} -setup {
+        cffi::Struct create S "c schar i int"
+    } -body {
+        cffi::rtti struct S
+    } -cleanup {
+        S destroy
+    } -result {Name ::cffi::test::S Type struct Fields {{Name c Type schar} {Name i Type int}}}
+
+    test rtti-struct-1 {rtti struct with docstring} -setup {
+        cffi::Struct create S "c schar i int" -document {S documentation}
+    } -body {
+        cffi::rtti struct S
+    } -cleanup {
+        S destroy
+    } -result {Name ::cffi::test::S Type struct Fields {{Name c Type schar} {Name i Type int}} Doc {S documentation}}
+
     ## struct members doc
-    ## interface doc
-    ## enum doc
+    ## interface doc, interface members doc
 
     ## TODO - prototypes, callbacks
 

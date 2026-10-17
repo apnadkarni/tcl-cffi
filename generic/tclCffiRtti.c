@@ -76,6 +76,7 @@ CffiRttiFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
     int i;
     const char *typeP;
     Tcl_Obj *docObj = NULL;
+    Tcl_Obj *fqnObj  = NULL;
 
     if (!Tcl_GetCommandInfo(ipCtxP->interp, Tcl_GetString(fnNameObj), &cmdInfo)
         || !cmdInfo.isNativeObjectProc
@@ -89,6 +90,7 @@ CffiRttiFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
         protoP = fnP->protoP;
         typeP  = "function";
         docObj = fnP->docObj;
+        fqnObj = fnP->cmdNameObj;
     } else {
         CffiMethod *methodP = (CffiMethod *)cmdInfo.objClientData;
         if (methodP == NULL || methodP->ifcP == NULL
@@ -100,6 +102,7 @@ CffiRttiFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
         }
         protoP = methodP->ifcP->vtable[methodP->vtableSlot].protoP;
         docObj = methodP->ifcP->vtable[methodP->vtableSlot].docObj;
+        fqnObj = methodP->cmdNameObj;
         typeP  = "method";
     }
 
@@ -118,7 +121,7 @@ CffiRttiFunctionCmd(CffiInterpCtx *ipCtxP, Tcl_Obj *fnNameObj)
     resultObjs[0] = typeKeyObj;
     resultObjs[1] = Tcl_NewStringObj(typeP, -1);
     resultObjs[2] = nameKeyObj;
-    resultObjs[3] = fnNameObj;
+    resultObjs[3] = fqnObj ? fqnObj : fnNameObj;
 
     Tcl_Obj *paramsObj = Tcl_NewListObj(0, NULL);
 
@@ -198,7 +201,7 @@ CffiRttiStructOrUnionCmd(CffiInterpCtx *ipCtxP,
     Tcl_Obj *resultObjs[8];
 
     resultObjs[0] = nameKeyObj;
-    resultObjs[1] = nameObj;
+    resultObjs[1] = structP->name ? structP->name : nameObj;
     resultObjs[2] = typeKeyObj;
     resultObjs[3] = Tcl_NewStringObj(
         baseType == CFFI_K_TYPE_STRUCT ? "struct" : "union", -1);
@@ -361,6 +364,7 @@ CffiRttiObjCmd(ClientData cdata,
         FUNCTIONS,
         INTERFACE,
         INTERFACES,
+        PROTOTYPES,
         STRUCT,
         STRUCTS,
         UNION,
@@ -376,12 +380,12 @@ CffiRttiObjCmd(ClientData cdata,
         {"functions", 0, 1, "?PATTERN?", NULL},
         {"interface", 0, 1, "NAME", CffiRttiInterfaceCmd},
         {"interfaces", 0, 1, "?PATTERN?", NULL},
+        {"prototypes", 0, 1, "?PATTERN?", NULL},
         {"struct", 0, 1, "NAME", CffiRttiStructCmd},
         {"structs", 0, 1, "?PATTERN?", NULL},
         {"union", 0, 1, "NAME", CffiRttiUnionCmd},
         {"unions", 0, 1, "?PATTERN?", NULL},
-	    {NULL}
-    };
+        {NULL}};
     Tcl_Obj *objP = NULL;
     CffiResult ret;
 
@@ -390,9 +394,13 @@ CffiRttiObjCmd(ClientData cdata,
         switch (cmdIndex) {
         case ALIASES:
         case ENUMS:
+        case PROTOTYPES:
             ret = CffiNameListNames(ip,
-                                    cmdIndex == ALIASES ? &ipCtxP->scope.aliases
-                                                        : &ipCtxP->scope.enums,
+                                    cmdIndex == ALIASES
+                                        ? &ipCtxP->scope.aliases
+                                        : (cmdIndex == ENUMS
+                                               ? &ipCtxP->scope.enums
+                                               : &ipCtxP->scope.prototypes),
                                     objc > 2 ? Tcl_GetString(objv[2]) : NULL,
                                     &objP);
             if (ret == TCL_OK)

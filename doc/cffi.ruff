@@ -182,6 +182,13 @@ namespace eval ${NS}::rtti {
         # glob pattern.
 
     }
+    proc prototypes {{PATTERN *}} {
+        # Returns a list of [prototype] names matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match.
+        # If `PATTERN` is not specified, all prototypes are returned. If pattern
+        # is specified it is qualified with the caller's namespace if not
+        # fully qualified. Only the tail of the pattern is treated as a
+        # glob pattern.
 
     namespace export *
     namespace ensemble create
