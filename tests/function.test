@@ -220,7 +220,7 @@ namespace eval ${NS}::test {
         testDll functions {
             onearg int {a int} {onearg docs}
             {twoargs twoargs-alias} int {a int b int} {twoargs docs}
-        }
+        } -documented
         list [onearg 2] [twoargs-alias 1 2] [catch {twoargs 1 2}] [catch {uplevel #0 onearg 0}]
     } -result {-2 3 1 1}
 
@@ -327,14 +327,14 @@ namespace eval ${NS}::test {
                         $fn double {a double b double} {doc string} \
                         [list $fn stdcall-alias] double {a double b double} {doc string} \
                        ]
-        if {[catch {testDll stdcalls $fnlist}] && $fn eq "_stdcalltest@16"} {
+        if {[catch {testDll stdcalls $fnlist -documented}] && $fn eq "_stdcalltest@16"} {
             # Mingw does not prefix _
             set fn stdcalltest@16
             set fnlist [list \
                             $fn double {a double b double} {doc string}\
                             [list $fn stdcall-alias] double {a double b double} {doc string} \
                            ]
-            testDll stdcalls $fnlist
+            testDll stdcalls $fnlist -documented
         }
 
         list [$fn 1.0 2] [stdcall-alias 1 4.0] [catch [list uplevel #0 $fn 1 2]]

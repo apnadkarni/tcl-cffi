@@ -13,13 +13,7 @@ A FFI provides the ability for Tcl to invoke, with some limitations,
 arbitrary functions from any dynamically linked shared library without
 having to write C code\&.
 .PP
-Calling a C function from a shared library (or DLL, using the term
-.PP
-.RS 4n
-.nf
-                                        interchangeably) using `cffi` involves
-.fi
-.RE
+Calling a C function from a shared library using cffi involves
 .TP
 \(bu
 Loading the library into the process by instantiating a \fI::cffi::Wrapper\fP object\&.

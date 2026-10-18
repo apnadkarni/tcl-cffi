@@ -9,8 +9,7 @@ set start_page {
     arbitrary functions from any dynamically linked shared library without
     having to write C code.
 
-    Calling a C function from a shared library (or DLL, using the term
-                                                interchangeably) using `cffi` involves
+    Calling a C function from a shared library using `cffi` involves
 
     - Loading the library into the process by instantiating a [::cffi::Wrapper]
     object.

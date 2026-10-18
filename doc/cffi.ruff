@@ -189,6 +189,7 @@ namespace eval ${NS}::rtti {
         # is specified it is qualified with the caller's namespace if not
         # fully qualified. Only the tail of the pattern is treated as a
         # glob pattern.
+    }
 
     namespace export *
     namespace ensemble create

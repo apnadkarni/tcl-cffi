@@ -174,6 +174,8 @@ namespace eval ${NS}::test {
         }
     } -body {
         cffi::help interface BaseInterface
+    } -cleanup {
+        rename BaseInterface {}
     } -result "Interface: ::cffi::test::BaseInterface\n  Methods:\n    delete get set (::cffi::test::BaseInterface)"
 
     test help-interface-1 {help interface} -setup {
@@ -189,6 +191,9 @@ namespace eval ${NS}::test {
         }
     } -body {
         cffi::help interface DerivedInterface
+    } -cleanup {
+        rename DerivedInterface {}
+        rename BaseInterface {}
     } -result "Interface: ::cffi::test::DerivedInterface\n  Superclass: ::cffi::test::BaseInterface\n  Methods:\n    setmax (::cffi::test::DerivedInterface)\n    delete get set (::cffi::test::BaseInterface)"
 
     # rtti
@@ -508,6 +513,31 @@ namespace eval ${NS}::test {
         rename onearg {}
         rename twoargs-alias {}
     } -result {function ::cffi::test::onearg {{Name a Type {int in}}} int {The onearg function} function ::cffi::test::onearg {{Name a Type {int in}}} int {The onearg function}}
+    test rtti-function-5 {rtti function for method} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+    } -body {
+        cffi::rtti function BaseInterface.set
+    } -cleanup {
+        rename BaseInterface ""
+    } -result {Type method Name ::cffi::test::BaseInterface.set Params {{Name pSelf Type {pointer.::cffi::test::BaseInterface in}} {Name a Type {int in}}} Return int}
+
+    test rtti-function-6 {rtti function for documented method} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {} {docs for get}
+            set int {a int} {docs for set}
+            delete void {} {docs for delete}
+        } -documented
+    } -body {
+        cffi::rtti function BaseInterface.get
+    } -cleanup {
+        rename BaseInterface ""
+    } -result {Type method Name ::cffi::test::BaseInterface.get Params {{Name pSelf Type {pointer.::cffi::test::BaseInterface in}}} Return int Doc {docs for get}}
 
     ## rtti struct
     test rtti-struct-0 {rtti struct} -setup {
@@ -526,10 +556,55 @@ namespace eval ${NS}::test {
         S destroy
     } -result {Name ::cffi::test::S Type struct Fields {{Name c Type schar} {Name i Type int}} Doc {S documentation}}
 
-    ## struct members doc
-    ## interface doc, interface members doc
+    ## rtti alias
+    test rtti-alias-0 {rtti alias} -setup {
+        cffi::alias define Integer int
+    } -body {
+        cffi::rtti alias Integer
+    } -cleanup {
+        cffi::alias delete Integer
+    } -result {Name Integer Type alias Alias int}
 
-    ## TODO - prototypes, callbacks
+    ## rtti enum
+    test rtti-enum-0 {rtti enum} -setup {
+        cffi::enum define Enumeration {a 1 b 2}
+    } -body {
+        cffi::rtti enum Enumeration
+    } -cleanup {
+        cffi::enum delete Enumeration
+    } -result {Name Enumeration Type enum Members {a 1 b 2}}
+
+    ## interface doc, interface members doc
+    test rtti-interface-0 {rtti interface} -setup {
+        Interface create BaseInterface
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+        Interface create DerivedInterface -inherit BaseInterface
+        DerivedInterface methods {
+            setmax int {a int b int}
+        }
+    } -body {
+        cffi::rtti interface DerivedInterface
+    } -cleanup {
+        rename DerivedInterface {}
+        rename BaseInterface {}
+    } -result {Type interface Name ::cffi::test::DerivedInterface Methods {{::cffi::test::DerivedInterface {{Name setmax}}} {::cffi::test::BaseInterface {{Name get} {Name set} {Name delete}}}} Super ::cffi::test::BaseInterface}
+
+    test rtti-interface-1 {rtti interface with documentation} -setup {
+        Interface create BaseInterface -document {This is Base}
+        BaseInterface methods {
+            get int {}
+            set int {a int}
+            delete void {}
+        }
+    } -body {
+        cffi::rtti interface BaseInterface
+    } -cleanup {
+        rename BaseInterface {}
+    } -result {Type interface Name ::cffi::test::BaseInterface Methods {{::cffi::test::BaseInterface {{Name get} {Name set} {Name delete}}}} Doc {This is Base}}
 
 }
 

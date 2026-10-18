@@ -31,10 +31,7 @@
 <h2 class='ruff'><a id='Overview'></a>Overview<span class='ruff-uplink'><a href='#top'>Top</a>, <a href='cffi.html'>Main</a>, <a href='cffi-docindex.html#'>Index</a></span></h2>
 <div style='clear:both;'></div>
 <p class='ruff'>A FFI provides the ability for Tcl to invoke, with some limitations, arbitrary functions from any dynamically linked shared library without having to write C code.</p>
-<p class='ruff'>Calling a C function from a shared library (or DLL, using the term</p>
-<pre class='ruff'>
-                                        interchangeably) using `cffi` involves
-</pre>
+<p class='ruff'>Calling a C function from a shared library using <code>cffi</code> involves</p>
 <ul class='ruff'>
 <li>Loading the library into the process by instantiating a <a href="cffi-cffi.html#::cffi::Wrapper" title="::cffi::Wrapper" class='ruff_cmd'>::cffi::Wrapper</a> object.</li>
 <li>Defining commands that wrap the C functions of interest through method calls on the <a href="cffi-cffi.html#::cffi::Wrapper" title="Wrapper" class='ruff_cmd'>Wrapper</a> object.</li>
