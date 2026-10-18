@@ -1,10 +1,10 @@
 '\"
 '\" '\" Copyright (c) Ashok P\&. Nadkarni
 '\"
-.TH "Cookbook" 3tcl 2\&.0\&.3 "cffi" "Tcl CFFI package"
+.TH "Cookbook" 3tcl 2\&.1\&.0 "cffi" "Tcl CFFI package"
 .SH NAME
 Cookbook - Commands in namespace Cookbook
-.SH COOKBOOK
+.SH ::COOKBOOK
 .PP
 While using CFFI to wrap a few ad-hoc functions is fairly
 straightforward, wrapping a large API into a complete package can be
@@ -1243,7 +1243,7 @@ The array size in the type declaration may be an integer constant or specified a
 The annotations permitted on an array type declaration are those permitted for the base type\&. For example, integer array declarations may have the enum annotation\&.
 .TP
 \(bu
-At the script level, arrays are represented as lists except for the special cases of as \fI`chars`\fP or \fI`bytes`\fP where they are character or binary strings\&.
+At the script level, arrays are represented as lists except for the special cases of as \fIchars\fP or \fIbytes\fP where they are character or binary strings\&.
 .SH "DEFINING STRUCTS"
 .PP
 Native C struct values may be dealt with at the script level either
@@ -1464,7 +1464,7 @@ The array size N must be an positive integer constant or the name of another fie
 The annotations permitted on an array type declaration are those permitted for the base type\&. For example, integer array declarations may have the enum annotation\&.
 .TP
 \(bu
-At the script level, C arrays are represented as lists except for the special cases of as \fI`chars`\fP or \fI`bytes`\fP where they are character or byte arrays\&.
+At the script level, C arrays are represented as lists except for the special cases of as \fIchars\fP or \fIbytes\fP where they are character or byte arrays\&.
 .SH "DEFINING UNIONS"
 .PP
 Definition of unions follows the rules for defined for structs with

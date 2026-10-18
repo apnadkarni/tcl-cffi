@@ -10,7 +10,7 @@ namespace eval cffi::test {
 
     test struct-error-0 {Missing argument} -body {
         list [catch {Struct new} result] $result $::errorCode
-    } -result {1 {wrong # args: should be "Struct new STRUCTDEF ?-clear? ?-pack N?"} {TCL WRONGARGS}}
+    } -result {1 {wrong # args: should be "Struct new STRUCTDEF ?-clear? ?-document DOCSTRING? ?-pack N?"} {TCL WRONGARGS}}
 
     test struct-error-1 {Empty struct definition} -body {
         list [catch {Struct new {}} result] $result $::errorCode
@@ -26,7 +26,7 @@ namespace eval cffi::test {
 
     test struct-error-4 {Bad option argument} -body {
         list [catch {Struct new {s int} -foo} result] $result
-    } -result {1 {bad option "-foo": must be -clear or -pack}}
+    } -result {1 {bad option "-foo": must be -clear, -document, or -pack}}
 
     test struct-error-8 {Union mistaken for a struct} -setup {
         cffi::Union create ::U {n int}

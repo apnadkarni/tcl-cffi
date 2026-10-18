@@ -74,19 +74,6 @@ namespace eval ${NS}::help {
         # for a CFFI wrapped function.
         #   NAME - name of a wrapped function
     }
-    proc functions {{PATTERN *}} {
-        # Returns a list of CFFI-wrapped functions matching the pattern `PATTERN`.
-        #   PATTERN - glob pattern to match
-        #
-        # Note that like Tcl's `info commands` the pattern is interpreted relative
-        # to the current namespace. So for example, to obtain the list of
-        # commands within a namespace, the namespace must also be included
-        # in the pattern. For example,
-        #
-        # ````
-        # cffi::help functions ::libzip::*
-        # ````
-    }
     proc struct {NAME} {
         # Returns a string describing field types in a [Struct].
         #   NAME - name of a [Struct]
@@ -102,6 +89,106 @@ namespace eval ${NS}::help {
     proc enum {NAME} {
         # Returns a string describing an [enum] definition.
         #   NAME - name of a [enum]
+    }
+
+    namespace export *
+    namespace ensemble create
+}
+
+namespace eval ${NS}::rtti {
+    proc function {NAME} {
+        # Returns a dictionary with the metadata of a function definition.
+        #   NAME - name of a wrapped function. This resolved in the context
+        #          of the caller.
+        #
+        # The returned dictionary has the following keys.
+        # Doc - documentation string for the function if any (optional).
+        # Name - fully qualified name of the function
+        # Params - list of parameter definitions. Each element is a dictionary with
+        #   keys `Name` and `Type` holding the parameter name and its type.
+        # Return - The return type of the function (optional)
+        # Type - the string "function"
+    }
+    proc functions {{PATTERN *}} {
+        # Returns a list of CFFI-wrapped functions matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match. The pattern is resolved in the same
+        #             manner as Tcl's `info commands`.
+    }
+    proc struct {NAME} {
+        # Returns a dictionary with the metadata of a [Struct] definition.
+        #   NAME - name of the [Struct]. This resolved in the context
+        #          of the caller.
+        # The returned dictionary has the following keys.
+        # Doc - documentation string for the structure if any (optional).
+        # Name - fully qualified name of the [Struct]
+        # Fields - list of fields definitions. Each element is a dictionary with
+        #   keys `Name` and `Type` holding the field name and its type.
+        # Type - the string "struct"
+    }
+    proc structs {{PATTERN *}} {
+        # Returns a list of [Struct] names matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match. The pattern is resolved in the same
+        #             manner as Tcl's `info commands`.
+    }
+    proc union {NAME} {
+        # Returns a dictionary with the metadata of a [Union] definition.
+        #   NAME - name of the [Union]. This resolved in the context
+        #          of the caller.
+        # The returned dictionary has the following keys.
+        # Doc - documentation string for the structure if any (optional).
+        # Name - fully qualified name of the [Union]
+        # Fields - list of fields definitions. Each element is a dictionary with
+        #   keys `Name` and `Type` holding the field name and its type.
+        # Type - the string "struct"
+    }
+    proc unions {{PATTERN *}} {
+        # Returns a list of [Union] names matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match. The pattern is resolved in the same
+        #             manner as Tcl's `info commands`.
+    }
+    proc alias {NAME} {
+        # Returns a dictionary with the metadata of an [alias] definition.
+        #   NAME - name of the [alias]. If not fully qualified, this is
+        #     qualified relative to the caller's namespace.
+        # The returned dictionary has the following keys.
+        # Alias - the alias definition
+        # Name - fully qualified name of the [alias]
+        # Type - the string "alias"
+    }
+    proc aliases {{PATTERN *}} {
+        # Returns a list of [alias] names matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match.
+        # If `PATTERN` is not specified, all aliases are returned. If pattern
+        # is specified it is qualified with the caller's namespace if not
+        # fully qualified. Only the tail of the pattern is treated as a
+        # glob pattern.
+
+    }
+    proc enum {NAME} {
+        # Returns a dictionary with the metadata of an [enum] definition.
+        #   NAME - name of the [enum]. If not fully qualified, this is
+        #     qualified relative to the caller's namespace.
+        # The returned dictionary has the following keys.
+        # Members - dictionary of enum members and their values
+        # Name - fully qualified name of the [enum]
+        # Type - the string "enum"
+    }
+    proc enums {{PATTERN *}} {
+        # Returns a list of [enum] names matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match.
+        # If `PATTERN` is not specified, all enums are returned. If pattern
+        # is specified it is qualified with the caller's namespace if not
+        # fully qualified. Only the tail of the pattern is treated as a
+        # glob pattern.
+
+    }
+    proc prototypes {{PATTERN *}} {
+        # Returns a list of [prototype] names matching the pattern `PATTERN`.
+        #   PATTERN - glob pattern to match.
+        # If `PATTERN` is not specified, all prototypes are returned. If pattern
+        # is specified it is qualified with the caller's namespace if not
+        # fully qualified. Only the tail of the pattern is treated as a
+        # glob pattern.
     }
 
     namespace export *

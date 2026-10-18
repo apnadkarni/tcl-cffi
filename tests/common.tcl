@@ -15,6 +15,7 @@ package require $NS
 
 namespace eval cffi::test {
     namespace import ::tcltest::test ::tcltest::testConstraint
+    namespace import ::tcl::mathop::in
 
     if {$::tcl_platform(platform) eq "windows"} {
         proc onwindows {} {return 1}

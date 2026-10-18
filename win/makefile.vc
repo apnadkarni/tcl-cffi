@@ -71,13 +71,14 @@ PRJ_OBJS = \
 	$(TMP_DIR)\tclCffiCallback.obj \
 	$(TMP_DIR)\tclCffiEnum.obj \
 	$(TMP_DIR)\tclCffiFunction.obj \
-	$(TMP_DIR)\tclCffiHelp.obj \
 	$(TMP_DIR)\tclCffiInterface.obj \
 	$(TMP_DIR)\tclCffiLoad.obj \
 	$(TMP_DIR)\tclCffiMemory.obj \
 	$(TMP_DIR)\tclCffiNames.obj \
 	$(TMP_DIR)\tclCffiPointer.obj \
 	$(TMP_DIR)\tclCffiPrototype.obj \
+	$(TMP_DIR)\tclCffiRtti.obj \
+	$(TMP_DIR)\tclCffiScripts.obj \
 	$(TMP_DIR)\tclCffiStruct.obj \
 	$(TMP_DIR)\tclCffiTclh.obj \
 	$(TMP_DIR)\tclCffiTypes.obj \
@@ -100,7 +101,7 @@ HEADERS = \
 	$(TCLHDIR)\tclhPointer.h \
 	$(TCLHDIR)\tclhObj.h
 
-PRJ_INCLUDES = -I $(TCLHDIR) -I $(EXTDIR)\include
+PRJ_INCLUDES = -I $(TCLHDIR) -I $(EXTDIR)\include -I $(TMP_DIR)
 
 # -DTCL_NO_DEPRECATED removed temporarily to allow for compilation
 # with Tcl 9.1 which hides Tcl_Command.objProc field.
@@ -144,6 +145,12 @@ install: $(PRJLIB)
 
 
 $(PRJ_OBJS): $(HEADERS) $(ROOT)\configure.ac
+
+$(TMP_DIR)\tclCffiScripts.obj: $(TMP_DIR)\tclCffiScripts.c
+	$(CCPKGCMD) $(TMP_DIR)\tclCffiScripts.c
+
+$(TMP_DIR)\tclCffiScripts.c: $(ROOT)\tcl\cffi.tcl
+	$(TCLSH_NATIVE) $(ROOT)\tools\file2c.tcl -f -h $(TMP_DIR)\tclCffiScripts.h -o $(TMP_DIR)\tclCffiScripts.c $(ROOT)\tcl\cffi.tcl
 
 # Build test DLL
 $(PROJECT): testdll

@@ -44,6 +44,8 @@ CffiStructUnref(CffiStruct *structP)
 #endif
         if (structP->name)
             Tcl_DecrRefCount(structP->name);
+        if (structP->docObj)
+            Tcl_DecrRefCount(structP->docObj);
         for (i = 0; i < structP->nFields; ++i) {
             if (structP->fields[i].nameObj)
                 Tcl_DecrRefCount(structP->fields[i].nameObj);
@@ -708,9 +710,10 @@ static CffiResult
 CffiStructParse(CffiInterpCtx *ipCtxP,
                 Tcl_Obj *nameObj,
                 Tcl_Obj *structObj,
+                Tcl_Obj *docObj,
                 CffiBaseType baseType,
                 int pack,
-                CffiStruct * *structPP)
+                CffiStruct **structPP)
 {
     Tcl_Obj **objs;
     Tcl_Size i, j, nobjs, nfields;
@@ -871,6 +874,9 @@ CffiStructParse(CffiInterpCtx *ipCtxP,
 
     Tcl_IncrRefCount(nameObj);
     structP->name      = nameObj;
+    if (docObj)
+        Tcl_IncrRefCount(docObj);
+    structP->docObj = docObj;
 #ifdef CFFI_USE_LIBFFI
     structP->libffiTypes = NULL;
 #endif
@@ -2543,7 +2549,7 @@ CffiStructDestroyCmd(Tcl_Interp *ip,
  * Returns:
  * TCL_OK or TCL_ERROR, with result in interpreter.
  */
-static CffiResult
+CffiResult
 CffiStructInstanceCmd(ClientData cdata,
                         Tcl_Interp *ip,
                         int objc,
@@ -2725,7 +2731,7 @@ error_exit:
  * Returns:
  * TCL_OK or TCL_ERROR, with result in interpreter.
  */
-static CffiResult
+CffiResult
 CffiUnionInstanceCmd(ClientData cdata,
                      Tcl_Interp *ip,
                      int objc,
@@ -2812,22 +2818,22 @@ CffiStructOrUnionObjCmd(ClientData cdata,
     CffiStruct *structP = NULL;
     CffiStructCmdCtx *structCtxP;
     static const Tclh_SubCommand structCommands[] = {
-        {"new", 1, 4, "STRUCTDEF ?-clear? ?-pack N?", NULL},
-        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear? ?-pack N?", NULL},
+        {"new", 1, 4, "STRUCTDEF ?-clear? ?-document DOCSTRING? ?-pack N?", NULL},
+        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear? ?-document DOCSTRING? ?-pack N?", NULL},
         {NULL}
     };
     static const Tclh_SubCommand unionCommands[] = {
-        {"new", 1, 4, "STRUCTDEF ?-clear?", NULL},
-        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear?", NULL},
+        {"new", 1, 4, "STRUCTDEF ?-clear? ?-document DOCSTRING?", NULL},
+        {"create", 2, 5, "OBJNAME STRUCTDEF ?-clear? ?-document DOCSTRING?", NULL},
         {NULL}
     };
     Tcl_Obj *cmdNameObj;
     Tcl_Obj *defObj;
     int cmdIndex;
     int optIndex, objIndex;
-    enum OPT { CLEAR, PACK };
-    static const char *const structOpts[] = {"-clear", "-pack", NULL};
-    static const char *const unionOpts[] = {"-clear", NULL};
+    enum OPT { CLEAR, DOCUMENT, PACK };
+    static const char *const structOpts[] = {"-clear", "-document", "-pack", NULL};
+    static const char *const unionOpts[] = {"-clear", "-document", NULL};
     int pack;
     int clear;
     int ret;
@@ -2867,6 +2873,7 @@ CffiStructOrUnionObjCmd(ClientData cdata,
     /* See if an option is specified */
     clear = 0;
     pack  = 0;
+    Tcl_Obj *docObj = NULL;
     for (; objIndex < objc; ++objIndex) {
         CHECK(Tcl_GetIndexFromObj(ip,
                                   objv[objIndex],
@@ -2893,11 +2900,17 @@ CffiStructOrUnionObjCmd(ClientData cdata,
                     "-pack option value must be 0, 1, 2, 4, 8 or 16.");
             }
             break;
+        case DOCUMENT:
+            if (objIndex == objc-1)
+                return Tclh_ErrorOptionValueMissing(ip, objv[objIndex], NULL);
+            ++objIndex;
+            docObj = objv[objIndex];
+            break;
         }
     }
 
     ret = CffiStructParse(
-        ipCtxP, cmdNameObj, defObj, baseType, pack, &structP);
+        ipCtxP, cmdNameObj, defObj, docObj, baseType, pack, &structP);
     if (ret == TCL_OK) {
         if (clear)
             structP->flags |= CFFI_F_STRUCT_CLEAR;

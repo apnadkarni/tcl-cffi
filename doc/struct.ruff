@@ -7,13 +7,15 @@ oo::class create ${NS}::Struct {
         #  definition - defines the layout and type of the C struct fields
         #  -clear - clears memory at initialization. See below.
         #  -pack PACKVALUE - changes alignment and padding used for fields.
-        #    See [Structs][::Concepts::Structs].
+        #    See [Packed structs][::Concepts::Packed structs].
+        #  -document DOCSTRING - documentation string that can be retrieved with the
+        #    [rtti] or [help] commands.
         # The created object can be used to pass arguments to and from
         # functions, allocate memory, encode and decode native C structs
         # in memory etc.
         #
         # The $definition argument is a dictionary mapping field names to the
-        # corresponding types. See [Packed structs][::Concepts::Packed structs]
+        # corresponding types. See [Structs][::Concepts::Structs]
         # for more information.
         #
         # The name of the created struct is the same as the name of the

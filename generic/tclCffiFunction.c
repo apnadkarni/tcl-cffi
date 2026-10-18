@@ -1352,6 +1352,9 @@ void CffiFunctionCleanup(CffiFunction *fnP)
         CffiProtoUnref(fnP->protoP);
     if (fnP->cmdNameObj)
         Tcl_DecrRefCount(fnP->cmdNameObj);
+    if (fnP->docObj)
+        Tcl_DecrRefCount(fnP->docObj);
+
 }
 
 /* Function: CffiDefaultErrorHandler
@@ -2392,6 +2395,7 @@ CffiFunctionNew(CffiInterpCtx *ipCtxP,
                 CffiProto *protoP,
                 CffiLibCtx *libCtxP,
                 Tcl_Obj *cmdNameObj,
+                Tcl_Obj *docObj,
                 void *fnAddr)
 {
     CffiFunction *fnP = ckalloc(sizeof(*fnP));
@@ -2408,6 +2412,9 @@ CffiFunctionNew(CffiInterpCtx *ipCtxP,
     if (cmdNameObj)
         Tcl_IncrRefCount(cmdNameObj);
     fnP->cmdNameObj = cmdNameObj;
+    if (docObj)
+        Tcl_IncrRefCount(docObj);
+    fnP->docObj = docObj;
     return fnP;
 }
 
@@ -2463,6 +2470,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
                       Tcl_Obj *cmdNameObj,
                       Tcl_Obj *returnTypeObj,
                       Tcl_Obj *paramsObj,
+                      Tcl_Obj *docObj,
                       CffiABIProtocol abi)
 {
     Tcl_Obj *fqnObj;
@@ -2495,7 +2503,7 @@ CffiDefineOneFunction(Tcl_Interp *ip,
 #endif
 
     fqnObj = Tclh_NsQualifyNameObj(ip, cmdNameObj, NULL);
-    fnP    = CffiFunctionNew(ipCtxP, protoP, libCtxP, fqnObj, fnAddr);
+    fnP    = CffiFunctionNew(ipCtxP, protoP, libCtxP, fqnObj, docObj, fnAddr);
     CffiFunctionRef(fnP); /* Will be unref-ed on command deletion */
 
     Tcl_CreateObjCommand(ip,
@@ -2534,6 +2542,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                              Tcl_Obj *nameObj,
                              Tcl_Obj *returnTypeObj,
                              Tcl_Obj *paramsObj,
+                             Tcl_Obj *docObj,
                              CffiABIProtocol callMode,
                              int flags)
 {
@@ -2566,6 +2575,7 @@ CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                                  cmdNameObj,
                                  returnTypeObj,
                                  paramsObj,
+                                 docObj,
                                  callMode);
 }
 

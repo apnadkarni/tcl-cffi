@@ -20,7 +20,7 @@ dnl	to configure the system for the local environment.
 #-----------------------------------------------------------------------
 
 # Leave a space after the comma for release.cmd to parse
-AC_INIT([cffi], [2.0.4])
+AC_INIT([cffi], [2.1.0])
 
 #--------------------------------------------------------------------
 # Call TEA_INIT as the first TEA_ macro to set up initial vars.
@@ -78,19 +78,19 @@ TEA_ADD_SOURCES([generic/tclCffi.c \
                      generic/tclCffiCallback.c \
                      generic/tclCffiEnum.c \
                      generic/tclCffiFunction.c \
-                     generic/tclCffiHelp.c \
                      generic/tclCffiInterface.c \
                      generic/tclCffiLoad.c \
                      generic/tclCffiMemory.c \
                      generic/tclCffiNames.c \
                      generic/tclCffiPointer.c \
                      generic/tclCffiPrototype.c \
+                     generic/tclCffiRtti.c \
                      generic/tclCffiStruct.c \
                      generic/tclCffiTclh.c \
                      generic/tclCffiTypes.c \
                      generic/tclCffiWrapper.c])
 TEA_ADD_HEADERS([])
-TEA_ADD_INCLUDES([-I${srcdir}/generic -I${srcdir}/tclh/include])
+TEA_ADD_INCLUDES([-I. -I${srcdir}/generic -I${srcdir}/tclh/include])
 TEA_ADD_STUB_SOURCES([])
 TEA_ADD_TCL_SOURCES([])
 

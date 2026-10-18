@@ -4,16 +4,16 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "d:/tcl/90/x64-debug/include"
+                "c:/tcl/9.0.0/x64-debug/include"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
                 "BUILD_cffi",
-                "IOCP_ENABLE_ASSERT",
+                "CFFI_ENABLE_ASSERT",
                 "PACKAGE_NAME=\"cffi\"",
-                "PACKAGE_VERSION=\"0.1\"",
+                "PACKAGE_VERSION=\"2.1\"",
                 "TCLH_IMPL",
                 "TCLH_EMBEDDER=\"CFFI\"",
                 "CFFI_USE_DYNCALL",

@@ -1,4 +1,4 @@
-# (c) 2021-2023 Ashok P. Nadkarni
+# (c) 2021-2026 Ashok P. Nadkarni
 # See LICENSE for license terms.
 #
 # This file contains basic version and configuration tests
@@ -6,10 +6,12 @@
 source [file join [file dirname [info script]] common.tcl]
 
 namespace eval ${NS}::test {
+    variable type
+
     # version
     test version-0 {Version check} -body {
         uplevel #0 package require cffi
-    } -result 2.0.3
+    } -result 2.1.0
 
     # pkgconfig
     test pkgconfig-list-0 {pkgconfig list} -body {
@@ -41,210 +43,6 @@ namespace eval ${NS}::test {
             cffi::limits $type
         } -result {Invalid or non-integral type specified.} -returnCodes error
     }
-
-    # help
-    testsubcmd ::cffi::help
-    testnumargs help-function "cffi::help function" "NAME" ""
-    testnumargs help-functions "cffi::help functions" "" "?PATTERN?"
-    testnumargs help-function "cffi::help struct" "NAME" ""
-    testnumargs help-function "cffi::help union" "NAME" ""
-    testnumargs help-function "cffi::help enum" "NAME" ""
-    testnumargs help-function "cffi::help alias" "NAME" ""
-
-    test help-function-0 {help no args} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function int_to_int int {}
-    } -cleanup {
-        rename int_to_int {}
-    } -body {
-        cffi::help function int_to_int
-    } -result "Syntax: int_to_int -> int"
-    test help-function-1 {help with args} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function int_to_int int {i int s {struct.::TestStruct byref} d {double out}}
-    } -cleanup {
-        rename int_to_int {}
-    } -body {
-        cffi::help function int_to_int
-    } -result "Syntax: int_to_int i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
-    test help-function-2 {help function alias} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function {int_to_int xx} int {i int s {struct.::TestStruct byref} d {double out}}
-    } -cleanup {
-        rename xx {}
-    } -body {
-        cffi::help function xx
-    } -result "Syntax: xx i s d -> int\n  i: int in\n  s: struct.::TestStruct in byref\n  d: double out byref"
-    test help-function-3 {help void return} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function int_to_int void {}
-    } -cleanup {
-        rename int_to_int {}
-    } -body {
-        cffi::help function int_to_int
-    } -result "Syntax: int_to_int"
-    test help-function-4 {help discard return} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function int_to_int {int discard} {}
-    } -cleanup {
-        rename int_to_int {}
-    } -body {
-        cffi::help function int_to_int
-    } -result "Syntax: int_to_int"
-    test help-function-5 {help with retval} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function int_to_int void {i {int retval} s {struct.::TestStruct byref} d {double out}}
-    } -cleanup {
-        rename int_to_int {}
-    } -body {
-        cffi::help function int_to_int
-    } -result "Syntax: int_to_int s d -> int\n  s: struct.::TestStruct in byref\n  d: double out byref"
-    test help-function-6 {help implicit} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function int_to_int int {}
-    } -cleanup {
-        rename int_to_int {}
-    } -body {
-        cffi::help int_to_int
-    } -result "Syntax: int_to_int -> int"
-
-    test help-functions-0 {help functions} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function {int_to_int uu} int {}
-        testDll function uint_to_uint int {}
-        testDll function uchar_to_uchar int {}
-        testDll function schar_to_schar int {}
-    } -cleanup {
-        rename uu {}
-        rename uint_to_uint {}
-        rename uchar_to_uchar {}
-        rename schar_to_schar {}
-    } -body {
-        lsort [cffi::help functions u*]
-    } -result {uchar_to_uchar uint_to_uint uu}
-    test help-functions-1 {help functions no match} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function uint_to_uint int {}
-    } -cleanup {
-        rename uint_to_uint {}
-    } -body {
-        lsort [cffi::help functions x*]
-    } -result {}
-    test help-functions-2 {help functions no match in namespace} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function uint_to_uint int {}
-        testDll function uchar_to_uchar int {}
-    } -cleanup {
-        rename uint_to_uint {}
-        rename uchar_to_uchar {}
-    } -body {
-        list \
-        [namespace eval :: {lsort [cffi::help functions u*]}] \
-        [lsort [cffi::help functions u*]]
-    } -result {{} {uchar_to_uchar uint_to_uint}}
-    set desc {struct ::TestStruct
-  c: schar
-  i: int
-  shrt: short
-  uint: uint
-  ushrt: ushort
-  l: long
-  uc: uchar
-  ul: ulong
-  chars: {chars[11]}
-  ll: longlong
-  unic: {unichars[7]}
-  ull: ulonglong
-  b: {bytes[3]}
-  f: float
-  s: struct.::cffi::test::InnerTestStruct
-  d: double}
-    if {[onwindows]} {
-        append desc \n {  wchars: {winchars[13]}}
-    }
-
-    test help-functions-3 {help functions no args} -setup {
-        # Note bogus params, but no matter, not actually calling
-        testDll function uint_to_uint int {}
-    } -cleanup {
-        rename uint_to_uint {}
-    } -body {
-        lsort [cffi::help functions]
-    } -result {getTestStructSize uint_to_uint}
-
-    test help-struct-0 {help struct} -body {
-        cffi::help struct ::TestStruct
-    } -result $desc
-
-    test help-struct-1 {help struct} -body {
-        cffi::help ::TestStruct
-    } -result $desc
-
-    test help-union-0 {help union} -body {
-        cffi::help union ::TestUnion
-    } -result "union ::TestUnion\x0A  i: int\x0A  dbl: double\x0A  uc: uchar"
-
-    test help-union-1 {help union} -body {
-        cffi::help ::TestUnion
-    } -result "union ::TestUnion\x0A  i: int\x0A  dbl: double\x0A  uc: uchar"
-
-    test help-enum-0 {help enum} -setup {
-        cffi::enum define E {a 1 bb 2}
-    } -cleanup {
-        cffi::enum delete E
-    } -body {
-        cffi::help enum E
-    } -result "enum E\x0A  a\x091\x0A  bb\x092\x0A"
-
-    test help-enum-1 {help enum} -setup {
-        cffi::enum define E {a 1 bb 2}
-    } -cleanup {
-        cffi::enum delete E
-    } -body {
-        cffi::help E
-    } -result "enum E\x0A  a\x091\x0A  bb\x092\x0A"
-
-    test help-alias-0 {help alias} -setup {
-        cffi::alias define A {int bitmask}
-    } -cleanup {
-        cffi::alias delete A
-    } -body {
-        cffi::help alias A
-    } -result "alias A\x0A  int bitmask"
-
-    test help-alias-1 {help alias} -setup {
-        cffi::alias define A {int bitmask}
-    } -cleanup {
-        cffi::alias delete A
-    } -body {
-        cffi::help A
-    } -result "alias A\x0A  int bitmask"
-
-    test help-interface-0 {help interface} -setup {
-        Interface create BaseInterface
-        BaseInterface methods {
-            get int {}
-            set int {a int}
-            delete void {}
-        }
-    } -body {
-        cffi::help interface BaseInterface
-    } -result "Interface ::cffi::test::BaseInterface\n  Methods:\n    ::cffi::test::BaseInterface: get set delete"
-
-    test help-interface-1 {help interface} -setup {
-        Interface create BaseInterface
-        BaseInterface methods {
-            get int {}
-            set int {a int}
-            delete void {}
-        }
-        Interface create DerivedInterface -inherit BaseInterface
-        DerivedInterface methods {
-            setmax int {a int b int}
-        }
-    } -body {
-        cffi::help interface DerivedInterface
-    } -result "Interface ::cffi::test::DerivedInterface\n  Inherits: ::cffi::test::BaseInterface\n  Methods:\n    ::cffi::test::DerivedInterface: setmax\n    ::cffi::test::BaseInterface: get set delete"
 
     #######
 

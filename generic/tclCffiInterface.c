@@ -18,12 +18,17 @@ void CffiInterfaceUnref(CffiInterface *ifcP)
             Tcl_DecrRefCount(ifcP->nameObj);
         if (ifcP->idObj)
             Tcl_DecrRefCount(ifcP->idObj);
+        if (ifcP->docObj)
+            Tcl_DecrRefCount(ifcP->docObj);
         if (ifcP->baseIfcP)
             CffiInterfaceUnref(ifcP->baseIfcP);
         if (ifcP->vtable) {
             for (i = 0; i < ifcP->nMethods; ++i) {
-                CffiProtoUnref(ifcP->vtable[i].protoP);
-                Tcl_DecrRefCount(ifcP->vtable[i].methodNameObj);
+                CffiInterfaceMember *cimP = &ifcP->vtable[i];
+                CffiProtoUnref(cimP->protoP);
+                Tcl_DecrRefCount(cimP->methodNameObj);
+		if (cimP->docObj)
+                    Tcl_DecrRefCount(cimP->docObj);
             }
             Tcl_Free((char *) ifcP->vtable);
         }
@@ -139,6 +144,7 @@ CffiMethodInstanceCmd(ClientData cdata,
                           methodP->ifcP->vtable[methodP->vtableSlot].protoP,
                           NULL,
                           NULL,
+                          NULL,
                           instanceVtablePtr[methodP->vtableSlot]);
     CffiFunctionRef(fnP);
     ret = CffiFunctionCall(fnP, ip, 1, objc, objv);
@@ -154,7 +160,7 @@ CffiInterfaceDestroyCmd(Tcl_Interp *ip,
                         CffiInterface *ifcP)
 {
     /*
-    * objv[0] is the command name for the DLL. Deleteing
+    * objv[0] is the command name for the DLL. Deleting
     * the command will also release associated resources
     */
     if (Tcl_DeleteCommand(ip, Tcl_GetString(objv[0])) == 0)
@@ -181,33 +187,23 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
 {
     Tcl_Obj **objs;
     Tcl_Size i, nobjs;
-    CffiResult ret = TCL_OK;
-    static const char *options[] = {"-disposemethod", NULL};
-    enum options_e { DISPOSE };
-    int opt;
+    CffiResult ret        = TCL_OK;
     CffiInterpCtx *ipCtxP = ifcP->ipCtxP;
+    static const char *options[] = {"-disposemethod", "-documented", NULL};
+    enum options_e { DISPOSE, DOCUMENTED };
+    int opt;
+    Tcl_Obj *disposeMethodName = NULL;
+    int disposeMethodMatched   = 0;
+    int documented        = 0;
 
     if (ifcP->vtable) {
         return Tclh_ErrorExists(ip, "Interface method table", objv[0], NULL);
     }
 
-    /* INTERFACECMD methods METHODLIST */
+    /* INTERFACECMD methods METHODLIST ?-disposemethod? ?-documented? */
     assert(objc >= 3);
 
     CHECK(Tcl_ListObjGetElements(ip, objv[2], &nobjs, &objs));
-    if (nobjs % 3) {
-        return Tclh_ErrorInvalidValue(
-            ip, objv[2], "Incomplete method definition list.");
-    }
-
-    Tcl_Size baseSlots = ifcP->baseIfcP ? ifcP->baseIfcP->nMethods : 0;
-    Tcl_Size totalSlots = baseSlots + (nobjs / 3);
-    if (totalSlots == 0) {
-        return Tclh_ErrorInvalidValue(ip, ifcP->nameObj, "Method list is empty.");
-    }
-
-    Tcl_Obj *disposeMethodName = NULL;
-    int disposeMethodMatched   = 0;
 
     for (i = 3; i < objc; ++i) {
         if (Tcl_GetIndexFromObj(ip, objv[i], options, "option", 0, &opt) != TCL_OK)
@@ -222,7 +218,22 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
             }
             disposeMethodName = objv[i];
             break;
+        case DOCUMENTED:
+            documented = 1;
         }
+    }
+
+	/* methjod definition: name type params ?document? */
+    int stride = 3 + documented;
+    if (nobjs % stride) {
+        return Tclh_ErrorInvalidValue(
+            ip, objv[2], "Incomplete method definition list.");
+    }
+
+    Tcl_Size baseSlots = ifcP->baseIfcP ? ifcP->baseIfcP->nMethods : 0;
+    Tcl_Size totalSlots = baseSlots + (nobjs / stride);
+    if (totalSlots == 0) {
+        return Tclh_ErrorInvalidValue(ip, ifcP->nameObj, "Method list is empty.");
     }
 
     Tcl_Size methodSlot;
@@ -241,7 +252,7 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
     Tcl_IncrRefCount(selfTypeObj);
 
     /* Start initializing leaving space for base (inherited) slots */
-    for (i = 0, methodSlot = baseSlots; i < nobjs; i += 3, methodSlot += 1) {
+    for (i = 0, methodSlot = baseSlots; i < nobjs; i += stride, methodSlot += 1) {
         if (!strcmp("#", Tcl_GetString(objs[i])))
             continue; /* Comment */
 
@@ -299,6 +310,12 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
         CffiProtoRef(protoP);
         ifcMembers[methodSlot].methodNameObj = objs[i];
         Tcl_IncrRefCount(objs[i]);
+        if (documented) {
+            Tcl_IncrRefCount(objs[i + 3]);
+            ifcMembers[methodSlot].docObj = objs[i + 3];
+        } else {
+            ifcMembers[methodSlot].docObj = NULL;
+        }
 
         CffiMethod *methodP = (CffiMethod *)Tcl_Alloc(sizeof(*methodP));
         methodP->cmdNameObj = methodNameObj; /* Already incr ref-ed */
@@ -331,6 +348,9 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
                 Tcl_IncrRefCount(ifcMembers[i].methodNameObj);
                 ifcMembers[i].protoP = baseIfcP->vtable[i].protoP;
                 CffiProtoRef(ifcMembers[i].protoP);
+                ifcMembers[i].docObj = baseIfcP->vtable[i].docObj;
+                if (ifcMembers[i].docObj)
+                    Tcl_IncrRefCount(ifcMembers[i].docObj);
             }
         }
 
@@ -355,6 +375,8 @@ CffiInterfaceMethodsHelper(Tcl_Interp *ip,
 
             CffiProtoUnref(ifcMembers[i].protoP);
             Tcl_DecrRefCount(ifcMembers[i].methodNameObj);
+            if (ifcMembers[i].docObj)
+                Tcl_DecrRefCount(ifcMembers[i].docObj);
         }
         CffiInterfaceUnref(ifcP);
         Tcl_Free((char *) ifcMembers);
@@ -431,11 +453,12 @@ CffiInterfaceCreateCmd(ClientData cdata,
                        Tcl_Obj *const objv[])
 {
     CffiInterface *ifcP;
-    static const char *options[] = {"-inherit", "-id", NULL};
-    enum options_e { INHERIT, ID };
+    static const char *options[] = {"-inherit", "-id", "-document", NULL};
+    enum options_e { INHERIT, ID, DOCUMENT };
     int opt;
     CffiInterface *baseIfcP = NULL;
-    Tcl_Obj       *idObj    = NULL;
+    Tcl_Obj *idObj          = NULL;
+    Tcl_Obj *docObj         = NULL;
     int i;
     const char *s;
 
@@ -463,6 +486,9 @@ CffiInterfaceCreateCmd(ClientData cdata,
         case ID:
             idObj = objv[i];
             break;
+        case DOCUMENT:
+            docObj = objv[i];
+            break;
         }
     }
 
@@ -479,6 +505,10 @@ CffiInterfaceCreateCmd(ClientData cdata,
     ifcP->idObj    = idObj;
     if (idObj)
         Tcl_IncrRefCount(idObj);
+
+    ifcP->docObj = docObj;
+    if (docObj)
+        Tcl_IncrRefCount(docObj);
 
     ifcP->baseIfcP = baseIfcP;
     if (baseIfcP) {

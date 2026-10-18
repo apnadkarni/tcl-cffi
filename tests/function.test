@@ -18,12 +18,19 @@ namespace eval ${NS}::test {
     variable temp
     variable temp2
 
-    testnumargs function "testDll function" "NAME RETURNTYPE PARAMDEFS" ""
+    testnumargs function "testDll function" "NAME RETURNTYPE PARAMDEFS" "?DOC?"
 
     test function-noargs-0 {Basic function definition} -cleanup {
         rename noargs {}
     } -body {
         testDll function noargs int {}
+        noargs
+    } -result 42
+
+    test function-noargs-1 {Basic function definition with docstring} -cleanup {
+        rename noargs {}
+    } -body {
+        testDll function noargs int {} {this is the doc string}
         noargs
     } -result 42
 
@@ -121,6 +128,22 @@ namespace eval ${NS}::test {
         $fn 1 2
     } -result 0.5
 
+    test stdcall-1 {stdcall with docs} -body {
+
+        if {[onwindows] && [pointer32]} {
+            # VC++ has _, mingw does not
+            set fn _stdcalltest@16
+            if {[catch {testDll stdcall $fn double {a double b double} {doc string}}]} {
+                set fn stdcalltest@16
+                testDll stdcall $fn double {a double b double} {doc string}
+            }
+        } else {
+            set fn stdcalltest
+            testDll stdcall stdcalltest double {a double b double}
+        }
+        $fn 1 2
+    } -result 0.5
+
     test functions-0 {Multiple functions} -cleanup {
         rename onearg {}
         rename twoargs-alias {}
@@ -190,6 +213,16 @@ namespace eval ${NS}::test {
         list [int_to_int 42] [double_to_double 99]
     } -result {42 99.0}
 
+    test functions-6 {Multiple functions with docs} -cleanup {
+        rename onearg {}
+        rename twoargs-alias {}
+    } -body {
+        testDll functions {
+            onearg int {a int} {onearg docs}
+            {twoargs twoargs-alias} int {a int b int} {twoargs docs}
+        } -documented
+        list [onearg 2] [twoargs-alias 1 2] [catch {twoargs 1 2}] [catch {uplevel #0 onearg 0}]
+    } -result {-2 3 1 1}
 
     test functions-error-0 {Multiple functions - invalid count} -body {
         testDll functions {onearg}
@@ -281,6 +314,31 @@ namespace eval ${NS}::test {
         $fn 1.0 2
     } -result 0.5
 
+    test stdcalls-4 {Multiple stdcalls with docs} -cleanup {
+        rename $fn {}
+        rename stdcall-alias {}
+    } -body {
+        if {[onwindows] && [pointer32]} {
+            set fn _stdcalltest@16
+        } else {
+            set fn stdcalltest
+        }
+        set fnlist [list \
+                        $fn double {a double b double} {doc string} \
+                        [list $fn stdcall-alias] double {a double b double} {doc string} \
+                       ]
+        if {[catch {testDll stdcalls $fnlist -documented}] && $fn eq "_stdcalltest@16"} {
+            # Mingw does not prefix _
+            set fn stdcalltest@16
+            set fnlist [list \
+                            $fn double {a double b double} {doc string}\
+                            [list $fn stdcall-alias] double {a double b double} {doc string} \
+                           ]
+            testDll stdcalls $fnlist -documented
+        }
+
+        list [$fn 1.0 2] [stdcall-alias 1 4.0] [catch [list uplevel #0 $fn 1 2]]
+    } -result {0.5 0.25 1}
     # Basic type conversion to test input parameters and return types
 
     foreach type [linsert $numericTypes end string] {

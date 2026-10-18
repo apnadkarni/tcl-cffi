@@ -36,12 +36,13 @@ oo::class create ${NS}::Wrapper {
         #   symbol - name of the symbol
         # The command will raise an error if the symbol is not found.
     }
-    method function {fnname fntype parameters} {
+    method function {fnname fntype parameters {docstring {}}} {
         # Creates a Tcl command to invoke a C function in the loaded library.
         #  fnname - name of the function and optionally, Tcl command
         #  fntype - The type definition for the return value from the function
         #  parameters - List of alternating parameter name and type definitions
-        #
+        #  docstring - documentation string that can be retrieved with the
+        #    [rtti] or [help] commands.
         # The command creates a Tcl command corresponding to a C function
         # contained in the library. The function must be one that follows the
         # default C calling convention (See [Calling conventions]).
@@ -73,12 +74,14 @@ oo::class create ${NS}::Wrapper {
         #
         # Returns the name of the created Tcl command.
     }
-    method stdcall {fnname fntype parameters} {
+    method stdcall {fnname fntype parameters {docstring {}}} {
         # Creates a Tcl command to invoke a C function that uses the
         # `__stdcall` calling convention from the loaded library..
         #  fnname - name of the function and optionally, Tcl command
         #  fntype - The type definition for the return value from the function
         #  parameters - List of alternating parameter name and type definitions
+        #  docstring - documentation string that can be retrieved with the
+        #    [rtti] or [help] commands.
         #
         # The command creates a Tcl command corresponding to a C function
         # contained in the library. The function must be one that follows the
@@ -95,36 +98,39 @@ oo::class create ${NS}::Wrapper {
         # Creates Tcl commands for multiple C functions within the loaded library.
         #  fnlist - list of function definitions
         #  -ignoremissing - do not raise an error if a function is not found
+        #  -documented - specifies each function definition has a documentation
+        #   string element.
         # This is a wrapper around the [function] method that provides some
-        # syntactic sugar for defining multiple functions. The $fnlist
+        # syntactic sugar for defining multiple functions. By default, the $fnlist
         # argument is a flat (not nested) list of function name, return type and
         # parameter list in the same form as described for the [function]
-        # method.
+        # method. If the `-documented` option is specified, a document string should
+        # follow the parameter list for each function.
         #
         # If a function is not found, the command will raise an error but those
         # functions that are found will be defined. The error can be completely
         # suppressed with the `-ignoremissing` option.
         #
-        # If the function name element is `#`, the triple is ignored, effectively
-        # being considered a comment.
+        # If the function name element is `#`, the remaining elements of that
+        # definition are ignored.
     }
     method stdcalls {fnlist args} {
         # Creates Tcl commands for multiple C functions within the loaded library
         # that all use the `__stdcall` calling convention.
         #  fnlist - list of function definitions
         #  -ignoremissing - do not raise an error if a function is not found
+        #  -documented - specifies each function definition has a documentation
+        #   string element.
         # This is a wrapper around the [stdcall] method that provides some
         # syntactic sugar for defining multiple functions. The $fnlist
-        # argument is a flat (not nested) list of function name, return type and
-        # parameter list in the same form as described for the [stdcall]
-        # method.
+        # argument has the same form as described for the [functions] method.
         #
         # If a function is not found, the command will raise an error but those
         # functions that are found will be defined. The error can be completely
         # suppressed with the `-ignoremissing` option.
         #
-        # If the function name element is `#`, the triple is ignored, effectively
-        # being considered a comment.
+        # If the function name element is `#`, the remaining elements of that
+        # definition are ignored.
     }
 }
 

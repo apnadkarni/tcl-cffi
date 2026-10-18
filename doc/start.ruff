@@ -9,11 +9,10 @@ set start_page {
     arbitrary functions from any dynamically linked shared library without
     having to write C code.
 
-    Calling a C function from a shared library (or DLL, using the term
-    interchangeably) using `cffi` involves
+    Calling a C function from a shared library using `cffi` involves
 
     - Loading the library into the process by instantiating a [::cffi::Wrapper]
-      object.
+    object.
 
     - Defining commands that wrap the C functions of interest through method
     calls on the [Wrapper][::cffi::Wrapper] object.
@@ -677,20 +676,25 @@ set start_page {
 
     ### Introspection
 
-    The package includes a `help` command ensemble that is useful during
-    interactive development. The [::cffi::help function] command describes
-    the syntax for a command wrapping a C function.
+    Introspection is possible through the [::cffi::rtti] command which returns
+    metadata for various program element types.
+
+    ```
+    % cffi::rtti functions Heap*
+    HeapAlloc HeapCreate HeapDestroy
+    % cffi::rtti function HeapAlloc
+    Type function Name HeapAlloc Params {{Name heapPtr Type {pointer.::HEAP in}} {Name flags Type {uint in}} {Name size Type {ulonglong in}}} Return pointer
+    ```
+
+    As an aid during interactive development, the [::cffi::help] command makes
+    the same information available in a more friendly format.
 
     ````
-    % cffi::help function GetWindowRect
-    Syntax: GetWindowRect hwnd rect
-    ````
-
-    The [::cffi::help functions] command lists wrapped functions matching a pattern.
-
-    ````
-    % cffi::help functions Heap*
-    HeapCreate HeapDestroy
+    % cffi::help function HeapAlloc
+    Syntax: HeapAlloc heapPtr flags size -> pointer
+    heapPtr: pointer.::HEAP in
+    flags: uint in
+    size: ulonglong in
     ````
 
     ### Limitations

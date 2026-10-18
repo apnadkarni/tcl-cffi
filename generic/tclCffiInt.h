@@ -353,6 +353,7 @@ typedef enum CffiStructFlags {
  */
 struct CffiStruct {
     Tcl_Obj *name;              /* Struct type name */
+    Tcl_Obj *docObj;		/* Documentation string. May be NULL. */
 #ifdef CFFI_USE_LIBFFI
     CffiLibffiStruct *libffiTypes; /* Corresponding libffi type descriptors */
 #endif
@@ -508,6 +509,7 @@ typedef struct CffiFunction {
     CffiLibCtx *libCtxP;   /* Containing library for bound functions or
                               NULL for free standing functions */
     Tcl_Obj *cmdNameObj;   /* Name of Tcl command. May be NULL */
+    Tcl_Obj *docObj;       /* Function documentation */
     int nRefs;             /* Reference count */
 } CffiFunction;
 
@@ -541,6 +543,7 @@ typedef struct CffiArgument {
 typedef struct CffiInterfaceMember {
     CffiProto *protoP;
     Tcl_Obj *methodNameObj;
+    Tcl_Obj *docObj;       /* Method documentation */
 } CffiInterfaceMember;
 
 /* Struct: CffiInterface
@@ -550,6 +553,7 @@ typedef struct CffiInterface {
     CffiInterpCtx *ipCtxP;
     Tcl_Obj *nameObj;
     Tcl_Obj *idObj;
+    Tcl_Obj *docObj;
     struct CffiInterface *baseIfcP;
     int nRefs;
     int nMethods; /* Size of vtable[] */
@@ -1075,6 +1079,7 @@ CffiFunction *CffiFunctionNew(CffiInterpCtx *ipCtxP,
                               CffiProto *protoP,
                               CffiLibCtx *libCtxP,
                               Tcl_Obj *cmdNameObj,
+                              Tcl_Obj *docObj,
                               void *fnAddr);
 CffiResult CffiFunctionCall(ClientData cdata,
                             Tcl_Interp *ip,
@@ -1099,17 +1104,20 @@ CffiResult CffiDefineOneFunctionFromLib(Tcl_Interp *ip,
                                         Tcl_Obj *nameObj,
                                         Tcl_Obj *returnTypeObj,
                                         Tcl_Obj *paramsObj,
+                                        Tcl_Obj *docObj,
                                         CffiABIProtocol callMode,
                                         int flags);
 
 Tcl_ObjCmdProc CffiMethodInstanceCmd;
 Tcl_ObjCmdProc CffiInterfaceInstanceCmd;
+Tcl_ObjCmdProc CffiStructInstanceCmd;
+Tcl_ObjCmdProc CffiUnionInstanceCmd;
 
 Tcl_ObjCmdProc CffiAliasObjCmd;
 Tcl_ObjCmdProc CffiArenaObjCmd;
 Tcl_ObjCmdProc CffiDyncallSymbolsObjCmd;
 Tcl_ObjCmdProc CffiEnumObjCmd;
-Tcl_ObjCmdProc CffiHelpObjCmd;
+Tcl_ObjCmdProc CffiRttiObjCmd;
 Tcl_ObjCmdProc CffiInterfaceObjCmd;
 Tcl_ObjCmdProc CffiMemoryObjCmd;
 Tcl_ObjCmdProc CffiPointerObjCmd;

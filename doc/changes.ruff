@@ -1,5 +1,17 @@
 namespace eval {Change log} {
     variable _ruff_preamble {
+        ## Changes in v2.x
+
+        - New command [::cffi::rtti] to return metadata about program elements.
+
+        - Functions, interfaces, structs and unions may have documentation
+        strings attached.
+
+        - Commands `help functions` and `help stdcalls` removed. Use [::cffi::rtti]
+        instead. The content of returned by other `help` commands has changed.
+        *Incompatibility*.
+
+
         ## Changes in v2.0
 
         ### Platform and backends

@@ -11,6 +11,8 @@ oo::class create ${NS}::Interface {
         #   caller's use and CFFI does not make any use of it. For COM, this
         #   can be used to associate the GUID or IID for the interface. Defaults
         #   to the empty string.
+        #  -document DOCSTRING - documentation string that can be retrieved with the
+        #    [rtti] or [help] commands.
         #
         # See [Interfaces][::Concepts::Interfaces] for more information.
     }
@@ -21,8 +23,10 @@ oo::class create ${NS}::Interface {
     method methods {methodlist args} {
         # Creates Tcl commands wrapping the C functions comprising an interface.
         #  methodlist - list of function definitions.
-        #  -disposemethod METHODNAMDE - the name of the method, if any, whose
+        #  -disposemethod METHODNAME - the name of the method, if any, whose
         #    implicit pointer parameter should be annotated with `dispose`.
+        #  -documented - specifies each method definition has a documentation
+        #   string element.
         #
         # The C functions in the wrapper are presumed to be using the `_cdecl`
         # calling convention. The created commands are of the form
@@ -37,6 +41,9 @@ oo::class create ${NS}::Interface {
         # return type and parameter list in the same form as described for the
         # [::cffi::Wrapper::function] method except that the first parameter
         # in the C function, the pointer to the object, should not be included.
+        # The `-documented` option indicates an additional element in each
+        # method definition. This should be the documentation string for the
+        # method.
         #
         # See also: [stdmethods]
     }
@@ -44,8 +51,10 @@ oo::class create ${NS}::Interface {
         # Creates Tcl commands corresponding to the C functions comprising an
         # interface.
         #  methodlist - list of function definitions.
-        #  -disposemethod METHODNAMDE - the name of the method, if any, whose
+        #  -disposemethod METHODNAME - the name of the method, if any, whose
         #    implicit pointer parameter should be annotated with `dispose`.
+        #  -documented - specifies each method definition has a documentation
+        #   string element.
         #
         # The C functions are presumed to be using the `_stdcall` calling
         # convention. The created commands are of the form
@@ -60,6 +69,9 @@ oo::class create ${NS}::Interface {
         # return type and parameter list in the same form as described for the
         # [::cffi::Wrapper::function] method except that the first parameter
         # in the C function, the pointer to the object, should not be included.
+        # The `-documented` option indicates an additional element in each
+        # method definition. This should be the documentation string for the
+        # method.
         #
         # See also: [methods]
     }

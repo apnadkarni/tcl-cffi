@@ -41,10 +41,14 @@ namespace eval ${NS}::prototype {
         # See also: [::cffi::Wrapper.stdcall]
     }
     proc list {{pattern *}} {
-        # Returns a list of prototypes matching the specified pattern.
+        # Lists prototype names.
         #  pattern - pattern to match
-        # The pattern matching algorithm is the same as that of Tcl's
-        # `string match` command.
+        # The command returns the names of all prototypes resolved
+        # in the caller's namespace that match the specified pattern.
+        #  - the tail of the pattern must match the tail of the prototype name
+        #    using Tcl's glob pattern matching rules.
+        #  - the scope component of the prototype name must match exactly.
+        # Returns list of prototype names.
     }
     proc delete {pattern} {
         # Deletes prototypes matching a pattern.

@@ -6,6 +6,7 @@
  */
 
 #include "tclCffiInt.h"
+#include "tclCffiScripts.h"
 
 static Tcl_Config cffiConfig[] = {
 #if defined(CFFI_USE_DYNCALL)
@@ -96,7 +97,7 @@ CffiCallObjCmd(ClientData cdata,
             ip, "Prototype", objv[1], "Function prototype not found.");
     }
 
-    fnP = CffiFunctionNew(ipCtxP, protoP, NULL, NULL, fnAddr);
+    fnP = CffiFunctionNew(ipCtxP, protoP, NULL, NULL, NULL, fnAddr);
     CffiFunctionRef(fnP);
     ret = CffiFunctionCall(fnP, ip, 2, objc, objv);
     CffiFunctionUnref(fnP);
@@ -215,18 +216,19 @@ CffiSavedErrorsObjCmd(ClientData cdata,
     return TCL_OK;
 }
 
-
 static CffiResult
-CffiSandboxObjCmd(ClientData cdata,
-                  Tcl_Interp *ip,
-                  int objc,
-                  Tcl_Obj *const objv[])
+CffiHelpObjCmd(ClientData cdata,
+               Tcl_Interp *ip,
+               int objc,
+               Tcl_Obj *const objv[])
 {
     int ret;
-    Tcl_WideInt wide;
-    ret = Tclh_ObjToWideInt(ip, objv[1], &wide);
+    /* Source the real implementation */
+    ret = Tcl_EvalEx(
+        ip, arr_cffi_tcl, arr_cffi_tcl_len, TCL_EVAL_DIRECT | TCL_EVAL_GLOBAL);
     if (ret == TCL_OK) {
-        Tcl_SetObjResult(ip, Tcl_NewWideIntObj(wide));
+        /* Now call the real implementation with the arguments */
+        ret = Tcl_EvalObjv(ip, objc, objv, 0);
     }
     return ret;
 }
@@ -389,7 +391,7 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::pointer", CffiPointerObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::help", CffiHelpObjCmd, ipCtxP, NULL);
+        ip, CFFI_NAMESPACE "::rtti", CffiRttiObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::limits", CffiLimitsObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
@@ -397,7 +399,7 @@ Cffi_Init(Tcl_Interp *ip)
     Tcl_CreateObjCommand(
         ip, CFFI_NAMESPACE "::savederrors", CffiSavedErrorsObjCmd, ipCtxP, NULL);
     Tcl_CreateObjCommand(
-        ip, CFFI_NAMESPACE "::sandbox", CffiSandboxObjCmd, NULL, NULL);
+        ip, CFFI_NAMESPACE "::help", CffiHelpObjCmd, NULL, NULL);
 
     Tcl_CallWhenDeleted(ip, CffiFinit, ipCtxP);
 
